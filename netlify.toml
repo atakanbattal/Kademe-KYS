@@ -1,10 +1,14 @@
 [build]
-  publish = "src/frontend/kys-frontend/build"
-  command = "cd src/frontend/kys-frontend && npm install && npm run build"
+  base = "src/frontend/kys-frontend"
+  publish = "build"
+  command = "npm install && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
   NPM_VERSION = "9"
+  REACT_APP_API_URL = "https://kademe-kys-production.up.railway.app/api"
+  REACT_APP_NAME = "Kademe KYS"
+  REACT_APP_VERSION = "1.0.0"
 
 [[redirects]]
   from = "/*"
@@ -12,7 +16,7 @@
   status = 200
 
 [context.production]
-  command = "cd src/frontend/kys-frontend && npm install && npm run build"
+  command = "npm install && npm run build"
 
 [context.deploy-preview]
-  command = "cd src/frontend/kys-frontend && npm install && npm run build" 
+  command = "npm install && npm run build" 
