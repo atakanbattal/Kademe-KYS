@@ -7,7 +7,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://your-backend-url.railway.app/api/:splat"
+  to = "https://web-production-3c77.up.railway.app/api/:splat"
   status = 200
   force = true
 
@@ -17,10 +17,10 @@
   status = 200
 
 [context.production.environment]
-  VITE_API_URL = "https://your-backend-url.railway.app"
+  VITE_API_URL = "https://web-production-3c77.up.railway.app"
 
 [context.preview.environment]
-  VITE_API_URL = "https://your-backend-url.railway.app"
+  VITE_API_URL = "https://web-production-3c77.up.railway.app"
 
 [[headers]]
   for = "/*"

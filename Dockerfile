@@ -1,30 +1,33 @@
-# Node.js 18 Alpine 
+# ===================================
+# KALİTE YÖNETİM SİSTEMİ - DOCKERFILE
+# ===================================
+
 FROM node:18-alpine
 
-# Çalışma dizini
+# Set working directory
 WORKDIR /app
 
-# Package files kopyala
+# Copy package files for caching
 COPY package*.json ./
+COPY src/backend/package*.json ./src/backend/
 
-# Dependencies yükle (production only)
-RUN npm ci --omit=dev
+# Install root dependencies and backend dependencies
+RUN npm ci --only=production && \
+    cd src/backend && \
+    npm ci --only=production
 
-# TypeScript ve build dependencies ekle
-RUN npm install --save-dev typescript ts-node
+# Copy backend source code
+COPY src/backend/ ./src/backend/
 
-# Source code kopyala
-COPY . .
+# Build the application
+RUN cd src/backend && npm run build
 
-# TypeScript build
-RUN npm run build
-
-# Port ayarla
-EXPOSE 5003
+# Expose port
+EXPOSE $PORT
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5003/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+HEALTHCHECK --interval=30s --timeout=30s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:$PORT/health || exit 1
 
-# Start command
+# Start the application
 CMD ["npm", "start"] 
