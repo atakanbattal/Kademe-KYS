@@ -1,16 +1,23 @@
+# Railway.app Deployment Configuration
 build:
-  buildCommand: |
-    cd src/backend && npm install && npm run build
-    npm install && npm run build
+  buildCommand: "cd src/backend && npm ci && npm run build"
+  workingDirectory: "src/backend"
 
 deploy:
-  startCommand: cd src/backend && npm start
-  healthcheckPath: /health
-  healthcheckTimeout: 300
+  startCommand: "cd src/backend && npm start"
+  workingDirectory: "src/backend"
 
-environment:
-  NODE_ENV: production
-  PORT: 5003
+env:
+  NODE_ENV: "production"
+  PORT: "$PORT"
+  
+# Build settings
+settings:
+  generateStaticWebsite: false
+  buildPath: "src/backend"
+  installCommand: "npm ci"
+  buildCommand: "npm run build"
+  startCommand: "npm start"
 
 services:
   - name: kys-backend

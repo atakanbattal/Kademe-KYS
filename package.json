@@ -4,13 +4,20 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3005",
-    "start": "vite --port 3005",
-    "build": "tsc && vite build",
+    "frontend:dev": "vite --port 3005",
+    "frontend:start": "vite --port 3005",
+    "frontend:build": "tsc && vite build",
+    "backend:install": "cd src/backend && npm ci",
+    "backend:build": "cd src/backend && npm run build",
+    "backend:start": "cd src/backend && npm start",
+    "backend:dev": "cd src/backend && npm run dev",
+    "postinstall": "npm run backend:install && npm run backend:build",
+    "build": "npm run backend:build",
+    "start": "npm run backend:start",
+    "dev": "npm run backend:dev",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview --port 3005",
     "netlify:dev": "netlify dev",
-    "netlify:build": "npm run build && netlify build"
+    "netlify:build": "npm run frontend:build && netlify build"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
