@@ -7,20 +7,15 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files for caching
-COPY package*.json ./
-COPY src/backend/package*.json ./src/backend/
+# Copy backend files only
+COPY src/backend/package*.json ./
+COPY src/backend/ ./
 
-# Install root dependencies and backend dependencies
-RUN npm ci --only=production && \
-    cd src/backend && \
-    npm ci --only=production
-
-# Copy backend source code
-COPY src/backend/ ./src/backend/
+# Install dependencies
+RUN npm install --production
 
 # Build the application
-RUN cd src/backend && npm run build
+RUN npm run build
 
 # Expose port
 EXPOSE $PORT
