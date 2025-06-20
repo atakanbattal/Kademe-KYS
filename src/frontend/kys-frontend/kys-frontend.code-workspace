@@ -1,0 +1,35 @@
+{
+  "folders": [
+    {
+      "name": "KYS Frontend",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "typescript.preferences.includePackageJsonAutoImports": "on",
+    "typescript.suggest.autoImports": true,
+    "typescript.updateImportsOnFileMove.enabled": "always",
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "typescript.workspaceSymbols.scope": "currentProject",
+    "typescript.format.enable": true,
+    "typescript.validate.enable": true,
+    "typescript.suggest.enabled": true,
+    "typescript.suggest.paths": true,
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/build": true,
+      "**/.git": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/build": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.vscode-typescript-next",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode"
+    ]
+  }
+} 

@@ -2,11 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
 import path from 'path';
-import { connectDB } from './utils/db';
 import config from './config/default';
 
 // Import routes
@@ -20,115 +16,22 @@ dotenv.config();
 
 // Initialize Express app
 const app = express();
-const PORT = config.port || process.env.PORT || 5003;
+const PORT = config.port || process.env.PORT || 5000;
 
-// Connect to MongoDB
-connectDB();
-
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-}));
-
-// Compression middleware
-app.use(compression());
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-});
-app.use('/api/', limiter);
-
-// CORS configuration - Allow multiple origins
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3005', 
-  'https://thunderous-sunshine-f6ce95.netlify.app',
-  'https://merry-dragon-924246.netlify.app',
-  'https://web-production-3c77.up.railway.app'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      console.log('❌ CORS blocked origin:', origin);
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-}));
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Logging middleware
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
-
-// Health check endpoint
-app.get('/health', async (req, res) => {
-  try {
-    // Check database connection
-    const mongoose = require('mongoose');
-    const dbStatus = mongoose.connection.readyState === 1 ? 'ok' : 'error';
-    
-    res.json({ 
-      status: dbStatus,
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      version: '1.0.0',
-      database: dbStatus === 'ok' ? 'Connected' : 'Not Connected',
-      port: PORT
-    });
-  } catch (error) {
-    res.json({
-      status: 'error',
-      timestamp: new Date().toISOString(),
-      error: 'Database connection failed',
-      message: 'MongoDB Atlas IP whitelist required'
-    });
-  }
+// Basic health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// API status endpoint
-app.get('/api/status', (req, res) => {
-  res.json({
-    message: 'Kalite Yönetim Sistemi API',
-    version: '1.0.0',
-    status: 'active',
-    endpoints: {
-      auth: '/api/auth',
-      materialQuality: '/api/material-quality',
-      tankLeakTest: '/api/tank-leak-test',
-      qualityControlReports: '/api/quality-control-reports'
-    }
-  });
-});
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
 
 // Basic route
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'Kalite Yönetim Sistemi API',
-    version: '1.0.0',
-    documentation: '/api/status'
-  });
+  res.json({ message: 'Entegre Kalite Yönetim Sistemi API' });
 });
 
 // API routes
@@ -137,70 +40,37 @@ app.use('/api/material-quality', materialQualityControlRoutes);
 app.use('/api/tank-leak-test', tankLeakTestRoutes);
 app.use('/api/quality-control-reports', qualityControlReportRoutes);
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
-  
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
-  });
-}
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    message: 'Endpoint not found',
-    path: req.originalUrl,
-    method: req.method
-  });
-});
-
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Error:', err);
-  
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  
-  res.status(statusCode).json({
-    success: false,
-    message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode);
+  res.json({
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
 });
 
 // Graceful shutdown handling
-const gracefulShutdown = () => {
-  console.log('Received shutdown signal. Shutting down gracefully...');
-  server.close(() => {
-    console.log('HTTP server closed.');
-    process.exit(0);
-  });
-  
-  // Force close server after 30 seconds
-  setTimeout(() => {
-    console.error('Could not close connections in time, forcefully shutting down');
-    process.exit(1);
-  }, 30000);
-};
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  process.exit(0);
+});
 
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  process.exit(0);
+});
 
 // Start server with better error handling
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`💾 Database: ${process.env.MONGODB_URI ? 'Connected' : 'Local MongoDB'}`);
-  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3005'}`);
+  console.log(`Server is running on port ${PORT}`);
 }).on('error', (err: any) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use. Please use a different port or stop the existing process.`);
-    console.log(`💡 You can kill the process using: lsof -ti:${PORT} | xargs kill -9`);
+    console.error(`Port ${PORT} is already in use. Please use a different port or stop the existing process.`);
+    console.log(`You can kill the process using: lsof -ti:${PORT} | xargs kill -9`);
     process.exit(1);
   } else {
-    console.error('❌ Server error:', err);
+    console.error('Server error:', err);
     process.exit(1);
   }
 });

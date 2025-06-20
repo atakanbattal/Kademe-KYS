@@ -1,0 +1,2001 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  Alert,
+  LinearProgress,
+  Tabs,
+  Tab,
+  Badge,
+  Tooltip,
+  FormControl,
+  InputLabel,
+  Select,
+  Divider,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Visibility as ViewIcon,
+  PictureAsPdf as PdfIcon,
+  TrendingDown as TrendingDownIcon,
+  TrendingUp as TrendingUpIcon,
+  Warning as WarningIcon,
+  Assignment as AssignmentIcon,
+  Assessment as AssessmentIcon,
+  Schedule as ScheduleIcon,
+  CheckCircle as CheckCircleIcon,
+  Delete as DeleteIcon,
+  Refresh as RefreshIcon,
+  SwapHoriz as SwapIcon,
+  Business as BusinessIcon,
+  Group as GroupIcon,
+} from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { tr } from 'date-fns/locale';
+
+// Tip tanımları
+interface SupplierAudit {
+  _id: string;
+  tedarikci_id: {
+    _id: string;
+    name: string;
+    code: string;
+    unvan: string;
+  };
+  denetim_turu: 'İlk' | 'Süreç' | 'Takip';
+  durum: 'Planlı' | 'Yapılıyor' | 'Tamamlandı' | 'İptal';
+  planlanan_tarih: Date;
+  gerceklesen_tarih?: Date;
+  denetci: string;
+  genel_skor?: number;
+  yorum?: string;
+  otomatik_mi: boolean;
+  tetikleyici_kpi?: string;
+  createdAt: Date;
+}
+
+interface DashboardStats {
+  toplam_planlanan: number;
+  tamamlanan: number;
+  bekleyen: number;
+  ortalama_skor: number;
+  acilan_dof_sayisi: number;
+}
+
+interface WeakSupplier {
+  _id: string;
+  name: string;
+  code: string;
+  son_denetim_skoru: number;
+  aktif_dof_sayisi: number;
+  risk_seviyesi: string;
+  durum?: 'Onaylı' | 'Alternatif';
+  ana_tedarikci?: string;
+}
+
+interface BestSupplier {
+  _id: string;
+  name: string;
+  code: string;
+  son_denetim_skoru: number;
+  aktif_dof_sayisi: number;
+  risk_seviyesi: string;
+  durum: 'Onaylı' | 'Alternatif';
+  ana_tedarikci?: string;
+}
+
+interface SupplierScore {
+  tedarikci_id: string;
+  ay: string;
+  kalite_puani: number;
+  teslimat_puani: number;
+  maliyet_puani: number;
+  hizmet_puani: number;
+  genel_puan: number;
+}
+
+const SupplierAuditManagement: React.FC = () => {
+  const [audits, setAudits] = useState<SupplierAudit[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [weakSuppliers, setWeakSuppliers] = useState<WeakSupplier[]>([]);
+  const [bestSuppliers, setBestSuppliers] = useState<BestSupplier[]>([]);
+  const [supplierScores, setSupplierScores] = useState<SupplierScore[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedTab, setSelectedTab] = useState(0);
+  
+  // Statik tedarikçiler için state
+  const [staticSuppliers, setStaticSuppliers] = useState([
+    {
+      id: 'ABC001',
+      name: 'ABC Metal Sanayi Ltd.',
+      email: 'abc@metal.com',
+      code: 'ABC001',
+      durum: 'Onaylı' as 'Onaylı' | 'Alternatif',
+      ana_tedarikci: null,
+      son_denetim: '15.05.2024',
+      performans_skoru: 85,
+      risk_seviyesi: 'Düşük',
+      aktif_dof: 0,
+      kategori: 'Metal'
+    },
+    {
+      id: 'XYZ002',
+      name: 'XYZ Plastik Sanayi A.Ş.',
+      email: 'info@xyz.com',
+      code: 'XYZ002',
+      durum: 'Alternatif' as 'Onaylı' | 'Alternatif',
+      ana_tedarikci: 'ABC Metal Sanayi Ltd.',
+      son_denetim: null,
+      performans_skoru: null,
+      risk_seviyesi: 'Orta',
+      aktif_dof: 1,
+      kategori: 'Metal'
+    },
+    {
+      id: 'QRS003',
+      name: 'Quality First Metal',
+      email: 'info@qfm.com',
+      code: 'QRS003',
+      durum: 'Alternatif' as 'Onaylı' | 'Alternatif',
+      ana_tedarikci: 'ABC Metal Sanayi Ltd.',
+      son_denetim: '10.04.2024',
+      performans_skoru: 78,
+      risk_seviyesi: 'Orta',
+      aktif_dof: 0,
+      kategori: 'Metal'
+    }
+  ]);
+  
+  // DÖF Dialog states
+  const [openDofDialog, setOpenDofDialog] = useState(false);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
+  const [dofFormData, setDofFormData] = useState({
+    dof_tipi: 'DÖF-8D',
+    konu: '',
+    aciklama: '',
+    oncelik: 'Orta',
+    sorumlu: ''
+  });
+  
+  // Dialog states
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogType, setDialogType] = useState<'manual' | 'automatic' | 'result' | 'supplier' | 'score'>('manual');
+  const [selectedAudit, setSelectedAudit] = useState<SupplierAudit | null>(null);
+  
+  // Filtreleme states
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [supplierStatusFilter, setSupplierStatusFilter] = useState<'Tümü' | 'Onaylı' | 'Alternatif'>('Tümü');
+  
+  // Form states
+  const [formData, setFormData] = useState({
+    tedarikci_id: '',
+    denetim_turu: 'İlk',
+    planlanan_tarih: new Date(),
+    denetci: '',
+    genel_skor: 0,
+    yorum: '',
+    dof_acilsin_mi: false,
+    dof_aciklamasi: '',
+    // Tedarikçi form alanları
+    supplier_name: '',
+    supplier_code: '',
+    supplier_email: '',
+    supplier_phone: '',
+    supplier_address: '',
+    supplier_contact_person: '',
+    // Puanlama form alanları
+    score_month: new Date().toISOString().slice(0, 7),
+    kalite_puani: 0,
+    teslimat_puani: 0,
+    maliyet_puani: 0,
+    hizmet_puani: 0
+  });
+
+  // API Base URL
+  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5003/api';
+
+  // Veri yükleme
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        loadAudits(),
+        loadDashboardStats(),
+        loadWeakSuppliers(),
+        loadBestSuppliers(),
+        loadSupplierScores()
+      ]);
+    } catch (err) {
+      setError('Veriler yüklenirken hata oluştu');
+      console.error('Veri yükleme hatası:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAudits = async () => {
+    const response = await fetch(`${API_BASE}/supplier-audits`);
+    if (!response.ok) throw new Error('Denetimler yüklenemedi');
+    const result = await response.json();
+    setAudits(result.data);
+  };
+
+  const loadDashboardStats = async () => {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const response = await fetch(`${API_BASE}/supplier-audits/dashboard/monthly-report?ay=${currentMonth}`);
+    if (!response.ok) throw new Error('Dashboard verileri yüklenemedi');
+    const result = await response.json();
+    setDashboardStats(result.data);
+  };
+
+  const loadWeakSuppliers = async () => {
+    const response = await fetch(`${API_BASE}/supplier-audits/dashboard/weakest-suppliers`);
+    if (!response.ok) throw new Error('Zayıf tedarikçiler yüklenemedi');
+    const result = await response.json();
+    setWeakSuppliers(result.data);
+  };
+
+  const loadBestSuppliers = async () => {
+    const response = await fetch(`${API_BASE}/supplier-audits/dashboard/best-suppliers`);
+    if (!response.ok) throw new Error('En iyi tedarikçiler yüklenemedi');
+    const result = await response.json();
+    setBestSuppliers(result.data);
+  };
+
+  const loadSupplierScores = async () => {
+    const response = await fetch(`${API_BASE}/supplier-audits/dashboard/supplier-scores`);
+    if (!response.ok) throw new Error('Tedarikçi puanları yüklenemedi');
+    const result = await response.json();
+    setSupplierScores(result.data);
+  };
+
+  // Durum renk mapping
+  const getStatusColor = (durum: string) => {
+    switch (durum) {
+      case 'Planlı': return 'primary';
+      case 'Yapılıyor': return 'warning';
+      case 'Tamamlandı': return 'success';
+      case 'İptal': return 'error';
+      default: return 'default';
+    }
+  };
+
+  // Skor renk mapping
+  const getScoreColor = (skor: number) => {
+    if (skor >= 80) return '#4caf50'; // yeşil
+    if (skor >= 60) return '#ff9800'; // turuncu
+    return '#f44336'; // kırmızı
+  };
+
+  // Manuel denetim oluştur
+  const handleCreateManualAudit = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/supplier-audits/manual`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      if (!response.ok) throw new Error('Denetim oluşturulamadı');
+      
+      setOpenDialog(false);
+      await loadData();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bilinmeyen hata');
+    }
+  };
+
+  // Otomatik denetim oluştur
+  const handleCreateAutomaticAudit = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/supplier-audits/automatic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tedarikci_id: formData.tedarikci_id })
+      });
+      
+      if (!response.ok) throw new Error('Otomatik denetim oluşturulamadı');
+      
+      setOpenDialog(false);
+      await loadData();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bilinmeyen hata');
+    }
+  };
+
+  // Denetim sonucu gir
+  const handleSubmitResult = async () => {
+    if (!selectedAudit) return;
+    
+    try {
+      const response = await fetch(`${API_BASE}/supplier-audits/${selectedAudit._id}/result`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          genel_skor: formData.genel_skor,
+          yorum: formData.yorum,
+          dof_acilsin_mi: formData.dof_acilsin_mi,
+          dof_aciklamasi: formData.dof_aciklamasi
+        })
+      });
+      
+      if (!response.ok) throw new Error('Sonuç kaydedilemedi');
+      
+      setOpenDialog(false);
+      await loadData();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bilinmeyen hata');
+    }
+  };
+
+  // PDF oluştur
+  const handleGeneratePDF = async (auditId: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/supplier-audits/${auditId}/generate-pdf`, {
+        method: 'POST'
+      });
+      
+      if (!response.ok) throw new Error('PDF oluşturulamadı');
+      
+      // PDF indirme linkine yönlendir
+      window.open(`${API_BASE}/supplier-audits/${auditId}/download-pdf`, '_blank');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PDF oluşturma hatası');
+    }
+  };
+
+  // Yeni tedarikçi ekle
+  const handleCreateSupplier = async () => {
+    try {
+      // Geçici olarak mock implementation - gerçek API endpoint'i hazır olana kadar
+      const newSupplier = {
+        name: formData.supplier_name,
+        code: formData.supplier_code,
+        email: formData.supplier_email,
+        phone: formData.supplier_phone,
+        address: formData.supplier_address,
+        contact_person: formData.supplier_contact_person,
+        isActive: true,
+        risk_seviyesi: 'Orta',
+        aktif_dof_sayisi: 0
+      };
+
+      // Burada gerçek API çağrısı yapılacak
+      console.log('Yeni tedarikçi eklenecek:', newSupplier);
+      
+      // Form'u temizle ve dialog'u kapat
+      setFormData({
+        ...formData,
+        supplier_name: '',
+        supplier_code: '',
+        supplier_email: '',
+        supplier_phone: '',
+        supplier_address: '',
+        supplier_contact_person: ''
+      });
+      
+      setOpenDialog(false);
+      setError(null);
+      
+      // Başarı mesajı göster
+      alert('Tedarikçi başarıyla eklendi! (Mock implementation)');
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Tedarikçi ekleme hatası');
+    }
+  };
+
+  // Tedarikçi puanı ekle
+  const handleAddSupplierScore = async () => {
+    try {
+      const scoreData = {
+        tedarikci_id: formData.tedarikci_id,
+        ay: formData.score_month,
+        kalite_puani: formData.kalite_puani,
+        teslimat_puani: formData.teslimat_puani,
+        maliyet_puani: formData.maliyet_puani,
+        hizmet_puani: formData.hizmet_puani
+      };
+
+      const response = await fetch(`${API_BASE}/supplier-audits/supplier-scores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scoreData)
+      });
+      
+      if (!response.ok) throw new Error('Puan eklenemedi');
+      
+      setOpenDialog(false);
+      await loadSupplierScores();
+      setError(null);
+      
+      // Form'u temizle
+      setFormData({
+        ...formData,
+        kalite_puani: 0,
+        teslimat_puani: 0,
+        maliyet_puani: 0,
+        hizmet_puani: 0
+      });
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Puan ekleme hatası');
+    }
+  };
+
+  // Tedarikçi durum değiştirme - Sistematik kural
+  const handleChangeSupplierStatus = async (supplierId: string, newStatus: 'Onaylı' | 'Alternatif') => {
+    try {
+      // Statik tedarikçilerde güncelleme
+      setStaticSuppliers(prev => 
+        prev.map(supplier => 
+          supplier.id === supplierId 
+            ? { ...supplier, durum: newStatus }
+            : supplier
+        )
+      );
+
+      // Başarı mesajı göster
+      setError(null);
+      
+      // Backend'e istek gönder (gerçek uygulamada)
+      // await axios.put(`http://localhost:5003/api/suppliers/${supplierId}/status`, { status: newStatus });
+      
+      console.log(`Tedarikçi ${supplierId} durumu ${newStatus} olarak güncellendi`);
+      
+      // İlgili verileri yeniden yükle
+      setTimeout(() => {
+        loadBestSuppliers();
+        loadWeakSuppliers();
+      }, 100);
+      
+    } catch (error) {
+      console.error('Tedarikçi durumu güncellenirken hata:', error);
+      setError('Tedarikçi durumu güncellenirken hata oluştu');
+      
+      // Hata durumunda state'i geri al
+      setStaticSuppliers(prev => 
+        prev.map(supplier => 
+          supplier.id === supplierId 
+            ? { ...supplier, durum: newStatus === 'Onaylı' ? 'Alternatif' : 'Onaylı' }
+            : supplier
+        )
+      );
+    }
+  };
+
+  // Tedarikçi silme
+  const handleDeleteSupplier = async (supplierId: string) => {
+    if (window.confirm('Bu tedarikçiyi silmek istediğinizden emin misiniz?')) {
+      try {
+        console.log(`Tedarikçi ${supplierId} silindi`);
+        
+        // Yerel state'den tedarikçiyi kaldır
+        setWeakSuppliers(prevSuppliers => 
+          prevSuppliers.filter(supplier => 
+            supplier._id !== supplierId && supplier.code !== supplierId
+          )
+        );
+
+        setError(null);
+        alert('Tedarikçi başarıyla silindi!');
+        
+        // Verileri yenile
+        await loadData();
+      } catch (err) {
+        setError('Tedarikçi silinirken hata oluştu');
+      }
+    }
+  };
+
+  // Rapor indirme
+  const handleDownloadReport = async (reportType: string) => {
+    try {
+      console.log(`${reportType} raporu indiriliyor...`);
+      
+      // Gerçek PDF indirme simülasyonu
+      const link = document.createElement('a');
+      link.href = '#'; // Gerçek PDF URL'i buraya gelecek
+      link.download = `${reportType}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      
+      setError(null);
+      alert(`${reportType} raporu indirme başlatıldı!`);
+    } catch (err) {
+      setError('Rapor indirme hatası');
+    }
+  };
+
+  // Rapor oluşturma
+  const handleGenerateReport = async () => {
+    try {
+      console.log('Rapor oluşturuluyor...');
+      setError(null);
+      alert('Rapor oluşturma işlemi başlatıldı!');
+    } catch (err) {
+      setError('Rapor oluşturma hatası');
+    }
+  };
+
+  // DÖF açma
+  const handleOpenDof = (supplierId: string) => {
+    setSelectedSupplierId(supplierId);
+    setOpenDofDialog(true);
+  };
+
+  // DÖF oluşturma
+  const handleCreateDof = async () => {
+    try {
+      console.log('DÖF oluşturuluyor:', { supplierId: selectedSupplierId, ...dofFormData });
+      
+      // Tedarikçinin aktif DÖF sayısını artır
+      setStaticSuppliers(prevSuppliers => 
+        prevSuppliers.map(supplier => 
+          supplier.id === selectedSupplierId || supplier.code === selectedSupplierId
+            ? { ...supplier, aktif_dof: supplier.aktif_dof + 1 }
+            : supplier
+        )
+      );
+
+      // Form'u temizle
+      setDofFormData({
+        dof_tipi: 'DÖF-8D',
+        konu: '',
+        aciklama: '',
+        oncelik: 'Orta',
+        sorumlu: ''
+      });
+      
+      setOpenDofDialog(false);
+      setError(null);
+      alert(`${dofFormData.dof_tipi} başarıyla açıldı!`);
+      
+      await loadData();
+    } catch (err) {
+      setError('DÖF açılırken hata oluştu');
+    }
+  };
+
+  // Dashboard kartları
+  const DashboardCards = () => (
+    <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Card sx={{ bgcolor: '#e3f2fd' }}>
+          <CardContent>
+            <Box display="flex" alignItems="center">
+              <ScheduleIcon sx={{ color: '#1976d2', mr: 1 }} />
+              <Box>
+                <Typography variant="h4" color="#1976d2">
+                  {dashboardStats?.toplam_planlanan || 0}
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Toplam Planlanan
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      
+      <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Card sx={{ bgcolor: '#e8f5e8' }}>
+          <CardContent>
+            <Box display="flex" alignItems="center">
+              <CheckCircleIcon sx={{ color: '#4caf50', mr: 1 }} />
+              <Box>
+                <Typography variant="h4" color="#4caf50">
+                  {dashboardStats?.tamamlanan || 0}
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Tamamlanan
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      
+      <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Card sx={{ bgcolor: '#fff3e0' }}>
+          <CardContent>
+            <Box display="flex" alignItems="center">
+              <AssignmentIcon sx={{ color: '#ff9800', mr: 1 }} />
+              <Box>
+                <Typography variant="h4" color="#ff9800">
+                  {dashboardStats?.bekleyen || 0}
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Bekleyen
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      
+      <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Card sx={{ bgcolor: '#f3e5f5' }}>
+          <CardContent>
+            <Box display="flex" alignItems="center">
+              <AssessmentIcon sx={{ color: '#9c27b0', mr: 1 }} />
+              <Box>
+                <Typography variant="h4" color="#9c27b0">
+                  {dashboardStats?.ortalama_skor?.toFixed(1) || '0.0'}
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Ortalama Skor
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      
+      <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Card sx={{ bgcolor: '#ffebee' }}>
+          <CardContent>
+            <Box display="flex" alignItems="center">
+              <WarningIcon sx={{ color: '#f44336', mr: 1 }} />
+              <Box>
+                <Typography variant="h4" color="#f44336">
+                  {dashboardStats?.acilan_dof_sayisi || 0}
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Açılan DÖF
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  );
+
+  // Zayıf tedarikçiler tablosu
+  const WeakSuppliersTable = () => (
+    <Card sx={{ mb: 3 }}>
+      <CardContent>
+        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+          <TrendingDownIcon sx={{ mr: 1, color: '#f44336' }} />
+          En Zayıf 5 Tedarikçi
+        </Typography>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Tedarikçi</TableCell>
+                <TableCell>Kod</TableCell>
+                <TableCell align="center">Son Skor</TableCell>
+                <TableCell align="center">Aktif DÖF</TableCell>
+                <TableCell align="center">Risk</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {weakSuppliers.map((supplier) => (
+                <TableRow key={supplier._id}>
+                  <TableCell>{supplier.name}</TableCell>
+                  <TableCell>{supplier.code}</TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      label={supplier.son_denetim_skoru} 
+                      size="small"
+                      sx={{ bgcolor: getScoreColor(supplier.son_denetim_skoru), color: 'white' }}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Badge badgeContent={supplier.aktif_dof_sayisi} color="error">
+                      <WarningIcon fontSize="small" />
+                    </Badge>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      label={supplier.risk_seviyesi} 
+                      size="small"
+                      color={supplier.risk_seviyesi === 'Kritik' ? 'error' : 'warning'}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
+
+  // En iyi tedarikçiler tablosu
+  const BestSuppliersTable = () => (
+    <Card sx={{ mb: 3 }}>
+      <CardContent>
+        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+          <TrendingUpIcon sx={{ mr: 1, color: '#4caf50' }} />
+          En İyi 5 Tedarikçi
+        </Typography>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Tedarikçi</TableCell>
+                <TableCell>Kod</TableCell>
+                <TableCell align="center">Son Skor</TableCell>
+                <TableCell align="center">Durum</TableCell>
+                <TableCell align="center">Ana Tedarikçi</TableCell>
+                <TableCell align="center">İşlemler</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {bestSuppliers.map((supplier) => (
+                <TableRow key={supplier._id}>
+                  <TableCell>
+                    <Box display="flex" alignItems="center">
+                      <CheckCircleIcon sx={{ color: '#4caf50', mr: 1, fontSize: 18 }} />
+                      {supplier.name}
+                    </Box>
+                  </TableCell>
+                  <TableCell>{supplier.code}</TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      label={supplier.son_denetim_skoru} 
+                      size="small"
+                      sx={{ bgcolor: getScoreColor(supplier.son_denetim_skoru), color: 'white' }}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      label={supplier.durum} 
+                      size="small"
+                      color={supplier.durum === 'Onaylı' ? 'success' : 'info'}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography variant="body2" color="textSecondary">
+                      {supplier.ana_tedarikci || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="DÖF Aç">
+                      <IconButton 
+                        size="small" 
+                        color="warning"
+                        onClick={() => handleOpenDof(supplier._id)}
+                      >
+                        <WarningIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <Box sx={{ width: '100%', mt: 2 }}>
+        <LinearProgress />
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>
+          Tedarikçi denetim verileri yükleniyor...
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={tr}>
+      <Box sx={{ flexGrow: 1, p: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Tedarikçi Denetim ve Yönetim Sistemi
+        </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Dashboard kartları */}
+        <DashboardCards />
+
+        {/* Zayıf tedarikçiler */}
+        <WeakSuppliersTable />
+
+        {/* En iyi tedarikçiler */}
+        <BestSuppliersTable />
+
+        {/* Tab menu */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={selectedTab} onChange={(e, newValue) => setSelectedTab(newValue)}>
+            <Tab label="Denetimler" />
+            <Tab label="Tedarikçi Yönetimi" />
+            <Tab label="Raporlar" />
+          </Tabs>
+        </Box>
+
+        {/* Denetimler sekmesi */}
+        {selectedTab === 0 && (
+          <Card>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                <Typography variant="h6">Denetim Listesi</Typography>
+                <Box>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => {
+                      setDialogType('manual');
+                      setOpenDialog(true);
+                    }}
+                    sx={{ mr: 1 }}
+                  >
+                    Manuel Denetim
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AssignmentIcon />}
+                    onClick={() => {
+                      setDialogType('automatic');
+                      setOpenDialog(true);
+                    }}
+                  >
+                    Otomatik Denetim
+                  </Button>
+                </Box>
+              </Box>
+
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Tedarikçi</TableCell>
+                      <TableCell>Tür</TableCell>
+                      <TableCell>Durum</TableCell>
+                      <TableCell>Planlanan Tarih</TableCell>
+                      <TableCell>Denetçi</TableCell>
+                      <TableCell align="center">Skor</TableCell>
+                      <TableCell align="center">Otomatik</TableCell>
+                      <TableCell align="center">İşlemler</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {audits.map((audit) => (
+                      <TableRow key={audit._id}>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body2" fontWeight="bold">
+                              {audit.tedarikci_id.name}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {audit.tedarikci_id.code}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={audit.denetim_turu} size="small" variant="outlined" />
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={audit.durum} 
+                            size="small" 
+                            color={getStatusColor(audit.durum) as any}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {new Date(audit.planlanan_tarih).toLocaleDateString('tr-TR')}
+                        </TableCell>
+                        <TableCell>{audit.denetci}</TableCell>
+                        <TableCell align="center">
+                          {audit.genel_skor ? (
+                            <Chip 
+                              label={audit.genel_skor} 
+                              size="small"
+                              sx={{ bgcolor: getScoreColor(audit.genel_skor), color: 'white' }}
+                            />
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {audit.otomatik_mi ? (
+                            <Tooltip title={audit.tetikleyici_kpi || 'Otomatik denetim'}>
+                              <CheckCircleIcon color="success" fontSize="small" />
+                            </Tooltip>
+                          ) : (
+                            <Typography variant="body2" color="textSecondary">-</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedAudit(audit);
+                              setDialogType('result');
+                              setOpenDialog(true);
+                            }}
+                            disabled={audit.durum === 'Tamamlandı'}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton size="small">
+                            <ViewIcon />
+                          </IconButton>
+                          {audit.durum === 'Tamamlandı' && (
+                            <IconButton 
+                              size="small"
+                              onClick={() => handleGeneratePDF(audit._id)}
+                            >
+                              <PdfIcon />
+                            </IconButton>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tedarikçi Yönetimi sekmesi */}
+        {selectedTab === 1 && (
+          <Grid container spacing={3}>
+            {/* Tedarikçi İstatistikleri */}
+            <Grid size={12}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Tedarikçi Performans Özeti
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Box textAlign="center" p={2} bgcolor="#e3f2fd" borderRadius={2}>
+                        <Typography variant="h4" color="primary">
+                          {staticSuppliers.length + weakSuppliers.length}
+                        </Typography>
+                        <Typography variant="body2">Aktif Tedarikçi</Typography>
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Box textAlign="center" p={2} bgcolor="#e8f5e8" borderRadius={2}>
+                        <Typography variant="h4" color="success.main">
+                          {staticSuppliers.filter(s => s.durum === 'Onaylı').length}
+                        </Typography>
+                        <Typography variant="body2">Onaylı Tedarikçi</Typography>
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Box textAlign="center" p={2} bgcolor="#fff3e0" borderRadius={2}>
+                        <Typography variant="h4" color="warning.main">
+                          {staticSuppliers.filter(s => s.durum === 'Alternatif').length}
+                        </Typography>
+                        <Typography variant="body2">Alternatif Tedarikçi</Typography>
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Box textAlign="center" p={2} bgcolor="#ffebee" borderRadius={2}>
+                        <Typography variant="h4" color="error">
+                          {weakSuppliers.filter(s => s.risk_seviyesi === 'Kritik').length}
+                        </Typography>
+                        <Typography variant="body2">Kritik Durum</Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Tedarikçi Listesi */}
+            <Grid size={12}>
+              <Card>
+                <CardContent>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                    <Typography variant="h6">Tüm Tedarikçiler</Typography>
+                    <Box display="flex" gap={1}>
+                      <Button 
+                        variant="outlined"
+                        startIcon={<AssessmentIcon />}
+                        onClick={() => {
+                          setDialogType('score');
+                          setOpenDialog(true);
+                        }}
+                      >
+                        Puan Ekle
+                      </Button>
+                      <Button 
+                        variant="contained" 
+                        startIcon={<AddIcon />}
+                        onClick={() => {
+                          setDialogType('supplier');
+                          setOpenDialog(true);
+                        }}
+                      >
+                        Yeni Tedarikçi Ekle
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  {/* Filtreler */}
+                  <Grid container spacing={2} sx={{ mb: 3 }}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Durum Filtresi</InputLabel>
+                        <Select
+                          value={supplierStatusFilter}
+                          label="Durum Filtresi"
+                          onChange={(e) => setSupplierStatusFilter(e.target.value as any)}
+                        >
+                          <MenuItem value="Tümü">Tümü</MenuItem>
+                          <MenuItem value="Onaylı">Onaylı</MenuItem>
+                          <MenuItem value="Alternatif">Alternatif</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Dönem</InputLabel>
+                        <Select
+                          value={selectedMonth}
+                          label="Dönem"
+                          onChange={(e) => setSelectedMonth(e.target.value)}
+                        >
+                          <MenuItem value="2025-01">Ocak 2025</MenuItem>
+                          <MenuItem value="2025-02">Şubat 2025</MenuItem>
+                          <MenuItem value="2025-03">Mart 2025</MenuItem>
+                          <MenuItem value="2025-04">Nisan 2025</MenuItem>
+                          <MenuItem value="2025-05">Mayıs 2025</MenuItem>
+                          <MenuItem value="2025-06">Haziran 2025</MenuItem>
+                          <MenuItem value="2025-07">Temmuz 2025</MenuItem>
+                          <MenuItem value="2025-08">Ağustos 2025</MenuItem>
+                          <MenuItem value="2025-09">Eylül 2025</MenuItem>
+                          <MenuItem value="2025-10">Ekim 2025</MenuItem>
+                          <MenuItem value="2025-11">Kasım 2025</MenuItem>
+                          <MenuItem value="2025-12">Aralık 2025</MenuItem>
+                          <MenuItem value="2024-01">Ocak 2024</MenuItem>
+                          <MenuItem value="2024-02">Şubat 2024</MenuItem>
+                          <MenuItem value="2024-03">Mart 2024</MenuItem>
+                          <MenuItem value="2024-04">Nisan 2024</MenuItem>
+                          <MenuItem value="2024-05">Mayıs 2024</MenuItem>
+                          <MenuItem value="2024-06">Haziran 2024</MenuItem>
+                          <MenuItem value="2024-07">Temmuz 2024</MenuItem>
+                          <MenuItem value="2024-08">Ağustos 2024</MenuItem>
+                          <MenuItem value="2024-09">Eylül 2024</MenuItem>
+                          <MenuItem value="2024-10">Ekim 2024</MenuItem>
+                          <MenuItem value="2024-11">Kasım 2024</MenuItem>
+                          <MenuItem value="2024-12">Aralık 2024</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={<RefreshIcon />}
+                        sx={{ height: 56 }}
+                        onClick={() => {
+                          loadSupplierScores();
+                          loadBestSuppliers();
+                          loadWeakSuppliers();
+                        }}
+                      >
+                        Filtreyi Uygula
+                      </Button>
+                    </Grid>
+                  </Grid>
+
+                  {/* Entegre Tedarikçi Yönetimi - Onaylı ve Alternatif Yan Yana */}
+                  <Grid container spacing={3}>
+                    {/* Onaylı Tedarikçiler */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Card variant="outlined" sx={{ height: '100%' }}>
+                        <CardContent>
+                          <Box display="flex" alignItems="center" sx={{ mb: 2 }}>
+                            <BusinessIcon sx={{ mr: 1, color: 'success.main' }} />
+                            <Typography variant="h6" color="success.main">
+                              Onaylı Tedarikçiler ({staticSuppliers.filter(s => s.durum === 'Onaylı').length})
+                            </Typography>
+                          </Box>
+                          <TableContainer sx={{ maxHeight: 400 }}>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Firma</TableCell>
+                                  <TableCell align="center">Skor</TableCell>
+                                  <TableCell align="center">İşlemler</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {staticSuppliers.filter(s => s.durum === 'Onaylı').map((supplier) => (
+                                  <TableRow key={supplier.id}>
+                                    <TableCell>
+                                      <Box>
+                                        <Typography variant="body2" fontWeight="bold">{supplier.name}</Typography>
+                                        <Typography variant="caption" color="textSecondary">{supplier.code}</Typography>
+                                      </Box>
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      {supplier.performans_skoru ? (
+                                        <Chip 
+                                          label={supplier.performans_skoru} 
+                                          size="small" 
+                                          sx={{ bgcolor: getScoreColor(supplier.performans_skoru), color: 'white' }} 
+                                        />
+                                      ) : (
+                                        <Typography variant="body2" color="textSecondary">-</Typography>
+                                      )}
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <Tooltip title="Alternatif Yap">
+                                        <IconButton 
+                                          size="small"
+                                          color="primary"
+                                          onClick={() => handleChangeSupplierStatus(supplier.id, 'Alternatif')}
+                                        >
+                                          <SwapIcon />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="DÖF Aç">
+                                        <IconButton 
+                                          size="small" 
+                                          color="warning"
+                                          onClick={() => handleOpenDof(supplier.id)}
+                                        >
+                                          <WarningIcon />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+
+                    {/* Alternatif Tedarikçiler */}
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Card variant="outlined" sx={{ height: '100%' }}>
+                        <CardContent>
+                          <Box display="flex" alignItems="center" sx={{ mb: 2 }}>
+                            <GroupIcon sx={{ mr: 1, color: 'info.main' }} />
+                            <Typography variant="h6" color="info.main">
+                              Alternatif Tedarikçiler ({staticSuppliers.filter(s => s.durum === 'Alternatif').length})
+                            </Typography>
+                          </Box>
+                          <TableContainer sx={{ maxHeight: 400 }}>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Firma</TableCell>
+                                  <TableCell>Ana Tedarikçi</TableCell>
+                                  <TableCell align="center">İşlemler</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {staticSuppliers.filter(s => s.durum === 'Alternatif').map((supplier) => (
+                                  <TableRow key={supplier.id}>
+                                    <TableCell>
+                                      <Box>
+                                        <Typography variant="body2" fontWeight="bold">{supplier.name}</Typography>
+                                        <Typography variant="caption" color="textSecondary">{supplier.code}</Typography>
+                                      </Box>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Typography variant="body2" color="textSecondary">
+                                        {supplier.ana_tedarikci || '-'}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <Tooltip title="Onaylı Yap">
+                                        <IconButton 
+                                          size="small"
+                                          color="success"
+                                          onClick={() => handleChangeSupplierStatus(supplier.id, 'Onaylı')}
+                                        >
+                                          <CheckCircleIcon />
+                                        </IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="DÖF Aç">
+                                        <IconButton 
+                                          size="small" 
+                                          color="warning"
+                                          onClick={() => handleOpenDof(supplier.id)}
+                                        >
+                                          <WarningIcon />
+                                        </IconButton>
+                                      </Tooltip>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
+
+                  <Divider sx={{ my: 3 }} />
+
+                  {/* Detaylı Tablo - Tüm Tedarikçiler */}
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Detaylı Tedarikçi Listesi
+                  </Typography>
+                  
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Firma Adı</TableCell>
+                          <TableCell>Kod</TableCell>
+                          <TableCell>Durum</TableCell>
+                          <TableCell>Ana Tedarikçi</TableCell>
+                          <TableCell>Son Denetim</TableCell>
+                          <TableCell align="center">Performans Skoru</TableCell>
+                          <TableCell align="center">Risk Seviyesi</TableCell>
+                          <TableCell align="center">Aktif DÖF</TableCell>
+                          <TableCell align="center">İşlemler</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {staticSuppliers.map((supplier) => (
+                          <TableRow key={supplier.id}>
+                            <TableCell>
+                              <Box>
+                                <Typography variant="body2" fontWeight="bold">{supplier.name}</Typography>
+                                <Typography variant="caption" color="textSecondary">{supplier.email}</Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>{supplier.code}</TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={supplier.durum} 
+                                size="small" 
+                                color={supplier.durum === 'Onaylı' ? 'success' : 'info'} 
+                              />
+                            </TableCell>
+                            <TableCell>{supplier.ana_tedarikci || '-'}</TableCell>
+                            <TableCell>{supplier.son_denetim || '-'}</TableCell>
+                            <TableCell align="center">
+                              {supplier.performans_skoru ? (
+                                <Chip 
+                                  label={supplier.performans_skoru} 
+                                  size="small" 
+                                  sx={{ bgcolor: getScoreColor(supplier.performans_skoru), color: 'white' }} 
+                                />
+                              ) : (
+                                <Typography variant="body2" color="textSecondary">-</Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip 
+                                label={supplier.risk_seviyesi} 
+                                size="small" 
+                                color={supplier.risk_seviyesi === 'Düşük' ? 'success' : supplier.risk_seviyesi === 'Orta' ? 'warning' : 'error'} 
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Typography variant="body2">{supplier.aktif_dof}</Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Tooltip title={supplier.durum === 'Onaylı' ? 'Alternatif Yap' : 'Onaylı Yap'}>
+                                <IconButton 
+                                  size="small"
+                                  onClick={() => handleChangeSupplierStatus(supplier.id, supplier.durum === 'Onaylı' ? 'Alternatif' : 'Onaylı')}
+                                >
+                                  {supplier.durum === 'Onaylı' ? <CheckCircleIcon /> : <SwapIcon />}
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Düzenle">
+                                <IconButton size="small">
+                                  <EditIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Görüntüle">
+                                <IconButton size="small">
+                                  <ViewIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="DÖF Aç">
+                                <IconButton 
+                                  size="small" 
+                                  color="warning"
+                                  onClick={() => handleOpenDof(supplier.id)}
+                                >
+                                  <WarningIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {weakSuppliers.map((supplier) => (
+                          <TableRow key={supplier._id}>
+                            <TableCell>
+                              <Box>
+                                <Typography variant="body2" fontWeight="bold">{supplier.name}</Typography>
+                                <Typography variant="caption" color="textSecondary">info@{supplier.code.toLowerCase()}.com</Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>{supplier.code}</TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={supplier.durum || supplier.risk_seviyesi} 
+                                size="small" 
+                                color={supplier.durum === 'Onaylı' ? 'success' : supplier.durum === 'Alternatif' ? 'info' : supplier.risk_seviyesi === 'Kritik' ? 'error' : 'warning'}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="textSecondary">{supplier.ana_tedarikci || '-'}</Typography>
+                            </TableCell>
+                            <TableCell>12.04.2024</TableCell>
+                            <TableCell align="center">
+                              <Chip 
+                                label={supplier.son_denetim_skoru} 
+                                size="small" 
+                                sx={{ bgcolor: getScoreColor(supplier.son_denetim_skoru), color: 'white' }}
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip 
+                                label={supplier.risk_seviyesi} 
+                                size="small" 
+                                color={supplier.risk_seviyesi === 'Kritik' ? 'error' : 'warning'}
+                              />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Typography variant="body2">{supplier.aktif_dof_sayisi}</Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Tooltip title="Düzenle">
+                                <IconButton size="small">
+                                  <EditIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Görüntüle">
+                                <IconButton size="small">
+                                  <ViewIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="DÖF Aç">
+                                <IconButton 
+                                  size="small" 
+                                  color="warning"
+                                  onClick={() => handleOpenDof(supplier._id)}
+                                >
+                                  <WarningIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Sil">
+                                <IconButton 
+                                  size="small" 
+                                  color="error"
+                                  onClick={() => handleDeleteSupplier(supplier._id)}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+
+        {/* Raporlar sekmesi */}
+        {selectedTab === 2 && (
+          <Grid container spacing={3}>
+            {/* Rapor Filtreleri */}
+            <Grid size={12}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Rapor Parametreleri
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Rapor Türü</InputLabel>
+                        <Select
+                          defaultValue="monthly"
+                          label="Rapor Türü"
+                        >
+                          <MenuItem value="monthly">Aylık Denetim Raporu</MenuItem>
+                          <MenuItem value="supplier">Tedarikçi Performans Raporu</MenuItem>
+                          <MenuItem value="risk">Risk Analiz Raporu</MenuItem>
+                          <MenuItem value="dof">DÖF Analiz Raporu</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Dönem</InputLabel>
+                        <Select
+                          defaultValue="2025-06"
+                          label="Dönem"
+                        >
+                          <MenuItem value="2025-01">Ocak 2025</MenuItem>
+                          <MenuItem value="2025-02">Şubat 2025</MenuItem>
+                          <MenuItem value="2025-03">Mart 2025</MenuItem>
+                          <MenuItem value="2025-04">Nisan 2025</MenuItem>
+                          <MenuItem value="2025-05">Mayıs 2025</MenuItem>
+                          <MenuItem value="2025-06">Haziran 2025</MenuItem>
+                          <MenuItem value="2025-07">Temmuz 2025</MenuItem>
+                          <MenuItem value="2025-08">Ağustos 2025</MenuItem>
+                          <MenuItem value="2025-09">Eylül 2025</MenuItem>
+                          <MenuItem value="2025-10">Ekim 2025</MenuItem>
+                          <MenuItem value="2025-11">Kasım 2025</MenuItem>
+                          <MenuItem value="2025-12">Aralık 2025</MenuItem>
+                          <MenuItem value="2024-01">Ocak 2024</MenuItem>
+                          <MenuItem value="2024-02">Şubat 2024</MenuItem>
+                          <MenuItem value="2024-03">Mart 2024</MenuItem>
+                          <MenuItem value="2024-04">Nisan 2024</MenuItem>
+                          <MenuItem value="2024-05">Mayıs 2024</MenuItem>
+                          <MenuItem value="2024-06">Haziran 2024</MenuItem>
+                          <MenuItem value="2024-07">Temmuz 2024</MenuItem>
+                          <MenuItem value="2024-08">Ağustos 2024</MenuItem>
+                          <MenuItem value="2024-09">Eylül 2024</MenuItem>
+                          <MenuItem value="2024-10">Ekim 2024</MenuItem>
+                          <MenuItem value="2024-11">Kasım 2024</MenuItem>
+                          <MenuItem value="2024-12">Aralık 2024</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        startIcon={<AssessmentIcon />}
+                        sx={{ height: 56 }}
+                        onClick={handleGenerateReport}
+                      >
+                        Rapor Oluştur
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Hızlı Raporlar */}
+            <Grid size={12}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 3 }}>
+                    Hazır Raporlar
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Card 
+                        variant="outlined" 
+                        sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' } }}
+                        onClick={() => handleDownloadReport('Aylık Özet')}
+                      >
+                        <CardContent sx={{ textAlign: 'center' }}>
+                          <AssessmentIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
+                          <Typography variant="h6">Aylık Özet</Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            Bu ayın denetim özeti
+                          </Typography>
+                          <Button size="small" sx={{ mt: 1 }}>
+                            İndir
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Card 
+                        variant="outlined" 
+                        sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' } }}
+                        onClick={() => handleDownloadReport('En Zayıf 5')}
+                      >
+                        <CardContent sx={{ textAlign: 'center' }}>
+                          <TrendingDownIcon sx={{ fontSize: 48, color: 'error.main', mb: 1 }} />
+                          <Typography variant="h6">En Zayıf 5</Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            En düşük performanslı tedarikçiler
+                          </Typography>
+                          <Button size="small" sx={{ mt: 1 }}>
+                            İndir
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Card 
+                        variant="outlined" 
+                        sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' } }}
+                        onClick={() => handleDownloadReport('Risk Analizi')}
+                      >
+                        <CardContent sx={{ textAlign: 'center' }}>
+                          <WarningIcon sx={{ fontSize: 48, color: 'warning.main', mb: 1 }} />
+                          <Typography variant="h6">Risk Analizi</Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            Yüksek riskli tedarikçi analizi
+                          </Typography>
+                          <Button size="small" sx={{ mt: 1 }}>
+                            İndir
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                      <Card 
+                        variant="outlined" 
+                        sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' } }}
+                        onClick={() => handleDownloadReport('Genel Rapor')}
+                      >
+                        <CardContent sx={{ textAlign: 'center' }}>
+                          <PdfIcon sx={{ fontSize: 48, color: 'secondary.main', mb: 1 }} />
+                          <Typography variant="h6">Genel Rapor</Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            Komple sistem raporu
+                          </Typography>
+                          <Button size="small" sx={{ mt: 1 }}>
+                            İndir
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Son Oluşturulan Raporlar */}
+            <Grid size={12}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Son Oluşturulan Raporlar
+                  </Typography>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Rapor Adı</TableCell>
+                          <TableCell>Tür</TableCell>
+                          <TableCell>Oluşturma Tarihi</TableCell>
+                          <TableCell>Dönem</TableCell>
+                          <TableCell align="center">Durum</TableCell>
+                          <TableCell align="center">İşlemler</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>Haziran 2024 Aylık Denetim Raporu</TableCell>
+                          <TableCell>Aylık Özet</TableCell>
+                          <TableCell>03.06.2024</TableCell>
+                          <TableCell>Haziran 2024</TableCell>
+                          <TableCell align="center">
+                            <Chip label="Hazır" size="small" color="success" />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title="PDF İndir">
+                              <IconButton size="small" onClick={() => handleDownloadReport('Haziran 2024 Aylık Denetim Raporu')}>
+                                <PdfIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Görüntüle">
+                              <IconButton size="small">
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Mayıs 2024 En Zayıf Tedarikçi Raporu</TableCell>
+                          <TableCell>Risk Analizi</TableCell>
+                          <TableCell>28.05.2024</TableCell>
+                          <TableCell>Mayıs 2024</TableCell>
+                          <TableCell align="center">
+                            <Chip label="Hazır" size="small" color="success" />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title="PDF İndir">
+                              <IconButton size="small" onClick={() => handleDownloadReport('Mayıs 2024 En Zayıf Tedarikçi Raporu')}>
+                                <PdfIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Görüntüle">
+                              <IconButton size="small">
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Q2 2024 Genel Performans Raporu</TableCell>
+                          <TableCell>Çeyreklik Özet</TableCell>
+                          <TableCell>01.06.2024</TableCell>
+                          <TableCell>Q2 2024</TableCell>
+                          <TableCell align="center">
+                            <Chip label="Oluşturuluyor" size="small" color="warning" />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title="PDF İndir">
+                              <IconButton size="small" disabled>
+                                <PdfIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Görüntüle">
+                              <IconButton size="small" disabled>
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+
+        {/* Dialog'lar */}
+        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
+          <DialogTitle>
+            {dialogType === 'manual' && 'Manuel Denetim Planla'}
+            {dialogType === 'automatic' && 'Otomatik Denetim Oluştur'}
+            {dialogType === 'result' && 'Denetim Sonucu Gir'}
+            {dialogType === 'supplier' && 'Yeni Tedarikçi Ekle'}
+            {dialogType === 'score' && 'Tedarikçi Puanı Ekle'}
+          </DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              {(dialogType === 'manual' || dialogType === 'automatic') && (
+                <>
+                  <Grid size={12}>
+                    <TextField
+                      fullWidth
+                      label="Tedarikçi ID"
+                      value={formData.tedarikci_id}
+                      onChange={(e) => setFormData({ ...formData, tedarikci_id: e.target.value })}
+                      placeholder="Tedarikçi seçin..."
+                    />
+                  </Grid>
+                  {dialogType === 'manual' && (
+                    <>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                          fullWidth
+                          select
+                          label="Denetim Türü"
+                          value={formData.denetim_turu}
+                          onChange={(e) => setFormData({ ...formData, denetim_turu: e.target.value })}
+                        >
+                          <MenuItem value="İlk">İlk</MenuItem>
+                          <MenuItem value="Süreç">Süreç</MenuItem>
+                          <MenuItem value="Takip">Takip</MenuItem>
+                        </TextField>
+                      </Grid>
+                      <Grid size={{ xs: 12, sm: 6 }}>
+                        <DatePicker
+                          label="Planlanan Tarih"
+                          value={formData.planlanan_tarih}
+                          onChange={(date) => setFormData({ ...formData, planlanan_tarih: date || new Date() })}
+                          slotProps={{
+                            textField: { fullWidth: true }
+                          }}
+                        />
+                      </Grid>
+                      <Grid size={12}>
+                        <TextField
+                          fullWidth
+                          label="Denetçi"
+                          value={formData.denetci}
+                          onChange={(e) => setFormData({ ...formData, denetci: e.target.value })}
+                        />
+                      </Grid>
+                    </>
+                  )}
+                </>
+              )}
+              
+              {dialogType === 'result' && (
+                <>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Genel Skor (0-100)"
+                      value={formData.genel_skor}
+                      onChange={(e) => setFormData({ ...formData, genel_skor: Number(e.target.value) })}
+                      inputProps={{ min: 0, max: 100 }}
+                    />
+                  </Grid>
+                  <Grid size={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={4}
+                      label="Denetim Yorumu"
+                      value={formData.yorum}
+                      onChange={(e) => setFormData({ ...formData, yorum: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid size={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={2}
+                      label="DÖF Açıklaması (Opsiyonel)"
+                      value={formData.dof_aciklamasi}
+                      onChange={(e) => setFormData({ ...formData, dof_aciklamasi: e.target.value })}
+                      helperText="DÖF açılması gerekiyorsa açıklama yazın"
+                    />
+                  </Grid>
+                </>
+              )}
+
+              {dialogType === 'supplier' && (
+                <>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Firma Adı *"
+                      value={formData.supplier_name}
+                      onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                      required
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Tedarikçi Kodu *"
+                      value={formData.supplier_code}
+                      onChange={(e) => setFormData({ ...formData, supplier_code: e.target.value })}
+                      required
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="E-posta"
+                      type="email"
+                      value={formData.supplier_email}
+                      onChange={(e) => setFormData({ ...formData, supplier_email: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Telefon"
+                      value={formData.supplier_phone}
+                      onChange={(e) => setFormData({ ...formData, supplier_phone: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid size={12}>
+                    <TextField
+                      fullWidth
+                      label="İletişim Kişisi"
+                      value={formData.supplier_contact_person}
+                      onChange={(e) => setFormData({ ...formData, supplier_contact_person: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid size={12}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Adres"
+                      value={formData.supplier_address}
+                      onChange={(e) => setFormData({ ...formData, supplier_address: e.target.value })}
+                    />
+                  </Grid>
+                </>
+              )}
+
+              {dialogType === 'score' && (
+                <>
+                  <Grid size={12}>
+                    <TextField
+                      fullWidth
+                      label="Tedarikçi Seçin"
+                      value={formData.tedarikci_id}
+                      onChange={(e) => setFormData({ ...formData, tedarikci_id: e.target.value })}
+                      placeholder="Tedarikçi ID veya adı"
+                      required
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      type="month"
+                      label="Ay *"
+                      value={formData.score_month}
+                      onChange={(e) => setFormData({ ...formData, score_month: e.target.value })}
+                      required
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}></Grid>
+                  
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Kalite Puanı (0-100)"
+                      value={formData.kalite_puani}
+                      onChange={(e) => setFormData({ ...formData, kalite_puani: Number(e.target.value) })}
+                      inputProps={{ min: 0, max: 100 }}
+                      required
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Teslimat Puanı (0-100)"
+                      value={formData.teslimat_puani}
+                      onChange={(e) => setFormData({ ...formData, teslimat_puani: Number(e.target.value) })}
+                      inputProps={{ min: 0, max: 100 }}
+                      required
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Maliyet Puanı (0-100)"
+                      value={formData.maliyet_puani}
+                      onChange={(e) => setFormData({ ...formData, maliyet_puani: Number(e.target.value) })}
+                      inputProps={{ min: 0, max: 100 }}
+                      required
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Hizmet Puanı (0-100)"
+                      value={formData.hizmet_puani}
+                      onChange={(e) => setFormData({ ...formData, hizmet_puani: Number(e.target.value) })}
+                      inputProps={{ min: 0, max: 100 }}
+                      required
+                    />
+                  </Grid>
+                  
+                  <Grid size={12}>
+                    <Box sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                      <Typography variant="body2" color="textSecondary">
+                        <strong>Genel Puan:</strong> {((formData.kalite_puani + formData.teslimat_puani + formData.maliyet_puani + formData.hizmet_puani) / 4).toFixed(1)}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </>
+              )}
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDialog(false)}>İptal</Button>
+            <Button 
+              onClick={() => {
+                if (dialogType === 'manual') handleCreateManualAudit();
+                else if (dialogType === 'automatic') handleCreateAutomaticAudit();
+                else if (dialogType === 'result') handleSubmitResult();
+                else if (dialogType === 'supplier') handleCreateSupplier();
+                else if (dialogType === 'score') handleAddSupplierScore();
+              }}
+              variant="contained"
+            >
+              {dialogType === 'result' ? 'Sonucu Kaydet' : dialogType === 'supplier' ? 'Tedarikçi Ekle' : dialogType === 'score' ? 'Puan Ekle' : 'Oluştur'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* DÖF Dialog */}
+        <Dialog open={openDofDialog} onClose={() => setOpenDofDialog(false)} maxWidth="md" fullWidth>
+          <DialogTitle>DÖF / Uygunsuzluk Açma</DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
+                  select
+                  label="DÖF Tipi"
+                  value={dofFormData.dof_tipi}
+                  onChange={(e) => setDofFormData({ ...dofFormData, dof_tipi: e.target.value })}
+                >
+                  <MenuItem value="DÖF-8D">DÖF-8D</MenuItem>
+                  <MenuItem value="DÖF-CAPA">DÖF-CAPA</MenuItem>
+                  <MenuItem value="Uygunsuzluk">Uygunsuzluk</MenuItem>
+                  <MenuItem value="Gözlem">Gözlem</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Öncelik"
+                  value={dofFormData.oncelik}
+                  onChange={(e) => setDofFormData({ ...dofFormData, oncelik: e.target.value })}
+                >
+                  <MenuItem value="Düşük">Düşük</MenuItem>
+                  <MenuItem value="Orta">Orta</MenuItem>
+                  <MenuItem value="Yüksek">Yüksek</MenuItem>
+                  <MenuItem value="Kritik">Kritik</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid size={12}>
+                <TextField
+                  fullWidth
+                  label="Konu / Başlık *"
+                  value={dofFormData.konu}
+                  onChange={(e) => setDofFormData({ ...dofFormData, konu: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid size={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  label="Uygunsuzluk Açıklaması *"
+                  value={dofFormData.aciklama}
+                  onChange={(e) => setDofFormData({ ...dofFormData, aciklama: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid size={12}>
+                <TextField
+                  fullWidth
+                  label="Sorumlu Kişi"
+                  value={dofFormData.sorumlu}
+                  onChange={(e) => setDofFormData({ ...dofFormData, sorumlu: e.target.value })}
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDofDialog(false)}>İptal</Button>
+            <Button 
+              onClick={handleCreateDof}
+              variant="contained"
+              color="warning"
+            >
+              DÖF Oluştur
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </LocalizationProvider>
+  );
+};
+
+export default SupplierAuditManagement; 

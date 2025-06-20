@@ -1,33 +1,43 @@
 {
-  "name": "kys-kalite-yonetim-sistemi",
+  "name": "ayd-kaynakhane-kalite-yonetim-sistemi",
+  "private": true,
   "version": "1.0.0",
-  "description": "Kademe A.Ş. Kalite Yönetim Sistemi - Full Stack",
-  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "install:backend": "cd src/backend && npm install",
-    "build:backend": "cd src/backend && npm run build",
-    "start": "cd src/backend && npm start",
-    "dev": "cd src/backend && npm run dev",
-    "build": "npm run install:backend && npm run build:backend",
-    "postinstall": "npm run build",
-    "test": "echo 'Tests will be added soon' && exit 0"
+    "dev": "vite --port 3000",
+    "start": "vite --port 3000",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview --port 3000"
   },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+  "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.19",
+    "@mui/material": "^5.14.20",
+    "@mui/x-data-grid": "^6.18.1",
+    "@mui/x-date-pickers": "^6.18.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1",
+    "recharts": "^2.8.0",
+    "jspdf": "^2.5.1",
+    "html2canvas": "^1.4.1",
+    "dayjs": "^1.11.10",
+    "buffer": "^6.0.3",
+    "process": "^0.11.10"
   },
-  "keywords": [
-    "quality-management",
-    "kalite-yonetim",
-    "mongodb",
-    "express",
-    "railway",
-    "netlify"
-  ],
-  "author": "Kademe A.Ş.",
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/atakanbattal/kys-kalite-yonetim.git"
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-react": "^4.1.1",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "typescript": "^4.9.5",
+    "vite": "^4.5.0",
+    "node-polyfill-webpack-plugin": "^4.1.0"
   }
 }

@@ -1,0 +1,3754 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Typography,
+  Box,
+  Paper,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Divider,
+  Button,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Alert,
+} from '@mui/material';
+import {
+  Science as ScienceIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  ExpandMore as ExpandMoreIcon,
+  Save as SaveIcon,
+  PictureAsPdf as PdfIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon,
+  Description as DescriptionIcon,
+  Warning as WarningIcon,
+  CheckCircleOutline as CheckCircleOutlineIcon,
+  Assignment as AssignmentIcon,
+} from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import qualityControlReportService from '../services/qualityControlReportService';
+
+// Types
+interface PersonnelItem {
+  id: string;
+  name: string;
+  employeeId: string;
+}
+
+interface MaterialData {
+  materialType: string;
+  materialGroup: string;
+  materialCode: string;
+  batchNumber: string;
+  certificateType: string;
+  certificateNumber: string;
+  supplier: string;
+  invoiceNumber: string;
+  heatTreatment: string;
+  surfaceCondition: string;
+  dimensions: string;
+  notes: string;
+  // Personel bilgileri
+  qualityController: string;
+  // Genel kalite notu
+  overallQualityGrade: 'B' | 'C' | 'D' | 'REJECT' | '';
+}
+
+interface ChemicalComposition {
+  c: number;
+  mn: number;
+  si: number;
+  p: number;
+  s: number;
+  cr: number;
+  ni: number;
+  mo: number;
+  v: number;
+  cu: number;
+  al: number;
+  other: number;
+}
+
+interface MechanicalProperties {
+  tensileStrength: number;
+  yieldStrength: number;
+  elongation: number;
+  impactTestTemp: number;
+  impactEnergy: number;
+}
+
+interface HardnessValues {
+  baseMaterial: number;
+  itab: number;
+  weldMetal: number;
+}
+
+interface Requirement {
+  min?: number;
+  max?: number;
+}
+
+interface ChemicalRequirements {
+  c: Requirement;
+  mn: Requirement;
+  si: Requirement;
+  p: Requirement;
+  s: Requirement;
+  cr: Requirement;
+  ni: Requirement;
+  mo: Requirement;
+  v: Requirement;
+  cu: Requirement;
+  al: Requirement;
+  other: Requirement;
+}
+
+interface MechanicalRequirements {
+  tensileStrength: Requirement;
+  yieldStrength: Requirement;
+  elongation: Requirement;
+  impactTestTemp: Requirement;
+  impactEnergy: Requirement;
+}
+
+interface HardnessRequirements {
+  baseMaterial: Requirement;
+  itab: Requirement;
+  weldMetal: Requirement;
+}
+
+interface StandardRequirements {
+  chemical: ChemicalRequirements;
+  mechanical: MechanicalRequirements;
+  hardness: HardnessRequirements;
+}
+
+interface Standard {
+  name: string;
+  description: string;
+  requirements: StandardRequirements;
+}
+
+interface QualityDecision {
+  type: 'DIRECT_REJECTION' | 'CONDITIONAL_ACCEPTANCE' | 'RE_EVALUATION' | null;
+  reason: string;
+  conditions?: string;
+  riskAssessment?: string;
+  correctionActions?: string;
+  responsiblePerson: string;
+  authorizedBy: string;
+  approvalDate: string;
+  // Şartlı Kabul İzlenebilirlik Bilgileri
+  traceabilityInfo?: {
+    partSerialNumber: string;
+    chassisNumber: string;
+    customerCompany: string;
+    vehicleModel: string;
+    vehicleYear: string;
+    usageArea: string;
+    criticalityLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    validUntil: string;
+    monitoringRequirements: string;
+  };
+}
+
+interface ConditionalAcceptance {
+  id: string;
+  materialInfo: {
+    code: string;
+    supplier: string;
+    batch: string;
+  };
+  acceptanceConditions: string;
+  usageLimitations: string;
+  riskAssessment: string;
+  authorizedBy: string;
+  validUntil: string;
+  monitoringRequirements: string;
+  // İzlenebilirlik Bilgileri
+  traceabilityInfo: {
+    partSerialNumber: string;
+    chassisNumber: string;
+    customerInfo: {
+      companyName: string;
+      vehicleModel: string;
+      vehicleYear: string;
+    };
+    usageArea: string; // Parçanın kullanılacağı alan (Motor, Şasi, Kabin vb.)
+    criticalityLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; // Kritiklik seviyesi
+  };
+}
+
+// Boyutsal Kontrol için yeni interface'ler
+interface ControlPoint {
+  id: string;
+  characteristic: string;  // Ölçülecek özellik (Dış Çap, Boy, Kalınlık vs.)
+  characteristicType: 'MINOR' | 'FUNCTIONAL' | 'CRITICAL' | 'SAFETY'; // Yeni: Karakteristik türü
+  specification: string;   // Spesifikasyon/Tolerans
+  nominalValue?: number;   // Nominal değer
+  upperLimit?: number;     // Üst limit
+  lowerLimit?: number;     // Alt limit
+  tolerance: string;       // Tolerans metni (örn: ±0.1mm, +0.2/-0.1mm)
+  toleranceType: 'BILATERAL' | 'PLUS_ONLY' | 'MINUS_ONLY' | 'PLUS_MINUS'; // Yeni: Tolerans türü
+  toleranceValue: number;  // Yeni: Tolerans değeri
+  toleranceValuePlus?: number;  // Yeni: Artı tolerans değeri (farklı +/- için)
+  toleranceValueMinus?: number; // Yeni: Eksi tolerans değeri (farklı +/- için)
+  measurementMethod: string; // Ölçüm yöntemi
+  equipment: string;       // Ölçüm ekipmanı
+  criticalityLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  notes?: string;
+}
+
+interface Measurement {
+  controlPointId: string;
+  measuredValue: number;
+  operator: string;
+  measurementTime: string;
+  status: 'PASS' | 'FAIL';
+  deviation?: number;
+}
+
+// Yeni: Parça bazlı kontrol planı
+interface PartControlPlan {
+  id: string;
+  partNumber: string;      // Parça numarası
+  partName: string;        // Parça adı
+  revision: string;        // Revizyon
+  drawingNumber?: string;  // Teknik resim numarası
+  customerName?: string;   // Müşteri adı
+  materialSpec?: string;   // Malzeme spesifikasyonu
+  controlPoints: ControlPoint[];
+  createdBy: string;
+  createdDate: string;
+  lastModified: string;
+}
+
+interface DimensionalControlPlan {
+  id: string;
+  planNumber: string;
+  drawingNumber: string;
+  revision: string;
+  customerName: string;
+  partNumber: string;
+  partName: string;
+  materialSpec: string;
+  controlPoints: ControlPoint[];
+  createdBy: string;
+  createdDate: string;
+}
+
+// Styled Components
+const StyledAccordion = styled(Accordion)(({ theme }) => ({
+  marginBottom: theme.spacing(2),
+  '&:before': {
+    display: 'none',
+  },
+}));
+
+const ResultPanel = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginTop: theme.spacing(3),
+  backgroundColor: theme.palette.background.default,
+}));
+
+// Constants - TR 15608 Standardına Göre
+const MATERIAL_TYPES = [
+  'Çelik ve Nikel Alaşımları',
+  'Alüminyum ve Alaşımları'
+];
+
+const MATERIAL_GROUPS = {
+  'Çelik ve Nikel Alaşımları': [
+    '1.1 - Karbon Çelikleri (Re ≤ 275 MPa)',
+    '1.2 - Karbon Çelikleri (275 < Re ≤ 360 MPa)',
+    '1.3 - Normalize Edilmiş İnce Taneli Çelikler',
+    '1.4 - Düşük Alaşımlı Çelikler',
+    '2 - Termo-mekanik İşlenmiş Çelikler',
+    '3 - Sertleştirilmiş ve Temperlenmiş Çelikler',
+    '4 - Düşük Vanadyum Alaşımlı Cr-Mo-(Ni) Çelikler',
+    '5 - Cr-Mo Çelikleri (V İçermez)',
+    '6 - Yüksek Vanadyum Alaşımlı Cr-Mo-(Ni) Çelikler',
+    '7 - Ferritik, Martenzitik ve Çökelme Sertleşmeli Paslanmaz Çelikler',
+    '8 - Östenitik Paslanmaz Çelikler',
+    '9 - Ni ≤ 10% Nikel Alaşımlı Çelikler',
+    '10 - Östenitik-Ferritik Paslanmaz Çelikler',
+    '11 - Kaplanmış Çelikler'
+  ],
+  'Alüminyum ve Alaşımları': [
+    '21 - Saf Alüminyum (1XXX Serisi)',
+    '22 - Alaşımlandırılmamış Alüminyum (1XXX Serisi)',
+    '23 - Al-Mg Alaşımları (5XXX Serisi)',
+    '24 - Al-Si Alaşımları (4XXX Serisi)',
+    '25 - Al-Mg-Si Alaşımları (6XXX Serisi)',
+    '26 - Al-Cu Alaşımları (2XXX Serisi)',
+    '27 - Al-Zn-Mg Alaşımları (7XXX Serisi)',
+    '28 - Al-Si-Cu Alaşımları (3XXX Serisi)'
+  ]
+};
+
+const CERTIFICATE_TYPES = ['2.1', '2.2', '3.1', '3.2'];
+const HEAT_TREATMENTS = ['Normalize', 'Temperleme', 'Sertleştirme', 'Yok'];
+const SURFACE_CONDITIONS = [
+  'Hadde Çıkışı',
+  'Asitlenmiş', 
+  'Galvanizli',
+  'Boyalı',
+  'Kumlama Yapılmış',
+  'İşlenmiş',
+  'Taşlanmış',
+  'Parlatılmış'
+];
+
+// Kaynak Kalite Sınıfları - ISO 5817'ye göre
+const QUALITY_GRADES = [
+  { value: 'B', label: 'Yüksek Kalite', color: '#8bc34a' },
+  { value: 'C', label: 'Orta Kalite', color: '#ff9800' },
+  { value: 'D', label: 'Düşük Kalite', color: '#f44336' },
+  { value: 'REJECT', label: 'Kabul Edilemez', color: '#d32f2f' },
+];
+
+// Default Personnel Lists
+const DEFAULT_QUALITY_CONTROLLERS: PersonnelItem[] = [
+  { id: '4', name: 'Fatma ÖZKAN', employeeId: 'QC001' },
+  { id: '5', name: 'Ayşe ŞAHIN', employeeId: 'QC002' },
+  { id: '6', name: 'Zeynep AKTAŞ', employeeId: 'QC003' }
+];
+
+// Impact Energy Requirements by Temperature (Joule)
+const IMPACT_ENERGY_REQUIREMENTS = {
+  20: 27,   // +20°C için minimum 27J
+  0: 27,    // 0°C için minimum 27J
+  '-20': 27, // -20°C için minimum 27J
+  '-40': 40, // -40°C için minimum 40J
+  '-60': 60, // -60°C için minimum 60J
+  '-80': 80  // -80°C için minimum 80J
+};
+
+// Validation standards by material group
+const STANDARDS: { [key: string]: Standard } = {
+  'default': {
+    name: 'EN 10020',
+    description: 'Genel Çelik Standardı',
+    requirements: {
+      chemical: {
+        c: { min: 0.12, max: 0.22 },
+        mn: { min: 0.30, max: 0.65 },
+        si: { min: 0.15, max: 0.35 },
+        p: { max: 0.035 },
+        s: { max: 0.035 },
+        cr: { max: 0.30 },
+        ni: { max: 0.30 },
+        mo: { max: 0.10 },
+        v: { max: 0.05 },
+        cu: { max: 0.30 },
+        al: { max: 0.02 },
+        other: { max: 0.05 }
+      },
+      mechanical: {
+        tensileStrength: { min: 400, max: 550 },
+        yieldStrength: { min: 235 },
+        elongation: { min: 20 },
+        impactTestTemp: { max: 20 }, // Düşük sıcaklık daha iyi
+        impactEnergy: { min: 27 }
+      },
+      hardness: {
+        baseMaterial: { max: 250 },
+        itab: { max: 350 },
+        weldMetal: { max: 300 }
+      }
+    }
+  },
+  '1.1': {
+    name: 'EN 10025-2',
+    description: 'Karbon Çelikleri (Re ≤ 275 MPa)',
+    requirements: {
+      chemical: {
+        c: { max: 0.17 },
+        mn: { min: 0.30, max: 1.40 },
+        si: { max: 0.40 },
+        p: { max: 0.035 },
+        s: { max: 0.035 },
+        cr: { max: 0.30 },
+        ni: { max: 0.30 },
+        mo: { max: 0.10 },
+        v: { max: 0.05 },
+        cu: { max: 0.30 },
+        al: { max: 0.02 },
+        other: { max: 0.05 }
+      },
+      mechanical: {
+        tensileStrength: { min: 360, max: 510 },
+        yieldStrength: { min: 235, max: 275 },
+        elongation: { min: 23 },
+        impactTestTemp: { max: 20 },
+        impactEnergy: { min: 27 }
+      },
+      hardness: {
+        baseMaterial: { max: 200 },
+        itab: { max: 300 },
+        weldMetal: { max: 250 }
+      }
+    }
+  },
+  '1.2': {
+    name: 'EN 10025-2',
+    description: 'Karbon Çelikleri (275 < Re ≤ 360 MPa)',
+    requirements: {
+      chemical: {
+        c: { max: 0.20 },
+        mn: { min: 0.50, max: 1.50 },
+        si: { max: 0.40 },
+        p: { max: 0.035 },
+        s: { max: 0.035 },
+        cr: { max: 0.30 },
+        ni: { max: 0.30 },
+        mo: { max: 0.10 },
+        v: { max: 0.05 },
+        cu: { max: 0.30 },
+        al: { max: 0.02 },
+        other: { max: 0.05 }
+      },
+      mechanical: {
+        tensileStrength: { min: 430, max: 580 },
+        yieldStrength: { min: 275, max: 360 },
+        elongation: { min: 21 },
+        impactTestTemp: { max: 20 },
+        impactEnergy: { min: 27 }
+      },
+      hardness: {
+        baseMaterial: { max: 220 },
+        itab: { max: 320 },
+        weldMetal: { max: 270 }
+      }
+    }
+  },
+  '8': {
+    name: 'EN 10088',
+    description: 'Östenitik Paslanmaz Çelikler',
+    requirements: {
+      chemical: {
+        c: { max: 0.08 },
+        mn: { max: 2.00 },
+        si: { max: 1.00 },
+        p: { max: 0.045 },
+        s: { max: 0.030 },
+        cr: { min: 17.0, max: 20.0 },
+        ni: { min: 8.0, max: 12.0 },
+        mo: { max: 0.75 },
+        v: { max: 0.05 },
+        cu: { max: 0.30 },
+        al: { max: 0.02 },
+        other: { max: 0.05 }
+      },
+      mechanical: {
+        tensileStrength: { min: 520, max: 720 },
+        yieldStrength: { min: 210 },
+        elongation: { min: 45 },
+        impactTestTemp: { max: -196 }, // Çok düşük sıcaklıklarda test edilebilir
+        impactEnergy: { min: 60 }
+      },
+      hardness: {
+        baseMaterial: { max: 200 },
+        itab: { max: 280 },
+        weldMetal: { max: 220 }
+      }
+    }
+  }
+};
+
+// Constants for dimensional control
+const PREDEFINED_CHARACTERISTICS = [
+  { name: 'Dış Çap', method: 'Kumpas ile ölçüm', equipment: 'Dijital Kumpas' },
+  { name: 'İç Çap', method: 'İç çap kumpası ile ölçüm', equipment: 'İç Çap Kumpası' },
+  { name: 'Boy/Uzunluk', method: 'Kumpas ile ölçüm', equipment: 'Dijital Kumpas' },
+  { name: 'Genişlik', method: 'Kumpas ile ölçüm', equipment: 'Dijital Kumpas' },
+  { name: 'Kalınlık', method: 'Kumpas ile ölçüm', equipment: 'Dijital Kumpas' },
+  { name: 'Delik Çapı', method: 'İç çap kumpası ile ölçüm', equipment: 'İç Çap Kumpası' },
+  { name: 'Delik Derinliği', method: 'Derinlik ölçer ile ölçüm', equipment: 'Derinlik Ölçer' },
+  { name: 'Vida Çapı', method: 'Vida kumpası ile ölçüm', equipment: 'Vida Kumpası' },
+  { name: 'Vida Adımı', method: 'Vida adım ölçer ile ölçüm', equipment: 'Vida Adım Ölçer' },
+  { name: 'Açı', method: 'Açı ölçer ile ölçüm', equipment: 'Dijital Açı Ölçer' },
+  { name: 'Düzlük', method: 'Düzlük ölçer ile ölçüm', equipment: 'Düzlük Ölçer' },
+  { name: 'Parallellik', method: 'Mikrometre ile ölçüm', equipment: 'Dijital Mikrometre' },
+  { name: 'Dik Açılılık', method: 'Dik açı ölçer ile ölçüm', equipment: 'Dik Açı Ölçer' },
+  { name: 'Konsantriklik', method: 'CMM ile ölçüm', equipment: 'Koordinat Ölçme Makinesi' },
+  { name: 'Yuvarlak Çap', method: 'CMM ile ölçüm', equipment: 'Koordinat Ölçme Makinesi' },
+  { name: 'Silindiriklik', method: 'CMM ile ölçüm', equipment: 'Koordinat Ölçme Makinesi' },
+  { name: 'Pürüzlülük', method: 'Pürüzlülük ölçer ile ölçüm', equipment: 'Yüzey Pürüzlülük Ölçer' },
+  { name: 'Sertlik', method: 'Sertlik ölçer ile ölçüm', equipment: 'Dijital Sertlik Ölçer' },
+  { name: 'Konum Toleransı', method: 'CMM ile ölçüm', equipment: 'Koordinat Ölçme Makinesi' },
+  { name: 'Form Toleransı', method: 'CMM ile ölçüm', equipment: 'Koordinat Ölçme Makinesi' },
+];
+
+const TOLERANCE_TYPES = [
+  { value: 'BILATERAL', label: '± (İki Yönlü)', symbol: '±' },
+  { value: 'PLUS_ONLY', label: '+ (Sadece Artı)', symbol: '+' },
+  { value: 'MINUS_ONLY', label: '- (Sadece Eksi)', symbol: '-' },
+  { value: 'PLUS_MINUS', label: '+/- (Farklı Artı/Eksi)', symbol: '+/-' },
+];
+
+const MaterialQualityControl: React.FC = () => {
+  const [expanded, setExpanded] = useState<string | false>('panel1');
+  const [materialData, setMaterialData] = useState<MaterialData>({
+    materialType: '',
+    materialGroup: '',
+    materialCode: '',
+    batchNumber: '',
+    certificateType: '',
+    certificateNumber: '',
+    supplier: '',
+    invoiceNumber: '',
+    heatTreatment: '',
+    surfaceCondition: '',
+    dimensions: '',
+    notes: '',
+    qualityController: '',
+    overallQualityGrade: '',
+  });
+
+  // Personnel management states
+  const [personnelDialog, setPersonnelDialog] = useState<string | null>(null);
+  const [newPersonnelName, setNewPersonnelName] = useState('');
+  const [newPersonnelId, setNewPersonnelId] = useState('');
+  const [personnelLists, setPersonnelLists] = useState({
+    qualityControllers: DEFAULT_QUALITY_CONTROLLERS,
+  });
+
+  const [chemicalComposition, setChemicalComposition] = useState<ChemicalComposition>({
+    c: 0,
+    mn: 0,
+    si: 0,
+    p: 0,
+    s: 0,
+    cr: 0,
+    ni: 0,
+    mo: 0,
+    v: 0,
+    cu: 0,
+    al: 0,
+    other: 0,
+  });
+
+  const [mechanicalProperties, setMechanicalProperties] = useState<MechanicalProperties>({
+    tensileStrength: 0,
+    yieldStrength: 0,
+    elongation: 0,
+    impactTestTemp: 0,
+    impactEnergy: 0,
+  });
+
+  const [hardnessValues, setHardnessValues] = useState<HardnessValues>({
+    baseMaterial: 0,
+    itab: 0,
+    weldMetal: 0,
+  });
+
+  // Boyutsal Kontrol State'leri
+  const [controlPoints, setControlPoints] = useState<ControlPoint[]>([]);
+  const [measurements, setMeasurements] = useState<Measurement[]>([]);
+  const [newControlPoint, setNewControlPoint] = useState<Partial<ControlPoint>>({
+    characteristic: '',
+    characteristicType: 'FUNCTIONAL',
+    specification: '',
+    tolerance: '',
+    toleranceType: 'BILATERAL',
+    toleranceValue: 0,
+    measurementMethod: '',
+    equipment: '',
+    criticalityLevel: 'MEDIUM',
+  });
+  const [controlPointDialog, setControlPointDialog] = useState(false);
+  const [dimensionalResults, setDimensionalResults] = useState<any>(null);
+
+  // Yeni: Parça bazlı kontrol planı state'leri
+  const [partControlPlans, setPartControlPlans] = useState<PartControlPlan[]>([]);
+  const [selectedPartPlan, setSelectedPartPlan] = useState<PartControlPlan | null>(null);
+  const [newPartPlan, setNewPartPlan] = useState<Partial<PartControlPlan>>({
+    partNumber: '',
+    partName: '',
+    revision: 'Rev A',
+    drawingNumber: '',
+    customerName: '',
+    materialSpec: '',
+  });
+  const [partPlanDialog, setPartPlanDialog] = useState(false);
+  const [partSelectionDialog, setPartSelectionDialog] = useState(false);
+
+  const [partSearchTerm, setPartSearchTerm] = useState('');
+  const [filteredPartPlans, setFilteredPartPlans] = useState<PartControlPlan[]>([]);
+
+  // Bulk control point creation
+  const [numberOfControlPoints, setNumberOfControlPoints] = useState(1);
+  const [bulkControlPoints, setBulkControlPoints] = useState<Partial<ControlPoint>[]>([]);
+
+  const [validationResults, setValidationResults] = useState<any>(null);
+
+  const [qualityDecisionDialog, setQualityDecisionDialog] = useState(false);
+  const [showDecisionForms, setShowDecisionForms] = useState(false);
+  const [qualityDecision, setQualityDecision] = useState<QualityDecision>({
+    type: null,
+    reason: '',
+    conditions: '',
+    riskAssessment: '',
+    correctionActions: '',
+    responsiblePerson: '',
+    authorizedBy: '',
+    approvalDate: new Date().toISOString().split('T')[0],
+  });
+
+  const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpanded(isExpanded ? panel : false);
+  };
+
+  // Personnel management functions
+  const handleAddPersonnel = (listType: 'qualityControllers') => {
+    if (newPersonnelName.trim() && newPersonnelId.trim()) {
+      const newPersonnel: PersonnelItem = {
+        id: Date.now().toString(),
+        name: newPersonnelName.trim(),
+        employeeId: newPersonnelId.trim()
+      };
+      setPersonnelLists(prev => ({
+        ...prev,
+        [listType]: [...prev[listType], newPersonnel]
+      }));
+      setNewPersonnelName('');
+      setNewPersonnelId('');
+      setPersonnelDialog(null);
+    }
+  };
+
+  const handleDeletePersonnel = (listType: 'qualityControllers', personnelId: string) => {
+    setPersonnelLists(prev => ({
+      ...prev,
+      [listType]: prev[listType].filter(person => person.id !== personnelId)
+    }));
+  };
+
+  const getStandardForMaterialGroup = (materialGroup: string): Standard => {
+    const groupNumber = materialGroup.split(' - ')[0];
+    return STANDARDS[groupNumber] || STANDARDS['default'];
+  };
+
+  const getImpactEnergyRequirement = (temperature: number): number => {
+    const tempKey = temperature.toString();
+    return IMPACT_ENERGY_REQUIREMENTS[tempKey as keyof typeof IMPACT_ENERGY_REQUIREMENTS] || 27;
+  };
+
+  // Uygunsuzluk nedenlerini otomatik oluştur
+  const generateNonConformityReasons = (validationResults: any): string => {
+    if (!validationResults || !validationResults.details) {
+      return '';
+    }
+
+    const rejectedItems = validationResults.details.filter((detail: any) => detail.status === 'REJECTED');
+    
+    if (rejectedItems.length === 0) {
+      return '';
+    }
+
+    let reasonText = 'Aşağıdaki test sonuçları standart gereksinimlerini karşılamamaktadır:\n\n';
+    
+    rejectedItems.forEach((item: any, index: number) => {
+      reasonText += `${index + 1}. ${item.property}\n`;
+      reasonText += `   • Ölçülen Değer: ${item.value}\n`;
+      reasonText += `   • Gereksinim: ${item.requirement}\n`;
+      reasonText += `   • Referans Standart: ${item.reference}\n\n`;
+    });
+
+    reasonText += `Toplam ${rejectedItems.length} adet uygunsuzluk tespit edilmiştir.\n`;
+    reasonText += 'Malzeme belirtilen kalite standartlarına uygun değildir ve kullanıma uygun görülmemektedir.';
+
+    return reasonText;
+  };
+
+  // Boyutsal Kontrol Fonksiyonları
+  const addControlPoint = () => {
+    if (!newControlPoint.characteristic || !newControlPoint.nominalValue || !newControlPoint.toleranceValue) {
+      alert('Karakteristik, nominal değer ve tolerans değeri zorunludur!');
+      return;
+    }
+
+    // Limitleri hesapla
+    const { upperLimit, lowerLimit, toleranceText } = calculateLimits(
+      newControlPoint.nominalValue!,
+      newControlPoint.toleranceType!,
+      newControlPoint.toleranceValue!,
+      newControlPoint.toleranceValuePlus,
+      newControlPoint.toleranceValueMinus
+    );
+
+    const controlPoint: ControlPoint = {
+      id: Date.now().toString(),
+      characteristic: newControlPoint.characteristic!,
+      characteristicType: newControlPoint.characteristicType!,
+      specification: newControlPoint.specification!,
+      nominalValue: newControlPoint.nominalValue!,
+      upperLimit,
+      lowerLimit,
+      tolerance: toleranceText,
+      toleranceType: newControlPoint.toleranceType!,
+      toleranceValue: newControlPoint.toleranceValue!,
+      toleranceValuePlus: newControlPoint.toleranceValuePlus,
+      toleranceValueMinus: newControlPoint.toleranceValueMinus,
+      measurementMethod: newControlPoint.measurementMethod!,
+      equipment: newControlPoint.equipment!,
+      criticalityLevel: newControlPoint.criticalityLevel!,
+      notes: newControlPoint.notes,
+    };
+
+    setControlPoints([...controlPoints, controlPoint]);
+    setNewControlPoint({
+      characteristic: '',
+      characteristicType: 'FUNCTIONAL',
+      specification: '',
+      tolerance: '',
+      toleranceType: 'BILATERAL',
+      toleranceValue: 0,
+      measurementMethod: '',
+      equipment: '',
+      criticalityLevel: 'MEDIUM',
+    });
+    setControlPointDialog(false);
+  };
+
+  const deleteControlPoint = (pointId: string) => {
+    setControlPoints(controlPoints.filter(point => point.id !== pointId));
+    setMeasurements(measurements.filter(measurement => measurement.controlPointId !== pointId));
+  };
+
+  const addMeasurement = (controlPointId: string, measuredValue: number, operator: string) => {
+    const controlPoint = controlPoints.find(point => point.id === controlPointId);
+    if (!controlPoint) return;
+
+    let status: 'PASS' | 'FAIL' = 'PASS';
+    let deviation = 0;
+
+    // Limit kontrolü
+    if (controlPoint.upperLimit !== undefined && measuredValue > controlPoint.upperLimit) {
+      status = 'FAIL';
+      deviation = measuredValue - controlPoint.upperLimit;
+    } else if (controlPoint.lowerLimit !== undefined && measuredValue < controlPoint.lowerLimit) {
+      status = 'FAIL';
+      deviation = controlPoint.lowerLimit - measuredValue;
+    } else if (controlPoint.nominalValue !== undefined) {
+      deviation = Math.abs(measuredValue - controlPoint.nominalValue);
+    }
+
+    const measurement: Measurement = {
+      controlPointId,
+      measuredValue,
+      operator,
+      measurementTime: new Date().toISOString(),
+      status,
+      deviation,
+    };
+
+    setMeasurements([...measurements, measurement]);
+    evaluateDimensionalResults();
+  };
+
+  const evaluateDimensionalResults = () => {
+    if (controlPoints.length === 0) {
+      setDimensionalResults(null);
+      return;
+    }
+
+    const dimensionalResults = controlPoints.map(point => {
+      const pointMeasurements = measurements.filter(m => m.controlPointId === point.id);
+      const failedMeasurements = pointMeasurements.filter(m => m.status === 'FAIL');
+      
+      let pointStatus = 'PASS';
+      if (failedMeasurements.length > 0) {
+        pointStatus = point.criticalityLevel === 'CRITICAL' ? 'CRITICAL_FAIL' : 'FAIL';
+      }
+
+      return {
+        controlPoint: point,
+        measurements: pointMeasurements,
+        status: pointStatus,
+        failureCount: failedMeasurements.length,
+      };
+    });
+
+    const criticalFailures = dimensionalResults.filter(r => r.status === 'CRITICAL_FAIL').length;
+    const totalFailures = dimensionalResults.filter(r => r.status === 'FAIL' || r.status === 'CRITICAL_FAIL').length;
+    
+    const overallStatus = criticalFailures > 0 ? 'REJECTED' : totalFailures > 0 ? 'CONDITIONAL' : 'ACCEPTED';
+
+    setDimensionalResults({
+      overallStatus,
+      results: dimensionalResults,
+      criticalFailures,
+      totalFailures,
+      totalPoints: controlPoints.length,
+    });
+
+    if (!materialData.qualityController) {
+      alert('Kalite kontrol personeli seçimi zorunludur!');
+      return;
+    }
+
+    if (!materialData.overallQualityGrade) {
+      alert('Kaynak kalite sınıfı seçimi zorunludur!');
+      return;
+    }
+
+    // Perform validation against standards
+    const results = validateAgainstStandards();
+    setValidationResults(results);
+
+    // If rejected, open quality decision dialog
+    if (results.status === 'REJECTED') {
+      setQualityDecisionDialog(true);
+      return;
+    }
+
+    // If accepted, save directly
+    saveReport(results);
+  };
+
+  const saveReport = async (results: any, finalDecision?: QualityDecision) => {
+    try {
+      const selectedQualityController = personnelLists.qualityControllers.find(p => p.id === materialData.qualityController);
+      const standard = getStandardForMaterialGroup(materialData.materialGroup);
+      
+      let conclusion = results.status === 'ACCEPTED' ? 
+        'Malzeme belirtilen standartlara uygun bulunmuştur.' : 
+        'Malzeme belirtilen standartlara uygun bulunmamıştır.';
+
+      // Add quality decision to conclusion if exists
+      if (finalDecision && finalDecision.type) {
+        if (finalDecision.type === 'CONDITIONAL_ACCEPTANCE') {
+          conclusion += `\n\nŞARTLI KABUL: ${finalDecision.reason}\nKabul Şartları: ${finalDecision.conditions}`;
+        } else if (finalDecision.type === 'DIRECT_REJECTION') {
+          conclusion += `\n\nDİREKT RED: ${finalDecision.reason}\nDüzeltici Faaliyetler: ${finalDecision.correctionActions}`;
+        }
+      }
+      
+      const reportData = {
+        materialCode: materialData.materialCode,
+        materialName: materialData.materialGroup,
+        supplierName: materialData.supplier,
+        batchNumber: materialData.batchNumber,
+        certificateNumber: materialData.certificateNumber,
+        qualityController: {
+          id: selectedQualityController?.id || '',
+          name: selectedQualityController?.name || '',
+          employeeId: selectedQualityController?.employeeId || '',
+        },
+        overallQualityGrade: materialData.overallQualityGrade as 'B' | 'C' | 'D' | 'REJECT',
+        standardReference: standard.name,
+        testResults: {
+          chemicalComposition: chemicalComposition as unknown as Record<string, number>,
+          mechanicalProperties: mechanicalProperties as unknown as Record<string, number>,
+          hardnessValues: hardnessValues as unknown as Record<string, number>,
+          dimensionalResults: dimensionalResults,
+          validationResults: {
+            ...results,
+            status: results.status as 'ACCEPTED' | 'REJECTED',
+            qualityDecision: finalDecision || null,
+          },
+        },
+        conclusion,
+      };
+
+      console.log('Rapor verisi gönderiliyor:', reportData);
+
+      // Call API to save the report
+      const savedReport = await qualityControlReportService.createQualityControlReport(reportData);
+      console.log('Rapor başarıyla kaydedildi:', savedReport);
+      alert('Rapor başarıyla kaydedildi ve raporlar listesine eklendi!');
+      
+      // Reset quality decision dialog
+      setQualityDecisionDialog(false);
+      setShowDecisionForms(false);
+      setQualityDecision({
+        type: null,
+        reason: '',
+        conditions: '',
+        riskAssessment: '',
+        correctionActions: '',
+        responsiblePerson: '',
+        authorizedBy: '',
+        approvalDate: new Date().toISOString().split('T')[0],
+      });
+      
+    } catch (error: any) {
+      console.error('Rapor kaydedilirken detaylı hata:', error);
+      console.error('Hata response:', error.response?.data);
+      console.error('Hata status:', error.response?.status);
+      
+      let errorMessage = 'Rapor kaydedilirken bir hata oluştu!';
+      if (error.response?.data?.message) {
+        errorMessage += `\nDetay: ${error.response.data.message}`;
+      } else if (error.message) {
+        errorMessage += `\nDetay: ${error.message}`;
+      }
+      
+      alert(errorMessage);
+    }
+  };
+
+  const handleSave = async () => {
+    // Validate required fields
+    if (!materialData.certificateNumber) {
+      alert('Sertifika numarası zorunludur!');
+      return;
+    }
+
+    if (!materialData.qualityController) {
+      alert('Kalite kontrol personeli seçimi zorunludur!');
+      return;
+    }
+
+    if (!materialData.overallQualityGrade) {
+      alert('Kaynak kalite sınıfı seçimi zorunludur!');
+      return;
+    }
+
+    // Perform validation against standards
+    const results = validateAgainstStandards();
+    setValidationResults(results);
+
+    // If rejected, open quality decision dialog
+    if (results.status === 'REJECTED') {
+      setQualityDecisionDialog(true);
+      return;
+    }
+
+    // If accepted, save directly
+    await saveReport(results);
+  };
+
+  const generatePDFReport = () => {
+    // Validation check before generating PDF
+    if (!materialData.certificateNumber && !materialData.materialCode) {
+      alert('PDF raporu oluşturmak için en az sertifika numarası veya malzeme kodu girilmelidir!');
+      return;
+    }
+
+    const doc = new jsPDF();
+    const reportNumber = `GKK-${Date.now().toString().slice(-6)}`;
+    
+    // Türkçe karakterleri ASCII'ye dönüştüren fonksiyon
+    const convertTurkish = (text: string): string => {
+      if (!text) return '';
+      return text
+        .replace(/Ç/g, 'C').replace(/ç/g, 'c')
+        .replace(/Ğ/g, 'G').replace(/ğ/g, 'g')
+        .replace(/İ/g, 'I').replace(/ı/g, 'i')
+        .replace(/Ö/g, 'O').replace(/ö/g, 'o')
+        .replace(/Ş/g, 'S').replace(/ş/g, 's')
+        .replace(/Ü/g, 'U').replace(/ü/g, 'u')
+        .replace(/≥/g, '>=').replace(/≤/g, '<=')
+        .replace(/°/g, '').replace(/′/g, "'")
+        .replace(/'/g, "'").replace(/"/g, '"')
+        .replace(/–/g, '-').replace(/—/g, '-');
+    };
+    
+    // Font ayarları
+    doc.setFont('helvetica');
+    
+    // Header with Background
+    doc.setFillColor(41, 128, 185);
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    // Company Info (Başlık)
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text(convertTurkish('KADEME A.Ş.'), 20, 22);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(convertTurkish('Kalite Kontrol Birimi'), 20, 28);
+    
+    // Main Title
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(convertTurkish('GİRDİ KALİTE KONTROL RAPORU'), 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('(Material Quality Control Report)', 105, 28, { align: 'center' });
+    
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+    let y = 55;
+    
+    // Rapor Bilgileri Tablosu
+    autoTable(doc, {
+      startY: y,
+      head: [[convertTurkish('RAPOR BİLGİLERİ'), '']],
+      body: [
+        [convertTurkish('Rapor Numarası'), reportNumber],
+        ['Tarih', new Date().toLocaleDateString('tr-TR')],
+        ['Saat', new Date().toLocaleTimeString('tr-TR')],
+        ['Durum', validationResults ? 
+          (validationResults.status === 'ACCEPTED' ? convertTurkish('ONAYLANMIŞ') : convertTurkish('REDDEDİLMİŞ')) : 
+          convertTurkish('DEĞERLENDİRİLMEMİŞ')]
+      ],
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 10,
+        cellPadding: 4
+      },
+      headStyles: {
+        fillColor: [52, 152, 219],
+        textColor: 255,
+        fontSize: 11,
+        fontStyle: 'bold'
+      },
+      columnStyles: {
+        0: { cellWidth: 70, fontStyle: 'bold' },
+        1: { cellWidth: 110 }
+      }
+    });
+    
+    y = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Malzeme Bilgileri Tablosu
+    const materialInfo = [
+      [convertTurkish('Malzeme Tipi'), convertTurkish(materialData.materialType || 'Belirtilmemiş')],
+      [convertTurkish('Malzeme Grubu'), convertTurkish(materialData.materialGroup || 'Belirtilmemiş')],
+      [convertTurkish('Malzeme Kodu'), materialData.materialCode || convertTurkish('Belirtilmemiş')],
+      [convertTurkish('Parti/Döküm Numarası'), materialData.batchNumber || convertTurkish('Belirtilmemiş')],
+      [convertTurkish('Sertifika Tipi'), materialData.certificateType || convertTurkish('Belirtilmemiş')],
+      [convertTurkish('Sertifika Numarası'), materialData.certificateNumber || convertTurkish('Belirtilmemiş')],
+      [convertTurkish('Tedarikçi'), convertTurkish(materialData.supplier || 'Belirtilmemiş')],
+      [convertTurkish('Fatura Numarası'), materialData.invoiceNumber || convertTurkish('Belirtilmemiş')],
+      [convertTurkish('Isıl İşlem'), convertTurkish(materialData.heatTreatment || 'Belirtilmemiş')],
+      [convertTurkish('Yüzey Durumu'), convertTurkish(materialData.surfaceCondition || 'Belirtilmemiş')],
+      [convertTurkish('Boyutlar'), convertTurkish(materialData.dimensions || 'Belirtilmemiş')]
+    ];
+    
+    if (materialData.notes) {
+      materialInfo.push([convertTurkish('Notlar'), convertTurkish(materialData.notes)]);
+    }
+    
+    autoTable(doc, {
+      startY: y,
+      head: [[convertTurkish('MALZEME BİLGİLERİ'), '']],
+      body: materialInfo,
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 9,
+        cellPadding: 3
+      },
+      headStyles: {
+        fillColor: [46, 204, 113],
+        textColor: 255,
+        fontSize: 11,
+        fontStyle: 'bold'
+      },
+      columnStyles: {
+        0: { cellWidth: 70, fontStyle: 'bold' },
+        1: { cellWidth: 110 }
+      }
+    });
+    
+    y = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Sayfa kontrolü
+    if (y > 200) {
+      doc.addPage();
+      y = 30;
+    }
+    
+    // Mekanik Özellikler (sadece doldurulmuş olanlar)
+    const mechanicalData: string[][] = [];
+    if (mechanicalProperties.tensileStrength > 0) {
+      mechanicalData.push([convertTurkish('Çekme Mukavemeti (Rm)'), `${mechanicalProperties.tensileStrength} MPa`]);
+    }
+    if (mechanicalProperties.yieldStrength > 0) {
+      mechanicalData.push([convertTurkish('Akma Mukavemeti (Re)'), `${mechanicalProperties.yieldStrength} MPa`]);
+    }
+    if (mechanicalProperties.elongation > 0) {
+      mechanicalData.push([convertTurkish('Uzama'), `${mechanicalProperties.elongation}%`]);
+    }
+    if (mechanicalProperties.impactTestTemp !== 0) {
+      mechanicalData.push([convertTurkish('Darbe Test Sıcaklığı'), `${mechanicalProperties.impactTestTemp} C`]);
+    }
+    if (mechanicalProperties.impactEnergy > 0) {
+      mechanicalData.push([convertTurkish('Darbe Enerjisi'), `${mechanicalProperties.impactEnergy} J`]);
+    }
+    
+    if (mechanicalData.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [[convertTurkish('MEKANİK ÖZELLİKLER'), '']],
+        body: mechanicalData,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 9,
+          cellPadding: 3
+        },
+        headStyles: {
+          fillColor: [155, 89, 182],
+          textColor: 255,
+          fontSize: 11,
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 80, fontStyle: 'bold' },
+          1: { cellWidth: 100 }
+        }
+      });
+      
+      y = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    // Sertlik Değerleri (sadece doldurulmuş olanlar)
+    const hardnessData: string[][] = [];
+    if (hardnessValues.baseMaterial > 0) {
+      hardnessData.push([convertTurkish('Ana Malzeme Sertliği'), `${hardnessValues.baseMaterial} HV`]);
+    }
+    if (hardnessValues.itab > 0) {
+      hardnessData.push([convertTurkish('ITAB Bölgesi Sertliği'), `${hardnessValues.itab} HV`]);
+    }
+    if (hardnessValues.weldMetal > 0) {
+      hardnessData.push([convertTurkish('Kaynak Metali Sertliği'), `${hardnessValues.weldMetal} HV`]);
+    }
+    
+    if (hardnessData.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [[convertTurkish('SERTLİK DEĞERLERİ'), '']],
+        body: hardnessData,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 9,
+          cellPadding: 3
+        },
+        headStyles: {
+          fillColor: [52, 73, 94],
+          textColor: 255,
+          fontSize: 11,
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 80, fontStyle: 'bold' },
+          1: { cellWidth: 100 }
+        }
+      });
+      
+      y = (doc as any).lastAutoTable.finalY + 15;
+    }
+    
+    // Değerlendirme Sonuçları (eğer varsa)
+    if (validationResults && validationResults.details.length > 0) {
+      // Sayfa kontrolü
+      if (y > 150) {
+        doc.addPage();
+        y = 30;
+      }
+      
+      const validationTableData = validationResults.details.map((detail: any) => [
+        convertTurkish(detail.property),
+        detail.value,
+        convertTurkish(detail.requirement),
+        detail.status === 'ACCEPTED' ? convertTurkish('UYGUN') : convertTurkish('UYGUN DEĞİL'),
+        detail.reference
+      ]);
+      
+      autoTable(doc, {
+        startY: y,
+        head: [[
+          convertTurkish('ÖZELLİK'),
+          convertTurkish('DEĞER'),
+          convertTurkish('GEREKSİNİM'),
+          'DURUM',
+          'REFERANS'
+        ]],
+        body: validationTableData,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 8,
+          cellPadding: 2
+        },
+        headStyles: {
+          fillColor: validationResults.status === 'ACCEPTED' ? [39, 174, 96] : [231, 76, 60],
+          textColor: 255,
+          fontSize: 9,
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 30 },
+          2: { cellWidth: 40 },
+          3: { cellWidth: 35, fontStyle: 'bold' },
+          4: { cellWidth: 25 }
+        }
+      });
+    }
+    
+    // Footer (her sayfa için)
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(128, 128, 128);
+      doc.text(`Sayfa ${i} / ${pageCount}`, 105, 285, { align: 'center' });
+      doc.text(`Rapor No: ${reportNumber}`, 20, 285);
+      doc.text(convertTurkish('KADEME A.Ş. - Kalite Kontrol Birimi'), 190, 285, { align: 'right' });
+    }
+    
+    // PDF'i kaydet
+    const fileName = `GirdiKaliteKontrol_${materialData.certificateNumber || 'NoSertifika'}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    
+    alert(convertTurkish('PDF raporu başarıyla oluşturuldu ve indirildi!'));
+  };
+
+  const validateAgainstStandards = () => {
+    const standard = getStandardForMaterialGroup(materialData.materialGroup);
+    const results = {
+      status: 'ACCEPTED',
+      details: [] as any[],
+    };
+
+    // Validate chemical composition
+    Object.entries(chemicalComposition).forEach(([element, value]) => {
+      const requirement = standard.requirements.chemical[element as keyof typeof standard.requirements.chemical];
+      if (requirement && value > 0) { // Only validate if value is entered
+        const isWithinRange = (!requirement.min || value >= requirement.min) &&
+                             (!requirement.max || value <= requirement.max);
+        results.details.push({
+          property: `Kimyasal Bileşim - ${element.toUpperCase()}`,
+          value: `${value}%`,
+          requirement: requirement.min && requirement.max 
+            ? `${requirement.min}% - ${requirement.max}%`
+            : requirement.min 
+              ? `>= ${requirement.min}%`
+              : `<= ${requirement.max}%`,
+          status: isWithinRange ? 'ACCEPTED' : 'REJECTED',
+          reference: standard.name,
+        });
+        if (!isWithinRange) results.status = 'REJECTED';
+      }
+    });
+
+    // Validate mechanical properties
+    Object.entries(mechanicalProperties).forEach(([property, value]) => {
+      if (value > 0) { // Only validate if value is entered
+        const requirement = standard.requirements.mechanical[property as keyof typeof standard.requirements.mechanical];
+        if (requirement) {
+          let isWithinRange = false;
+          let displayUnit = '';
+          let requirementText = '';
+
+          if (property === 'impactTestTemp') {
+            // For impact test temperature, lower is better
+            isWithinRange = !requirement.max || value <= requirement.max;
+            displayUnit = 'C';
+            requirementText = requirement.max ? `<= ${requirement.max}C` : 'Test Sicakligi';
+          } else if (property === 'impactEnergy') {
+            // For impact energy, use temperature-specific requirement
+            const minRequired = getImpactEnergyRequirement(mechanicalProperties.impactTestTemp);
+            isWithinRange = value >= minRequired;
+            displayUnit = 'J';
+            requirementText = `>= ${minRequired}J (${mechanicalProperties.impactTestTemp}C'de)`;
+          } else {
+            isWithinRange = (!requirement.min || value >= requirement.min) &&
+                           (!requirement.max || value <= requirement.max);
+            displayUnit = property.includes('Strength') ? 'MPa' : property === 'elongation' ? '%' : '';
+            requirementText = requirement.min && requirement.max 
+              ? `${requirement.min} - ${requirement.max} ${displayUnit}`
+              : requirement.min 
+                ? `>= ${requirement.min} ${displayUnit}`
+                : `<= ${requirement.max} ${displayUnit}`;
+          }
+
+          results.details.push({
+            property: `Mekanik Özellik - ${property}`,
+            value: `${value} ${displayUnit}`,
+            requirement: requirementText,
+            status: isWithinRange ? 'ACCEPTED' : 'REJECTED',
+            reference: standard.name,
+          });
+          if (!isWithinRange) results.status = 'REJECTED';
+        }
+      }
+    });
+
+    // Validate hardness values
+    Object.entries(hardnessValues).forEach(([property, value]) => {
+      if (value > 0) { // Only validate if value is entered
+        const requirement = standard.requirements.hardness[property as keyof typeof standard.requirements.hardness];
+        if (requirement) {
+          const isWithinRange = (!requirement.min || value >= requirement.min) &&
+                               (!requirement.max || value <= requirement.max);
+          results.details.push({
+            property: `Sertlik - ${property}`,
+            value: `${value} HV`,
+            requirement: requirement.min && requirement.max 
+              ? `${requirement.min} - ${requirement.max} HV`
+              : requirement.min 
+                ? `>= ${requirement.min} HV`
+                : `<= ${requirement.max} HV`,
+            status: isWithinRange ? 'ACCEPTED' : 'REJECTED',
+            reference: standard.name,
+          });
+          if (!isWithinRange) results.status = 'REJECTED';
+        }
+      }
+    });
+
+    return results;
+  };
+
+  const getAvailableGroups = () => {
+    return MATERIAL_GROUPS[materialData.materialType as keyof typeof MATERIAL_GROUPS] || [];
+  };
+
+  // Yeni: Parça bazlı kontrol planı fonksiyonları
+  const loadPartControlPlans = () => {
+    const savedPlans = localStorage.getItem('partControlPlans');
+    if (savedPlans) {
+      try {
+        const plans = JSON.parse(savedPlans);
+        setPartControlPlans(plans);
+      } catch (error) {
+        console.error('Parça planları yüklenirken hata:', error);
+      }
+    }
+  };
+
+  const savePartControlPlans = (plans: PartControlPlan[]) => {
+    try {
+      localStorage.setItem('partControlPlans', JSON.stringify(plans));
+      setPartControlPlans(plans);
+    } catch (error) {
+      console.error('Parça planları kaydedilirken hata:', error);
+      alert('Planlar kaydedilirken bir hata oluştu!');
+    }
+  };
+
+  const createPartControlPlan = () => {
+    if (!newPartPlan.partNumber || !newPartPlan.partName) {
+      alert('Parça numarası ve parça adı zorunludur!');
+      return;
+    }
+
+    // Aynı parça numarası kontrolü
+    const existingPlan = partControlPlans.find(plan => plan.partNumber === newPartPlan.partNumber);
+    if (existingPlan) {
+      alert('Bu parça numarası için zaten bir plan mevcut!');
+      return;
+    }
+
+    const selectedController = personnelLists.qualityControllers.find(p => p.id === materialData.qualityController);
+    const plan: PartControlPlan = {
+      id: Date.now().toString(),
+      partNumber: newPartPlan.partNumber!,
+      partName: newPartPlan.partName!,
+      revision: newPartPlan.revision || 'Rev A',
+      drawingNumber: newPartPlan.drawingNumber,
+      customerName: newPartPlan.customerName,
+      materialSpec: newPartPlan.materialSpec,
+      controlPoints: [...controlPoints], // Mevcut kontrol noktalarını kopyala
+      createdBy: selectedController?.name || 'Unknown',
+      createdDate: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+    };
+
+    const updatedPlans = [...partControlPlans, plan];
+    savePartControlPlans(updatedPlans);
+    
+    setNewPartPlan({
+      partNumber: '',
+      partName: '',
+      revision: 'Rev A',
+      drawingNumber: '',
+      customerName: '',
+      materialSpec: '',
+    });
+    setPartPlanDialog(false);
+    alert('Parça kontrol planı başarıyla oluşturuldu!');
+  };
+
+  const loadPartControlPlan = (plan: PartControlPlan) => {
+    setSelectedPartPlan(plan);
+    setControlPoints([...plan.controlPoints]);
+    setMeasurements([]); // Yeni ölçüm oturumu başlat
+    setDimensionalResults(null);
+    setPartSelectionDialog(false);
+    
+    // Parça bilgilerini de doldur
+    setMaterialData(prev => ({
+      ...prev,
+      materialCode: plan.partNumber,
+      dimensions: plan.partName,
+      notes: `Kontrol Planı: ${plan.partName} (${plan.revision})\nTeknik Resim: ${plan.drawingNumber || 'Belirtilmemiş'}\nMüşteri: ${plan.customerName || 'Belirtilmemiş'}`,
+    }));
+    
+    // Panel 5'i otomatik aç
+    setExpanded('panel5');
+    
+    alert(`${plan.partNumber} - ${plan.partName} kontrol planı yüklendi ve boyutsal kontrol paneli açıldı!`);
+  };
+
+  const updatePartControlPlan = (planId: string, updatedControlPoints: ControlPoint[]) => {
+    const updatedPlans = partControlPlans.map(plan => {
+      if (plan.id === planId) {
+        return {
+          ...plan,
+          controlPoints: updatedControlPoints,
+          lastModified: new Date().toISOString(),
+        };
+      }
+      return plan;
+    });
+    savePartControlPlans(updatedPlans);
+  };
+
+  const deletePartControlPlan = (planId: string) => {
+    if (window.confirm('Bu kontrol planını silmek istediğinizden emin misiniz?')) {
+      const updatedPlans = partControlPlans.filter(plan => plan.id !== planId);
+      savePartControlPlans(updatedPlans);
+      
+      if (selectedPartPlan?.id === planId) {
+        setSelectedPartPlan(null);
+        setControlPoints([]);
+        setMeasurements([]);
+        setDimensionalResults(null);
+      }
+    }
+  };
+
+  // Component mount olduğunda planları yükle
+  useEffect(() => {
+    loadPartControlPlans();
+  }, []);
+
+  // Kontrol noktaları değiştiğinde seçili planı güncelle
+  useEffect(() => {
+    if (selectedPartPlan && controlPoints.length > 0) {
+      // LocalStorage'da güncelle
+      const savedPlans = localStorage.getItem('partControlPlans');
+      if (savedPlans) {
+        try {
+          const plans = JSON.parse(savedPlans);
+          const updatedPlans = plans.map((plan: PartControlPlan) => {
+            if (plan.id === selectedPartPlan.id) {
+              return {
+                ...plan,
+                controlPoints: controlPoints,
+                lastModified: new Date().toISOString(),
+              };
+            }
+            return plan;
+          });
+          localStorage.setItem('partControlPlans', JSON.stringify(updatedPlans));
+          setPartControlPlans(updatedPlans);
+        } catch (error) {
+          console.error('Plan güncellenirken hata:', error);
+        }
+      }
+    }
+  }, [controlPoints, selectedPartPlan]);
+
+  // Yeni: Karakteristik seçildiğinde ölçüm yöntemi ve ekipmanı otomatik doldur
+  const handleCharacteristicChange = (selectedCharacteristic: string) => {
+    const predefinedChar = PREDEFINED_CHARACTERISTICS.find(char => char.name === selectedCharacteristic);
+    if (predefinedChar) {
+      setNewControlPoint({
+        ...newControlPoint,
+        characteristic: selectedCharacteristic,
+        measurementMethod: predefinedChar.method,
+        equipment: predefinedChar.equipment,
+      });
+    } else {
+      setNewControlPoint({
+        ...newControlPoint,
+        characteristic: selectedCharacteristic,
+      });
+    }
+  };
+
+  // Yeni: Nominal değer veya tolerans değiştiğinde limitleri otomatik hesapla
+  const calculateLimits = (nominal: number, toleranceType: string, toleranceValue: number, toleranceValuePlus?: number, toleranceValueMinus?: number) => {
+    let upperLimit: number | undefined;
+    let lowerLimit: number | undefined;
+    let toleranceText = '';
+
+    switch (toleranceType) {
+      case 'BILATERAL':
+        upperLimit = nominal + toleranceValue;
+        lowerLimit = nominal - toleranceValue;
+        toleranceText = `±${toleranceValue}`;
+        break;
+      case 'PLUS_ONLY':
+        upperLimit = nominal + toleranceValue;
+        lowerLimit = nominal;
+        toleranceText = `+${toleranceValue}`;
+        break;
+      case 'MINUS_ONLY':
+        upperLimit = nominal;
+        lowerLimit = nominal - toleranceValue;
+        toleranceText = `-${toleranceValue}`;
+        break;
+      case 'PLUS_MINUS':
+        upperLimit = nominal + (toleranceValuePlus || 0);
+        lowerLimit = nominal - (toleranceValueMinus || 0);
+        toleranceText = `+${toleranceValuePlus || 0}/-${toleranceValueMinus || 0}`;
+        break;
+    }
+
+    return { upperLimit, lowerLimit, toleranceText };
+  };
+
+  // Yeni: Tolerans ayarları değiştiğinde limitleri güncelle
+  const handleToleranceChange = (field: string, value: any) => {
+    let updatedControlPoint = { ...newControlPoint };
+    
+    // For number fields, handle decimal input properly
+    if (field === 'nominalValue' || field === 'toleranceValue' || 
+        field === 'toleranceValuePlus' || field === 'toleranceValueMinus') {
+      // If the value is a string (from input), convert it properly
+      if (typeof value === 'string') {
+        if (value === '' || value === '0' || value.endsWith('.')) {
+          // Allow intermediate typing states like "0.", "0.1"
+          updatedControlPoint[field] = value;
+        } else {
+          const numValue = parseFloat(value);
+          updatedControlPoint[field] = isNaN(numValue) ? 0 : numValue;
+        }
+      } else {
+        updatedControlPoint[field] = value;
+      }
+    } else {
+      updatedControlPoint[field] = value;
+    }
+    
+    if (typeof updatedControlPoint.nominalValue === 'number' && updatedControlPoint.nominalValue > 0 &&
+        updatedControlPoint.toleranceType && 
+        typeof updatedControlPoint.toleranceValue === 'number') {
+      
+      const { upperLimit, lowerLimit, toleranceText } = calculateLimits(
+        updatedControlPoint.nominalValue,
+        updatedControlPoint.toleranceType,
+        updatedControlPoint.toleranceValue,
+        updatedControlPoint.toleranceValuePlus,
+        updatedControlPoint.toleranceValueMinus
+      );
+      
+      updatedControlPoint.upperLimit = upperLimit;
+      updatedControlPoint.lowerLimit = lowerLimit;
+      updatedControlPoint.tolerance = toleranceText;
+    }
+    
+        currentPoint.nominalValue,
+        currentPoint.toleranceType,
+        currentPoint.toleranceValue,
+        currentPoint.toleranceValuePlus,
+        currentPoint.toleranceValueMinus
+      );
+      
+      updatedPoints[index].upperLimit = upperLimit;
+      updatedPoints[index].lowerLimit = lowerLimit;
+      updatedPoints[index].tolerance = toleranceText;
+    }
+
+    setBulkControlPoints(updatedPoints);
+  };
+
+  const createPartControlPlanWithBulkPoints = () => {
+    if (!newPartPlan.partNumber || !newPartPlan.partName) {
+      alert('Parça numarası ve parça adı zorunludur!');
+      return;
+    }
+
+    // Check if part number already exists
+    const existingPlan = partControlPlans.find(plan => plan.partNumber === newPartPlan.partNumber);
+    if (existingPlan) {
+      alert('Bu parça numarası için zaten bir plan mevcut!');
+      return;
+    }
+
+    // Validate bulk control points
+    const validatedControlPoints: ControlPoint[] = [];
+    
+    for (let i = 0; i < bulkControlPoints.length; i++) {
+      const point = bulkControlPoints[i];
+      if (!point.characteristic || !point.nominalValue || !point.toleranceValue) {
+        alert(`${i + 1}. kontrol noktası için karakteristik, nominal değer ve tolerans değeri zorunludur!`);
+        return;
+      }
+      
+      validatedControlPoints.push({
+        id: `${Date.now()}_${i}`,
+        characteristic: point.characteristic!,
+        characteristicType: point.characteristicType!,
+        specification: point.specification!,
+        nominalValue: point.nominalValue!,
+        upperLimit: point.upperLimit,
+        lowerLimit: point.lowerLimit,
+        tolerance: point.tolerance!,
+        toleranceType: point.toleranceType!,
+        toleranceValue: point.toleranceValue!,
+        toleranceValuePlus: point.toleranceValuePlus,
+        toleranceValueMinus: point.toleranceValueMinus,
+        measurementMethod: point.measurementMethod!,
+        equipment: point.equipment!,
+        criticalityLevel: point.criticalityLevel!,
+        notes: point.notes,
+      });
+    }
+
+    const selectedController = personnelLists.qualityControllers.find(p => p.id === materialData.qualityController);
+    const plan: PartControlPlan = {
+      id: Date.now().toString(),
+      partNumber: newPartPlan.partNumber!,
+      partName: newPartPlan.partName!,
+      revision: newPartPlan.revision || 'Rev A',
+      drawingNumber: newPartPlan.drawingNumber,
+      customerName: newPartPlan.customerName,
+      materialSpec: newPartPlan.materialSpec,
+      controlPoints: validatedControlPoints,
+      createdBy: selectedController?.name || 'Unknown',
+      createdDate: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+    };
+
+    const updatedPlans = [...partControlPlans, plan];
+    savePartControlPlans(updatedPlans);
+    
+    // Reset form
+    setNewPartPlan({
+      partNumber: '',
+      partName: '',
+      revision: 'Rev A',
+      drawingNumber: '',
+      customerName: '',
+      materialSpec: '',
+    });
+    setNumberOfControlPoints(1);
+    setBulkControlPoints([]);
+    setPartPlanDialog(false);
+    
+    alert(`Kontrol planı başarıyla oluşturuldu! ${validatedControlPoints.length} kontrol noktası eklendi.`);
+  };
+
+  useEffect(() => {
+    if (numberOfControlPoints > 0 && numberOfControlPoints <= 50) {
+      initializeBulkControlPoints(numberOfControlPoints);
+    }
+  }, [numberOfControlPoints]);
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Quick Actions */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        <Button
+          variant="outlined"
+          startIcon={<DescriptionIcon />}
+          onClick={() => window.open('/quality-control-reports', '_blank')}
+        >
+          Raporları Görüntüle
+        </Button>
+      </Box>
+
+      <StyledAccordion
+        expanded={expanded === 'panel1'}
+        onChange={handleAccordionChange('panel1')}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Malzeme ve Sertifika Bilgileri</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth>
+                <InputLabel shrink={!!materialData.materialType}>Malzeme Tipi</InputLabel>
+                <Select
+                  value={materialData.materialType}
+                  onChange={(e) => setMaterialData({ 
+                    ...materialData, 
+                    materialType: e.target.value,
+                    materialGroup: '' // Reset group when type changes
+                  })}
+                >
+                  {MATERIAL_TYPES.map((type) => (
+                    <MenuItem key={type} value={type}>{type}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth disabled={!materialData.materialType}>
+                <InputLabel shrink={!!materialData.materialGroup}>Malzeme Grubu (TR 15608)</InputLabel>
+                <Select
+                  value={materialData.materialGroup}
+                  onChange={(e) => setMaterialData({ ...materialData, materialGroup: e.target.value })}
+                >
+                  {getAvailableGroups().map((group) => (
+                    <MenuItem key={group} value={group}>{group}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Malzeme Kodu"
+                value={materialData.materialCode}
+                onChange={(e) => setMaterialData({ ...materialData, materialCode: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Parti/Döküm Numarası"
+                value={materialData.batchNumber}
+                onChange={(e) => setMaterialData({ ...materialData, batchNumber: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel shrink={!!materialData.certificateType}>Sertifika Tipi (EN 10204)</InputLabel>
+                <Select
+                  value={materialData.certificateType}
+                  onChange={(e) => setMaterialData({ ...materialData, certificateType: e.target.value })}
+                >
+                  {CERTIFICATE_TYPES.map((type) => (
+                    <MenuItem key={type} value={type}>{type}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Sertifika Numarası"
+                required
+                value={materialData.certificateNumber}
+                onChange={(e) => setMaterialData({ ...materialData, certificateNumber: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Tedarikçi Adı"
+                value={materialData.supplier}
+                onChange={(e) => setMaterialData({ ...materialData, supplier: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Fatura Numarası"
+                value={materialData.invoiceNumber}
+                onChange={(e) => setMaterialData({ ...materialData, invoiceNumber: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel shrink={!!materialData.heatTreatment}>Isıl İşlem Durumu</InputLabel>
+                <Select
+                  value={materialData.heatTreatment}
+                  onChange={(e) => setMaterialData({ ...materialData, heatTreatment: e.target.value })}
+                >
+                  {HEAT_TREATMENTS.map((treatment) => (
+                    <MenuItem key={treatment} value={treatment}>{treatment}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel shrink={!!materialData.surfaceCondition}>Yüzey Durumu</InputLabel>
+                <Select
+                  value={materialData.surfaceCondition}
+                  onChange={(e) => setMaterialData({ ...materialData, surfaceCondition: e.target.value })}
+                >
+                  {SURFACE_CONDITIONS.map((condition) => (
+                    <MenuItem key={condition} value={condition}>{condition}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Malzeme Boyutları"
+                value={materialData.dimensions}
+                onChange={(e) => setMaterialData({ ...materialData, dimensions: e.target.value })}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 100%' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Ek Notlar"
+                multiline
+                rows={3}
+                value={materialData.notes}
+                onChange={(e) => setMaterialData({ ...materialData, notes: e.target.value })}
+              />
+            </Box>
+            
+            {/* Personel Seçimi */}
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth>
+                <InputLabel shrink={!!materialData.qualityController}>Kalite Kontrol Personeli</InputLabel>
+                <Select
+                  value={materialData.qualityController}
+                  onChange={(e) => setMaterialData({ ...materialData, qualityController: e.target.value })}
+                >
+                  {personnelLists.qualityControllers.map((person) => (
+                    <MenuItem key={person.id} value={person.id}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        width: '100%',
+                        minWidth: 0
+                      }}>
+                        <Typography sx={{ 
+                          flex: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          mr: 1
+                        }}>
+                          {person.name} ({person.employeeId})
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePersonnel('qualityControllers', person.id);
+                          }}
+                          sx={{ flexShrink: 0 }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                  <MenuItem onClick={() => setPersonnelDialog('qualityControllers')}>
+                    <AddIcon sx={{ mr: 1 }} /> Yeni Kalite Kontrol Personeli Ekle
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            
+            {/* Genel Kalite Notu */}
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel shrink={!!materialData.overallQualityGrade}>Kaynak Kalite Sınıfı (ISO 5817)</InputLabel>
+                <Select
+                  value={materialData.overallQualityGrade}
+                  onChange={(e) => setMaterialData({ ...materialData, overallQualityGrade: e.target.value as any })}
+                >
+                  {QUALITY_GRADES.map((grade) => (
+                    <MenuItem key={grade.value} value={grade.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box 
+                          sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            backgroundColor: grade.color 
+                          }} 
+                        />
+                        {grade.label}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+        </AccordionDetails>
+      </StyledAccordion>
+
+      <StyledAccordion
+        expanded={expanded === 'panel2'}
+        onChange={handleAccordionChange('panel2')}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Kimyasal Bileşim (%)</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            {Object.entries(chemicalComposition).map(([key, value]) => (
+              <Box key={key} sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label={`${key.toUpperCase()} (%)`}
+                  type="number"
+                  value={value}
+                  onChange={(e) => setChemicalComposition({
+                    ...chemicalComposition,
+                    [key]: parseFloat(e.target.value) || 0
+                  })}
+                  inputProps={{ step: 0.001, min: 0 }}
+                />
+              </Box>
+            ))}
+          </Box>
+        </AccordionDetails>
+      </StyledAccordion>
+
+      <StyledAccordion
+        expanded={expanded === 'panel3'}
+        onChange={handleAccordionChange('panel3')}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Mekanik Özellikler</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Çekme Mukavemeti (Rm)"
+                type="number"
+                value={mechanicalProperties.tensileStrength}
+                onChange={(e) => setMechanicalProperties({
+                  ...mechanicalProperties,
+                  tensileStrength: parseFloat(e.target.value) || 0
+                })}
+                InputProps={{
+                  endAdornment: <Typography variant="body2" className="unit-text">MPa</Typography>,
+                }}
+                inputProps={{ step: 1, min: 0 }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Akma Mukavemeti (Re)"
+                type="number"
+                value={mechanicalProperties.yieldStrength}
+                onChange={(e) => setMechanicalProperties({
+                  ...mechanicalProperties,
+                  yieldStrength: parseFloat(e.target.value) || 0
+                })}
+                InputProps={{
+                  endAdornment: <Typography variant="body2" className="unit-text">MPa</Typography>,
+                }}
+                inputProps={{ step: 1, min: 0 }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Uzama"
+                type="number"
+                value={mechanicalProperties.elongation}
+                onChange={(e) => setMechanicalProperties({
+                  ...mechanicalProperties,
+                  elongation: parseFloat(e.target.value) || 0
+                })}
+                InputProps={{
+                  endAdornment: <Typography variant="body2">%</Typography>,
+                }}
+                inputProps={{ step: 0.1, min: 0 }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Darbe Test Sıcaklığı (düşük daha iyi)"
+                type="number"
+                value={mechanicalProperties.impactTestTemp}
+                onChange={(e) => setMechanicalProperties({
+                  ...mechanicalProperties,
+                  impactTestTemp: parseFloat(e.target.value) || 0
+                })}
+                InputProps={{
+                  endAdornment: <Typography variant="body2" className="unit-text">°C</Typography>,
+                }}
+                inputProps={{ step: 1 }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Darbe Enerjisi"
+                type="number"
+                value={mechanicalProperties.impactEnergy}
+                onChange={(e) => setMechanicalProperties({
+                  ...mechanicalProperties,
+                  impactEnergy: parseFloat(e.target.value) || 0
+                })}
+                InputProps={{
+                  endAdornment: <Typography variant="body2">J</Typography>,
+                }}
+                inputProps={{ step: 1, min: 0 }}
+                helperText={mechanicalProperties.impactTestTemp ? `${mechanicalProperties.impactTestTemp}°C'de minimum ${getImpactEnergyRequirement(mechanicalProperties.impactTestTemp)}J gerekli` : ''}
+              />
+            </Box>
+          </Box>
+        </AccordionDetails>
+      </StyledAccordion>
+
+      <StyledAccordion
+        expanded={expanded === 'panel4'}
+        onChange={handleAccordionChange('panel4')}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Sertlik Değerleri</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Ana Malzeme Sertliği"
+                type="number"
+                value={hardnessValues.baseMaterial}
+                onChange={(e) => setHardnessValues({
+                  ...hardnessValues,
+                  baseMaterial: parseFloat(e.target.value) || 0
+                })}
+                InputProps={{
+                  endAdornment: <Typography variant="body2" className="unit-text">HV</Typography>,
+                }}
+                inputProps={{ step: 1, min: 0 }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="ITAB Bölgesi Sertliği"
+                type="number"
+                value={hardnessValues.itab}
+                onChange={(e) => setHardnessValues({
+                  ...hardnessValues,
+                  itab: parseFloat(e.target.value) || 0
+                })}
+                InputProps={{
+                  endAdornment: <Typography variant="body2" className="unit-text">HV</Typography>,
+                }}
+                inputProps={{ step: 1, min: 0 }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Kaynak Metali Sertliği"
+                type="number"
+                value={hardnessValues.weldMetal}
+                onChange={(e) => setHardnessValues({
+                  ...hardnessValues,
+                  weldMetal: parseFloat(e.target.value) || 0
+                })}
+                InputProps={{
+                  endAdornment: <Typography variant="body2" className="unit-text">HV</Typography>,
+                }}
+                inputProps={{ step: 1, min: 0 }}
+              />
+            </Box>
+          </Box>
+        </AccordionDetails>
+      </StyledAccordion>
+
+      {/* Boyutsal Kontrol Sistemi */}
+      <StyledAccordion
+        expanded={expanded === 'panel5'}
+        onChange={handleAccordionChange('panel5')}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="h6">Boyutsal Kontrol Sistemi - Parça Bazlı Kontrol Planları</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            
+            {/* Parça Planı Yönetimi */}
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">Boyutsal Kontrol - Parça Bazlı Kontrol Planları</Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setPartPlanDialog(true)}
+                    color="primary"
+                  >
+                    Yeni Kontrol Planı Oluştur
+                  </Button>
+                </Box>
+              </Box>
+
+              {/* Parça Arama ve Filtre */}
+              <Box sx={{ mb: 3 }}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label="Parça Ara (Parça Numarası veya Adı)"
+                  placeholder="Parça numarası veya adını yazın..."
+                  value={partSearchTerm}
+                  onChange={(e) => setPartSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: <Box sx={{ mr: 1 }}>🔍</Box>,
+                    endAdornment: partSearchTerm && (
+                      <IconButton
+                        size="small"
+                        onClick={() => setPartSearchTerm('')}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    )
+                  }}
+                  sx={{ mb: 2 }}
+                />
+
+                {/* Filtrelenmiş Parça Listesi */}
+                {filteredPartPlans.length > 0 && (
+                  <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Parça Numarası</TableCell>
+                          <TableCell>Parça Adı</TableCell>
+                          <TableCell>Kontrol Noktası Sayısı</TableCell>
+                          <TableCell>Son Güncelleme</TableCell>
+                          <TableCell>İşlemler</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {filteredPartPlans.map((plan) => (
+                          <TableRow 
+                            key={plan.id}
+                            sx={{ 
+                              backgroundColor: selectedPartPlan?.id === plan.id ? 'primary.light' : 'inherit',
+                              '&:hover': { backgroundColor: 'action.hover' }
+                            }}
+                          >
+                            <TableCell>
+                              <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                                {plan.partNumber}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>{plan.partName}</TableCell>
+                            <TableCell>
+                              <Box sx={{
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                backgroundColor: plan.controlPoints.length > 0 ? 'success.light' : 'warning.light',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                textAlign: 'center',
+                                minWidth: 30
+                              }}>
+                                {plan.controlPoints.length}
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption">
+                                {new Date(plan.lastModified).toLocaleDateString('tr-TR')}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  onClick={() => loadPartControlPlan(plan)}
+                                >
+                                  Kontrol Et
+                                </Button>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => deletePartControlPlan(plan.id)}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+
+                {partSearchTerm && filteredPartPlans.length === 0 && (
+                  <Alert severity="info">
+                    "{partSearchTerm}" araması için sonuç bulunamadı. Yeni kontrol planı oluşturmak ister misiniz?
+                  </Alert>
+                )}
+              </Box>
+
+              {/* Aktif Plan Bilgisi */}
+              {selectedPartPlan && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  <strong>Aktif Kontrol Planı:</strong> {selectedPartPlan.partNumber} - {selectedPartPlan.partName} 
+                  ({selectedPartPlan.controlPoints.length} kontrol noktası)
+                </Alert>
+              )}
+            </Box>
+            
+            {/* Kontrol Noktaları Yönetimi */}
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">Kontrol Noktaları</Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setControlPointDialog(true)}
+                  disabled={!selectedPartPlan}
+                >
+                  Kontrol Noktası Ekle
+                </Button>
+              </Box>
+              
+              {!selectedPartPlan && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  Kontrol noktası eklemek için önce bir parça planı seçin veya yeni plan oluşturun.
+                </Alert>
+              )}
+              
+              {/* Kontrol Noktaları Tablosu */}
+              {controlPoints.length > 0 ? (
+                <TableContainer component={Paper} sx={{ mb: 3 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Karakteristik</TableCell>
+                        <TableCell>Tür</TableCell>
+                        <TableCell>Nominal</TableCell>
+                        <TableCell>Tolerans</TableCell>
+                        <TableCell>Limitler</TableCell>
+                        <TableCell>Ölçüm Yöntemi</TableCell>
+                        <TableCell>Ekipman</TableCell>
+                        <TableCell>Kritiklik</TableCell>
+                        <TableCell>Ölçüm Girişi</TableCell>
+                        <TableCell>İşlemler</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {controlPoints.map((point) => (
+                        <TableRow key={point.id}>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {point.characteristic}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 1,
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              color: 'white',
+                              backgroundColor: 
+                                point.characteristicType === 'SAFETY' ? '#d32f2f' :
+                                point.characteristicType === 'CRITICAL' ? '#f57c00' :
+                                point.characteristicType === 'FUNCTIONAL' ? '#1976d2' : '#388e3c'
+                            }}>
+                              {point.characteristicType}
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                              {point.nominalValue}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              <Typography variant="body2" sx={{ 
+                                fontFamily: 'monospace', 
+                                fontWeight: 'bold',
+                                color: 'success.main'
+                              }}>
+                                {point.tolerance}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {TOLERANCE_TYPES.find(t => t.value === point.toleranceType)?.label}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              <Typography variant="caption" color="error.main">
+                                Üst: {point.upperLimit}
+                              </Typography>
+                              <Typography variant="caption" color="warning.main">
+                                Alt: {point.lowerLimit}
+                              </Typography>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {point.measurementMethod}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {point.equipment}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 1,
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              color: 'white',
+                              backgroundColor: 
+                                point.criticalityLevel === 'CRITICAL' ? '#d32f2f' :
+                                point.criticalityLevel === 'HIGH' ? '#f57c00' :
+                                point.criticalityLevel === 'MEDIUM' ? '#1976d2' : '#388e3c'
+                            }}>
+                              {point.criticalityLevel}
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                              <TextField
+                                size="small"
+                                type="number"
+                                placeholder="Ölçü değeri"
+                                sx={{ width: 120 }}
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const target = e.target as HTMLInputElement;
+                                    const value = parseFloat(target.value);
+                                    if (!isNaN(value)) {
+                                      const selectedController = personnelLists.qualityControllers.find(p => p.id === materialData.qualityController);
+                                      addMeasurement(point.id, value, selectedController?.name || 'Unknown');
+                                      target.value = '';
+                                    }
+                                  }
+                                }}
+                              />
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={(e) => {
+                                  const input = (e.target as HTMLElement).closest('tr')?.querySelector('input[type="number"]') as HTMLInputElement;
+                                  if (input) {
+                                    const value = parseFloat(input.value);
+                                    if (!isNaN(value)) {
+                                      const selectedController = personnelLists.qualityControllers.find(p => p.id === materialData.qualityController);
+                                      addMeasurement(point.id, value, selectedController?.name || 'Unknown');
+                                      input.value = '';
+                                    }
+                                  }
+                                }}
+                              >
+                                Kaydet
+                              </Button>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => deleteControlPoint(point.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              ) : selectedPartPlan ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Bu parça için henüz kontrol noktası eklenmemiş. Kontrol noktaları ekleyin.
+                </Alert>
+              ) : null}
+            </Box>
+
+            {/* Ölçüm Sonuçları */}
+            {measurements.length > 0 && (
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2 }}>Ölçüm Sonuçları</Typography>
+                <TableContainer component={Paper}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Karakteristik</TableCell>
+                        <TableCell>Ölçülen Değer</TableCell>
+                        <TableCell>Operatör</TableCell>
+                        <TableCell>Zaman</TableCell>
+                        <TableCell>Durum</TableCell>
+                        <TableCell>Sapma</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {measurements.map((measurement, index) => {
+                        const controlPoint = controlPoints.find(p => p.id === measurement.controlPointId);
+                        return (
+                          <TableRow key={index}>
+                            <TableCell>{controlPoint?.characteristic}</TableCell>
+                            <TableCell>{measurement.measuredValue}</TableCell>
+                            <TableCell>{measurement.operator}</TableCell>
+                            <TableCell>{new Date(measurement.measurementTime).toLocaleString('tr-TR')}</TableCell>
+                            <TableCell>
+                              {measurement.status === 'PASS' ? (
+                                <CheckCircleIcon color="success" />
+                              ) : (
+                                <CancelIcon color="error" />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {measurement.deviation !== undefined ? measurement.deviation.toFixed(3) : '-'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+          </Box>
+        </AccordionDetails>
+      </StyledAccordion>
+
+      <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={handleSave}
+          size="large"
+        >
+          Malzeme Özelliklerini Kaydet
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<PdfIcon />}
+          size="large"
+          onClick={generatePDFReport}
+        >
+          PDF Rapor Oluştur
+        </Button>
+      </Box>
+
+      {validationResults && (
+        <ResultPanel>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Typography variant="h5">
+              Değerlendirme Sonuçları
+            </Typography>
+            {validationResults.status === 'ACCEPTED' ? (
+              <CheckCircleIcon color="success" sx={{ fontSize: 32 }} />
+            ) : (
+              <CancelIcon color="error" sx={{ fontSize: 32 }} />
+            )}
+          </Box>
+          <Divider sx={{ my: 2 }} />
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Özellik</TableCell>
+                  <TableCell>Değer</TableCell>
+                  <TableCell>Gereksinim</TableCell>
+                  <TableCell>Durum</TableCell>
+                  <TableCell>Referans</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {validationResults.details.map((detail: any, index: number) => (
+                  <TableRow key={index}>
+                    <TableCell>{detail.property}</TableCell>
+                    <TableCell>{detail.value}</TableCell>
+                    <TableCell>{detail.requirement}</TableCell>
+                    <TableCell>
+                      {detail.status === 'ACCEPTED' ? (
+                        <CheckCircleIcon color="success" />
+                      ) : (
+                        <CancelIcon color="error" />
+                      )}
+                    </TableCell>
+                    <TableCell>{detail.reference}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </ResultPanel>
+      )}
+
+      {/* Personel Ekleme Dialog'u */}
+      <Dialog open={!!personnelDialog} onClose={() => setPersonnelDialog(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Yeni Kalite Kontrol Personeli Ekle
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              fullWidth
+              label="Kalite Kontrol Personeli Adı Soyadı"
+              value={newPersonnelName}
+              onChange={(e) => setNewPersonnelName(e.target.value)}
+              autoFocus
+              required
+            />
+            <TextField
+              fullWidth
+              label="Sicil Numarası"
+              value={newPersonnelId}
+              onChange={(e) => setNewPersonnelId(e.target.value)}
+              required
+              helperText="Örnek: QC001, QC002"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setPersonnelDialog(null);
+            setNewPersonnelName('');
+            setNewPersonnelId('');
+          }}>
+            İptal
+          </Button>
+          <Button 
+            onClick={() => personnelDialog && handleAddPersonnel(personnelDialog as any)} 
+            variant="contained"
+            disabled={!newPersonnelName.trim() || !newPersonnelId.trim()}
+          >
+            Ekle
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Kalite Karar Dialog'u */}
+      <Dialog 
+        open={qualityDecisionDialog} 
+        onClose={() => setQualityDecisionDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <WarningIcon color="warning" />
+            <Typography variant="h5">
+              Kalite Karar Süreci
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            Malzeme test sonuçları standartlara uygun değil. Lütfen uygun kalite kararını seçiniz.
+          </Alert>
+
+          <FormControl component="fieldset" sx={{ mb: 3 }}>
+            <FormLabel component="legend">Kalite Kararı Seçiniz</FormLabel>
+            <RadioGroup
+              value={qualityDecision.type || ''}
+              onChange={(e) => {
+                const decisionType = e.target.value as any;
+                let newDecision = { ...qualityDecision, type: decisionType };
+                
+                // Direkt Red seçildiğinde uygunsuzluk nedenlerini otomatik doldur
+                if (decisionType === 'DIRECT_REJECTION' && validationResults) {
+                  const autoReason = generateNonConformityReasons(validationResults);
+                  newDecision.reason = autoReason;
+                }
+                
+                setQualityDecision(newDecision);
+                setShowDecisionForms(true);
+              }}
+            >
+              <FormControlLabel 
+                value="DIRECT_REJECTION" 
+                control={<Radio />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CancelIcon color="error" />
+                    <Box>
+                      <Typography variant="subtitle1">Direkt Red</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Malzeme tamamen uygunsuz - Uygunsuzluk Raporu oluşturulacak
+                      </Typography>
+                    </Box>
+                  </Box>
+                } 
+              />
+              <FormControlLabel 
+                value="CONDITIONAL_ACCEPTANCE" 
+                control={<Radio />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CheckCircleOutlineIcon color="warning" />
+                    <Box>
+                      <Typography variant="subtitle1">Şartlı Kabul</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Belirli şartlar altında kullanılabilir - Şartlı Kabul Belgesi oluşturulacak
+                      </Typography>
+                    </Box>
+                  </Box>
+                } 
+              />
+              <FormControlLabel 
+                value="RE_EVALUATION" 
+                control={<Radio />} 
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AssignmentIcon color="info" />
+                    <Box>
+                      <Typography variant="subtitle1">Tekrar Değerlendirme</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Ek testler veya değerlendirme gerekli
+                      </Typography>
+                    </Box>
+                  </Box>
+                } 
+              />
+            </RadioGroup>
+          </FormControl>
+
+          {showDecisionForms && (
+            <Box sx={{ mt: 3 }}>
+              {qualityDecision.type === 'DIRECT_REJECTION' && (
+                <Paper sx={{ p: 3, backgroundColor: '#ffebee' }}>
+                  <Typography variant="h6" sx={{ mb: 2, color: 'error.main' }}>
+                    Uygunsuzluk Raporu Bilgileri
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                          Uygunsuzluk Nedeni *
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => {
+                              if (validationResults) {
+                                const autoReason = generateNonConformityReasons(validationResults);
+                                setQualityDecision({ ...qualityDecision, reason: autoReason });
+                              }
+                            }}
+                          >
+                            Otomatik Oluştur
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="secondary"
+                            onClick={() => {
+                              setQualityDecision({ ...qualityDecision, reason: '' });
+                            }}
+                          >
+                            Temizle
+                          </Button>
+                        </Box>
+                      </Box>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={8}
+                        value={qualityDecision.reason}
+                        onChange={(e) => setQualityDecision({ ...qualityDecision, reason: e.target.value })}
+                        required
+                        helperText="Uygunsuzluk nedenleri otomatik olarak test sonuçlarından oluşturulmuştur. Gerekirse düzenleyebilirsiniz."
+                      />
+                    </Box>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Düzeltici Faaliyetler *"
+                      value={qualityDecision.correctionActions}
+                      onChange={(e) => setQualityDecision({ ...qualityDecision, correctionActions: e.target.value })}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      label="Sorumlu Personel *"
+                      value={qualityDecision.responsiblePerson}
+                      onChange={(e) => setQualityDecision({ ...qualityDecision, responsiblePerson: e.target.value })}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      label="Onaylayan Yetkili *"
+                      value={qualityDecision.authorizedBy}
+                      onChange={(e) => setQualityDecision({ ...qualityDecision, authorizedBy: e.target.value })}
+                      required
+                    />
+                  </Box>
+                </Paper>
+              )}
+
+              {qualityDecision.type === 'CONDITIONAL_ACCEPTANCE' && (
+                <Paper sx={{ p: 3, backgroundColor: '#fff3e0' }}>
+                  <Typography variant="h6" sx={{ mb: 2, color: 'warning.main' }}>
+                    Şartlı Kabul Belgesi Bilgileri
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Kabul Nedeni *"
+                      value={qualityDecision.reason}
+                      onChange={(e) => setQualityDecision({ ...qualityDecision, reason: e.target.value })}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Kabul Şartları *"
+                      value={qualityDecision.conditions}
+                      onChange={(e) => setQualityDecision({ ...qualityDecision, conditions: e.target.value })}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Risk Değerlendirmesi *"
+                      value={qualityDecision.riskAssessment}
+                      onChange={(e) => setQualityDecision({ ...qualityDecision, riskAssessment: e.target.value })}
+                      required
+                    />
+                    
+                    {/* İzlenebilirlik Bilgileri */}
+                    <Typography variant="h6" sx={{ mt: 2, mb: 1, color: 'warning.dark' }}>
+                      İzlenebilirlik Bilgileri (Zorunlu)
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                      <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                        <TextField
+                          fullWidth
+                          label="Parça Seri Numarası *"
+                          value={qualityDecision.traceabilityInfo?.partSerialNumber || ''}
+                          onChange={(e) => setQualityDecision({ 
+                            ...qualityDecision, 
+                            traceabilityInfo: {
+                              ...qualityDecision.traceabilityInfo,
+                              partSerialNumber: e.target.value,
+                              chassisNumber: qualityDecision.traceabilityInfo?.chassisNumber || '',
+                              customerCompany: qualityDecision.traceabilityInfo?.customerCompany || '',
+                              vehicleModel: qualityDecision.traceabilityInfo?.vehicleModel || '',
+                              vehicleYear: qualityDecision.traceabilityInfo?.vehicleYear || '',
+                              usageArea: qualityDecision.traceabilityInfo?.usageArea || '',
+                              criticalityLevel: qualityDecision.traceabilityInfo?.criticalityLevel || 'MEDIUM',
+                              validUntil: qualityDecision.traceabilityInfo?.validUntil || '',
+                              monitoringRequirements: qualityDecision.traceabilityInfo?.monitoringRequirements || '',
+                            }
+                          })}
+                          required
+                        />
+                      </Box>
+                      
+                      <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                        <TextField
+                          fullWidth
+                          label="Şase Numarası *"
+                          value={qualityDecision.traceabilityInfo?.chassisNumber || ''}
+                          onChange={(e) => setQualityDecision({ 
+                            ...qualityDecision, 
+                            traceabilityInfo: {
+                              ...qualityDecision.traceabilityInfo!,
+                              chassisNumber: e.target.value,
+                            }
+                          })}
+                          required
+                        />
+                      </Box>
+                      
+                      <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                        <TextField
+                          fullWidth
+                          label="Müşteri Firma *"
+                          value={qualityDecision.traceabilityInfo?.customerCompany || ''}
+                          onChange={(e) => setQualityDecision({ 
+                            ...qualityDecision, 
+                            traceabilityInfo: {
+                              ...qualityDecision.traceabilityInfo!,
+                              customerCompany: e.target.value,
+                            }
+                          })}
+                          required
+                        />
+                      </Box>
+                      
+                      <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                        <TextField
+                          fullWidth
+                          label="Araç Modeli *"
+                          value={qualityDecision.traceabilityInfo?.vehicleModel || ''}
+                          onChange={(e) => setQualityDecision({ 
+                            ...qualityDecision, 
+                            traceabilityInfo: {
+                              ...qualityDecision.traceabilityInfo!,
+                              vehicleModel: e.target.value,
+                            }
+                          })}
+                          required
+                        />
+                      </Box>
+                      
+                      <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                        <TextField
+                          fullWidth
+                          label="Model Yılı *"
+                          value={qualityDecision.traceabilityInfo?.vehicleYear || ''}
+                          onChange={(e) => setQualityDecision({ 
+                            ...qualityDecision, 
+                            traceabilityInfo: {
+                              ...qualityDecision.traceabilityInfo!,
+                              vehicleYear: e.target.value,
+                            }
+                          })}
+                          required
+                        />
+                      </Box>
+                      
+                      <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                        <FormControl fullWidth required>
+                          <InputLabel>Kullanım Alanı *</InputLabel>
+                          <Select
+                            value={qualityDecision.traceabilityInfo?.usageArea || ''}
+                            onChange={(e) => setQualityDecision({ 
+                              ...qualityDecision, 
+                              traceabilityInfo: {
+                                ...qualityDecision.traceabilityInfo!,
+                                usageArea: e.target.value,
+                              }
+                            })}
+                          >
+                            <MenuItem value="Motor Bloğu">Motor Bloğu</MenuItem>
+                            <MenuItem value="Şasi">Şasi</MenuItem>
+                            <MenuItem value="Kabin">Kabin</MenuItem>
+                            <MenuItem value="Aks">Aks</MenuItem>
+                            <MenuItem value="Transmisyon">Transmisyon</MenuItem>
+                            <MenuItem value="Süspansiyon">Süspansiyon</MenuItem>
+                            <MenuItem value="Fren Sistemi">Fren Sistemi</MenuItem>
+                            <MenuItem value="Diğer">Diğer</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Box>
+                      
+                      <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                        <FormControl fullWidth required>
+                          <InputLabel>Kritiklik Seviyesi *</InputLabel>
+                          <Select
+                            value={qualityDecision.traceabilityInfo?.criticalityLevel || 'MEDIUM'}
+                            onChange={(e) => setQualityDecision({ 
+                              ...qualityDecision, 
+                              traceabilityInfo: {
+                                ...qualityDecision.traceabilityInfo!,
+                                criticalityLevel: e.target.value as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+                              }
+                            })}
+                          >
+                            <MenuItem value="LOW">DÜŞÜK - Kozmetik parçalar</MenuItem>
+                            <MenuItem value="MEDIUM">ORTA - Yapısal parçalar</MenuItem>
+                            <MenuItem value="HIGH">YÜKSEK - Güvenlik parçaları</MenuItem>
+                            <MenuItem value="CRITICAL">KRİTİK - Yaşamsal parçalar</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Box>
+                      
+                      <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                        <TextField
+                          fullWidth
+                          label="Geçerlilik Tarihi *"
+                          type="date"
+                          value={qualityDecision.traceabilityInfo?.validUntil || ''}
+                          onChange={(e) => setQualityDecision({ 
+                            ...qualityDecision, 
+                            traceabilityInfo: {
+                              ...qualityDecision.traceabilityInfo!,
+                              validUntil: e.target.value,
+                            }
+                          })}
+                          InputLabelProps={{ shrink: true }}
+                          required
+                        />
+                      </Box>
+                      
+                      <Box sx={{ flex: '1 1 100%' }}>
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={3}
+                          label="İzleme Gereksinimleri *"
+                          value={qualityDecision.traceabilityInfo?.monitoringRequirements || ''}
+                          onChange={(e) => setQualityDecision({ 
+                            ...qualityDecision, 
+                            traceabilityInfo: {
+                              ...qualityDecision.traceabilityInfo!,
+                              monitoringRequirements: e.target.value,
+                            }
+                          })}
+                          required
+                          helperText="Parçanın takip edilmesi gereken özel durumlar, periyodik kontroller vb."
+                        />
+                      </Box>
+                    </Box>
+                    
+                    <TextField
+                      fullWidth
+                      label="Onaylayan Yetkili *"
+                      value={qualityDecision.authorizedBy}
+                      onChange={(e) => setQualityDecision({ ...qualityDecision, authorizedBy: e.target.value })}
+                      required
+                    />
+                  </Box>
+                </Paper>
+              )}
+
+              {qualityDecision.type === 'RE_EVALUATION' && (
+                <Paper sx={{ p: 3, backgroundColor: '#e3f2fd' }}>
+                  <Typography variant="h6" sx={{ mb: 2, color: 'info.main' }}>
+                    Tekrar Değerlendirme Talep Formu
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Tekrar Değerlendirme Nedeni *"
+                      value={qualityDecision.reason}
+                      onChange={(e) => setQualityDecision({ ...qualityDecision, reason: e.target.value })}
+                      required
+                    />
+                    <TextField
+                      fullWidth
+                      label="Talep Eden Personel *"
+                      value={qualityDecision.responsiblePerson}
+                      onChange={(e) => setQualityDecision({ ...qualityDecision, responsiblePerson: e.target.value })}
+                      required
+                    />
+                  </Box>
+                </Paper>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setQualityDecisionDialog(false);
+              setShowDecisionForms(false);
+              setQualityDecision({
+                type: null,
+                reason: '',
+                conditions: '',
+                riskAssessment: '',
+                correctionActions: '',
+                responsiblePerson: '',
+                authorizedBy: '',
+                approvalDate: new Date().toISOString().split('T')[0],
+              });
+            }}
+          >
+            İptal
+          </Button>
+          <Button 
+            variant="contained"
+            color={
+              qualityDecision.type === 'DIRECT_REJECTION' ? 'error' :
+              qualityDecision.type === 'CONDITIONAL_ACCEPTANCE' ? 'warning' : 'info'
+            }
+            disabled={
+              !qualityDecision.type || 
+              !qualityDecision.reason ||
+              (qualityDecision.type === 'DIRECT_REJECTION' && (!qualityDecision.correctionActions || !qualityDecision.responsiblePerson || !qualityDecision.authorizedBy)) ||
+              (qualityDecision.type === 'CONDITIONAL_ACCEPTANCE' && (
+                !qualityDecision.conditions || 
+                !qualityDecision.riskAssessment || 
+                !qualityDecision.authorizedBy ||
+                !qualityDecision.traceabilityInfo?.partSerialNumber ||
+                !qualityDecision.traceabilityInfo?.chassisNumber ||
+                !qualityDecision.traceabilityInfo?.customerCompany ||
+                !qualityDecision.traceabilityInfo?.vehicleModel ||
+                !qualityDecision.traceabilityInfo?.vehicleYear ||
+                !qualityDecision.traceabilityInfo?.usageArea ||
+                !qualityDecision.traceabilityInfo?.validUntil ||
+                !qualityDecision.traceabilityInfo?.monitoringRequirements
+              )) ||
+              (qualityDecision.type === 'RE_EVALUATION' && !qualityDecision.responsiblePerson)
+            }
+            onClick={() => {
+              if (qualityDecision.type === 'RE_EVALUATION') {
+                alert('Tekrar değerlendirme talebi kaydedildi. Ek testler yapılabilir.');
+                setQualityDecisionDialog(false);
+                setShowDecisionForms(false);
+              } else {
+                saveReport(validationResults, qualityDecision);
+              }
+            }}
+          >
+            {qualityDecision.type === 'DIRECT_REJECTION' ? 'Uygunsuzluk Raporu Oluştur' :
+             qualityDecision.type === 'CONDITIONAL_ACCEPTANCE' ? 'Şartlı Kabul Belgesi Oluştur' :
+             qualityDecision.type === 'RE_EVALUATION' ? 'Tekrar Değerlendirme Talep Et' : 'Onayla'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Kontrol Noktası Ekleme Dialog'u */}
+      <Dialog open={controlPointDialog} onClose={() => setControlPointDialog(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>Yeni Kontrol Noktası Ekle</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth>
+                <InputLabel>Karakteristik (Ölçülecek Özellik) *</InputLabel>
+                <Select
+                  value={newControlPoint.characteristic}
+                  onChange={(e) => handleCharacteristicChange(e.target.value)}
+                >
+                  {PREDEFINED_CHARACTERISTICS.map((char) => (
+                    <MenuItem key={char.name} value={char.name}>{char.name}</MenuItem>
+                  ))}
+                  <MenuItem value="custom">Diğer (Manuel Giriş)</MenuItem>
+                </Select>
+              </FormControl>
+              {newControlPoint.characteristic === 'custom' && (
+                <TextField
+                  fullWidth
+                  label="Özel Karakteristik"
+                  sx={{ mt: 1 }}
+                  value={newControlPoint.characteristic === 'custom' ? '' : newControlPoint.characteristic}
+                  onChange={(e) => setNewControlPoint({...newControlPoint, characteristic: e.target.value})}
+                  helperText="Özel karakteristik adını girin"
+                />
+              )}
+            </Box>
+            
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth>
+                <InputLabel>Karakteristik Türü *</InputLabel>
+                <Select
+                  value={newControlPoint.characteristicType}
+                  onChange={(e) => setNewControlPoint({...newControlPoint, characteristicType: e.target.value as any})}
+                >
+                  <MenuItem value="MINOR">MINÖR - Kozmetik özellikler</MenuItem>
+                  <MenuItem value="FUNCTIONAL">FONKSİYONEL - İşlevsel özellikler</MenuItem>
+                  <MenuItem value="CRITICAL">KRİTİK - Kritik özellikler</MenuItem>
+                  <MenuItem value="SAFETY">EMNİYET - Güvenlik özellikler</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <TextField
+                fullWidth
+                label="Nominal (Hedef) Değer *"
+                type="number"
+                value={newControlPoint.nominalValue || ''}
+                onChange={(e) => handleToleranceChange('nominalValue', parseFloat(e.target.value) || 0)}
+                helperText="Hedef ölçü değeri"
+                required
+              />
+            </Box>
+            
+            <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
+              <FormControl fullWidth>
+                <InputLabel>Tolerans Türü *</InputLabel>
+                <Select
+                  value={newControlPoint.toleranceType}
+                  onChange={(e) => handleToleranceChange('toleranceType', e.target.value)}
+                >
+                  {TOLERANCE_TYPES.map((type) => (
+                    <MenuItem key={type.value} value={type.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="h6" sx={{ fontFamily: 'monospace' }}>
+                          {type.symbol}
+                        </Typography>
+                        <Typography>{type.label}</Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            
+            {newControlPoint.toleranceType === 'PLUS_MINUS' ? (
+              <>
+                <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
+                  <TextField
+                    fullWidth
+                    label="Artı Tolerans (+) *"
+                    type="number"
+                    value={newControlPoint.toleranceValuePlus || ''}
+                    onChange={(e) => handleToleranceChange('toleranceValuePlus', parseFloat(e.target.value) || 0)}
+                    helperText="Örn: 0.1"
+                    required
+                  />
+                </Box>
+                <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
+                  <TextField
+                    fullWidth
+                    label="Eksi Tolerans (-) *"
+                    type="number"
+                    value={newControlPoint.toleranceValueMinus || ''}
+                    onChange={(e) => handleToleranceChange('toleranceValueMinus', parseFloat(e.target.value) || 0)}
+                    helperText="Örn: 0.05"
+                    required
+                  />
+                </Box>
+              </>
+            ) : (
+              <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
+                <TextField
+                  fullWidth
+                  label="Tolerans Değeri *"
+                  type="number"
+                  value={newControlPoint.toleranceValue || ''}
+                  onChange={(e) => handleToleranceChange('toleranceValue', parseFloat(e.target.value) || 0)}
+                  helperText="Örn: 0.1, 0.05"
+                  required
+                />
+              </Box>
+            )}
+            
+            {/* Hesaplanan Limitler - Sadece Görüntüleme */}
+            <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
+              <TextField
+                fullWidth
+                label="Üst Limit"
+                type="number"
+                value={newControlPoint.upperLimit || ''}
+                InputProps={{ readOnly: true }}
+                helperText="Otomatik hesaplanan"
+                sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
+              <TextField
+                fullWidth
+                label="Alt Limit"
+                type="number"
+                value={newControlPoint.lowerLimit || ''}
+                InputProps={{ readOnly: true }}
+                helperText="Otomatik hesaplanan"
+                sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <TextField
+                fullWidth
+                label="Tolerans Metni"
+                value={newControlPoint.tolerance || ''}
+                InputProps={{ readOnly: true }}
+                helperText="Otomatik oluşturulan"
+                sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
+              />
+            </Box>
+            
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                label="Spesifikasyon/Referans"
+                value={newControlPoint.specification}
+                onChange={(e) => setNewControlPoint({...newControlPoint, specification: e.target.value})}
+                helperText="Teknik resim referansı, standart vb."
+              />
+            </Box>
+            
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                label="Ölçüm Yöntemi *"
+                value={newControlPoint.measurementMethod}
+                onChange={(e) => setNewControlPoint({...newControlPoint, measurementMethod: e.target.value})}
+                helperText="Karakteristik seçimine göre otomatik doldurulur"
+                InputProps={{ 
+                  readOnly: PREDEFINED_CHARACTERISTICS.some(char => char.name === newControlPoint.characteristic)
+                }}
+                sx={PREDEFINED_CHARACTERISTICS.some(char => char.name === newControlPoint.characteristic) ? 
+                  { '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } } : {}}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                fullWidth
+                label="Ölçüm Ekipmanı *"
+                value={newControlPoint.equipment}
+                onChange={(e) => setNewControlPoint({...newControlPoint, equipment: e.target.value})}
+                helperText="Karakteristik seçimine göre otomatik doldurulur"
+                InputProps={{ 
+                  readOnly: PREDEFINED_CHARACTERISTICS.some(char => char.name === newControlPoint.characteristic)
+                }}
+                sx={PREDEFINED_CHARACTERISTICS.some(char => char.name === newControlPoint.characteristic) ? 
+                  { '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } } : {}}
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <FormControl fullWidth>
+                <InputLabel>Kritiklik Seviyesi *</InputLabel>
+                <Select
+                  value={newControlPoint.criticalityLevel}
+                  onChange={(e) => setNewControlPoint({...newControlPoint, criticalityLevel: e.target.value as any})}
+                >
+                  <MenuItem value="LOW">DÜŞÜK - Kozmetik özellikler</MenuItem>
+                  <MenuItem value="MEDIUM">ORTA - Fonksiyonel özellikler</MenuItem>
+                  <MenuItem value="HIGH">YÜKSEK - Kritik özellikler</MenuItem>
+                  <MenuItem value="CRITICAL">KRİTİK - Güvenlik özellikler</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 100%' }}>
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                label="Notlar"
+                value={newControlPoint.notes || ''}
+                onChange={(e) => setNewControlPoint({...newControlPoint, notes: e.target.value})}
+                helperText="Özel ölçüm koşulları, dikkat edilecek hususlar"
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setControlPointDialog(false);
+            setNewControlPoint({
+              characteristic: '',
+              characteristicType: 'FUNCTIONAL',
+              specification: '',
+              tolerance: '',
+              toleranceType: 'BILATERAL',
+              toleranceValue: 0,
+              measurementMethod: '',
+              equipment: '',
+              criticalityLevel: 'MEDIUM',
+            });
+          }}>
+            İptal
+          </Button>
+          <Button 
+            onClick={addControlPoint} 
+            variant="contained"
+            disabled={!newControlPoint.characteristic || !newControlPoint.nominalValue || !newControlPoint.toleranceValue}
+          >
+            Ekle
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Parça Seçimi Dialog'u */}
+      <Dialog open={partSelectionDialog} onClose={() => setPartSelectionDialog(false)} maxWidth="xl" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <AssignmentIcon color="primary" />
+            <Typography variant="h5">Parça Kontrol Planı Seç</Typography>
+            <Typography variant="subtitle1" color="text.secondary">
+              ({partControlPlans.length} adet plan mevcut)
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {partControlPlans.length > 0 ? (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Parça Numarası</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Parça Adı</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Revizyon</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Teknik Resim</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Müşteri</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Malzeme</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Kontrol Noktaları</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Son Güncelleme</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>İşlemler</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {partControlPlans.map((plan) => (
+                    <TableRow 
+                      key={plan.id}
+                      sx={{ 
+                        '&:hover': { backgroundColor: 'action.hover' },
+                        backgroundColor: selectedPartPlan?.id === plan.id ? 'primary.light' : 'inherit'
+                      }}
+                    >
+                      <TableCell>
+                        <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                          {plan.partNumber}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body1">
+                          {plan.partName}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          backgroundColor: 'info.light',
+                          color: 'info.contrastText',
+                          fontSize: '0.875rem',
+                          fontWeight: 'bold',
+                          textAlign: 'center',
+                          minWidth: 60
+                        }}>
+                          {plan.revision}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {plan.drawingNumber || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {plan.customerName || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {plan.materialSpec || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{
+                            px: 2,
+                            py: 1,
+                            borderRadius: 2,
+                            backgroundColor: plan.controlPoints.length > 0 ? 'success.light' : 'warning.light',
+                            color: plan.controlPoints.length > 0 ? 'success.contrastText' : 'warning.contrastText',
+                            fontSize: '0.875rem',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            minWidth: 50
+                          }}>
+                            {plan.controlPoints.length}
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            nokta
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(plan.lastModified).toLocaleDateString('tr-TR')}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(plan.lastModified).toLocaleTimeString('tr-TR')}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="primary"
+                            startIcon={<CheckCircleIcon />}
+                            onClick={() => loadPartControlPlan(plan)}
+                            sx={{ minWidth: 100 }}
+                          >
+                            Planı Yükle
+                          </Button>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => deletePartControlPlan(plan.id)}
+                            title="Planı Sil"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <AssignmentIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h5" gutterBottom color="text.secondary">
+                Henüz Kontrol Planı Yok
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                Boyutsal kontrol için önce parça bazlı kontrol planları oluşturmanız gerekiyor.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  setPartSelectionDialog(false);
+                  setPartPlanDialog(true);
+                }}
+              >
+                İlk Kontrol Planını Oluştur
+              </Button>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setPartSelectionDialog(false)}
+            color="inherit"
+          >
+            Kapat
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setPartSelectionDialog(false);
+              setPartPlanDialog(true);
+            }}
+            color="primary"
+          >
+            Yeni Plan Oluştur
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Yeni Parça Planı Oluşturma Dialog'u */}
+      <Dialog open={partPlanDialog} onClose={() => setPartPlanDialog(false)} maxWidth="xl" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <AssignmentIcon color="primary" />
+            <Typography variant="h5">Yeni Kontrol Planı Oluştur</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {/* Part Information */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+              1. Parça Bilgileri
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                <TextField
+                  fullWidth
+                  label="Parça Numarası *"
+                  value={newPartPlan.partNumber}
+                  onChange={(e) => setNewPartPlan({...newPartPlan, partNumber: e.target.value})}
+                  required
+                  helperText="Benzersiz parça numarası"
+                />
+              </Box>
+              <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                <TextField
+                  fullWidth
+                  label="Parça Adı *"
+                  value={newPartPlan.partName}
+                  onChange={(e) => setNewPartPlan({...newPartPlan, partName: e.target.value})}
+                  required
+                />
+              </Box>
+              <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+                <TextField
+                  fullWidth
+                  label="Revizyon"
+                  value={newPartPlan.revision}
+                  onChange={(e) => setNewPartPlan({...newPartPlan, revision: e.target.value})}
+                  helperText="Rev A, Rev B vb."
+                />
+              </Box>
+              <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                <TextField
+                  fullWidth
+                  label="Teknik Resim Numarası"
+                  value={newPartPlan.drawingNumber}
+                  onChange={(e) => setNewPartPlan({...newPartPlan, drawingNumber: e.target.value})}
+                />
+              </Box>
+              <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                <TextField
+                  fullWidth
+                  label="Müşteri Adı"
+                  value={newPartPlan.customerName}
+                  onChange={(e) => setNewPartPlan({...newPartPlan, customerName: e.target.value})}
+                />
+              </Box>
+              <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                <TextField
+                  fullWidth
+                  label="Malzeme Spesifikasyonu"
+                  value={newPartPlan.materialSpec}
+                  onChange={(e) => setNewPartPlan({...newPartPlan, materialSpec: e.target.value})}
+                  helperText="ST37, 304L, AlMg3 vb."
+                />
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Control Points Count Selection */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+              2. Kontrol Noktası Sayısı
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <TextField
+                type="number"
+                label="Kaç adet ölçüm noktası?"
+                value={numberOfControlPoints}
+                onChange={(e) => {
+                  const count = Math.max(1, Math.min(50, parseInt(e.target.value) || 1));
+                  setNumberOfControlPoints(count);
+                }}
+                inputProps={{ min: 1, max: 50 }}
+                sx={{ width: 200 }}
+                helperText="1-50 arası seçin"
+              />
+              <Typography variant="body2" color="text.secondary">
+                Bu sayı kadar kontrol noktası oluşturulacak ve aşağıda tablo halinde görüntülenecek.
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Bulk Control Points Table */}
+          {bulkControlPoints.length > 0 && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+                3. Kontrol Noktalarını Tanımlayın ({bulkControlPoints.length} adet)
+              </Typography>
+              <TableContainer component={Paper} sx={{ maxHeight: 600, overflow: 'auto' }}>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>#</TableCell>
+                      <TableCell sx={{ minWidth: 200 }}>Karakteristik *</TableCell>
+                      <TableCell sx={{ minWidth: 150 }}>Tür *</TableCell>
+                      <TableCell sx={{ minWidth: 120 }}>Nominal *</TableCell>
+                      <TableCell sx={{ minWidth: 150 }}>Tolerans Türü *</TableCell>
+                      <TableCell sx={{ minWidth: 120 }}>Tolerans *</TableCell>
+                      <TableCell sx={{ minWidth: 120 }}>Üst Limit</TableCell>
+                      <TableCell sx={{ minWidth: 120 }}>Alt Limit</TableCell>
+                      <TableCell sx={{ minWidth: 200 }}>Ölçüm Yöntemi</TableCell>
+                      <TableCell sx={{ minWidth: 200 }}>Ekipman</TableCell>
+                      <TableCell sx={{ minWidth: 150 }}>Kritiklik</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {bulkControlPoints.map((point, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={point.characteristic || ''}
+                              onChange={(e) => updateBulkControlPoint(index, 'characteristic', e.target.value)}
+                            >
+                              {PREDEFINED_CHARACTERISTICS.map((char) => (
+                                <MenuItem key={char.name} value={char.name}>{char.name}</MenuItem>
+                              ))}
+                              <MenuItem value="custom">Diğer (Manuel)</MenuItem>
+                            </Select>
+                          </FormControl>
+                          {point.characteristic === 'custom' && (
+                            <TextField
+                              fullWidth
+                              size="small"
+                              placeholder="Özel karakteristik"
+                              sx={{ mt: 1 }}
+                              onChange={(e) => updateBulkControlPoint(index, 'characteristic', e.target.value)}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={point.characteristicType}
+                              onChange={(e) => updateBulkControlPoint(index, 'characteristicType', e.target.value)}
+                            >
+                              <MenuItem value="MINOR">MINÖR</MenuItem>
+                              <MenuItem value="FUNCTIONAL">FONKSİYONEL</MenuItem>
+                              <MenuItem value="CRITICAL">KRİTİK</MenuItem>
+                              <MenuItem value="SAFETY">EMNİYET</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type="number"
+                            value={point.nominalValue || ''}
+                            onChange={(e) => updateBulkControlPoint(index, 'nominalValue', e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={point.toleranceType}
+                              onChange={(e) => updateBulkControlPoint(index, 'toleranceType', e.target.value)}
+                            >
+                              {TOLERANCE_TYPES.map((type) => (
+                                <MenuItem key={type.value} value={type.value}>{type.symbol}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </TableCell>
+                        <TableCell>
+                          {point.toleranceType === 'PLUS_MINUS' ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              <TextField
+                                size="small"
+                                type="number"
+                                placeholder="Artı"
+                                value={point.toleranceValuePlus || ''}
+                                onChange={(e) => updateBulkControlPoint(index, 'toleranceValuePlus', e.target.value)}
+                              />
+                              <TextField
+                                size="small"
+                                type="number"
+                                placeholder="Eksi"
+                                value={point.toleranceValueMinus || ''}
+                                onChange={(e) => updateBulkControlPoint(index, 'toleranceValueMinus', e.target.value)}
+                              />
+                            </Box>
+                          ) : (
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type="number"
+                              value={point.toleranceValue || ''}
+                              onChange={(e) => updateBulkControlPoint(index, 'toleranceValue', e.target.value)}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type="number"
+                            value={point.upperLimit || ''}
+                            InputProps={{ readOnly: true }}
+                            sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type="number"
+                            value={point.lowerLimit || ''}
+                            InputProps={{ readOnly: true }}
+                            sx={{ '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={point.measurementMethod}
+                            onChange={(e) => updateBulkControlPoint(index, 'measurementMethod', e.target.value)}
+                            InputProps={{ 
+                              readOnly: PREDEFINED_CHARACTERISTICS.some(char => char.name === point.characteristic)
+                            }}
+                            sx={PREDEFINED_CHARACTERISTICS.some(char => char.name === point.characteristic) ? 
+                              { '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } } : {}}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            value={point.equipment}
+                            onChange={(e) => updateBulkControlPoint(index, 'equipment', e.target.value)}
+                            InputProps={{ 
+                              readOnly: PREDEFINED_CHARACTERISTICS.some(char => char.name === point.characteristic)
+                            }}
+                            sx={PREDEFINED_CHARACTERISTICS.some(char => char.name === point.characteristic) ? 
+                              { '& .MuiInputBase-input': { backgroundColor: '#f5f5f5' } } : {}}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormControl fullWidth size="small">
+                            <Select
+                              value={point.criticalityLevel}
+                              onChange={(e) => updateBulkControlPoint(index, 'criticalityLevel', e.target.value)}
+                            >
+                              <MenuItem value="LOW">DÜŞÜK</MenuItem>
+                              <MenuItem value="MEDIUM">ORTA</MenuItem>
+                              <MenuItem value="HIGH">YÜKSEK</MenuItem>
+                              <MenuItem value="CRITICAL">KRİTİK</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setPartPlanDialog(false);
+            setNewPartPlan({
+              partNumber: '',
+              partName: '',
+              revision: 'Rev A',
+              drawingNumber: '',
+              customerName: '',
+              materialSpec: '',
+            });
+            setNumberOfControlPoints(1);
+            setBulkControlPoints([]);
+          }}>
+            İptal
+          </Button>
+          <Button 
+            onClick={createPartControlPlanWithBulkPoints} 
+            variant="contained"
+            disabled={!newPartPlan.partNumber || !newPartPlan.partName}
+          >
+            Kontrol Planını Oluştur
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default MaterialQualityControl; 

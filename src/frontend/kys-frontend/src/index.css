@@ -1,0 +1,114 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Prevent text overlap globally */
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure proper text rendering */
+h1, h2, h3, h4, h5, h6, p, span, div {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  white-space: normal;
+}
+
+/* Typography improvements for professional look */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Prevent content from overlapping with fixed elements */
+.MuiTypography-root {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+/* Bold headings for professional appearance */
+.MuiTypography-h1,
+.MuiTypography-h2,
+.MuiTypography-h3,
+.MuiTypography-h4,
+.MuiTypography-h5,
+.MuiTypography-h6 {
+  font-weight: 600 !important;
+}
+
+/* Improve subtitle and body text readability */
+.MuiTypography-subtitle1,
+.MuiTypography-subtitle2 {
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+}
+
+.MuiTypography-body1,
+.MuiTypography-body2 {
+  line-height: 1.5 !important;
+}
+
+/* Fix for unit displays like "mm" breaking across lines */
+.unit-text {
+  white-space: nowrap !important;
+  display: inline-block;
+}
+
+/* Ensure proper spacing between elements */
+.MuiBox-root + .MuiBox-root {
+  margin-top: 8px;
+}
+
+/* Prevent horizontal scroll on small screens */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Table header improvements */
+.MuiTableCell-head {
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Form label improvements */
+.MuiInputLabel-root,
+.MuiFormLabel-root {
+  font-weight: 500 !important;
+}
+
+/* Button text improvements */
+.MuiButton-root {
+  font-weight: 500 !important;
+  text-transform: none !important;
+}
+
+/* Card title improvements */
+.MuiCardHeader-title {
+  font-weight: 600 !important;
+}
+
+/* List item text improvements */
+.MuiListItemText-primary {
+  font-weight: 500 !important;
+}
+
+/* Chip text improvements */
+.MuiChip-label {
+  font-weight: 500 !important;
+}
