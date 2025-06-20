@@ -243,8 +243,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Railway Backend URL
-        const BACKEND_URL = 'https://web-production-3c77.up.railway.app';
+        // Backend URL - Local for development, Railway for production
+        const BACKEND_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:5003' 
+            : 'https://web-production-3c77.up.railway.app';
         
         // Backend status check
         async function checkBackendStatus() {
