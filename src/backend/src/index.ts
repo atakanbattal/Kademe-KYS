@@ -54,6 +54,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3005', 
   'https://thunderous-sunshine-f6ce95.netlify.app',
+  'https://merry-dragon-924246.netlify.app',
   'https://web-production-3c77.up.railway.app'
 ];
 

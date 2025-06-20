@@ -18,9 +18,11 @@
 
 [context.production.environment]
   VITE_API_URL = "https://web-production-3c77.up.railway.app"
+  NETLIFY_URL = "https://merry-dragon-924246.netlify.app"
 
 [context.preview.environment]
   VITE_API_URL = "https://web-production-3c77.up.railway.app"
+  NETLIFY_URL = "https://merry-dragon-924246.netlify.app"
 
 [[headers]]
   for = "/*"
