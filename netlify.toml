@@ -1,0 +1,18 @@
+[build]
+  publish = "src/frontend/kys-frontend/build"
+  command = "cd src/frontend/kys-frontend && npm install && npm run build"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "9"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production]
+  command = "cd src/frontend/kys-frontend && npm install && npm run build"
+
+[context.deploy-preview]
+  command = "cd src/frontend/kys-frontend && npm install && npm run build" 
