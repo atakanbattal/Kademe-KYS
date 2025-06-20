@@ -2,6 +2,7 @@
   publish = "."
   command = "echo 'Static site, no build needed'"
 
+# Force deploy - 2025-06-20 10:45
 [build.environment]
   NODE_VERSION = "18"
 
