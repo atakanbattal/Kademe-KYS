@@ -1,0 +1,19 @@
+build:
+  buildCommand: |
+    cd src/backend && npm install && npm run build
+    npm install && npm run build
+
+deploy:
+  startCommand: cd src/backend && npm start
+  healthcheckPath: /health
+  healthcheckTimeout: 300
+
+environment:
+  NODE_ENV: production
+  PORT: 5003
+
+services:
+  - name: kys-backend
+    source: .
+    domains:
+      - kys-app.railway.app 
