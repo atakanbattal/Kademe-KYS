@@ -4,282 +4,294 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AYD Kaynakhane Kalite Yönetim Sistemi</title>
+    <title>Kalite Yönetim Sistemi</title>
     <meta name="description" content="Kaynakhane kalite yönetim sistemi - DÖF, 8D, WPS, Kalite Kontrol" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+        }
+        
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .container {
-            padding-top: 50px;
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            margin: 20px;
+            padding: 30px;
         }
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: var(--primary-color);
         }
-        .card-header {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        
+        .company-logo {
+            width: 80px;
+            height: 80px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
             color: white;
-            border-radius: 15px 15px 0 0 !important;
-            padding: 20px;
+            font-size: 2rem;
         }
-        .btn-module {
-            height: 120px;
-            border-radius: 15px;
-            border: none;
-            transition: all 0.3s ease;
-            margin-bottom: 15px;
-        }
-        .btn-module:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-        }
+        
         .status-indicator {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
         }
-        .logo {
-            max-height: 60px;
-            margin-right: 15px;
+        
+        .status-online {
+            background: rgba(39, 174, 96, 0.1);
+            color: var(--success-color);
+            border: 2px solid var(--success-color);
+        }
+        
+        .status-offline {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--danger-color);
+            border: 2px solid var(--danger-color);
+        }
+        
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .module-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid #e9ecef;
+            cursor: pointer;
+        }
+        
+        .module-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        
+        .module-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+        
+        .module-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .module-desc {
+            color: #6c757d;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #6c757d;
+            font-size: 0.9rem;
         }
     </style>
   </head>
   <body>
-    <div class="status-indicator">
-        <span id="status" class="badge bg-warning">
-            <i class="fas fa-circle"></i> Backend Bağlantısı Kontrol Ediliyor...
-        </span>
-    </div>
-
-    <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header text-center">
-                        <h1><i class="fas fa-industry"></i> AYD Kaynakhane Kalite Yönetim Sistemi</h1>
-                        <p class="mb-0">Modern Web Tabanlı Kalite Yönetim Platformu</p>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="row">
-                            <!-- DÖF Yönetimi -->
-                            <div class="col-md-4 col-sm-6">
-                                <button class="btn btn-outline-danger w-100 btn-module" onclick="openModule('dof')">
-                                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
-                                    <strong>DÖF Yönetimi</strong><br>
-                                    <small>Düzeltici ve Önleyici Faaliyetler</small>
-                                </button>
-                            </div>
-                            
-                            <!-- Risk Yönetimi -->
-                            <div class="col-md-4 col-sm-6">
-                                <button class="btn btn-outline-warning w-100 btn-module" onclick="openModule('risk')">
-                                    <i class="fas fa-shield-alt fa-2x mb-2"></i><br>
-                                    <strong>Risk Yönetimi</strong><br>
-                                    <small>Risk Değerlendirme ve Takip</small>
-                                </button>
-                            </div>
-                            
-                            <!-- Tedarikçi Yönetimi -->
-                            <div class="col-md-4 col-sm-6">
-                                <button class="btn btn-outline-info w-100 btn-module" onclick="openModule('supplier')">
-                                    <i class="fas fa-truck fa-2x mb-2"></i><br>
-                                    <strong>Tedarikçi Yönetimi</strong><br>
-                                    <small>Tedarikçi Kalite Takibi</small>
-                                </button>
-                            </div>
-                            
-                            <!-- Kalitesizlik Maliyeti -->
-                            <div class="col-md-4 col-sm-6">
-                                <button class="btn btn-outline-success w-100 btn-module" onclick="openModule('cost')">
-                                    <i class="fas fa-dollar-sign fa-2x mb-2"></i><br>
-                                    <strong>Kalitesizlik Maliyeti</strong><br>
-                                    <small>COPQ Analizi ve Raporlama</small>
-                                </button>
-                            </div>
-                            
-                            <!-- Üretim Kalite -->
-                            <div class="col-md-4 col-sm-6">
-                                <button class="btn btn-outline-primary w-100 btn-module" onclick="openModule('production')">
-                                    <i class="fas fa-cogs fa-2x mb-2"></i><br>
-                                    <strong>Üretim Kalite</strong><br>
-                                    <small>Üretim Hata Analizi</small>
-                                </button>
-                            </div>
-                            
-                            <!-- İç Tetkik -->
-                            <div class="col-md-4 col-sm-6">
-                                <button class="btn btn-outline-secondary w-100 btn-module" onclick="openModule('audit')">
-                                    <i class="fas fa-search fa-2x mb-2"></i><br>
-                                    <strong>İç Tetkik</strong><br>
-                                    <small>Denetim ve Takip</small>
-                                </button>
-                            </div>
-                            
-                            <!-- Doküman Yönetimi -->
-                            <div class="col-md-4 col-sm-6">
-                                <button class="btn btn-outline-dark w-100 btn-module" onclick="openModule('document')">
-                                    <i class="fas fa-file-alt fa-2x mb-2"></i><br>
-                                    <strong>Doküman Yönetimi</strong><br>
-                                    <small>Kalite Dokümanları</small>
-                                </button>
-                            </div>
-                            
-                            <!-- Ekipman Kalibrasyon -->
-                            <div class="col-md-4 col-sm-6">
-                                <button class="btn btn-outline-info w-100 btn-module" onclick="openModule('calibration')">
-                                    <i class="fas fa-tools fa-2x mb-2"></i><br>
-                                    <strong>Ekipman Kalibrasyon</strong><br>
-                                    <small>Kalibrasyon Takip</small>
-                                </button>
-                            </div>
-                            
-                            <!-- Dashboard -->
-                            <div class="col-md-4 col-sm-6">
-                                <button class="btn btn-outline-success w-100 btn-module" onclick="openModule('dashboard')">
-                                    <i class="fas fa-chart-bar fa-2x mb-2"></i><br>
-                                    <strong>Dashboard</strong><br>
-                                    <small>Genel Durum ve Raporlar</small>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <div class="card bg-light">
-                                    <div class="card-body text-center">
-                                        <h5><i class="fas fa-info-circle"></i> Sistem Bilgileri</h5>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <strong>Backend:</strong> <span id="backend-url">Railway</span>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <strong>Database:</strong> MongoDB Atlas
-                                            </div>
-                                            <div class="col-md-4">
-                                                <strong>Frontend:</strong> Netlify
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Header -->
+            <div class="header">
+                <div class="company-logo">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <h1 class="mb-2">Kalite Yönetim Sistemi</h1>
+                <h3 class="text-muted">Profesyonel Kalite Kontrol ve Yönetim Platformu</h3>
+                <p class="lead">http://localhost:3000 - Railway Backend Bağlantısı</p>
+                
+                <!-- Backend Status -->
+                <div id="backend-status" class="status-indicator status-offline">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    <span>Backend Bağlantısı Kontrol Ediliyor...</span>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Module Modal -->
-    <div class="modal fade" id="moduleModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="moduleTitle">Modül</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="moduleContent">
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Yükleniyor...</span>
-                            </div>
-                            <p class="mt-3">Modül yükleniyor...</p>
-                        </div>
+            
+            <!-- Quality Management Modules -->
+            <div class="module-grid">
+                <!-- DÖF Module -->
+                <div class="module-card" onclick="openModule('dof')">
+                    <div class="module-icon" style="background: var(--danger-color);">
+                        <i class="fas fa-exclamation-triangle"></i>
                     </div>
+                    <div class="module-title">DÖF Yönetimi</div>
+                    <div class="module-desc">Düzeltici ve Önleyici Faaliyetler yönetimi, kalite sorunlarının çözüm süreci</div>
                 </div>
+                
+                <!-- 8D Module -->
+                <div class="module-card" onclick="openModule('8d')">
+                    <div class="module-icon" style="background: var(--warning-color);">
+                        <i class="fas fa-search-plus"></i>
+                    </div>
+                    <div class="module-title">8D Problem Çözme</div>
+                    <div class="module-desc">Sekiz disiplinli problem çözme metodolojisi ile sistematik analiz</div>
+                </div>
+                
+                <!-- Risk Management -->
+                <div class="module-card" onclick="openModule('risk')">
+                    <div class="module-icon" style="background: var(--secondary-color);">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="module-title">Risk Yönetimi</div>
+                    <div class="module-desc">Risk değerlendirmesi, önleme stratejileri ve sürekli izleme</div>
+                </div>
+                
+                <!-- Supplier Quality -->
+                <div class="module-card" onclick="openModule('supplier')">
+                    <div class="module-icon" style="background: var(--success-color);">
+                        <i class="fas fa-handshake"></i>
+                    </div>
+                    <div class="module-title">Tedarikçi Kalitesi</div>
+                    <div class="module-desc">Tedarikçi değerlendirme, KPI takibi ve kalite sözleşmeleri</div>
+                </div>
+                
+                <!-- Quality Control Reports -->
+                <div class="module-card" onclick="openModule('qc-reports')">
+                    <div class="module-icon" style="background: var(--primary-color);">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="module-title">Kalite Kontrol Raporları</div>
+                    <div class="module-desc">Kalite kontrol test sonuçları, sertifikalar ve raporlama</div>
+                </div>
+                
+                <!-- Material Quality Control -->
+                <div class="module-card" onclick="openModule('material-qc')">
+                    <div class="module-icon" style="background: #9b59b6;">
+                        <i class="fas fa-flask"></i>
+                    </div>
+                    <div class="module-title">Malzeme Kalite Kontrolü</div>
+                    <div class="module-desc">Hammadde ve malzeme kalite testleri, sertifika takibi</div>
+                </div>
+                
+                <!-- Tank Leak Tests -->
+                <div class="module-card" onclick="openModule('tank-tests')">
+                    <div class="module-icon" style="background: #1abc9c;">
+                        <i class="fas fa-tint"></i>
+                    </div>
+                    <div class="module-title">Tank Sızıntı Testleri</div>
+                    <div class="module-desc">Tank ve basınçlı kaplar için sızıntı testleri ve güvenlik kontrolleri</div>
+                </div>
+                
+                <!-- Document Management -->
+                <div class="module-card" onclick="openModule('documents')">
+                    <div class="module-icon" style="background: #34495e;">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="module-title">Doküman Yönetimi</div>
+                    <div class="module-desc">Kalite dokümanları, prosedürler ve standart yönetimi</div>
+                </div>
+                
+                <!-- Training Management -->
+                <div class="module-card" onclick="openModule('training')">
+                    <div class="module-icon" style="background: #e67e22;">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="module-title">Eğitim Yönetimi</div>
+                    <div class="module-desc">Personel eğitimleri, sertifikasyonlar ve yetkinlik takibi</div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="footer">
+                <p><strong>Kalite Yönetim Sistemi</strong></p>
+                <p>Güvenli ve profesyonel kalite yönetimi için tasarlandı</p>
+                <p class="text-muted">© 2024 - Port 3000 Frontend + Railway Backend</p>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Backend URL - Railway deployment sonrası güncellenecek
-        const BACKEND_URL = 'https://kys-kalite-yonetim-production.up.railway.app';
+        // Railway Backend URL
+        const BACKEND_URL = 'https://web-production-3c77.up.railway.app';
         
-        // Backend durumu kontrol et
+        // Backend status check
         async function checkBackendStatus() {
+            const statusElement = document.getElementById('backend-status');
+            
             try {
-                const response = await fetch(`${BACKEND_URL}/health`);
+                const response = await fetch(`${BACKEND_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
                 if (response.ok) {
-                    document.getElementById('status').innerHTML = '<i class="fas fa-check-circle"></i> Backend Bağlı';
-                    document.getElementById('status').className = 'badge bg-success';
-                    document.getElementById('backend-url').textContent = BACKEND_URL;
+                    const data = await response.json();
+                    statusElement.className = 'status-indicator status-online';
+                    statusElement.innerHTML = `
+                        <i class="fas fa-check-circle"></i>
+                        <span>Backend Aktif - Railway Bağlantısı OK</span>
+                    `;
                 } else {
-                    throw new Error('Backend ulaşılamıyor');
+                    throw new Error('Backend yanıt vermiyor');
                 }
             } catch (error) {
-                document.getElementById('status').innerHTML = '<i class="fas fa-times-circle"></i> Backend Bağlantı Hatası';
-                document.getElementById('status').className = 'badge bg-danger';
-                console.error('Backend bağlantı hatası:', error);
+                statusElement.className = 'status-indicator status-offline';
+                statusElement.innerHTML = `
+                    <i class="fas fa-times-circle"></i>
+                    <span>Backend Bağlantısı Yok - Railway Kontrol Et</span>
+                `;
+                console.error('Backend connection error:', error);
             }
         }
         
-        // Modül aç
-        function openModule(module) {
-            const moduleNames = {
-                'dof': 'DÖF ve 8D Yönetimi',
-                'risk': 'Risk Yönetimi',
-                'supplier': 'Tedarikçi Kalite Yönetimi',
-                'cost': 'Kalitesizlik Maliyet Yönetimi',
-                'production': 'Üretim Kalite Takibi',
-                'audit': 'İç Tetkik Yönetimi',
-                'document': 'Doküman Yönetimi',
-                'calibration': 'Ekipman Kalibrasyon Yönetimi',
-                'dashboard': 'Dashboard ve Raporlar'
-            };
-            
-            document.getElementById('moduleTitle').textContent = moduleNames[module];
-            
-            // Modül içeriği yükle
-            loadModuleContent(module);
-            
-            const modal = new bootstrap.Modal(document.getElementById('moduleModal'));
-            modal.show();
+        // Module navigation
+        function openModule(moduleName) {
+            alert(`${moduleName.toUpperCase()} modülü geliştiriliyor!\n\nRailway backend ile bağlantı test ediliyor.`);
         }
         
-        // Modül içeriği yükle
-        async function loadModuleContent(module) {
-            const content = document.getElementById('moduleContent');
-            
-            try {
-                // Bu kısım frontend modüllerini yükleyecek
-                content.innerHTML = `
-                    <div class="alert alert-info">
-                        <h5><i class="fas fa-info-circle"></i> ${module.toUpperCase()} Modülü</h5>
-                        <p>Bu modül şu anda geliştirme aşamasında. Backend API hazır, frontend arayüzü tamamlandığında buraya entegre edilecek.</p>
-                        <h6>Mevcut API Endpoints:</h6>
-                        <ul>
-                            <li><code>GET ${BACKEND_URL}/api/status</code> - API durumu</li>
-                            <li><code>GET ${BACKEND_URL}/health</code> - Sistem sağlığı</li>
-                        </ul>
-                        <button class="btn btn-primary" onclick="window.open('${BACKEND_URL}/api/status', '_blank')">
-                            <i class="fas fa-external-link-alt"></i> API Test Et
-                        </button>
-                    </div>
-                `;
-            } catch (error) {
-                content.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h5>Hata</h5>
-                        <p>Modül yüklenirken hata oluştu: ${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        // Sayfa yüklendiğinde backend durumunu kontrol et
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Kalite Yönetim Sistemi - Port 3000');
+            console.log('🔗 Backend:', BACKEND_URL);
+            
+            // Backend status kontrol et
             checkBackendStatus();
             
-            // Her 30 saniyede bir backend durumunu kontrol et
+            // Her 30 saniyede bir kontrol et
             setInterval(checkBackendStatus, 30000);
         });
     </script>
