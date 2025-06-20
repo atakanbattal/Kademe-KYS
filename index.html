@@ -251,30 +251,41 @@
             const statusElement = document.getElementById('backend-status');
             
             try {
+                console.log('🔍 Backend kontrol ediliyor:', BACKEND_URL);
+                
                 const response = await fetch(`${BACKEND_URL}/health`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    mode: 'cors'
                 });
                 
-                if (response.ok) {
-                    const data = await response.json();
+                const data = await response.json();
+                console.log('📡 Backend yanıtı:', data);
+                
+                if (data.status === 'ok') {
                     statusElement.className = 'status-indicator status-online';
                     statusElement.innerHTML = `
                         <i class="fas fa-check-circle"></i>
-                        <span>Backend Aktif - Railway Bağlantısı OK</span>
+                        <span>✅ Backend Aktif - MongoDB OK</span>
+                    `;
+                } else if (data.status === 'error') {
+                    statusElement.className = 'status-indicator status-offline';
+                    statusElement.innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>⚠️ Backend Aktif - MongoDB IP Whitelist Gerekli</span>
                     `;
                 } else {
-                    throw new Error('Backend yanıt vermiyor');
+                    throw new Error('Bilinmeyen durum');
                 }
             } catch (error) {
                 statusElement.className = 'status-indicator status-offline';
                 statusElement.innerHTML = `
                     <i class="fas fa-times-circle"></i>
-                    <span>Backend Bağlantısı Yok - Railway Kontrol Et</span>
+                    <span>❌ Railway Backend Çalışmıyor - Yeniden Deploy Gerekli</span>
                 `;
-                console.error('Backend connection error:', error);
+                console.error('❌ Backend bağlantı hatası:', error);
             }
         }
         
