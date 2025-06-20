@@ -42,7 +42,7 @@ import {
   Warning as WarningIcon,
   Security as SecurityIcon,
   TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
+  // TrendingDown as TrendingDownIcon, // Kullanılmıyor - eslint hatası için kaldırıldı
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as ViewIcon,
@@ -60,7 +60,7 @@ import {
 } from '@mui/icons-material';
 
 import { WorkflowUtils } from '../utils/WorkflowEngine';
-import { createDOFFromSourceRecord, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
+// import { createDOFFromSourceRecord, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration'; // Kullanılmıyor - eslint hatası için kaldırıldı
 import { ReportProblem as ReportIcon } from '@mui/icons-material';
 
 // Recharts for professional charts
@@ -203,14 +203,14 @@ const RiskManagement: React.FC = () => {
   }, []);
 
   // Context7 - Save risks to localStorage
-  const saveRisks = useCallback((updatedRisks: RiskRecord[]) => {
-    try {
-      localStorage.setItem('riskManagementData', JSON.stringify(updatedRisks));
-      setRisks(updatedRisks);
-    } catch (error) {
-      console.error('Risk verileri kaydedilirken hata:', error);
-    }
-  }, []);
+  // const saveRisks = useCallback((updatedRisks: RiskRecord[]) => {
+  //   try {
+  //     localStorage.setItem('riskManagementData', JSON.stringify(updatedRisks));
+  //     setRisks(updatedRisks);
+  //   } catch (error) {
+  //     console.error('Risk verileri kaydedilirken hata:', error);
+  //   }
+  // }, []); // Kullanılmıyor - eslint hatası için kaldırıldı
 
   // Context7 - Generate sample risks
   const generateSampleRisks = (): RiskRecord[] => {
