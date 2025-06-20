@@ -1,23 +1,16 @@
-# Railway.app Deployment Configuration
+# Railway.app Fast Deployment
 build:
-  buildCommand: "cd src/backend && npm ci && npm run build"
-  workingDirectory: "src/backend"
-
-deploy:
-  startCommand: "cd src/backend && npm start"
-  workingDirectory: "src/backend"
-
-env:
-  NODE_ENV: "production"
-  PORT: "$PORT"
+  buildCommand: "npm ci --only=production && npm run build"
   
-# Build settings
+deploy:
+  startCommand: "npm start"
+
+variables:
+  NODE_ENV: production
+  PORT: $PORT
+  
 settings:
   generateStaticWebsite: false
-  buildPath: "src/backend"
-  installCommand: "npm ci"
-  buildCommand: "npm run build"
-  startCommand: "npm start"
 
 services:
   - name: kys-backend
