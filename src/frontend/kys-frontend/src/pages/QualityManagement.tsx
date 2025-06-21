@@ -1817,9 +1817,6 @@ const QualityManagement: React.FC = () => {
   const DashboardTab = () => (
     <Box>
       {/* KPI Kartları */}
-      <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-        Kalite Performans Göstergeleri (KPI)
-      </Typography>
       
       <Grid container spacing={3} mb={4}>
         {kpis.map((kpi) => (

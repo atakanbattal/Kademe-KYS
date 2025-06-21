@@ -44,10 +44,6 @@ Varsayılan olarak [http://localhost:3000](http://localhost:3000) adresinde çal
 - Her modül için ilgili dosyalar `src/frontend/kys-frontend/src/pages/` klasöründe bulunur.
 - Yeni modüller eklemek için bir React bileşeni oluşturup `App.tsx`'e route olarak ekleyebilirsiniz.
 
-## Port Yapılandırması
-- **Frontend:** http://localhost:3000 (React standart portu)
-- **Backend:** http://localhost:5000 (Express standart portu)
-
 ## Katkı ve Lisans
 - Proje Kademe A.Ş. içindir. Katkı ve öneriler için iletişime geçebilirsiniz.
 

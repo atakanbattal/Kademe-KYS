@@ -30,6 +30,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Alert,
+  Grid,
 } from '@mui/material';
 import {
   Assignment as AssignmentIcon,
@@ -49,14 +50,15 @@ import {
   Search as SearchIcon,
   PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
-
   DateRange as DateRangeIcon,
-  
-
+  Cancel as CancelIcon,
+  SwapHoriz as SwapHorizIcon,
+  Merge as MergeIcon,
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { styled } from '@mui/material/styles';
+import { useThemeContext } from '../context/ThemeContext';
 
 // ✅ Gelişmiş Interface Definitions
 interface DOFRecord {
@@ -1248,54 +1250,56 @@ const MetricCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-const StyledAccordion = styled(Accordion)(() => ({
-  marginBottom: 20,
-  borderRadius: '16px !important',
-  backgroundColor: '#ffffff',
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-  border: '1px solid rgba(25, 118, 210, 0.12)',
-  overflow: 'hidden',
-  '&:before': {
-    display: 'none',
-  },
-  '&.Mui-expanded': {
-    margin: 'auto',
-  },
-  '& .MuiAccordionSummary-root': {
-    backgroundColor: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-    background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-    color: '#ffffff',
-    borderRadius: '16px 16px 0 0',
-    minHeight: 72,
-    padding: '0 24px',
-    '&.Mui-expanded': {
-      minHeight: 72,
-      borderRadius: '16px 16px 0 0',
-    },
-    '& .MuiAccordionSummary-content': {
-      margin: '16px 0',
-      '&.Mui-expanded': {
-        margin: '16px 0',
-      },
-    },
-    '& .MuiAccordionSummary-expandIconWrapper': {
-      color: '#ffffff',
-      '&.Mui-expanded': {
-        transform: 'rotate(180deg)',
-      },
-    },
-    '&:hover': {
-      background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
-    },
-  },
-  '& .MuiAccordionDetails-root': {
-    backgroundColor: '#ffffff',
-    padding: 32,
-    borderTop: '1px solid rgba(25, 118, 210, 0.08)',
-  }
-}));
-
 const DOF8DManagement: React.FC = () => {
+  const { theme: muiTheme, appearanceSettings } = useThemeContext();
+
+  // Tema entegreli StyledAccordion
+  const StyledAccordion = styled(Accordion)(() => ({
+    marginBottom: 20,
+    borderRadius: '16px !important',
+    backgroundColor: '#ffffff',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    border: '1px solid rgba(25, 118, 210, 0.12)',
+    overflow: 'hidden',
+    '&:before': {
+      display: 'none',
+    },
+    '&.Mui-expanded': {
+      margin: 'auto',
+    },
+    '& .MuiAccordionSummary-root': {
+      backgroundColor: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
+      background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
+      color: '#ffffff',
+      borderRadius: '16px 16px 0 0',
+      minHeight: 72,
+      padding: '0 24px',
+      '&.Mui-expanded': {
+        minHeight: 72,
+        borderRadius: '16px 16px 0 0',
+      },
+      '& .MuiAccordionSummary-content': {
+        margin: '16px 0',
+        '&.Mui-expanded': {
+          margin: '16px 0',
+        },
+      },
+      '& .MuiAccordionSummary-expandIconWrapper': {
+        color: '#ffffff',
+        '&.Mui-expanded': {
+          transform: 'rotate(180deg)',
+        },
+      },
+      '&:hover': {
+        background: `linear-gradient(135deg, ${appearanceSettings.primaryColor}cc 0%, ${appearanceSettings.primaryColor}ee 100%)`,
+      },
+    },
+    '& .MuiAccordionDetails-root': {
+      backgroundColor: '#ffffff',
+      padding: 32,
+      borderTop: `1px solid ${appearanceSettings.primaryColor}20`,
+    }
+  })) as any;
   const [activeTab, setActiveTab] = useState(0);
   const [expanded, setExpanded] = useState<string | false>('panel1');
   const [filters, setFilters] = useState<FilterState>({
@@ -1360,6 +1364,14 @@ const DOF8DManagement: React.FC = () => {
   
   const [previewDOFNumber, setPreviewDOFNumber] = useState<string>('');
 
+  // ✅ DÖF Kapatma Modal State'leri
+  const [closeModalOpen, setCloseModalOpen] = useState(false);
+  const [selectedRecordForClose, setSelectedRecordForClose] = useState<DOFRecord | null>(null);
+  const [closureData, setClosureData] = useState({
+    closedDate: new Date().toISOString().split('T')[0],
+    closeReason: 'completed',
+    closureNotes: ''
+  });
 
   
   // Context7 - ENHANCED: Güvenli ve Akıllı Veri Yönetimi Sistemi
@@ -2121,23 +2133,44 @@ const DOF8DManagement: React.FC = () => {
         remainingDays: recordToClose.remainingDays
       });
 
-      // DÖF kapatma onayı kaldırıldı - sessiz kapatma
-
-      // Context7 - KAPATMA İŞLEMİ BAŞLATILIYOR
-      const now = new Date();
-      const closedDate = now.toISOString().split('T')[0];
-      const closedTime = now.toLocaleString('tr-TR');
+      // DÖF kapatma modal'ını aç
+      setSelectedRecordForClose(recordToClose);
+      setClosureData({
+        closedDate: new Date().toISOString().split('T')[0],
+        closeReason: 'completed',
+        closureNotes: ''
+      });
+      setCloseModalOpen(true);
       
-      console.log('⏰ Context7 - Kapatma zamanı:', { closedDate, closedTime });
+    } catch (error) {
+      console.error('❌ Context7 - DÖF kapatma hatası:', error);
+      // Kapatma hatası - sessiz hata
+    }
+  }, [dofRecords]);
+
+  // ✅ Modal'dan gelen kapatma işlemini gerçekleştir
+  const confirmCloseDOF = useCallback(() => {
+    try {
+      if (!selectedRecordForClose) {
+        console.error('❌ Kapatılacak kayıt bulunamadı');
+        return;
+      }
+
+      const recordId = selectedRecordForClose.id;
+      const closedDate = closureData.closedDate;
+      const closedTime = new Date().toLocaleString('tr-TR');
+      const closeReason = closureData.closeReason;
+      
+      console.log('⏰ Context7 - Kapatma zamanı:', { closedDate, closedTime, closeReason });
 
       // Context7 - Kapatma durumu hesaplama
-      const wasOverdue = recordToClose.delayStatus === 'overdue';
-      const finalRemainingDays = calculateRemainingDays(recordToClose.dueDate);
+      const wasOverdue = selectedRecordForClose.delayStatus === 'overdue';
+      const finalRemainingDays = calculateRemainingDays(selectedRecordForClose.dueDate);
       
       console.log('📈 Context7 - Kapatma istatistikleri:', {
         wasOverdue,
         finalRemainingDays,
-        originalDueDate: recordToClose.dueDate
+        originalDueDate: selectedRecordForClose.dueDate
       });
 
       // Context7 - GÜVENLI STATE GÜNCELLEME
@@ -2173,11 +2206,11 @@ const DOF8DManagement: React.FC = () => {
               history: [
                 ...(record.history || []),
                 {
-                  id: `close_${now.getTime()}`,
+                  id: `close_${Date.now()}`,
                   action: 'DÖF Kapatıldı',
                   user: 'Sistem Kullanıcısı',
                   date: closedDate,
-                  details: `${closeReason} | Kapanış: ${closedTime} | ${wasOverdue ? '⚠️ Gecikme ile' : '✅ Zamanında'} kapatıldı | Kalan gün: ${finalRemainingDays}`
+                  details: `${getCloseReasonText(closeReason)} | Kapanış: ${closedTime} | ${wasOverdue ? '⚠️ Gecikme ile' : '✅ Zamanında'} kapatıldı | Kalan gün: ${finalRemainingDays}${closureData.closureNotes ? ` | Not: ${closureData.closureNotes}` : ''}`
                 }
               ]
             };
@@ -2206,15 +2239,33 @@ const DOF8DManagement: React.FC = () => {
         return updatedRecords;
       });
 
-      // DÖF başarıyla kapatıldı - sessiz işlem
+      // Modal'ı kapat
+      setCloseModalOpen(false);
+      setSelectedRecordForClose(null);
+      setClosureData({
+        closedDate: new Date().toISOString().split('T')[0],
+        closeReason: 'completed',
+        closureNotes: ''
+      });
       
       console.log('✅ Context7 - DÖF kapatma işlemi başarıyla tamamlandı');
       
     } catch (error) {
       console.error('❌ Context7 - DÖF kapatma hatası:', error);
-      // Kapatma hatası - sessiz hata
     }
-  }, [dofRecords]);
+  }, [selectedRecordForClose, closureData, dofRecords]);
+
+  // ✅ Kapatma nedeni metinleri
+  const getCloseReasonText = (reason: string) => {
+    switch (reason) {
+      case 'completed': return 'Başarıyla Tamamlandı';
+      case 'resolved': return 'Çözüm Bulundu';
+      case 'cancelled': return 'İptal Edildi';
+      case 'transferred': return 'Transfer Edildi';
+      case 'merged': return 'Birleştirildi';
+      default: return 'Kapatıldı';
+    }
+  };
 
   // Context7 - ENHANCED: Profesyonel DÖF Silme Sistemi
   const deleteDOFRecord = useCallback((recordId: string) => {
@@ -2594,8 +2645,7 @@ const DOF8DManagement: React.FC = () => {
           return updated;
         });
         
-        // DÖF başarıyla oluşturuldu
-        alert(`✅ ${formData.type === '8d' ? '8D Problemi' : 'DÖF'} başarıyla oluşturuldu!\nDÖF Numarası: ${newRecord.dofNumber}`);
+        // DÖF başarıyla oluşturuldu - Alert kaldırıldı
         
       } else if (dialogMode === 'edit' && selectedRecord) {
         console.log('✏️ Context7 - Kayıt güncelleniyor...', selectedRecord.id);
@@ -2663,8 +2713,7 @@ const DOF8DManagement: React.FC = () => {
           return updated;
         });
         
-        // DÖF başarıyla güncellendi
-        alert(`✅ ${formData.type === '8d' ? '8D Problemi' : 'DÖF'} başarıyla güncellendi!\nDÖF Numarası: ${updatedRecord.dofNumber}`);
+        // DÖF başarıyla güncellendi - Alert kaldırıldı
       }
       
       // ✅ Prefill verilerini temizle (kayıt tamamlandığında)
@@ -2763,10 +2812,15 @@ const DOF8DManagement: React.FC = () => {
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
               <FormControl fullWidth>
-                <InputLabel>Birim/Departman</InputLabel>
+                <InputLabel sx={{ fontWeight: 600 }}>Birim/Departman</InputLabel>
                 <Select
                   value={filters.department}
                   onChange={(e) => handleFilterChange('department', e.target.value)}
+                  sx={{
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
                 >
                   <MenuItem value="">Tüm Birimler</MenuItem>
                   {DEPARTMENTS.map((dept) => (
@@ -2775,53 +2829,100 @@ const DOF8DManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 160px', minWidth: '160px' }}>
               <FormControl fullWidth>
-                <InputLabel>Durum</InputLabel>
+                <InputLabel sx={{ fontWeight: 600 }}>Durum</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
+                  sx={{
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
                 >
                   <MenuItem value="">Tüm Durumlar</MenuItem>
                   {STATUS_OPTIONS.map((status) => (
-                    <MenuItem key={status.value} value={status.value}>{status.label}</MenuItem>
+                    <MenuItem key={status.value} value={status.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box 
+                          sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            backgroundColor: status.color 
+                          }} 
+                        />
+                        {status.label}
+                      </Box>
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 140px', minWidth: '140px' }}>
               <FormControl fullWidth>
-                <InputLabel>Tür</InputLabel>
+                <InputLabel sx={{ fontWeight: 600 }}>Tür</InputLabel>
                 <Select
                   value={filters.type}
                   onChange={(e) => handleFilterChange('type', e.target.value)}
+                  sx={{
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
                 >
                   <MenuItem value="">Tüm Türler</MenuItem>
                   {DOF_TYPES.map((type) => (
-                    <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                    <MenuItem key={type.value} value={type.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box 
+                          sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            backgroundColor: type.color 
+                          }} 
+                        />
+                        {type.label}
+                      </Box>
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
               <TextField
                 fullWidth
                 label="Gelişmiş Arama"
-                placeholder="DÖF No, başlık, açıklama, sorumlu, kök neden, aksiyon..."
                 value={filters.searchTerm}
                 onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
                 InputProps={{
                   startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
                 }}
-                helperText="Tüm alanlarda dinamik arama yapar"
+                sx={{
+                  '& .MuiInputLabel-root': {
+                    fontWeight: 600
+                  },
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }
+                }}
               />
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
               <FormControl fullWidth>
-                <InputLabel>Yıl</InputLabel>
+                <InputLabel sx={{ fontWeight: 600 }}>Yıl</InputLabel>
                 <Select
                   value={filters.year}
                   onChange={(e) => handleFilterChange('year', e.target.value)}
+                  sx={{
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
                 >
                   <MenuItem value="">Tüm Yıllar</MenuItem>
                   <MenuItem value="2024">2024</MenuItem>
@@ -2829,12 +2930,17 @@ const DOF8DManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
               <FormControl fullWidth>
-                <InputLabel>Ay</InputLabel>
+                <InputLabel sx={{ fontWeight: 600 }}>Ay</InputLabel>
                 <Select
                   value={filters.month}
                   onChange={(e) => handleFilterChange('month', e.target.value)}
+                  sx={{
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
                 >
                   <MenuItem value="">Tüm Aylar</MenuItem>
                   {MONTHS.map((month) => (
@@ -2843,35 +2949,69 @@ const DOF8DManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 180px', minWidth: '180px' }}>
               <FormControl fullWidth>
-                <InputLabel>Gecikme Durumu</InputLabel>
+                <InputLabel sx={{ fontWeight: 600 }}>Gecikme Durumu</InputLabel>
                 <Select
                   value={filters.delayStatus}
                   onChange={(e) => handleFilterChange('delayStatus', e.target.value)}
+                  sx={{
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
                 >
                   <MenuItem value="">Tüm Durumlar</MenuItem>
                   {DELAY_STATUS_OPTIONS.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                    <MenuItem key={option.value} value={option.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box 
+                          sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            backgroundColor: option.color 
+                          }} 
+                        />
+                        {option.label}
+                      </Box>
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
               <FormControl fullWidth>
-                <InputLabel>Kritiklik</InputLabel>
+                <InputLabel sx={{ fontWeight: 600 }}>Kritiklik</InputLabel>
                 <Select
                   value={filters.priority}
                   onChange={(e) => handleFilterChange('priority', e.target.value)}
+                  sx={{
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
                 >
                   <MenuItem value="">Tüm Seviyeler</MenuItem>
                   {PRIORITY_OPTIONS.map((priority) => (
-                    <MenuItem key={priority.value} value={priority.value}>{priority.label}</MenuItem>
+                    <MenuItem key={priority.value} value={priority.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box 
+                          sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            backgroundColor: priority.color 
+                          }} 
+                        />
+                        {priority.label}
+                      </Box>
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 180px', minWidth: '180px' }}>
               <Button
                 fullWidth
                 variant="outlined"
@@ -2886,7 +3026,17 @@ const DOF8DManagement: React.FC = () => {
                   delayStatus: '',
                   priority: '',
                 })}
-                sx={{ height: 56 }}
+                sx={{ 
+                  height: 56,
+                  fontWeight: 600,
+                  borderColor: 'error.main',
+                  color: 'error.main',
+                  '&:hover': {
+                    borderColor: 'error.dark',
+                    backgroundColor: 'error.light',
+                    color: 'error.dark'
+                  }
+                }}
               >
                 Filtreleri Temizle
               </Button>
@@ -3018,9 +3168,7 @@ const DOF8DManagement: React.FC = () => {
                       <Typography variant="h6" color="text.primary" fontWeight={600}>
                         Kapanma Oranı
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Başarı performansı
-                      </Typography>
+
                     </Box>
                     <Box sx={{ 
                       p: 1.5, 
@@ -3220,7 +3368,7 @@ const DOF8DManagement: React.FC = () => {
                 gap: 1,
                 borderBottom: '1px solid rgba(255,255,255,0.1)'
               }}>
-                <AssignmentIcon />
+                <DashboardIcon />
                 <Typography variant="h6" fontWeight={600}>
                   1. Departman Bazlı Performans Tablosu
                 </Typography>
@@ -3301,9 +3449,9 @@ const DOF8DManagement: React.FC = () => {
                         }).length;
                         const avgClosingTime = closedCount > 0 ? 
                           Math.round(deptRecords
-                            .filter(r => r.status === 'closed' && r.closedDate && r.createdDate)
+                            .filter(r => r.status === 'closed' && r.closedDate && r.openingDate)
                             .reduce((acc, r) => {
-                              const days = Math.abs(new Date(r.closedDate!).getTime() - new Date(r.createdDate).getTime()) / (1000 * 60 * 60 * 24);
+                              const days = Math.abs(new Date(r.closedDate!).getTime() - new Date(r.openingDate).getTime()) / (1000 * 60 * 60 * 24);
                               return acc + days;
                             }, 0) / closedCount) : 0;
                         const delayPercentage = deptRecords.length > 0 ? Math.round((overdueCount / deptRecords.length) * 100) : 0;
@@ -4112,9 +4260,9 @@ const DOF8DManagement: React.FC = () => {
                         const closedCount = priorityRecords.filter(r => r.status === 'closed').length;
                         const avgTime = closedCount > 0 ? 
                           Math.round(priorityRecords
-                            .filter(r => r.status === 'closed' && r.closedDate && r.createdDate)
+                            .filter(r => r.status === 'closed' && r.closedDate && r.openingDate)
                             .reduce((acc, r) => {
-                              const days = Math.abs(new Date(r.closedDate!).getTime() - new Date(r.createdDate).getTime()) / (1000 * 60 * 60 * 24);
+                              const days = Math.abs(new Date(r.closedDate!).getTime() - new Date(r.openingDate).getTime()) / (1000 * 60 * 60 * 24);
                               return acc + days;
                             }, 0) / closedCount) : 0;
                         
@@ -4823,9 +4971,7 @@ const DOF8DManagement: React.FC = () => {
                     Departman Raporu
                           </Typography>
                         </Box>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  Departman bazlı performans analizi ve karşılaştırma
-                </Typography>
+
                 <Button
                   variant="outlined"
                   fullWidth
@@ -5072,6 +5218,92 @@ const DOF8DManagement: React.FC = () => {
                             '& .MuiInputLabel-root': {
                               color: 'error.main',
                               fontWeight: 600
+                            }
+                          }}
+                        />
+                      </Box>
+                    )}
+
+                    {/* ✅ DÖF KAPATMA ÖZELLİKLERİ - Status 'closed' seçildiğinde görünür */}
+                    {formData.status === 'closed' && (
+                      <Box sx={{ mt: 2 }}>
+                        <Alert severity="success" sx={{ mb: 2 }}>
+                          <Typography variant="body2">
+                            <strong>DÖF Kapatma Bilgileri</strong> Bu DÖF kapatılmış durumda. 
+                            Kapatma tarihi ve nedeni aşağıda belirtilmelidir.
+                          </Typography>
+                        </Alert>
+                        
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2, mb: 2 }}>
+                          <TextField
+                            fullWidth
+                            label="✅ Kapatma Tarihi"
+                            type="date"
+                            value={formData.closedDate || new Date().toISOString().split('T')[0]}
+                            onChange={(e) => setFormData(prev => ({ ...prev, closedDate: e.target.value }))}
+                            disabled={dialogMode === 'view'}
+                            InputLabelProps={{ shrink: true }}
+                            required
+                            helperText="DÖF'ün kapatıldığı tarih"
+                            sx={{ 
+                              '& .MuiOutlinedInput-root': {
+                                bgcolor: 'success.50'
+                              },
+                              '& .MuiInputLabel-root': {
+                                color: 'success.main',
+                                fontWeight: 600
+                              }
+                            }}
+                          />
+                          
+                          <FormControl fullWidth>
+                            <InputLabel sx={{ color: 'success.main', fontWeight: 600 }}>✅ Kapatma Nedeni</InputLabel>
+                            <Select
+                              value={formData.metadata?.finalStatus || 'completed'}
+                              onChange={(e) => setFormData(prev => ({ 
+                                ...prev, 
+                                metadata: { 
+                                  ...prev.metadata, 
+                                  finalStatus: e.target.value 
+                                } 
+                              }))}
+                              disabled={dialogMode === 'view'}
+                              sx={{ 
+                                bgcolor: 'success.50',
+                                '& .MuiSelect-select': {
+                                  color: 'success.main',
+                                  fontWeight: 600
+                                }
+                              }}
+                            >
+                              <MenuItem value="completed">✅ Başarıyla Tamamlandı</MenuItem>
+                              <MenuItem value="solved">🔧 Çözüm Bulundu</MenuItem>
+                              <MenuItem value="implemented">⚙️ Uygulama Tamamlandı</MenuItem>
+                              <MenuItem value="verified">🔍 Doğrulama Yapıldı</MenuItem>
+                              <MenuItem value="no_action_needed">ℹ️ İşlem Gerektirmez</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Box>
+                        
+                        <TextField
+                          fullWidth
+                          label="📝 Kapatma Notları (İsteğe Bağlı)"
+                          multiline
+                          rows={3}
+                          value={formData.metadata?.closureNotes || ''}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            metadata: { 
+                              ...prev.metadata, 
+                              closureNotes: e.target.value 
+                            } 
+                          }))}
+                          disabled={dialogMode === 'view'}
+                          placeholder="Kapatma ile ilgili ek notlar, açıklamalar veya gelecek için öneriler..."
+                          helperText="Kapatma sürecinde yapılan işlemler ve sonuçlar hakkında detaylı bilgi"
+                          sx={{ 
+                            '& .MuiOutlinedInput-root': {
+                              bgcolor: 'success.25'
                             }
                           }}
                         />
@@ -5591,6 +5823,236 @@ const DOF8DManagement: React.FC = () => {
               {dialogMode === 'create' ? 'Oluştur' : 'Güncelle'}
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* ✅ DÖF Kapatma Modal'ı - Şık ve Modern Tasarım */}
+      <Dialog
+        open={closeModalOpen}
+        onClose={() => setCloseModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            overflow: 'hidden',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 50%, #ef5350 100%)', 
+          color: 'white',
+          position: 'relative',
+          py: 3,
+          px: 4,
+          textAlign: 'center'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+            <CheckCircleIcon sx={{ fontSize: 32 }} />
+            <Box>
+              <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
+                DÖF Kapatma İşlemi
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                {selectedRecordForClose?.dofNumber} - {selectedRecordForClose?.title}
+              </Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent sx={{ 
+          p: 4, 
+          backgroundColor: '#f8f9fa'
+        }}>
+          <Grid container spacing={3}>
+            {/* Kapatma Tarihi */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Kapatma Tarihi"
+                type="date"
+                value={closureData.closedDate}
+                onChange={(e) => setClosureData(prev => ({ ...prev, closedDate: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#1976d2',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#1976d2',
+                      borderWidth: 2,
+                    },
+                  },
+                }}
+              />
+            </Grid>
+
+            {/* Kapatma Nedeni */}
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Kapatma Nedeni</InputLabel>
+                <Select
+                  value={closureData.closeReason}
+                  label="Kapatma Nedeni"
+                  onChange={(e) => setClosureData(prev => ({ ...prev, closeReason: e.target.value }))}
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor: 'white',
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#1976d2',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#1976d2',
+                      borderWidth: 2,
+                    },
+                  }}
+                >
+                  <MenuItem value="completed">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CheckCircleIcon sx={{ color: 'success.main', fontSize: 20 }} />
+                      Başarıyla Tamamlandı
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="resolved">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CheckCircleIcon sx={{ color: 'info.main', fontSize: 20 }} />
+                      Çözüm Bulundu
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="cancelled">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CancelIcon sx={{ color: 'warning.main', fontSize: 20 }} />
+                      İptal Edildi
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="transferred">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <SwapHorizIcon sx={{ color: 'secondary.main', fontSize: 20 }} />
+                      Transfer Edildi
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="merged">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <MergeIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+                      Birleştirildi
+                    </Box>
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            {/* Kapatma Notları */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Kapatma Notları (Opsiyonel)"
+                multiline
+                rows={3}
+                value={closureData.closureNotes}
+                onChange={(e) => setClosureData(prev => ({ ...prev, closureNotes: e.target.value }))}
+                placeholder="Kapatma ile ilgili ek bilgiler..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: 'white',
+                    '&:hover fieldset': {
+                      borderColor: '#1976d2',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#1976d2',
+                      borderWidth: 2,
+                    },
+                  },
+                }}
+              />
+            </Grid>
+
+            {/* Özet Bilgiler */}
+            <Grid item xs={12}>
+              <Paper sx={{ 
+                p: 2, 
+                backgroundColor: '#e3f2fd',
+                borderRadius: 2,
+                border: '1px solid #1976d2'
+              }}>
+                <Typography variant="subtitle2" color="primary" sx={{ mb: 1, fontWeight: 600 }}>
+                  Kapatma Özeti
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Typography variant="body2">
+                    <strong>DÖF:</strong> {selectedRecordForClose?.dofNumber}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Departman:</strong> {selectedRecordForClose?.department}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Sorumlu:</strong> {selectedRecordForClose?.responsible}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Termin:</strong> {selectedRecordForClose?.dueDate ? new Date(selectedRecordForClose.dueDate).toLocaleDateString('tr-TR') : 'Belirlenmemiş'}
+                  </Typography>
+                  <Typography variant="body2">
+                    <strong>Durum:</strong> {selectedRecordForClose?.delayStatus === 'overdue' ? 
+                      <Chip label="Gecikmiş" color="error" size="small" sx={{ ml: 1 }} /> :
+                      <Chip label="Zamanında" color="success" size="small" sx={{ ml: 1 }} />
+                    }
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
+        </DialogContent>
+
+        <DialogActions sx={{ 
+          p: 4, 
+          backgroundColor: '#f8f9fa',
+          borderTop: '1px solid #e0e0e0',
+          gap: 2
+        }}>
+          <Button 
+            onClick={() => setCloseModalOpen(false)} 
+            variant="outlined"
+            size="large"
+            startIcon={<CancelIcon />}
+            sx={{ 
+              borderRadius: 2,
+              px: 3,
+              py: 1.5,
+              fontWeight: 600,
+              borderColor: '#9e9e9e',
+              color: '#616161',
+              '&:hover': {
+                borderColor: '#757575',
+                backgroundColor: '#f5f5f5'
+              }
+            }}
+          >
+            İptal
+          </Button>
+          <Button 
+            onClick={confirmCloseDOF}
+            variant="contained" 
+            size="large"
+            startIcon={<CheckCircleIcon />}
+            sx={{ 
+              borderRadius: 2,
+              px: 3,
+              py: 1.5,
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #388e3c 0%, #4caf50 100%)',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 4px 12px rgba(76, 175, 80, 0.4)'
+              }
+            }}
+          >
+            DÖF'ü Kapat
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

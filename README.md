@@ -2,47 +2,6 @@
 
 Kapsamlı, modüler ve sürdürülebilir bir entegre kalite yönetim sistemi uygulaması. Bu uygulama, kalite süreçlerinin otomasyonu, izlenebilirlik, raporlama, maliyet analizi ve sürekli güncellenebilir bir yapı ile profesyonel düzeyde kurumsal kalite yönetimi sağlar.
 
-## Port Yapılandırması
-
-Karışıklığı önlemek için tüm portlar standartlaştırılmıştır:
-
-- **Frontend:** http://localhost:3000 (React standart portu)
-- **Backend:** http://localhost:5000 (Express standart portu)
-
-## Hızlı Başlatma
-
-### Seçenek 1: Sadece Frontend
-```bash
-./start-app.sh
-```
-
-### Seçenek 2: Tam Sistem (Frontend + Backend)
-```bash
-./start-full-app.sh
-```
-
-### Manuel Başlatma
-
-#### Backend
-```bash
-cd src/backend
-npm install
-npm run dev
-```
-
-#### Frontend
-```bash
-cd src/frontend/kys-frontend
-npm install
-npm start
-```
-
-## Geliştirme Notları
-
-- **Sadece localhost:3000 kullanın** - diğer portlarda açılan uygulamalar başka projelerdir
-- Port çakışması durumunda script'ler otomatik olarak eski process'leri kapatır
-- Değişiklikleri her zaman http://localhost:3000 adresinde görebilirsiniz
-
 ## Modüller
 
 ### 1. Girdi Kalite Kontrol Modülü

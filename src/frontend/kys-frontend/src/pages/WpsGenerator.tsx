@@ -1333,7 +1333,7 @@ const WpsGenerator: React.FC = () => {
       return;
     }
     
-    // const wpsNumber = `WPS-${Date.now().toString().slice(-6)}`; // Kullanılmıyor - eslint hatası için kaldırıldı
+    const wpsNumber = `WPS-${Date.now().toString().slice(-6)}`;
     
     // WPS oluşturma onayı kaldırıldı - otomatik PDF oluşturma
       generateEnhancedPDF();

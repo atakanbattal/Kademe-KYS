@@ -102,7 +102,7 @@ interface ChemicalComposition {
   specification: string;
   minValue: number;
   maxValue: number;
-  status: 'GEÇTİ' | 'KALDI' | 'UYARI' | 'BEKLEMEDE';
+  status: 'KABUL' | 'RET' | 'UYARI' | 'BEKLEMEDE';
 }
 
 interface HardnessValue {
@@ -112,7 +112,7 @@ interface HardnessValue {
   minValue: number;
   maxValue: number;
   testPosition: string;
-  status: 'GEÇTİ' | 'KALDI' | 'UYARI' | 'BEKLEMEDE';
+  status: 'KABUL' | 'RET' | 'UYARI' | 'BEKLEMEDE';
 }
 
 interface MechanicalProperty {
@@ -123,7 +123,7 @@ interface MechanicalProperty {
   minValue: number;
   maxValue: number;
   testMethod: string;
-  status: 'GEÇTİ' | 'KALDI' | 'UYARI' | 'BEKLEMEDE';
+  status: 'KABUL' | 'RET' | 'UYARI' | 'BEKLEMEDE';
 }
 
 interface Certificate {
@@ -1689,7 +1689,7 @@ const MaterialCertificateTracking: React.FC = () => {
     specification: '',
     minValue: 0,
     maxValue: 0,
-    status: 'GEÇTİ'
+    status: 'KABUL'
   });
 
   // Hardness dialog
@@ -1701,7 +1701,7 @@ const MaterialCertificateTracking: React.FC = () => {
     minValue: 0,
     maxValue: 0,
     testPosition: '',
-    status: 'GEÇTİ'
+    status: 'KABUL'
   });
 
   // Mechanical properties dialog
@@ -1714,7 +1714,7 @@ const MaterialCertificateTracking: React.FC = () => {
     minValue: 0,
     maxValue: 0,
     testMethod: '',
-    status: 'GEÇTİ'
+    status: 'KABUL'
   });
 
   // Show snackbar
@@ -1813,8 +1813,8 @@ const MaterialCertificateTracking: React.FC = () => {
   // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ONAYLANMIS': case 'GEÇTİ': return 'success';
-      case 'REDDEDİLDİ': case 'KALDI': return 'error';
+      case 'ONAYLANMIS': case 'KABUL': return 'success';
+      case 'REDDEDİLDİ': case 'RET': return 'error';
       case 'ŞARTLI': case 'UYARI': return 'warning';
       case 'BEKLEMEDE': return 'info';
       default: return 'default';
@@ -1824,8 +1824,8 @@ const MaterialCertificateTracking: React.FC = () => {
   // Get status icon
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'ONAYLANMIS': case 'GEÇTİ': return <CheckIcon />;
-      case 'REDDEDİLDİ': case 'KALDI': return <CancelIcon />;
+      case 'ONAYLANMIS': case 'KABUL': return <CheckIcon />;
+      case 'REDDEDİLDİ': case 'RET': return <CancelIcon />;
       case 'ŞARTLI': case 'UYARI': return <WarningIcon />;
       case 'BEKLEMEDE': return <InfoIcon />;
       default: return <InfoIcon />;
@@ -1963,27 +1963,27 @@ const MaterialCertificateTracking: React.FC = () => {
   };
 
   // Evaluate chemical composition status
-  const evaluateChemicalStatus = (composition: ChemicalComposition): 'GEÇTİ' | 'KALDI' | 'UYARI' => {
+  const evaluateChemicalStatus = (composition: ChemicalComposition): 'KABUL' | 'RET' | 'UYARI' => {
     const { percentage, minValue, maxValue } = composition;
-    if (percentage < minValue || percentage > maxValue) return 'KALDI';
+    if (percentage < minValue || percentage > maxValue) return 'RET';
     if (percentage <= minValue * 1.1 || percentage >= maxValue * 0.9) return 'UYARI';
-    return 'GEÇTİ';
+    return 'KABUL';
   };
 
   // Evaluate hardness status
-  const evaluateHardnessStatus = (hardness: HardnessValue): 'GEÇTİ' | 'KALDI' | 'UYARI' => {
+  const evaluateHardnessStatus = (hardness: HardnessValue): 'KABUL' | 'RET' | 'UYARI' => {
     const { value, minValue, maxValue } = hardness;
-    if (value < minValue || value > maxValue) return 'KALDI';
+    if (value < minValue || value > maxValue) return 'RET';
     if (value <= minValue * 1.05 || value >= maxValue * 0.95) return 'UYARI';
-    return 'GEÇTİ';
+    return 'KABUL';
   };
 
   // Evaluate mechanical property status
-  const evaluateMechanicalStatus = (mechanical: MechanicalProperty): 'GEÇTİ' | 'KALDI' | 'UYARI' => {
+  const evaluateMechanicalStatus = (mechanical: MechanicalProperty): 'KABUL' | 'RET' | 'UYARI' => {
     const { value, minValue, maxValue } = mechanical;
-    if (value < minValue || value > maxValue) return 'KALDI';
+    if (value < minValue || value > maxValue) return 'RET';
     if (value <= minValue * 1.05 || value >= maxValue * 0.95) return 'UYARI';
-    return 'GEÇTİ';
+    return 'KABUL';
   };
 
   // Context7 Enhanced - Calculate overall status with dynamic evaluation
@@ -1997,7 +1997,7 @@ const MaterialCertificateTracking: React.FC = () => {
     ];
 
     // Context7 Dynamic Status Logic
-    if (allTests.includes('KALDI')) return 'REDDEDİLDİ';
+    if (allTests.includes('RET')) return 'REDDEDİLDİ';
     if (allTests.includes('BEKLEMEDE') || allTests.length === 0) return 'BEKLEMEDE';
     if (allTests.includes('UYARI')) return 'ŞARTLI';
     return 'ONAYLANMIS';
@@ -2109,7 +2109,7 @@ const MaterialCertificateTracking: React.FC = () => {
       specification: '',
       minValue: 0,
       maxValue: 0,
-      status: 'GEÇTİ'
+      status: 'KABUL'
     });
   };
 
@@ -2133,7 +2133,7 @@ const MaterialCertificateTracking: React.FC = () => {
       minValue: 0,
       maxValue: 0,
       testPosition: '',
-      status: 'GEÇTİ'
+      status: 'KABUL'
     });
   };
 
@@ -2158,7 +2158,7 @@ const MaterialCertificateTracking: React.FC = () => {
       minValue: 0,
       maxValue: 0,
       testMethod: '',
-      status: 'GEÇTİ'
+      status: 'KABUL'
     });
   };
 
@@ -2282,7 +2282,7 @@ const MaterialCertificateTracking: React.FC = () => {
         specification: currentMaterialStandard.standard,
         minValue: comp.minValue,
         maxValue: comp.maxValue,
-        status: 'GEÇTİ' as const
+        status: 'KABUL' as const
       }));
 
       // Mekanik özellik verilerini yükle
@@ -2294,7 +2294,7 @@ const MaterialCertificateTracking: React.FC = () => {
         minValue: prop.minValue,
         maxValue: prop.maxValue,
         testMethod: prop.testMethod,
-        status: 'GEÇTİ' as const
+        status: 'KABUL' as const
       }));
 
       // Sertlik değerlerini yükle
@@ -2305,7 +2305,7 @@ const MaterialCertificateTracking: React.FC = () => {
         minValue: hard.minValue,
         maxValue: hard.maxValue,
         testPosition: hard.testPosition,
-        status: 'GEÇTİ' as const
+        status: 'KABUL' as const
       }));
       
       // Form verilerini güncelle - tüm tablolar doldurulacak
@@ -2970,7 +2970,7 @@ const MaterialCertificateTracking: React.FC = () => {
                         specification: currentMaterialStandard.standard,
                         minValue: comp.minValue,
                         maxValue: comp.maxValue,
-                        status: 'GEÇTİ' as const
+                        status: 'KABUL' as const
                       }));
                       setFormData(prev => ({ ...prev, chemicalComposition: chemicalSpecs }));
                       showSnackbar('Kimyasal bileşim şablonu yüklendi', 'success');
@@ -3012,8 +3012,8 @@ const MaterialCertificateTracking: React.FC = () => {
                               const updated = [...(formData.chemicalComposition || [])];
                               // Context7 Dynamic Status Calculation
                               const newStatus = newValue === 0 ? 'BEKLEMEDE' : 
-                                newValue >= comp.minValue && newValue <= comp.maxValue ? 'GEÇTİ' : 
-                                newValue < comp.minValue * 0.95 || newValue > comp.maxValue * 1.05 ? 'KALDI' : 'UYARI';
+                                newValue >= comp.minValue && newValue <= comp.maxValue ? 'KABUL' : 
+                                newValue < comp.minValue * 0.95 || newValue > comp.maxValue * 1.05 ? 'RET' : 'UYARI';
                               updated[index] = { ...comp, percentage: newValue, status: newStatus };
                               setFormData(prev => ({ ...prev, chemicalComposition: updated }));
                             }}
@@ -3092,7 +3092,7 @@ const MaterialCertificateTracking: React.FC = () => {
                         minValue: hard.minValue,
                         maxValue: hard.maxValue,
                         testPosition: hard.testPosition,
-                        status: 'GEÇTİ' as const
+                        status: 'KABUL' as const
                       }));
                       setFormData(prev => ({ ...prev, hardnessValues: hardnessSpecs }));
                       showSnackbar('Sertlik değerleri şablonu yüklendi', 'success');
@@ -3135,8 +3135,8 @@ const MaterialCertificateTracking: React.FC = () => {
                               const updated = [...(formData.hardnessValues || [])];
                               // Context7 Dynamic Status Calculation
                               const newStatus = newValue === 0 ? 'BEKLEMEDE' : 
-                                newValue >= hardness.minValue && newValue <= hardness.maxValue ? 'GEÇTİ' : 
-                                newValue < hardness.minValue * 0.9 || newValue > hardness.maxValue * 1.1 ? 'KALDI' : 'UYARI';
+                                newValue >= hardness.minValue && newValue <= hardness.maxValue ? 'KABUL' : 
+                                newValue < hardness.minValue * 0.9 || newValue > hardness.maxValue * 1.1 ? 'RET' : 'UYARI';
                               updated[index] = { ...hardness, value: newValue, status: newStatus };
                               setFormData(prev => ({ ...prev, hardnessValues: updated }));
                             }}
@@ -3217,7 +3217,7 @@ const MaterialCertificateTracking: React.FC = () => {
                         minValue: prop.minValue,
                         maxValue: prop.maxValue,
                         testMethod: prop.testMethod,
-                        status: 'GEÇTİ' as const
+                        status: 'KABUL' as const
                       }));
                       setFormData(prev => ({ ...prev, mechanicalProperties: mechanicalSpecs }));
                       showSnackbar('Mekanik özellikler şablonu yüklendi', 'success');
@@ -3261,8 +3261,8 @@ const MaterialCertificateTracking: React.FC = () => {
                               const updated = [...(formData.mechanicalProperties || [])];
                               // Context7 Dynamic Status Calculation
                               const newStatus = newValue === 0 ? 'BEKLEMEDE' : 
-                                newValue >= mechanical.minValue && newValue <= mechanical.maxValue ? 'GEÇTİ' : 
-                                newValue < mechanical.minValue * 0.9 || newValue > mechanical.maxValue * 1.1 ? 'KALDI' : 'UYARI';
+                                newValue >= mechanical.minValue && newValue <= mechanical.maxValue ? 'KABUL' : 
+                                newValue < mechanical.minValue * 0.9 || newValue > mechanical.maxValue * 1.1 ? 'RET' : 'UYARI';
                               updated[index] = { ...mechanical, value: newValue, status: newStatus };
                               setFormData(prev => ({ ...prev, mechanicalProperties: updated }));
                             }}
@@ -3393,7 +3393,7 @@ const MaterialCertificateTracking: React.FC = () => {
                       specification: currentMaterialStandard.standard,
                       minValue: standardElement.minValue,
                       maxValue: standardElement.maxValue,
-                      status: 'GEÇTİ'
+                      status: 'KABUL'
                     });
                     showSnackbar(`${elementValue} elementi için spesifikasyon değerleri yüklendi`, 'success');
                   } else {
@@ -3489,7 +3489,7 @@ const MaterialCertificateTracking: React.FC = () => {
                             minValue: standardHardness.minValue,
                             maxValue: standardHardness.maxValue,
                             testPosition: standardHardness.testPosition,
-                            status: 'GEÇTİ'
+                            status: 'KABUL'
                           });
                           showSnackbar(`${selectedType} sertlik testi için spesifikasyon değerleri yüklendi`, 'success');
                         } else {
@@ -3502,7 +3502,7 @@ const MaterialCertificateTracking: React.FC = () => {
                             minValue: typicalHardness.minValue,
                             maxValue: typicalHardness.maxValue,
                             testPosition: typicalHardness.testPosition,
-                            status: 'GEÇTİ'
+                            status: 'KABUL'
                           });
                           showSnackbar(`${selectedType} seçildi. Tipik değerler yüklendi.`, 'info');
                         }
@@ -3516,7 +3516,7 @@ const MaterialCertificateTracking: React.FC = () => {
                           minValue: typicalHardness.minValue,
                           maxValue: typicalHardness.maxValue,
                           testPosition: typicalHardness.testPosition,
-                          status: 'GEÇTİ'
+                          status: 'KABUL'
                         });
                       }
                     }}
@@ -3633,7 +3633,7 @@ const MaterialCertificateTracking: React.FC = () => {
                       minValue: standardProperty.minValue,
                       maxValue: standardProperty.maxValue,
                       testMethod: standardProperty.testMethod,
-                      status: 'GEÇTİ'
+                      status: 'KABUL'
                     });
                     showSnackbar(`${propertyValue} için spesifikasyon değerleri yüklendi`, 'success');
                   } else {
@@ -3647,7 +3647,7 @@ const MaterialCertificateTracking: React.FC = () => {
                       minValue: tempValues.minValue,
                       maxValue: tempValues.maxValue,
                       testMethod: tempValues.testMethod,
-                      status: 'GEÇTİ'
+                      status: 'KABUL'
                     });
                     showSnackbar(`${propertyValue} seçildi. Tipik değerler yüklendi.`, 'info');
                   }
@@ -3662,7 +3662,7 @@ const MaterialCertificateTracking: React.FC = () => {
                     minValue: tempValues.minValue,
                     maxValue: tempValues.maxValue,
                     testMethod: tempValues.testMethod,
-                    status: 'GEÇTİ'
+                    status: 'KABUL'
                   });
                 }
               }}

@@ -80,50 +80,10 @@ import autoTable from 'jspdf-autotable';
 // DÖF/8D Integration Import
 import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
 
-// Styled Components
-const StyledAccordion = styled(Accordion)(() => ({
-  marginBottom: 20,
-  borderRadius: '16px !important',
-  backgroundColor: '#ffffff',
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-  border: '1px solid rgba(25, 118, 210, 0.12)',
-  overflow: 'hidden',
-  '&:before': {
-    display: 'none',
-  },
-  '& .MuiAccordionSummary-root': {
-    backgroundColor: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-    background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-    color: '#ffffff',
-    borderRadius: '16px 16px 0 0',
-    minHeight: 72,
-    padding: '0 24px',
-    '&.Mui-expanded': {
-      minHeight: 72,
-      borderRadius: '16px 16px 0 0',
-    },
-    '& .MuiAccordionSummary-content': {
-      margin: '16px 0',
-      '&.Mui-expanded': {
-        margin: '16px 0',
-      },
-    },
-    '& .MuiAccordionSummary-expandIconWrapper': {
-      color: '#ffffff',
-      '&.Mui-expanded': {
-        transform: 'rotate(180deg)',
-      },
-    },
-    '&:hover': {
-      background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
-    },
-  },
-  '& .MuiAccordionDetails-root': {
-    backgroundColor: '#ffffff',
-    padding: 32,
-    borderTop: '1px solid rgba(25, 118, 210, 0.08)',
-  }
-})) as any;
+// Theme Context Import
+import { useThemeContext } from '../context/ThemeContext';
+
+// Styled Components (Tema entegreli olacak şekilde component içinde tanımlanacak)
 
 // Types
 interface TankInfo {
@@ -618,6 +578,52 @@ const INSPECTORS_LIST: PersonnelItem[] = [
 ];
 
 const TankLeakTest: React.FC = () => {
+  const { theme: muiTheme, appearanceSettings } = useThemeContext();
+
+  // Tema entegreli StyledAccordion
+  const StyledAccordion = styled(Accordion)(() => ({
+    marginBottom: 20,
+    borderRadius: '16px !important',
+    backgroundColor: '#ffffff',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    border: '1px solid rgba(25, 118, 210, 0.12)',
+    overflow: 'hidden',
+    '&:before': {
+      display: 'none',
+    },
+    '& .MuiAccordionSummary-root': {
+      backgroundColor: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
+      background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
+      color: '#ffffff',
+      borderRadius: '16px 16px 0 0',
+      minHeight: 72,
+      padding: '0 24px',
+      '&.Mui-expanded': {
+        minHeight: 72,
+        borderRadius: '16px 16px 0 0',
+      },
+      '& .MuiAccordionSummary-content': {
+        margin: '16px 0',
+        '&.Mui-expanded': {
+          margin: '16px 0',
+        },
+      },
+      '& .MuiAccordionSummary-expandIconWrapper': {
+        color: '#ffffff',
+        '&.Mui-expanded': {
+          transform: 'rotate(180deg)',
+        },
+      },
+      '&:hover': {
+        background: `linear-gradient(135deg, ${appearanceSettings.primaryColor}cc 0%, ${appearanceSettings.primaryColor}ee 100%)`,
+      },
+    },
+    '& .MuiAccordionDetails-root': {
+      backgroundColor: '#ffffff',
+      padding: 32,
+      borderTop: `1px solid ${appearanceSettings.primaryColor}20`,
+    }
+  })) as any;
   const [activePage, setActivePage] = useState<'form' | 'history' | 'repair'>('form');
   
   // Personnel management states

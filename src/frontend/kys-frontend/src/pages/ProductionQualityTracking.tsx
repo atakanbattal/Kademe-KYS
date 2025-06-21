@@ -77,6 +77,7 @@ import {
 } from 'recharts';
 
 import { createDOFFromSourceRecord, DOFCreationParams } from '../utils/dofIntegration';
+import { useThemeContext } from '../context/ThemeContext';
 
 // Interfaces
 interface QualityDefectRecord {
@@ -115,52 +116,55 @@ interface ProductionUnitPerformance {
   color: string;
 }
 
-// Styled Components
-const StyledAccordion = styled(Accordion)(() => ({
-  marginBottom: 20,
-  borderRadius: '16px !important',
-  backgroundColor: '#ffffff',
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-  border: '1px solid rgba(25, 118, 210, 0.12)',
-  overflow: 'hidden',
-  '&:before': {
-    display: 'none',
-  },
-  '& .MuiAccordionSummary-root': {
-    backgroundColor: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-    background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-    color: '#ffffff',
-    borderRadius: '16px 16px 0 0',
-    minHeight: 72,
-    padding: '0 24px',
-    '&.Mui-expanded': {
-      minHeight: 72,
-      borderRadius: '16px 16px 0 0',
-    },
-    '& .MuiAccordionSummary-content': {
-      margin: '16px 0',
-      '&.Mui-expanded': {
-        margin: '16px 0',
-      },
-    },
-    '& .MuiAccordionSummary-expandIconWrapper': {
-      color: '#ffffff',
-      '&.Mui-expanded': {
-        transform: 'rotate(180deg)',
-      },
-    },
-    '&:hover': {
-      background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
-    },
-  },
-  '& .MuiAccordionDetails-root': {
-    backgroundColor: '#ffffff',
-    padding: 32,
-    borderTop: '1px solid rgba(25, 118, 210, 0.08)',
-  }
-})) as any;
+// Styled Components - Tema entegreli olacak şekilde component içinde tanımlanacak
 
 const ProductionQualityTracking: React.FC = () => {
+  const { theme: muiTheme, appearanceSettings } = useThemeContext();
+
+  // Tema entegreli StyledAccordion
+  const StyledAccordion = styled(Accordion)(() => ({
+    marginBottom: 20,
+    borderRadius: '16px !important',
+    backgroundColor: '#ffffff',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    border: '1px solid rgba(25, 118, 210, 0.12)',
+    overflow: 'hidden',
+    '&:before': {
+      display: 'none',
+    },
+    '& .MuiAccordionSummary-root': {
+      backgroundColor: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
+      background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
+      color: '#ffffff',
+      borderRadius: '16px 16px 0 0',
+      minHeight: 72,
+      padding: '0 24px',
+      '&.Mui-expanded': {
+        minHeight: 72,
+        borderRadius: '16px 16px 0 0',
+      },
+      '& .MuiAccordionSummary-content': {
+        margin: '16px 0',
+        '&.Mui-expanded': {
+          margin: '16px 0',
+        },
+      },
+      '& .MuiAccordionSummary-expandIconWrapper': {
+        color: '#ffffff',
+        '&.Mui-expanded': {
+          transform: 'rotate(180deg)',
+        },
+      },
+      '&:hover': {
+        background: `linear-gradient(135deg, ${appearanceSettings.primaryColor}cc 0%, ${appearanceSettings.primaryColor}ee 100%)`,
+      },
+    },
+    '& .MuiAccordionDetails-root': {
+      backgroundColor: '#ffffff',
+      padding: 32,
+      borderTop: `1px solid ${appearanceSettings.primaryColor}20`,
+    }
+  })) as any;
 
   // Form data
   const [formData, setFormData] = useState<Partial<QualityDefectRecord>>({
@@ -753,27 +757,27 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
     let detailData;
 
     switch (kpiType) {
-      case 'quality_score':
+      case 'total_vehicles':
         detailData = {
-          title: 'Kalite Skoru Detay Analizi',
-          type: 'quality_score',
-          mainValue: Math.round(getFilteredProductionUnitPerformance().reduce((sum, u) => sum + u.qualityScore, 0) / getFilteredProductionUnitPerformance().length),
+          title: 'Toplam İşlenen Araç Detay Analizi',
+          type: 'total_vehicles',
+          mainValue: getFilteredProductionUnitPerformance().reduce((sum, u) => sum + u.totalVehicles, 0),
           subMetrics: [
-            { label: 'Departman Bazlı En Yüksek Skor', value: Math.max(...getFilteredProductionUnitPerformance().map(u => u.qualityScore)) },
-            { label: 'Departman Bazlı En Düşük Skor', value: Math.min(...getFilteredProductionUnitPerformance().map(u => u.qualityScore)) },
-            { label: 'Ortalama İlk Geçiş Oranı', value: `%${Math.round(getFilteredProductionUnitPerformance().reduce((sum, u) => sum + u.firstTimePassRate, 0) / getFilteredProductionUnitPerformance().length)}` },
-            { label: 'Toplam Kontrol Edilen Araç', value: kpiData.totalVehicles }
+            { label: 'En Çok İşleyen Departman', value: Math.max(...getFilteredProductionUnitPerformance().map(u => u.totalVehicles)) },
+            { label: 'En Az İşleyen Departman', value: Math.min(...getFilteredProductionUnitPerformance().map(u => u.totalVehicles)) },
+            { label: 'Ortalama Araç/Departman', value: Math.round(getFilteredProductionUnitPerformance().reduce((sum, u) => sum + u.totalVehicles, 0) / getFilteredProductionUnitPerformance().length) },
+            { label: 'Aktif Departman Sayısı', value: getFilteredProductionUnitPerformance().filter(u => u.totalVehicles > 0).length }
           ],
           detailedBreakdown: getFilteredProductionUnitPerformance().map(unit => ({
             name: unit.unitName,
-            value: unit.qualityScore,
+            value: unit.totalVehicles,
             color: unit.color,
             additional: `${unit.totalDefects} hata`
           })),
           recommendations: [
-            'En düşük skorlu departmanlara odaklanın',
-            'İlk geçiş oranını artırmak için süreç iyileştirmeleri yapın',
-            'Kalite kontrol noktalarını artırın'
+            'İş yükü dağılımını dengeleyin',
+            'Kapasiteyi verimli kullanın',
+            'Departmanlar arası koordinasyonu artırın'
           ]
         };
         break;
@@ -782,22 +786,45 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         const criticalDefectsData = filteredData.filter(r => 
           r.defects && r.defects.some(d => d.severity === 'critical')
         );
+        
+        // Departman bazlı kritik hata dağılımı
+        const criticalDefectsByUnit = getFilteredProductionUnitPerformance().map(unit => {
+          const unitCriticalDefects = filteredData.reduce((sum, record) => {
+            if (!record.defects) return sum;
+            return sum + record.defects.filter(d => 
+              d.productionUnit === unit.unit && d.severity === 'critical'
+            ).reduce((defectSum, defect) => defectSum + defect.repeatCount, 0);
+          }, 0);
+          
+          return {
+            name: unit.unitName,
+            value: unitCriticalDefects,
+            color: unit.color,
+            additional: `${unit.totalDefects} toplam hata`
+          };
+        }).filter(unit => unit.value > 0 || criticalDefectsData.length === 0)
+          .sort((a, b) => b.value - a.value);
+        
+        // Eğer hiç kritik hata yoksa placeholder göster
+        const finalBreakdown = criticalDefectsByUnit.length > 0 ? criticalDefectsByUnit : 
+          getFilteredProductionUnitPerformance().slice(0, 5).map(unit => ({
+            name: unit.unitName,
+            value: 0,
+            color: unit.color,
+            additional: 'Kritik hata bulunamadı'
+          }));
+        
         detailData = {
           title: 'Kritik Hatalar Detay Analizi',
           type: 'critical_defects',
           mainValue: kpiData.criticalDefects,
           subMetrics: [
-            { label: 'Kritik Hata Oranı', value: `%${Math.round((kpiData.criticalDefects / kpiData.totalDefects) * 100)}` },
+            { label: 'Kritik Hata Oranı', value: kpiData.totalDefects > 0 ? `%${Math.round((kpiData.criticalDefects / kpiData.totalDefects) * 100)}` : '%0' },
             { label: 'En Çok Kritik Hata Olan Departman', value: getProductionUnitWithMostCriticalDefects() },
             { label: 'Bu Hafta Kritik Hata', value: getWeeklyCriticalDefects() },
             { label: 'Geçen Hafta Kritik Hata', value: getPrevWeeklyCriticalDefects() }
           ],
-          detailedBreakdown: criticalDefectsData.map(record => ({
-            name: record.serialNumber,
-            value: record.defects ? record.defects.filter(d => d.severity === 'critical').length : 0,
-            color: '#f44336',
-            additional: `${record.vehicleType} - ${record.submissionDate}`
-          })),
+          detailedBreakdown: finalBreakdown,
           recommendations: [
             'Kritik hataların kök neden analizini yapın',
             'Acil düzeltici eylemler alın',
@@ -826,22 +853,30 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         };
         break;
         
-      case 'open_defects':
+      case 'repeated_defects':
         detailData = {
-          title: 'Açık Hatalar Analizi',
-          type: 'open_defects',
-          mainValue: filteredData.filter(r => r.status === 'open').length,
+          title: 'Tekrarlanan Hatalar Analizi',
+          type: 'repeated_defects',
+          mainValue: filteredData.reduce((sum, record) => {
+            if (!record.defects) return sum;
+            return sum + record.defects.filter(defect => defect.repeatCount > 1).length;
+          }, 0),
           subMetrics: [
-            { label: 'Uzun Süreli Açık (>7 gün)', value: getLongTermOpenDefects() },
-            { label: 'Yeni Açık Hatalar (bugün)', value: getTodayOpenDefects() },
-            { label: 'Ortalama Açık Kalma Süresi', value: `${getAverageOpenTime()} gün` },
-            { label: 'En Uzun Açık Kalma', value: `${getMaxOpenTime()} gün` }
+            { label: 'En Çok Tekrarlanan', value: Math.max(...filteredData.flatMap(r => r.defects || []).map(d => d.repeatCount)) },
+            { label: 'Ortalama Tekrar Sayısı', value: (filteredData.flatMap(r => r.defects || []).reduce((sum, d) => sum + d.repeatCount, 0) / Math.max(1, filteredData.flatMap(r => r.defects || []).length)).toFixed(1) },
+            { label: 'Tekrarlanan Hata Türü Sayısı', value: new Set(filteredData.flatMap(r => r.defects || []).filter(d => d.repeatCount > 1).map(d => d.defectType)).size },
+            { label: 'Toplam Hata Sayısı', value: filteredData.flatMap(r => r.defects || []).length }
           ],
-          detailedBreakdown: getOpenDefectsByPriority(),
+          detailedBreakdown: getFilteredProductionUnitPerformance().map(unit => ({
+            name: unit.unitName,
+            value: unit.repeatedVehicles,
+            color: unit.color,
+            additional: `${unit.totalVehicles} toplam araç`
+          })),
           recommendations: [
-            'Uzun süreli açık hatalara öncelik verin',
-            'Sorumlu kişiler ile acil görüşme planlayın',
-            'Kaynak tahsisini gözden geçirin'
+            'Tekrarlanan hataların kök nedenlerini araştırın',
+            'Süreç iyileştirmeleri yapın',
+            'Kalite kontrol noktalarını güçlendirin'
           ]
         };
         break;
@@ -865,8 +900,8 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       unitName: unitData.unitName,
       mainMetrics: {
         totalDefects: unitData.totalDefects,
-        qualityScore: unitData.qualityScore,
-        firstTimePassRate: unitData.firstTimePassRate,
+        repeatedVehicles: unitData.repeatedVehicles,
+        averageDefectsPerVehicle: unitData.averageDefectsPerVehicle,
         totalVehicles: unitData.totalVehicles
       },
       timeSeriesData: generateUnitTimeSeriesData(unit),
@@ -1026,24 +1061,32 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
   };
 
   const generateUnitTimeSeriesData = (unit: string) => {
-    // Son 30 günün verilerini hesapla
-    const days = 30;
+    // Son 12 ayın verilerini hesapla
+    const months = 12;
     const data = [];
+    const now = new Date();
     
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+    for (let i = months - 1; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
       
-      const dayDefects = filteredData.filter(r => 
-        r.submissionDate === dateStr && 
-        r.defects && r.defects.some(d => d.productionUnit === unit)
-      ).length;
+      const monthDefects = filteredData.filter(r => {
+        const recordDate = new Date(r.submissionDate);
+        return recordDate >= monthDate && recordDate < nextMonthDate &&
+               r.defects && r.defects.some(d => d.productionUnit === unit);
+      }).reduce((sum, record) => {
+        return sum + (record.defects?.filter(d => d.productionUnit === unit)
+          .reduce((defectSum, defect) => defectSum + defect.repeatCount, 0) || 0);
+      }, 0);
       
       data.push({
-        date: dateStr,
-        defects: dayDefects,
-        dateLabel: date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })
+        date: monthDate.toISOString().split('T')[0],
+        defects: monthDefects,
+        dateLabel: monthDate.toLocaleDateString('tr-TR', { 
+          month: 'short', 
+          year: '2-digit' 
+        }),
+        monthYear: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`
       });
     }
     
@@ -1091,24 +1134,24 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
   const generateUnitRecommendations = (unitData: ProductionUnitPerformance) => {
     const recommendations = [];
     
-    if (unitData.qualityScore < 60) {
-      recommendations.push('Kalite süreçlerinde acil iyileştirme gerekli');
+    if (unitData.repeatedVehicles > 2) {
+      recommendations.push('Tekrarlanan hataları azaltmak için süreç iyileştirmesi yapın');
     }
     
-    if (unitData.firstTimePassRate < 70) {
-      recommendations.push('İlk geçiş oranını artırmak için süreç standartlaştırması yapın');
-    }
-    
-    if (unitData.totalDefects > 10) {
-      recommendations.push('Hata sayısını azaltmak için kök neden analizi yapın');
+    if (unitData.totalDefects > 5) {
+      recommendations.push('Toplam hata sayısını azaltmak için kök neden analizi yapın');
     }
     
     if (unitData.averageDefectsPerVehicle > 2) {
       recommendations.push('Araç başına hata sayısını düşürmek için kalite kontrol noktalarını artırın');
     }
     
+    if (unitData.totalVehicles === 0) {
+      recommendations.push('Bu birimde henüz işlem yapılmamış');
+    }
+    
     if (recommendations.length === 0) {
-      recommendations.push('Mükemmel performans! Mevcut standartları koruyun');
+      recommendations.push('İyi performans! Mevcut standartları koruyun ve sürekli iyileştirme yapın');
     }
     
     return recommendations;
@@ -1117,50 +1160,46 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
   // Performance Analytics
   const getProductionUnitPerformance = (): ProductionUnitPerformance[] => {
     return productionUnits.map(unit => {
-      const unitDefects = defectRecords.flatMap(record => 
-        record.defects ? record.defects.filter(defect => defect.productionUnit === unit.value) : []
-      );
-      
-      // Tekrarlama sayısını dahil ederek toplam hata sayısını hesapla
-      const totalUnitDefectsWithRepeats = unitDefects.reduce((sum, defect) => sum + defect.repeatCount, 0);
-      
+      // Bu birimde hata olan araçları bul
       const vehiclesWithUnitDefects = defectRecords.filter(record =>
         record.defects && record.defects.some(defect => defect.productionUnit === unit.value)
       );
       
-      const firstTimePassVehicles = vehiclesWithUnitDefects.filter(record => {
+      // Bu birimde toplam hata sayısı (tekrar sayısı dahil)
+      const totalUnitDefectsWithRepeats = defectRecords.reduce((sum, record) => {
+        if (!record.defects) return sum;
+        return sum + record.defects
+          .filter(defect => defect.productionUnit === unit.value)
+          .reduce((defectSum, defect) => defectSum + defect.repeatCount, 0);
+      }, 0);
+      
+      // İLK GEÇİŞ ORANI: Sadece bu birimde hata olan araçlar baz alınır
+      const vehiclesPassedFirstTime = vehiclesWithUnitDefects.filter(record => {
         const unitDefectsForVehicle = record.defects ? record.defects.filter(defect => 
           defect.productionUnit === unit.value
         ) : [];
-        // Eğer bu birimde hiç hata yoksa ilk geçiş başarılı sayılır
-        if (unitDefectsForVehicle.length === 0) return true;
-        // Hatalar varsa hepsi tekrarsız (repeatCount <= 1) olmalı
+        // Bu birimde hata varsa hepsi ilk seferde (repeatCount <= 1) olmalı
         return unitDefectsForVehicle.every(defect => defect.repeatCount <= 1);
       });
       
       const firstTimePassRate = vehiclesWithUnitDefects.length > 0 ? 
-        (firstTimePassVehicles.length / vehiclesWithUnitDefects.length) * 100 : 100;
+        (vehiclesPassedFirstTime.length / vehiclesWithUnitDefects.length) * 100 : 0;
       
+      // Araç başına ortalama hata sayısı (sadece bu birimde hata olan araçlar)
       const avgDefectsPerVehicle = vehiclesWithUnitDefects.length > 0 ? 
         totalUnitDefectsWithRepeats / vehiclesWithUnitDefects.length : 0;
       
       // KALİTE SKORU HESAPLAMA - TÜRKİYE SANAYI STANDARTLARI (TSE)
       let qualityScore;
       
-      // Toplam araç sayısı (bu birimi etkileyen araçlar)
-      const totalVehiclesProcessed = defectRecords.length; // Tüm kayıtlı araçlar bu birimden geçer
-      
-      if (totalVehiclesProcessed === 0) {
-        // Hiç veri yoksa belirsiz durum
-        qualityScore = 0;
-      } else if (totalUnitDefectsWithRepeats === 0) {
+      if (vehiclesWithUnitDefects.length === 0) {
         // Hiç hata yoksa mükemmel skor
         qualityScore = 100;
       } else {
         // POKA-YOKE VE SIX SIGMA TABANLI HESAPLAMA
         
         // 1. Hata Yoğunluk Oranı (DPO - Defects Per Opportunity)
-        const defectRate = (totalUnitDefectsWithRepeats / totalVehiclesProcessed);
+        const defectRate = (totalUnitDefectsWithRepeats / vehiclesWithUnitDefects.length);
         
         // 2. Six Sigma Sigma Seviyesi Hesabı (Basitleştirilmiş)
         // 0-1 hata/araç = Sigma 6 (99.9997% kalite)
@@ -1192,34 +1231,33 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         // 4. İlk Geçiş Başarısı Bonus/Cezası
         const firstTimePassBonus = (firstTimePassRate - 70) * 0.3; // 70% altı ceza, üstü bonus
         
-                 // 5. Tekrar Hatası Cezası
-         const repeatedVehiclesCount = vehiclesWithUnitDefects.length - firstTimePassVehicles.length;
-         const repeatPenalty = Math.min((repeatedVehiclesCount / totalVehiclesProcessed) * 30, 20);
+                         // 5. Tekrar Hatası Cezası
+        const repeatedVehiclesCount = vehiclesWithUnitDefects.length - vehiclesPassedFirstTime.length;
+        const repeatPenalty = Math.min((repeatedVehiclesCount / vehiclesWithUnitDefects.length) * 30, 20);
         
-                 // FINAL SKOR
-         qualityScore = Math.round(baseScore + firstTimePassBonus - repeatPenalty);
-         
-         // DEBUG BİLGİSİ (Geliştirme amaçlı)
-         console.log(`${unit.label} Kalite Skoru Hesaplaması:`, {
-           totalVehiclesProcessed,
-           totalUnitDefectsWithRepeats,
-           vehiclesWithUnitDefects: vehiclesWithUnitDefects.length,
-           defectRate: defectRate.toFixed(2),
-           sigmaLevel,
-           baseScore,
-           firstTimePassRate: firstTimePassRate.toFixed(1),
-           firstTimePassBonus: firstTimePassBonus.toFixed(1),
-           repeatedVehicles: repeatedVehiclesCount,
-           repeatPenalty: repeatPenalty.toFixed(1),
-           finalScore: qualityScore
-         });
-         
-                  // Sınırlar
-         qualityScore = Math.max(1, Math.min(100, qualityScore));
-       }
+        // FINAL SKOR
+        qualityScore = Math.round(baseScore + firstTimePassBonus - repeatPenalty);
+        
+        // DEBUG BİLGİSİ (Geliştirme amaçlı)
+        console.log(`${unit.label} Kalite Skoru Hesaplaması:`, {
+          vehiclesWithUnitDefects: vehiclesWithUnitDefects.length,
+          totalUnitDefectsWithRepeats,
+          defectRate: defectRate.toFixed(2),
+          sigmaLevel,
+          baseScore,
+          firstTimePassRate: firstTimePassRate.toFixed(1),
+          firstTimePassBonus: firstTimePassBonus.toFixed(1),
+          repeatedVehicles: repeatedVehiclesCount,
+          repeatPenalty: repeatPenalty.toFixed(1),
+          finalScore: qualityScore
+        });
+        
+        // Sınırlar
+        qualityScore = Math.max(1, Math.min(100, qualityScore));
+      }
 
       // Tekrarlanan araç sayısını hesapla
-      const repeatedVehiclesCount = vehiclesWithUnitDefects.length - firstTimePassVehicles.length;
+      const repeatedVehiclesCount = vehiclesWithUnitDefects.length - vehiclesPassedFirstTime.length;
 
       return {
         unit: unit.value,
@@ -1243,17 +1281,28 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       return sum + record.defects.reduce((defectSum, defect) => defectSum + defect.repeatCount, 0);
     }, 0);
     
-    const totalVehicles = defectRecords.length;
-    const avgDefectsPerVehicle = totalVehicles > 0 ? totalDefects / totalVehicles : 0;
-    
-    const firstTimeSuccessVehicles = defectRecords.filter(record =>
-      record.defects && record.defects.every(defect => defect.repeatCount === 1)
+    // Hata olan araçlar
+    const vehiclesWithDefects = defectRecords.filter(record => 
+      record.defects && record.defects.length > 0
     );
     
-    const firstTimePassRate = totalVehicles > 0 ? 
-      (firstTimeSuccessVehicles.length / totalVehicles) * 100 : 100;
+    const totalVehicles = defectRecords.length;
+    const avgDefectsPerVehicle = vehiclesWithDefects.length > 0 ? totalDefects / vehiclesWithDefects.length : 0;
     
-    const repeatedVehicles = defectRecords.filter(record =>
+    // İlk geçiş başarılı araçlar: Hiç hata olmayan + tüm hataları ilk seferde olan
+    const vehiclesWithoutDefects = defectRecords.filter(record => 
+      !record.defects || record.defects.length === 0
+    );
+    
+    const firstTimeSuccessVehicles = vehiclesWithDefects.filter(record =>
+      record.defects && record.defects.every(defect => defect.repeatCount <= 1)
+    );
+    
+    const totalFirstTimePass = vehiclesWithoutDefects.length + firstTimeSuccessVehicles.length;
+    const firstTimePassRate = totalVehicles > 0 ? 
+      (totalFirstTimePass / totalVehicles) * 100 : 100;
+    
+    const repeatedVehicles = vehiclesWithDefects.filter(record =>
       record.defects && record.defects.some(defect => defect.repeatCount > 1)
     );
     
@@ -1477,17 +1526,28 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       return sum + record.defects.reduce((defectSum, defect) => defectSum + defect.repeatCount, 0);
     }, 0);
     
-    const totalVehicles = records.length;
-    const avgDefectsPerVehicle = totalVehicles > 0 ? totalDefects / totalVehicles : 0;
-    
-    const firstTimeSuccessVehicles = records.filter(record =>
-      record.defects && record.defects.every(defect => defect.repeatCount === 1)
+    // Hata olan araçlar
+    const vehiclesWithDefects = records.filter(record => 
+      record.defects && record.defects.length > 0
     );
     
-    const firstTimePassRate = totalVehicles > 0 ? 
-      (firstTimeSuccessVehicles.length / totalVehicles) * 100 : 100;
+    const totalVehicles = records.length;
+    const avgDefectsPerVehicle = vehiclesWithDefects.length > 0 ? totalDefects / vehiclesWithDefects.length : 0;
     
-    const repeatedVehicles = records.filter(record =>
+    // İlk geçiş başarılı araçlar: Hiç hata olmayan + tüm hataları ilk seferde olan
+    const vehiclesWithoutDefects = records.filter(record => 
+      !record.defects || record.defects.length === 0
+    );
+    
+    const firstTimeSuccessVehicles = vehiclesWithDefects.filter(record =>
+      record.defects && record.defects.every(defect => defect.repeatCount <= 1)
+    );
+    
+    const totalFirstTimePass = vehiclesWithoutDefects.length + firstTimeSuccessVehicles.length;
+    const firstTimePassRate = totalVehicles > 0 ? 
+      (totalFirstTimePass / totalVehicles) * 100 : 100;
+    
+    const repeatedVehicles = vehiclesWithDefects.filter(record =>
       record.defects && record.defects.some(defect => defect.repeatCount > 1)
     );
     
@@ -1513,13 +1573,10 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
     
     // Önce tüm birimler için hesapla
     const allUnitsPerformance = productionUnits.map(unit => {
-      // Bu üretim biriminde hata olan araçları bul
+      // Bu birimde hata olan araçları bul
       const vehiclesWithUnitDefects = records.filter(record => 
         record.defects && record.defects.some(defect => defect.productionUnit === unit.value)
       );
-
-      // Bu birimde toplam işlenmiş araç sayısı
-      const totalVehiclesProcessed = records.length;
 
       // Bu birimde toplam hata sayısı (tekrar sayısı dahil)
       const totalUnitDefectsWithRepeats = records.reduce((sum, record) => {
@@ -1529,39 +1586,33 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           .reduce((defectSum, defect) => defectSum + defect.repeatCount, 0);
       }, 0);
 
-      // Araç başına ortalama hata sayısı
-      const avgDefectsPerVehicle = totalVehiclesProcessed > 0 ? 
-        totalUnitDefectsWithRepeats / totalVehiclesProcessed : 0;
-
-      // İlk geçiş başarılı araçlar hesaplama (getProductionUnitPerformance ile AYNI MANTIK)
-      const firstTimePassVehicles = vehiclesWithUnitDefects.filter(record => {
+      // İLK GEÇİŞ ORANI: Sadece bu birimde hata olan araçlar baz alınır
+      const vehiclesPassedFirstTime = vehiclesWithUnitDefects.filter(record => {
         const unitDefectsForVehicle = record.defects ? record.defects.filter(defect => 
           defect.productionUnit === unit.value
         ) : [];
-        // Eğer bu birimde hiç hata yoksa ilk geçiş başarılı sayılır
-        if (unitDefectsForVehicle.length === 0) return true;
-        // Hatalar varsa hepsi tekrarsız (repeatCount <= 1) olmalı
+        // Bu birimde hata varsa hepsi ilk seferde (repeatCount <= 1) olmalı
         return unitDefectsForVehicle.every(defect => defect.repeatCount <= 1);
       });
-
-      // İlk geçiş oranı (getProductionUnitPerformance ile AYNI MANTIK)
+      
       const firstTimePassRate = vehiclesWithUnitDefects.length > 0 ? 
-        (firstTimePassVehicles.length / vehiclesWithUnitDefects.length) * 100 : 100;
+        (vehiclesPassedFirstTime.length / vehiclesWithUnitDefects.length) * 100 : 0;
+
+      // Araç başına ortalama hata sayısı (sadece bu birimde hata olan araçlar)
+      const avgDefectsPerVehicle = vehiclesWithUnitDefects.length > 0 ? 
+        totalUnitDefectsWithRepeats / vehiclesWithUnitDefects.length : 0;
 
       // KALİTE SKORU HESAPLAMA - getProductionUnitPerformance ile TAMAMEN AYNI
       let qualityScore;
       
-      if (totalVehiclesProcessed === 0) {
-        // Hiç veri yoksa belirsiz durum
-        qualityScore = 0;
-      } else if (totalUnitDefectsWithRepeats === 0) {
+      if (vehiclesWithUnitDefects.length === 0) {
         // Hiç hata yoksa mükemmel skor
         qualityScore = 100;
       } else {
         // POKA-YOKE VE SIX SIGMA TABANLI HESAPLAMA
         
         // 1. Hata Yoğunluk Oranı (DPO - Defects Per Opportunity)
-        const defectRate = (totalUnitDefectsWithRepeats / totalVehiclesProcessed);
+        const defectRate = (totalUnitDefectsWithRepeats / vehiclesWithUnitDefects.length);
         
         // 2. Six Sigma Sigma Seviyesi Hesabı (Basitleştirilmiş)
         let sigmaLevel;
@@ -1588,17 +1639,16 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         const firstTimePassBonus = (firstTimePassRate - 70) * 0.3; // 70% altı ceza, üstü bonus
         
         // 5. Tekrar Hatası Cezası
-        const repeatedVehiclesCount = vehiclesWithUnitDefects.length - firstTimePassVehicles.length;
-        const repeatPenalty = Math.min((repeatedVehiclesCount / totalVehiclesProcessed) * 30, 20);
+        const repeatedVehiclesCount = vehiclesWithUnitDefects.length - vehiclesPassedFirstTime.length;
+        const repeatPenalty = Math.min((repeatedVehiclesCount / vehiclesWithUnitDefects.length) * 30, 20);
         
         // FINAL SKOR
         qualityScore = Math.round(baseScore + firstTimePassBonus - repeatPenalty);
         
         // DEBUG BİLGİSİ (Filtrelenmiş veri)
         console.log(`FILTERED ${unit.label} Kalite Skoru:`, {
-          totalVehiclesProcessed,
-          totalUnitDefectsWithRepeats,
           vehiclesWithUnitDefects: vehiclesWithUnitDefects.length,
+          totalUnitDefectsWithRepeats,
           defectRate: defectRate.toFixed(2),
           sigmaLevel,
           baseScore,
@@ -1613,7 +1663,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         qualityScore = Math.max(1, Math.min(100, qualityScore));
       }
 
-      const repeatedVehiclesCount = vehiclesWithUnitDefects.length - firstTimePassVehicles.length;
+      const repeatedVehiclesCount = vehiclesWithUnitDefects.length - vehiclesPassedFirstTime.length;
 
       return {
         unit: unit.value,
@@ -1641,48 +1691,76 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
   const kpiMetrics = getFilteredQualityKPIs();
   const productionStats = getFilteredProductionUnitPerformance();
 
-  // Gerçek trend hesaplama fonksiyonu
+  // Aylık trend hesaplama fonksiyonu
   const calculateRealTrend = (unit: string) => {
     const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    // Bu ayın verileri
+    const currentMonthStart = new Date(currentYear, currentMonth, 1);
+    const currentMonthEnd = new Date(currentYear, currentMonth + 1, 0);
+    
+    // Geçen ayın verileri
+    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const previousMonthStart = new Date(previousYear, previousMonth, 1);
+    const previousMonthEnd = new Date(previousYear, previousMonth + 1, 0);
 
-    // Son 7 günün verileri
-    const recentData = defectRecords.filter(record => {
+    // Bu ayın verileri
+    const currentMonthData = defectRecords.filter(record => {
       const recordDate = new Date(record.createdAt);
-      return recordDate >= sevenDaysAgo && recordDate <= now;
+      return recordDate >= currentMonthStart && recordDate <= currentMonthEnd;
     });
 
-    // Önceki 7 günün verileri
-    const previousData = defectRecords.filter(record => {
+    // Geçen ayın verileri
+    const previousMonthData = defectRecords.filter(record => {
       const recordDate = new Date(record.createdAt);
-      return recordDate >= fourteenDaysAgo && recordDate < sevenDaysAgo;
+      return recordDate >= previousMonthStart && recordDate <= previousMonthEnd;
     });
 
     // Bu birim için hata sayıları
-    const recentDefects = recentData.reduce((acc, record) => {
-      return acc + (record.defects?.filter(d => d.productionUnit === unit).length || 0);
+    const currentMonthDefects = currentMonthData.reduce((acc, record) => {
+      return acc + (record.defects?.filter(d => d.productionUnit === unit).reduce((sum, defect) => sum + defect.repeatCount, 0) || 0);
     }, 0);
 
-    const previousDefects = previousData.reduce((acc, record) => {
-      return acc + (record.defects?.filter(d => d.productionUnit === unit).length || 0);
+    const previousMonthDefects = previousMonthData.reduce((acc, record) => {
+      return acc + (record.defects?.filter(d => d.productionUnit === unit).reduce((sum, defect) => sum + defect.repeatCount, 0) || 0);
     }, 0);
 
     // Trend hesaplama
-    if (previousDefects === 0) {
-      if (recentDefects === 0) {
-        return { trend: 'stable', value: 0 };
+    if (previousMonthDefects === 0) {
+      if (currentMonthDefects === 0) {
+        return { 
+          trend: 'stable', 
+          value: 0,
+          currentPeriod: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`,
+          previousPeriod: `${previousYear}-${String(previousMonth + 1).padStart(2, '0')}`,
+          currentValue: currentMonthDefects,
+          previousValue: previousMonthDefects
+        };
       } else {
-        return { trend: 'up', value: 100 }; // %100 artış (0'dan bir şeye)
+        return { 
+          trend: 'up', 
+          value: 100,
+          currentPeriod: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`,
+          previousPeriod: `${previousYear}-${String(previousMonth + 1).padStart(2, '0')}`,
+          currentValue: currentMonthDefects,
+          previousValue: previousMonthDefects
+        };
       }
     }
 
-    const trendPercentage = Math.abs(((recentDefects - previousDefects) / previousDefects) * 100);
-    const trend = recentDefects > previousDefects ? 'up' : recentDefects < previousDefects ? 'down' : 'stable';
+    const trendPercentage = Math.abs(((currentMonthDefects - previousMonthDefects) / previousMonthDefects) * 100);
+    const trend = currentMonthDefects > previousMonthDefects ? 'up' : currentMonthDefects < previousMonthDefects ? 'down' : 'stable';
 
     return {
       trend,
-      value: Math.round(trendPercentage * 10) / 10 // 1 ondalık basamak
+      value: Math.round(trendPercentage * 10) / 10,
+      currentPeriod: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`,
+      previousPeriod: `${previousYear}-${String(previousMonth + 1).padStart(2, '0')}`,
+      currentValue: currentMonthDefects,
+      previousValue: previousMonthDefects
     };
   };
 
@@ -1931,7 +2009,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         {/* KPI Metrics - Filtreleme sisteminin altına taşındı */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={2}>
-            <Card sx={{ background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)', color: 'white' }}>
+                            <Card sx={{ background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}aa 100%)`, color: 'white' }}>
               <CardContent sx={{ textAlign: 'center', py: 2 }}>
                 <Typography variant="h4" fontWeight="bold">{kpiMetrics.totalDefects}</Typography>
                 <Typography variant="body2">Toplam Hata</Typography>
@@ -2006,22 +2084,18 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                     transition: 'all 0.3s ease' 
                   }
                 }}
-                onClick={() => handleKPICardClick('quality_score')}
+                onClick={() => handleKPICardClick('total_vehicles')}
                 >
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Kalite Skoru</Typography>
+                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Toplam İşlenen Araç</Typography>
                     <Typography variant="h2" fontWeight="bold" sx={{ mb: 1 }}>
                       {(() => {
-                        // Filtrelenmiş birimlerin kalite skorunu hesapla (sıfır olmayan skorlar)
+                        // Toplam araç sayısı
                         const filteredUnits = getFilteredProductionUnitPerformance();
-                        const activeUnits = filteredUnits.filter(stat => stat.totalVehicles > 0 && stat.qualityScore > 0);
-                        if (activeUnits.length === 0) return "N/A";
-                        
-                        const totalScore = activeUnits.reduce((sum, stat) => sum + stat.qualityScore, 0);
-                        return Math.round(totalScore / activeUnits.length);
+                        return filteredUnits.reduce((sum, stat) => sum + stat.totalVehicles, 0);
                       })()}
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Detay için tıklayın</Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Hata olan araçlar dahil</Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -2085,14 +2159,20 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                     transition: 'all 0.3s ease' 
                   }
                 }}
-                onClick={() => handleKPICardClick('open_defects')}
+                onClick={() => handleKPICardClick('repeated_defects')}
                 >
                   <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Açık Hatalar</Typography>
+                    <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Tekrarlanan Hatalar</Typography>
                     <Typography variant="h2" fontWeight="bold" sx={{ mb: 1 }}>
-                      {filteredData.filter(r => r.status === 'open').length}
+                      {(() => {
+                        // Tekrarlanan hata sayısı (repeatCount > 1)
+                        return filteredData.reduce((sum, record) => {
+                          if (!record.defects) return sum;
+                          return sum + record.defects.filter(defect => defect.repeatCount > 1).length;
+                        }, 0);
+                      })()}
                     </Typography>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Aksiyon planı için tıklayın</Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Birden fazla kez oluşan</Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -2126,8 +2206,10 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                   return a.qualityScore - b.qualityScore;
                 })
                 .map((stat, sortedIndex) => {
-                // Filtrelenmiş verideki etkilenen araç sayısı
-                const affectedVehicles = filteredData.length;
+                // Bu birimde hata olan araç sayısı
+                const affectedVehicles = filteredData.filter(r => 
+                  r.defects && r.defects.some(d => d.productionUnit === stat.unit)
+                ).length;
                 
                 const criticalDefects = filteredData.filter(r => 
                   r.defects && r.defects.some(d => d.productionUnit === stat.unit && d.severity === 'critical')
@@ -2186,14 +2268,14 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                           </Box>
                           <Chip 
                             label={
-                              stat.qualityScore === 0 ? 'Veri Yok' :
-                              stat.qualityScore >= 80 ? 'Mükemmel' :
-                              stat.qualityScore >= 60 ? 'İyi' : 'Gelişmeli'
+                              stat.totalVehicles === 0 ? 'Veri Yok' :
+                              stat.repeatedVehicles === 0 ? 'Mükemmel' :
+                              stat.repeatedVehicles <= 1 ? 'İyi' : 'Gelişmeli'
                             }
                             color={
-                              stat.qualityScore === 0 ? 'default' :
-                              stat.qualityScore >= 80 ? 'success' :
-                              stat.qualityScore >= 60 ? 'warning' : 'error'
+                              stat.totalVehicles === 0 ? 'default' :
+                              stat.repeatedVehicles === 0 ? 'success' :
+                              stat.repeatedVehicles <= 1 ? 'warning' : 'error'
                             }
                             size="small"
                           />
@@ -2223,12 +2305,12 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                           </Grid>
                         </Grid>
 
-                        {/* Performance Indicators */}
+                        {/* Performance Indicators - Basit ve Anlaşılır */}
                         <Box sx={{ mb: 2 }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="body2" color="text.secondary">Kalite Skoru</Typography>
-                            <Typography variant="body2" fontWeight="bold">
-                              {stat.qualityScore === 0 ? "Veri Yok" : `${stat.qualityScore}/100`}
+                            <Typography variant="body2" color="text.secondary">Tekrarlanan Hatalar</Typography>
+                            <Typography variant="body2" fontWeight="bold" color="error.main">
+                              {stat.repeatedVehicles} araç
                             </Typography>
                           </Box>
                           <Box sx={{ 
@@ -2239,15 +2321,9 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                             overflow: 'hidden'
                           }}>
                             <Box sx={{ 
-                              width: `${stat.qualityScore === 0 ? 0 : stat.qualityScore}%`, 
+                              width: `${stat.totalVehicles > 0 ? (stat.repeatedVehicles / stat.totalVehicles) * 100 : 0}%`, 
                               height: '100%', 
-                              background: stat.qualityScore === 0 ? '#e0e0e0' : `linear-gradient(90deg, ${
-                                stat.qualityScore >= 80 ? '#4caf50' : 
-                                stat.qualityScore >= 60 ? '#ff9800' : '#f44336'
-                              } 0%, ${
-                                stat.qualityScore >= 80 ? '#8bc34a' : 
-                                stat.qualityScore >= 60 ? '#ffc107' : '#ef5350'
-                              } 100%)`,
+                              background: 'linear-gradient(90deg, #f44336 0%, #ef5350 100%)',
                               transition: 'width 0.5s ease'
                             }} />
                           </Box>
@@ -2255,8 +2331,10 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
 
                         <Box sx={{ mb: 2 }}>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                            <Typography variant="body2" color="text.secondary">İlk Geçiş Oranı</Typography>
-                            <Typography variant="body2" fontWeight="bold">%{stat.firstTimePassRate}</Typography>
+                            <Typography variant="body2" color="text.secondary">Ortalama Hata/Araç</Typography>
+                            <Typography variant="body2" fontWeight="bold" color="warning.main">
+                              {stat.averageDefectsPerVehicle.toFixed(1)}
+                            </Typography>
                           </Box>
                           <Box sx={{ 
                             width: '100%', 
@@ -2266,9 +2344,9 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                             overflow: 'hidden'
                           }}>
                             <Box sx={{ 
-                              width: `${stat.firstTimePassRate}%`, 
+                              width: `${Math.min((stat.averageDefectsPerVehicle / 5) * 100, 100)}%`, 
                               height: '100%', 
-                              background: 'linear-gradient(90deg, #2196f3 0%, #42a5f5 100%)',
+                              background: 'linear-gradient(90deg, #ff9800 0%, #ffc107 100%)',
                               transition: 'width 0.5s ease'
                             }} />
                           </Box>
@@ -2280,33 +2358,51 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                             Kritik Hata: {criticalDefects}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Ort. Hata/Araç: {stat.averageDefectsPerVehicle}
+                            Başarılı Araç: {stat.totalVehicles - stat.repeatedVehicles}
                           </Typography>
                         </Box>
 
-                        {/* Trend Indicator */}
+                        {/* Aylık Trend Indicator - Profesyonel */}
                         <Box sx={{ 
-                          display: 'flex', 
-                          justifyContent: 'center', 
-                          alignItems: 'center', 
-                          gap: 1, 
                           mt: 2,
-                          p: 1,
+                          p: 2,
                           backgroundColor: 
                             recentTrend === 'up' ? '#ffebee' : 
                             recentTrend === 'down' ? '#e8f5e8' : '#f5f5f5',
-                          borderRadius: 1
+                          borderRadius: 2,
+                          border: `2px solid ${
+                            recentTrend === 'up' ? '#f44336' : 
+                            recentTrend === 'down' ? '#4caf50' : '#9e9e9e'
+                          }`
                         }}>
-                          <Typography variant="body2" color={
-                            recentTrend === 'up' ? 'error.main' : 
-                            recentTrend === 'down' ? 'success.main' : 'text.secondary'
-                          }>
-                            {recentTrend === 'up' ? '↗' : recentTrend === 'down' ? '↘' : '→'} 
-                            {trendValue > 0 ? `%${trendValue}` : 'Değişim yok'}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            (Son 7 gün)
-                          </Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="600">
+                              AYLIK TREND ANALİZİ
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" color={
+                              recentTrend === 'up' ? 'error.main' : 
+                              recentTrend === 'down' ? 'success.main' : 'text.secondary'
+                            }>
+                              {recentTrend === 'up' ? '↗ ARTIŞ' : recentTrend === 'down' ? '↘ AZALIŞ' : '→ STABİL'}
+                            </Typography>
+                          </Box>
+                          
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box>
+                              <Typography variant="caption" color="text.secondary">
+                                {trendData.previousPeriod} → {trendData.currentPeriod}
+                              </Typography>
+                              <Typography variant="body2" fontWeight="bold">
+                                {trendData.previousValue} → {trendData.currentValue} hata
+                              </Typography>
+                            </Box>
+                            <Typography variant="h6" fontWeight="bold" color={
+                              recentTrend === 'up' ? 'error.main' : 
+                              recentTrend === 'down' ? 'success.main' : 'text.secondary'
+                            }>
+                              {trendValue > 0 ? `%${trendValue}` : '0%'}
+                            </Typography>
+                          </Box>
                         </Box>
                       </CardContent>
                     </Card>
@@ -2387,28 +2483,33 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                             </Grid>
                           </Grid>
 
-                          {/* Trend Indicator */}
+                          {/* Aylık Trend Indicator - Kompakt */}
                           <Box sx={{ 
-                            display: 'flex', 
-                            justifyContent: 'center', 
-                            alignItems: 'center', 
-                            gap: 1, 
                             mt: 2,
-                            p: 1,
+                            p: 1.5,
                             backgroundColor: 
                               recentTrend === 'up' ? '#ffebee' : 
                               recentTrend === 'down' ? '#e8f5e8' : '#f5f5f5',
-                            borderRadius: 1
+                            borderRadius: 2,
+                            borderLeft: `4px solid ${
+                              recentTrend === 'up' ? '#f44336' : 
+                              recentTrend === 'down' ? '#4caf50' : '#9e9e9e'
+                            }`
                           }}>
-                            <Typography variant="body2" color={
-                              recentTrend === 'up' ? 'error.main' : 
-                              recentTrend === 'down' ? 'success.main' : 'text.secondary'
-                            }>
-                              {recentTrend === 'up' ? '↗' : recentTrend === 'down' ? '↘' : '→'} 
-                              {trendValue > 0 ? `%${trendValue}` : 'Değişim yok'}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              (Son 7 gün)
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Typography variant="caption" color="text.secondary" fontWeight="600">
+                                AYLIK TREND
+                              </Typography>
+                              <Typography variant="body2" fontWeight="bold" color={
+                                recentTrend === 'up' ? 'error.main' : 
+                                recentTrend === 'down' ? 'success.main' : 'text.secondary'
+                              }>
+                                {recentTrend === 'up' ? '↗' : recentTrend === 'down' ? '↘' : '→'} 
+                                {trendValue > 0 ? `%${trendValue}` : '0%'}
+                              </Typography>
+                            </Box>
+                            <Typography variant="caption" color="text.secondary">
+                              {trendData.previousPeriod} → {trendData.currentPeriod}
                             </Typography>
                           </Box>
                         </CardContent>
@@ -3489,7 +3590,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         </DialogActions>
       </Dialog>
 
-      {/* ✅ ETKİLEŞİMLİ DETAY ANALİZ DIALOG'U */}
+      {/* ✅ PROFESYONELLEŞTİRİLMİŞ DETAY ANALİZ DIALOG'U */}
       <Dialog
         open={detailDialogOpen}
         onClose={() => setDetailDialogOpen(false)}
@@ -3497,66 +3598,135 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 3,
-            minHeight: '600px'
+            borderRadius: 4,
+            minHeight: '500px',
+            maxHeight: '85vh',
+            overflow: 'hidden',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
           }
         }}
       >
         <DialogTitle sx={{ 
-          background: 'linear-gradient(135deg, #1565c0 0%, #42a5f5 100%)', 
+                          background: `linear-gradient(135deg, ${appearanceSettings.primaryColor}dd 0%, ${appearanceSettings.primaryColor} 50%, ${appearanceSettings.primaryColor}aa 100%)`, 
           color: 'white',
-          position: 'relative'
+          position: 'relative',
+          py: 3,
+          px: 4,
+          borderBottom: '1px solid rgba(255,255,255,0.1)'
         }}>
-          <Typography variant="h5" fontWeight="bold">
-            {selectedDetailData?.title || 'Detay Analizi'}
-          </Typography>
-          <IconButton
-            onClick={() => setDetailDialogOpen(false)}
-            sx={{ 
-              position: 'absolute', 
-              right: 8, 
-              top: 8, 
-              color: 'white',
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.2)' }
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <AssessmentIcon sx={{ fontSize: 32 }} />
+              <Box>
+                <Typography variant="h4" fontWeight="bold" sx={{ mb: 0.5 }}>
+                  {selectedDetailData?.title || 'Detay Analizi'}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Kapsamlı Performans ve Trend Analizi
+                </Typography>
+              </Box>
+            </Box>
+            <IconButton
+              onClick={() => setDetailDialogOpen(false)}
+              sx={{ 
+                color: 'white',
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                '&:hover': { 
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  transform: 'scale(1.05)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 3 }}>
+        <DialogContent sx={{ 
+          p: 4, 
+          backgroundColor: '#f8f9fa',
+          overflow: 'auto',
+          maxHeight: 'calc(90vh - 200px)'
+        }}>
           {/* KPI Detay Analizi */}
           {detailDialogType === 'kpi' && selectedDetailData && (
             <Box>
-              {/* Ana Metrik */}
-              <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)' }}>
-                <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="h2" fontWeight="bold" color="primary">
+              {/* Ana Metrik - Profesyonel Hero Card */}
+              <Card sx={{ 
+                mb: 4, 
+                background: `linear-gradient(135deg, ${appearanceSettings.primaryColor}dd 0%, ${appearanceSettings.primaryColor} 50%, ${appearanceSettings.primaryColor}aa 100%)`,
+                color: 'white',
+                borderRadius: 3,
+                boxShadow: '0 8px 32px rgba(21, 101, 192, 0.3)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}>
+                <CardContent sx={{ textAlign: 'center', py: 3, px: 3 }}>
+                  <Box sx={{ mb: 1.5 }}>
+                    <AssessmentIcon sx={{ fontSize: 36, opacity: 0.9 }} />
+                  </Box>
+                  <Typography variant="h2" fontWeight="bold" sx={{ mb: 1.5, fontSize: '2.5rem' }}>
                     {selectedDetailData.mainValue}
                   </Typography>
-                  <Typography variant="h6" color="text.secondary">
+                  <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 500 }}>
                     {selectedDetailData.title}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
+                    Detaylı analiz ve trend verileri aşağıda gösterilmektedir
                   </Typography>
                 </CardContent>
               </Card>
 
-              {/* Alt Metrikler */}
-              <Grid container spacing={3} sx={{ mb: 4 }}>
-                {selectedDetailData.subMetrics?.map((metric: any, index: number) => (
-                  <Grid item xs={12} sm={6} md={3} key={index}>
-                    <Card sx={{ height: '100%', borderLeft: `4px solid ${['#1976d2', '#ff9800', '#4caf50', '#f44336'][index % 4]}` }}>
-                      <CardContent>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          {metric.label}
-                        </Typography>
-                        <Typography variant="h4" fontWeight="bold" color="primary">
-                          {metric.value}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+              {/* Alt Metrikler - Profesyonel KPI Kartları */}
+              <Box sx={{ mb: 4 }}>
+                              <Typography variant="h5" fontWeight="bold" sx={{ mb: 3, color: '#1565c0' }}>
+                Detaylı Performans Metrikleri
+              </Typography>
+                <Grid container spacing={3}>
+                  {selectedDetailData.subMetrics?.map((metric: any, index: number) => {
+                    const colors = ['#1976d2', '#ff9800', '#4caf50', '#f44336'];
+                    const bgColors = ['#e3f2fd', '#fff3e0', '#e8f5e8', '#ffebee'];
+                    return (
+                      <Grid item xs={12} sm={6} md={3} key={index}>
+                        <Card sx={{ 
+                          height: '100%', 
+                          borderRadius: 3,
+                          borderLeft: `5px solid ${colors[index % 4]}`,
+                          backgroundColor: bgColors[index % 4],
+                          '&:hover': { 
+                            transform: 'translateY(-4px)',
+                            boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+                            transition: 'all 0.3s ease'
+                          }
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, fontWeight: 600, display: 'block' }}>
+                              {metric.label}
+                            </Typography>
+                            <Typography variant="h5" fontWeight="bold" sx={{ color: colors[index % 4], mb: 0.5 }}>
+                              {metric.value}
+                            </Typography>
+                            <Box sx={{ 
+                              width: '100%', 
+                              height: 4, 
+                              bgcolor: 'rgba(0,0,0,0.1)', 
+                              borderRadius: 2,
+                              overflow: 'hidden'
+                            }}>
+                              <Box sx={{ 
+                                width: '75%', 
+                                height: '100%', 
+                                bgcolor: colors[index % 4],
+                                borderRadius: 2
+                              }} />
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              </Box>
 
               {/* Detaylı Breakdown */}
               {selectedDetailData.detailedBreakdown && (
@@ -3590,67 +3760,126 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                 </Box>
               )}
 
-              {/* Öneriler */}
-              {selectedDetailData.recommendations && (
-                <Box>
-                  <Typography variant="h6" sx={{ mb: 2 }}>Aksiyon Önerileri</Typography>
-                  <List>
-                    {selectedDetailData.recommendations.map((recommendation: string, index: number) => (
-                      <ListItem key={index} sx={{ pl: 0 }}>
-                        <ListItemIcon>
-                          <CheckCircleIcon color="success" />
-                        </ListItemIcon>
-                        <ListItemText primary={recommendation} />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Box>
-              )}
+
             </Box>
           )}
 
-          {/* Birim Detay Analizi */}
+          {/* Birim Detay Analizi - Profesyonel */}
           {detailDialogType === 'unit' && selectedDetailData && (
             <Box>
-              {/* Ana Metrikler */}
-              <Grid container spacing={3} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={3}>
-                  <Card sx={{ textAlign: 'center', borderLeft: '4px solid #f44336' }}>
-                    <CardContent>
-                      <Typography variant="h3" fontWeight="bold" color="error">
+              {/* Birim Başlığı */}
+              <Box sx={{ mb: 4, textAlign: 'center' }}>
+                <Typography variant="h3" fontWeight="bold" sx={{ color: '#1565c0', mb: 1 }}>
+                  {selectedDetailData.unitName}
+                </Typography>
+                <Typography variant="h6" color="text.secondary">
+                  Departman Performans Analizi ve Trend Verileri
+                </Typography>
+              </Box>
+
+              {/* Ana Metrikler - Profesyonel Dashboard */}
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ 
+                    textAlign: 'center', 
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
+                    borderLeft: '5px solid #f44336',
+                    '&:hover': { 
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(244, 67, 54, 0.3)',
+                      transition: 'all 0.3s ease'
+                    }
+                  }}>
+                    <CardContent sx={{ py: 3 }}>
+                      <ErrorIcon sx={{ fontSize: 32, color: '#f44336', mb: 1.5 }} />
+                      <Typography variant="h4" fontWeight="bold" color="error" sx={{ mb: 0.5 }}>
                         {selectedDetailData.mainMetrics?.totalDefects || 0}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">Toplam Hata</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={3}>
-                  <Card sx={{ textAlign: 'center', borderLeft: '4px solid #1976d2' }}>
-                    <CardContent>
-                      <Typography variant="h3" fontWeight="bold" color="primary">
-                        {selectedDetailData.mainMetrics?.qualityScore || 0}
+                      <Typography variant="body1" color="text.secondary" fontWeight="600">
+                        Toplam Hata
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">Kalite Skoru</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} sm={3}>
-                  <Card sx={{ textAlign: 'center', borderLeft: '4px solid #4caf50' }}>
-                    <CardContent>
-                      <Typography variant="h3" fontWeight="bold" color="success">
-                        %{selectedDetailData.mainMetrics?.firstTimePassRate || 0}
+                      <Typography variant="caption" color="text.secondary">
+                        Tekrar sayısı dahil
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">İlk Geçiş Oranı</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} sm={3}>
-                  <Card sx={{ textAlign: 'center', borderLeft: '4px solid #ff9800' }}>
-                    <CardContent>
-                      <Typography variant="h3" fontWeight="bold" color="warning">
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ 
+                    textAlign: 'center', 
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                    borderLeft: '5px solid #1976d2',
+                    '&:hover': { 
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(25, 118, 210, 0.3)',
+                      transition: 'all 0.3s ease'
+                    }
+                  }}>
+                    <CardContent sx={{ py: 3 }}>
+                      <RepeatIcon sx={{ fontSize: 32, color: '#1976d2', mb: 1.5 }} />
+                      <Typography variant="h4" fontWeight="bold" color="primary" sx={{ mb: 0.5 }}>
+                        {selectedDetailData.mainMetrics?.repeatedVehicles || 0}
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary" fontWeight="600">
+                        Tekrarlanan Hatalar
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Araç sayısı
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ 
+                    textAlign: 'center', 
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%)',
+                    borderLeft: '5px solid #4caf50',
+                    '&:hover': { 
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(76, 175, 80, 0.3)',
+                      transition: 'all 0.3s ease'
+                    }
+                  }}>
+                    <CardContent sx={{ py: 3 }}>
+                      <AssessmentIcon sx={{ fontSize: 32, color: '#4caf50', mb: 1.5 }} />
+                      <Typography variant="h4" fontWeight="bold" color="success" sx={{ mb: 0.5 }}>
+                        {selectedDetailData.mainMetrics?.averageDefectsPerVehicle?.toFixed(1) || '0.0'}
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary" fontWeight="600">
+                        Ortalama Hata/Araç
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Hata yoğunluğu
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ 
+                    textAlign: 'center', 
+                    borderRadius: 3,
+                    background: 'linear-gradient(135deg, #fff3e0 0%, #ffcc02 100%)',
+                    borderLeft: '5px solid #ff9800',
+                    '&:hover': { 
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 25px rgba(255, 152, 0, 0.3)',
+                      transition: 'all 0.3s ease'
+                    }
+                  }}>
+                    <CardContent sx={{ py: 3 }}>
+                      <FactoryIcon sx={{ fontSize: 32, color: '#ff9800', mb: 1.5 }} />
+                      <Typography variant="h4" fontWeight="bold" color="warning" sx={{ mb: 0.5 }}>
                         {selectedDetailData.mainMetrics?.totalVehicles || 0}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">Toplam Araç</Typography>
+                      <Typography variant="body1" color="text.secondary" fontWeight="600">
+                        İşlenen Araç
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Toplam sayı
+                      </Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -3660,7 +3889,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
               {selectedDetailData.timeSeriesData && (
                 <Card sx={{ mb: 4 }}>
                   <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2 }}>Son 30 Günlük Hata Trendi</Typography>
+                    <Typography variant="h6" sx={{ mb: 2 }}>Son 12 Aylık Hata Trendi</Typography>
                     <Box sx={{ height: 300, width: '100%' }}>
                       <ResponsiveContainer>
                         <LineChart data={selectedDetailData.timeSeriesData}>
@@ -3745,38 +3974,51 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                 )}
               </Grid>
 
-              {/* Öneriler */}
-              {selectedDetailData.recommendations && (
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2 }}>Öneriler</Typography>
-                    <List>
-                      {selectedDetailData.recommendations.map((recommendation: string, index: number) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            <CheckCircleIcon color="success" />
-                          </ListItemIcon>
-                          <ListItemText primary={recommendation} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </CardContent>
-                </Card>
-              )}
+
             </Box>
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setDetailDialogOpen(false)} variant="outlined">
+        <DialogActions sx={{ 
+          p: 4, 
+          backgroundColor: '#f8f9fa',
+          borderTop: '1px solid #e0e0e0',
+          gap: 2
+        }}>
+          <Button 
+            onClick={() => setDetailDialogOpen(false)} 
+            variant="outlined"
+            size="large"
+            startIcon={<CloseIcon />}
+            sx={{ 
+              borderRadius: 2,
+              px: 3,
+              py: 1.5,
+              fontWeight: 600
+            }}
+          >
             Kapat
           </Button>
           <Button 
             variant="contained" 
+            size="large"
+            startIcon={<ViewIcon />}
             onClick={() => {
               setDetailDialogOpen(false);
               // Veri Yönetimi sekmesine geç
               setActiveTab(2);
+            }}
+            sx={{ 
+              borderRadius: 2,
+              px: 3,
+              py: 1.5,
+              fontWeight: 600,
+                              background: `linear-gradient(135deg, ${appearanceSettings.primaryColor}dd 0%, ${appearanceSettings.primaryColor} 100%)`,
+              '&:hover': {
+                background: 'linear-gradient(135deg, #0d47a1 0%, #1565c0 100%)',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 4px 12px rgba(21, 101, 192, 0.4)'
+              }
             }}
           >
             Detay Kayıtları Görüntüle

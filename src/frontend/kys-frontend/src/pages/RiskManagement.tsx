@@ -42,7 +42,7 @@ import {
   Warning as WarningIcon,
   Security as SecurityIcon,
   TrendingUp as TrendingUpIcon,
-  // TrendingDown as TrendingDownIcon, // Kullanılmıyor - eslint hatası için kaldırıldı
+  TrendingDown as TrendingDownIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as ViewIcon,
@@ -60,8 +60,9 @@ import {
 } from '@mui/icons-material';
 
 import { WorkflowUtils } from '../utils/WorkflowEngine';
-// import { createDOFFromSourceRecord, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration'; // Kullanılmıyor - eslint hatası için kaldırıldı
+import { createDOFFromSourceRecord, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
 import { ReportProblem as ReportIcon } from '@mui/icons-material';
+import { useThemeContext } from '../context/ThemeContext';
 
 // Recharts for professional charts
 import {
@@ -148,6 +149,8 @@ export interface RiskComment {
 
 // Context7 - RISK MANAGEMENT COMPONENT
 const RiskManagement: React.FC = () => {
+  const { theme: muiTheme, appearanceSettings } = useThemeContext();
+  
   // State Management
   const [risks, setRisks] = useState<RiskRecord[]>([]);
   const [activeTab, setActiveTab] = useState(0);
@@ -203,14 +206,14 @@ const RiskManagement: React.FC = () => {
   }, []);
 
   // Context7 - Save risks to localStorage
-  // const saveRisks = useCallback((updatedRisks: RiskRecord[]) => {
-  //   try {
-  //     localStorage.setItem('riskManagementData', JSON.stringify(updatedRisks));
-  //     setRisks(updatedRisks);
-  //   } catch (error) {
-  //     console.error('Risk verileri kaydedilirken hata:', error);
-  //   }
-  // }, []); // Kullanılmıyor - eslint hatası için kaldırıldı
+  const saveRisks = useCallback((updatedRisks: RiskRecord[]) => {
+    try {
+      localStorage.setItem('riskManagementData', JSON.stringify(updatedRisks));
+      setRisks(updatedRisks);
+    } catch (error) {
+      console.error('Risk verileri kaydedilirken hata:', error);
+    }
+  }, []);
 
   // Context7 - Generate sample risks
   const generateSampleRisks = (): RiskRecord[] => {
@@ -846,19 +849,51 @@ const RiskManagement: React.FC = () => {
   // Context7 - RENDER
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box display="flex" alignItems="center" gap={1}>
-          <AssessmentIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-          <Typography variant="h4" component="h1" fontWeight="bold">
-            Risk Yönetimi
-          </Typography>
+      {/* Header - Tema Entegreli */}
+      <Box 
+        sx={{
+          background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 50%, ${appearanceSettings.primaryColor}aa 100%)`,
+          color: 'white',
+          p: 3,
+          borderRadius: 3,
+          mb: 3,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: `0 8px 32px ${appearanceSettings.primaryColor}30`,
+          border: `1px solid ${appearanceSettings.primaryColor}20`
+        }}
+      >
+        <Box display="flex" alignItems="center" gap={2}>
+          <AssessmentIcon sx={{ fontSize: 40, color: 'white' }} />
+          <Box>
+            <Typography variant="h4" component="h1" fontWeight="bold" sx={{ color: 'white', mb: 0.5 }}>
+              Risk Yönetimi
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+              Kurumsal Risk Değerlendirme ve Yönetim Sistemi
+            </Typography>
+          </Box>
         </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={openCreateDialog}
           size="large"
+          sx={{
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            color: 'white',
+            '&:hover': {
+              backgroundColor: 'rgba(255,255,255,0.3)',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+            },
+            borderRadius: 2,
+            px: 3,
+            py: 1.5,
+            fontWeight: 'bold',
+            transition: 'all 0.3s ease'
+          }}
         >
           Yeni Risk Ekle
         </Button>
@@ -963,10 +998,10 @@ const RiskManagement: React.FC = () => {
             boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
           }}
         >
-          {/* Professional Header */}
+          {/* Professional Header - Tema Entegreli */}
           <Box
             sx={{
-              background: 'linear-gradient(135deg, #1565c0 0%, #1e88e5 50%, #42a5f5 100%)',
+              background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 50%, ${appearanceSettings.primaryColor}aa 100%)`,
               color: 'white',
               p: 2,
               display: 'flex',
@@ -1000,7 +1035,7 @@ const RiskManagement: React.FC = () => {
                       minWidth: 100, 
                       width: 100,
                       bgcolor: 'grey.100',
-                      borderBottom: '2px solid #1565c0',
+                      borderBottom: `2px solid ${appearanceSettings.primaryColor}`,
                       position: 'sticky',
                       top: 0,
                       zIndex: 1
@@ -1014,7 +1049,7 @@ const RiskManagement: React.FC = () => {
                       minWidth: 200, 
                       width: 200,
                       bgcolor: 'grey.100',
-                      borderBottom: '2px solid #1565c0',
+                      borderBottom: `2px solid ${appearanceSettings.primaryColor}`,
                       position: 'sticky',
                       top: 0,
                       zIndex: 1
@@ -1028,7 +1063,7 @@ const RiskManagement: React.FC = () => {
                        minWidth: 150, 
                        width: 150,
                        bgcolor: 'grey.100',
-                       borderBottom: '2px solid #1565c0',
+                       borderBottom: `2px solid ${appearanceSettings.primaryColor}`,
                        position: 'sticky',
                        top: 0,
                        zIndex: 1
@@ -1042,7 +1077,7 @@ const RiskManagement: React.FC = () => {
                       minWidth: 120, 
                       width: 120,
                       bgcolor: 'grey.100',
-                      borderBottom: '2px solid #1565c0',
+                      borderBottom: `2px solid ${appearanceSettings.primaryColor}`,
                       position: 'sticky',
                       top: 0,
                       zIndex: 1
@@ -1056,7 +1091,7 @@ const RiskManagement: React.FC = () => {
                       minWidth: 130, 
                       width: 130,
                       bgcolor: 'grey.100',
-                      borderBottom: '2px solid #1565c0',
+                      borderBottom: `2px solid ${appearanceSettings.primaryColor}`,
                       position: 'sticky',
                       top: 0,
                       zIndex: 1
@@ -1070,7 +1105,7 @@ const RiskManagement: React.FC = () => {
                       minWidth: 150, 
                       width: 150,
                       bgcolor: 'grey.100',
-                      borderBottom: '2px solid #1565c0',
+                      borderBottom: `2px solid ${appearanceSettings.primaryColor}`,
                       position: 'sticky',
                       top: 0,
                       zIndex: 1
@@ -1084,7 +1119,7 @@ const RiskManagement: React.FC = () => {
                       minWidth: 120, 
                       width: 120,
                       bgcolor: 'grey.100',
-                      borderBottom: '2px solid #1565c0',
+                      borderBottom: `2px solid ${appearanceSettings.primaryColor}`,
                       position: 'sticky',
                       top: 0,
                       zIndex: 1
@@ -1098,7 +1133,7 @@ const RiskManagement: React.FC = () => {
                       minWidth: 160, 
                       width: 160,
                       bgcolor: 'grey.100',
-                      borderBottom: '2px solid #1565c0',
+                      borderBottom: `2px solid ${appearanceSettings.primaryColor}`,
                       position: 'sticky',
                       top: 0,
                       zIndex: 1

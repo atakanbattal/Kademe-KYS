@@ -80,6 +80,7 @@ import {
   Badge as BadgeIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
+import { useThemeContext } from '../context/ThemeContext';
 
 // Types & Interfaces
 interface Document {
@@ -539,6 +540,52 @@ const DocumentCard = styled(Card)(() => ({
 })) as any;
 
 const DocumentManagement: React.FC = () => {
+  const { theme: muiTheme, appearanceSettings } = useThemeContext();
+
+  // Tema entegreli StyledAccordion
+  const StyledAccordion = styled(Accordion)(() => ({
+    marginBottom: 20,
+    borderRadius: '16px !important',
+    backgroundColor: '#ffffff',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+    border: '1px solid rgba(25, 118, 210, 0.12)',
+    overflow: 'hidden',
+    '&:before': {
+      display: 'none',
+    },
+    '& .MuiAccordionSummary-root': {
+      backgroundColor: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
+      background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
+      color: '#ffffff',
+      borderRadius: '16px 16px 0 0',
+      minHeight: 72,
+      padding: '0 24px',
+      '&.Mui-expanded': {
+        minHeight: 72,
+        borderRadius: '16px 16px 0 0',
+      },
+      '& .MuiAccordionSummary-content': {
+        margin: '16px 0',
+        '&.Mui-expanded': {
+          margin: '16px 0',
+        },
+      },
+      '& .MuiAccordionSummary-expandIconWrapper': {
+        color: '#ffffff',
+        '&.Mui-expanded': {
+          transform: 'rotate(180deg)',
+        },
+      },
+      '&:hover': {
+        background: `linear-gradient(135deg, ${appearanceSettings.primaryColor}cc 0%, ${appearanceSettings.primaryColor}ee 100%)`,
+      },
+    },
+    '& .MuiAccordionDetails-root': {
+      backgroundColor: '#ffffff',
+      padding: 32,
+      borderTop: `1px solid ${appearanceSettings.primaryColor}20`,
+    }
+  })) as any;
   const [activeTab, setActiveTab] = useState(0);
   const [expanded, setExpanded] = useState<string | false>('document-filters');
   const [openDialog, setOpenDialog] = useState(false);

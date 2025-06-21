@@ -225,12 +225,9 @@ if (typeof window !== 'undefined') {
   window.forceDataSync = forceDataSync;
 }
 
-// Export default object
-const testDataIntegrationExports = {
+export default {
   testDataConsistency,
   showDataSummary,
   showIntegrationStatus,
   forceDataSync
-};
-
-export default testDataIntegrationExports; 
+}; 

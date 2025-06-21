@@ -3,9 +3,9 @@ import {
   Typography,
   Box,
   Paper,
-  // Accordion, // Kullanılmıyor - eslint hatası için kaldırıldı
-  // AccordionSummary, // Kullanılmıyor - eslint hatası için kaldırıldı
-  // AccordionDetails, // Kullanılmıyor - eslint hatası için kaldırıldı
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   TextField,
   Select,
   MenuItem,
@@ -38,9 +38,9 @@ import {
   Tab,
 } from '@mui/material';
 import {
-  // ExpandMore as ExpandMoreIcon, // Kullanılmıyor - eslint hatası için kaldırıldı
-  // Calculate as CalculateIcon, // Kullanılmıyor - eslint hatası için kaldırıldı
-  // GetApp as ExportIcon, // Kullanılmıyor - eslint hatası için kaldırıldı
+  ExpandMore as ExpandMoreIcon,
+  Calculate as CalculateIcon,
+  GetApp as ExportIcon,
   Compare as CompareIcon,
   Straighten as StraightenIcon,
   AccessTime as TimeIcon,
@@ -179,49 +179,49 @@ const GAS_TYPES = [
 ];
 
 // Styled Components
-// const StyledAccordion = styled(Accordion)(() => ({
-//   marginBottom: 20,
-//   borderRadius: '16px !important',
-//   backgroundColor: '#ffffff',
-//   boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-//   border: '1px solid rgba(25, 118, 210, 0.12)',
-//   overflow: 'hidden',
-//   '&:before': {
-//     display: 'none',
-//   },
-//   '& .MuiAccordionSummary-root': {
-//     backgroundColor: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-//     background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-//     color: '#ffffff',
-//     borderRadius: '16px 16px 0 0',
-//     minHeight: 72,
-//     padding: '0 24px',
-//     '&.Mui-expanded': {
-//       minHeight: 72,
-//       borderRadius: '16px 16px 0 0',
-//     },
-//     '& .MuiAccordionSummary-content': {
-//       margin: '16px 0',
-//       '&.Mui-expanded': {
-//         margin: '16px 0',
-//       },
-//     },
-//     '& .MuiAccordionSummary-expandIconWrapper': {
-//       color: '#ffffff',
-//       '&.Mui-expanded': {
-//         transform: 'rotate(180deg)',
-//       },
-//     },
-//     '&:hover': {
-//       background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
-//     },
-//   },
-//   '& .MuiAccordionDetails-root': {
-//     backgroundColor: '#ffffff',
-//     padding: 32,
-//     borderTop: '1px solid rgba(25, 118, 210, 0.08)',
-//   }
-// })); // Kullanılmıyor - eslint hatası için kaldırıldı
+const StyledAccordion = styled(Accordion)(() => ({
+  marginBottom: 20,
+  borderRadius: '16px !important',
+  backgroundColor: '#ffffff',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+  border: '1px solid rgba(25, 118, 210, 0.12)',
+  overflow: 'hidden',
+  '&:before': {
+    display: 'none',
+  },
+  '& .MuiAccordionSummary-root': {
+    backgroundColor: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+    background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+    color: '#ffffff',
+    borderRadius: '16px 16px 0 0',
+    minHeight: 72,
+    padding: '0 24px',
+    '&.Mui-expanded': {
+      minHeight: 72,
+      borderRadius: '16px 16px 0 0',
+    },
+    '& .MuiAccordionSummary-content': {
+      margin: '16px 0',
+      '&.Mui-expanded': {
+        margin: '16px 0',
+      },
+    },
+    '& .MuiAccordionSummary-expandIconWrapper': {
+      color: '#ffffff',
+      '&.Mui-expanded': {
+        transform: 'rotate(180deg)',
+      },
+    },
+    '&:hover': {
+      background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
+    },
+  },
+  '& .MuiAccordionDetails-root': {
+    backgroundColor: '#ffffff',
+    padding: 32,
+    borderTop: '1px solid rgba(25, 118, 210, 0.08)',
+  }
+}));
 
 const CostCard = styled(Card)(({ theme }) => ({
   background: `linear-gradient(145deg, ${theme.palette.primary.main}15, ${theme.palette.primary.main}05)`,
@@ -479,9 +479,9 @@ const WeldingCostCalculation: React.FC = () => {
     setScenarios([...scenarios, newScenario]);
   };
 
-  // const exportResults = () => {
-  //   console.log('Exporting results...', calculationResult);
-  // }; // Kullanılmıyor - eslint hatası için kaldırıldı
+  const exportResults = () => {
+    console.log('Exporting results...', calculationResult);
+  };
 
   // ✅ DÜZELTME: Sadece temel kaynak maliyet bileşenleri (kullanıcının girdiği parametreler)
   const costBreakdownData = [
