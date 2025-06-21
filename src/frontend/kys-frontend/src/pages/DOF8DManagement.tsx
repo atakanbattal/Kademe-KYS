@@ -2585,10 +2585,11 @@ const DOF8DManagement: React.FC = () => {
           department: formData.department,
           responsible: formData.responsible.trim(),
           priority: formData.priority,
-          status: 'open',
+          status: formData.status, // ✅ Formdan gelen status değerini kullan
           createdDate: currentDate,
           openingDate: formData.openingDate || currentDate, // ✅ Açılış tarihi (geçmişe yönelik veriler için)
           dueDate: formData.dueDate,
+          closedDate: formData.status === 'closed' ? currentDate : undefined, // ✅ Kapalı durumda kapanış tarihi ata
           rootCause: formData.rootCause?.trim() || '',
           rejectionReason: formData.rejectionReason?.trim() || '', // ✅ Red nedeni alanı
           mdiNumber: formData.type === 'mdi' ? formData.mdiNumber?.trim() || '' : undefined, // ✅ MDİ numarası
@@ -2605,12 +2606,17 @@ const DOF8DManagement: React.FC = () => {
           metadata: {
             createdBy: 'Atakan Battal',
             creationTime: currentTime,
-            version: '1.0'
+            version: '1.0',
+            ...(formData.status === 'closed' && {
+              closedBy: 'Atakan Battal',
+              closureTime: currentTime,
+              finalStatus: 'closed'
+            })
           },
           
           // Context7 - Hesaplanan alanlar
           remainingDays: calculateRemainingDays(formData.dueDate),
-          delayStatus: getDelayStatus(formData.dueDate, 'open'),
+          delayStatus: getDelayStatus(formData.dueDate, formData.status),
           
           // Context7 - Geçmiş kaydı
           history: [{
@@ -2618,8 +2624,14 @@ const DOF8DManagement: React.FC = () => {
             action: `${formData.type === '8d' ? '8D Problemi' : 'DÖF'} Oluşturuldu`,
             user: 'Atakan Battal',
             date: currentDate,
-            details: `Yeni ${formData.type === '8d' ? '8D problemi çözme' : 'DÖF'} kaydı oluşturuldu. Tip: ${DOF_TYPES.find(t => t.value === formData.type)?.label}, Departman: ${formData.department}, Sorumlu: ${formData.responsible}`
-          }]
+            details: `Yeni ${formData.type === '8d' ? '8D problemi çözme' : 'DÖF'} kaydı oluşturuldu. Tip: ${DOF_TYPES.find(t => t.value === formData.type)?.label}, Departman: ${formData.department}, Sorumlu: ${formData.responsible}, Durum: ${STATUS_OPTIONS.find(s => s.value === formData.status)?.label}`
+          }].concat(formData.status === 'closed' ? [{
+            id: `h2_${now.getTime()}`,
+            action: 'DÖF Kapatıldı',
+            user: 'Atakan Battal',
+            date: currentDate,
+            details: `DÖF kapalı durumda oluşturuldu ve otomatik olarak kapatıldı.`
+          }] : [])
         };
 
         console.log('✅ Context7 - Yeni kayıt hazırlandı:', {
