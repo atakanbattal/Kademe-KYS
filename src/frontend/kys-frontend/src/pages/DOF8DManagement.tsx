@@ -2822,7 +2822,7 @@ const DOF8DManagement: React.FC = () => {
           </Box>
         </AccordionSummary>
         <AccordionDetails>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'flex-end' }}>
             <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
               <FormControl fullWidth>
                 <InputLabel sx={{ fontWeight: 600 }}>Birim/Departman</InputLabel>
@@ -2830,6 +2830,7 @@ const DOF8DManagement: React.FC = () => {
                   value={filters.department}
                   onChange={(e) => handleFilterChange('department', e.target.value)}
                   sx={{
+                    height: 56,
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: 'primary.main'
                     }
@@ -2849,6 +2850,7 @@ const DOF8DManagement: React.FC = () => {
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   sx={{
+                    height: 56,
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: 'primary.main'
                     }
@@ -2880,6 +2882,7 @@ const DOF8DManagement: React.FC = () => {
                   value={filters.type}
                   onChange={(e) => handleFilterChange('type', e.target.value)}
                   sx={{
+                    height: 56,
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: 'primary.main'
                     }
@@ -2918,6 +2921,7 @@ const DOF8DManagement: React.FC = () => {
                     fontWeight: 600
                   },
                   '& .MuiOutlinedInput-root': {
+                    height: 56,
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: 'primary.main'
                     }
@@ -2932,6 +2936,7 @@ const DOF8DManagement: React.FC = () => {
                   value={filters.year}
                   onChange={(e) => handleFilterChange('year', e.target.value)}
                   sx={{
+                    height: 56,
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: 'primary.main'
                     }
@@ -2950,6 +2955,7 @@ const DOF8DManagement: React.FC = () => {
                   value={filters.month}
                   onChange={(e) => handleFilterChange('month', e.target.value)}
                   sx={{
+                    height: 56,
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: 'primary.main'
                     }
@@ -2969,6 +2975,7 @@ const DOF8DManagement: React.FC = () => {
                   value={filters.delayStatus}
                   onChange={(e) => handleFilterChange('delayStatus', e.target.value)}
                   sx={{
+                    height: 56,
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: 'primary.main'
                     }
@@ -3000,6 +3007,7 @@ const DOF8DManagement: React.FC = () => {
                   value={filters.priority}
                   onChange={(e) => handleFilterChange('priority', e.target.value)}
                   sx={{
+                    height: 56,
                     '&:hover .MuiOutlinedInput-notchedOutline': {
                       borderColor: 'primary.main'
                     }
