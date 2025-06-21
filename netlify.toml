@@ -1,6 +1,6 @@
 [build]
   base = "src/frontend/kys-frontend"
-  publish = "src/frontend/kys-frontend/build"
+  publish = "build"
   command = "npm install && GENERATE_SOURCEMAP=false npm run build"
 
 [build.environment]
