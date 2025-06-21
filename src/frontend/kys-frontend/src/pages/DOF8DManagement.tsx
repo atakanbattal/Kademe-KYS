@@ -355,6 +355,29 @@ const ROOT_CAUSE_CATEGORIES = [
       'Stratejik planlama eksikliği'
     ],
     keywords: ['kaynak', 'zaman', 'öncelik', 'sorumluluk', 'karar', 'koordinasyon', 'planlama', 'müşteri', 'bütçe', 'strateji']
+  },
+  {
+    category: 'Ar-Ge Faktörleri',
+    color: '#673ab7',
+    icon: 'ARG',
+    causes: [
+      'Tasarım spesifikasyon eksikliği',
+      'Prototip test yetersizliği',
+      'Malzeme seçim hatası',
+      'Tolerans belirleme sorunu',
+      'Hesaplama/simülasyon hatası',
+      'Standart/norm uyumsuzluğu',
+      'Teknoloji eskitilmesi',
+      'Patent/lisans kısıtları',
+      'İnovasyon yetersizliği',
+      'Teknik dokümantasyon eksikliği',
+      'Ürün geliştirme süreç hatası',
+      'Test ve validasyon eksikliği',
+      'Müşteri ihtiyaç analizi yetersiz',
+      'Teknolojik olgunluk eksikliği',
+      'Ar-Ge-üretim koordinasyon problemi'
+    ],
+    keywords: ['tasarım', 'prototip', 'spesifikasyon', 'tolerans', 'hesaplama', 'simülasyon', 'standart', 'norm', 'teknoloji', 'patent', 'lisans', 'inovasyon', 'dokümantasyon', 'geliştirme', 'test', 'validasyon', 'analiz', 'olgunluk', 'ar-ge', 'arge']
   }
 ];
 
