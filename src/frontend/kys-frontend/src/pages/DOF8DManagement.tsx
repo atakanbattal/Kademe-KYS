@@ -174,6 +174,7 @@ const DEPARTMENTS = [
   'Mekanik Montaj',
   'Satın Alma',
   'Satış Sonrası Hizmetleri',
+  'Tedarikçi Geliştirme',
   'Tesellüm',
   'Yurtiçi Satış',
   'Yurtdışı Satış',
