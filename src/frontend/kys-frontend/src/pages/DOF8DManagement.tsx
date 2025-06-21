@@ -361,23 +361,32 @@ const ROOT_CAUSE_CATEGORIES = [
     color: '#673ab7',
     icon: 'ARG',
     causes: [
-      'Tasarım spesifikasyon eksikliği',
-      'Prototip test yetersizliği',
-      'Malzeme seçim hatası',
-      'Tolerans belirleme sorunu',
-      'Hesaplama/simülasyon hatası',
-      'Standart/norm uyumsuzluğu',
-      'Teknoloji eskitilmesi',
-      'Patent/lisans kısıtları',
-      'İnovasyon yetersizliği',
-      'Teknik dokümantasyon eksikliği',
-      'Ürün geliştirme süreç hatası',
-      'Test ve validasyon eksikliği',
-      'Müşteri ihtiyaç analizi yetersiz',
-      'Teknolojik olgunluk eksikliği',
-      'Ar-Ge-üretim koordinasyon problemi'
+      'Ar-Ge ve üretim koordinasyon problemi',
+      'Bilimsel araştırma ve metodoloji eksikliği',
+      'Deneysel tasarım ve validasyon hatası',
+      'Fikri mülkiyet ve patent kısıtları',
+      'Geliştirme süreç yönetimi eksikliği',
+      'Hesaplama ve simülasyon modeli hatası',
+      'İnovasyon stratejisi ve uygulama yetersizliği',
+      'Kalite fonksiyon dağılımı (QFD) eksikliği',
+      'Literatür tarama ve prior art araştırması yetersiz',
+      'Malzeme karakterizasyon ve seçim hatası',
+      'Müşteri ihtiyaç analizi ve pazar araştırması eksik',
+      'Optimizasyon ve performans analizi yetersizliği',
+      'Prototip geliştirme ve test süreç hatası',
+      'Risk analizi ve FMEA uygulaması eksik',
+      'Standart, norm ve regülasyon uyumsuzluğu',
+      'Tasarım spesifikasyon ve gereksinim eksikliği',
+      'Teknoloji transfer ve ölçeklendirme problemi',
+      'Teknolojik olgunluk seviyesi (TRL) belirleme hatası',
+      'Teknik dokümantasyon ve raporlama eksikliği',
+      'Test ve analiz ekipman kalibrasyonu problemi',
+      'Tolerans analizi ve stack-up hesaplama hatası',
+      'Ürün yaşam döngüsü yönetimi eksikliği',
+      'Veri analizi ve istatistiksel değerlendirme hatası',
+      'Yeni teknoloji entegrasyonu ve adaptasyon sorunu'
     ],
-    keywords: ['tasarım', 'prototip', 'spesifikasyon', 'tolerans', 'hesaplama', 'simülasyon', 'standart', 'norm', 'teknoloji', 'patent', 'lisans', 'inovasyon', 'dokümantasyon', 'geliştirme', 'test', 'validasyon', 'analiz', 'olgunluk', 'ar-ge', 'arge']
+    keywords: ['tasarım', 'prototip', 'spesifikasyon', 'tolerans', 'hesaplama', 'simülasyon', 'standart', 'norm', 'teknoloji', 'patent', 'lisans', 'inovasyon', 'dokümantasyon', 'geliştirme', 'test', 'validasyon', 'analiz', 'olgunluk', 'ar-ge', 'arge', 'araştırma', 'metodoloji', 'deneysel', 'kalite', 'literatür', 'karakterizasyon', 'pazar', 'optimizasyon', 'performans', 'risk', 'fmea', 'regülasyon', 'transfer', 'ölçeklendirme', 'trl', 'kalibrasyon', 'stack-up', 'yaşam', 'döngü', 'istatistik', 'entegrasyon', 'adaptasyon']
   }
 ];
 
