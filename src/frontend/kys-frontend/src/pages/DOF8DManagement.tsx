@@ -3830,10 +3830,9 @@ const DOF8DManagement: React.FC = () => {
                   </TableHead>
                   <TableBody>
                     {(() => {
-                      // Context7 - Calculate remaining days and status from filtered records
-                      return metrics.filteredRecords
-                        .filter(record => record.status !== 'closed')
-                        .slice(0, 10) // Show top 10 for performance
+                      // ✅ FIXED: Termin süresi dağılım tablosu - En çok geciken verileri önce göster
+                      const recordsWithDelay = metrics.filteredRecords
+                        .filter(record => record.status !== 'closed' && record.dueDate) // Sadece açık ve termin tarihi olan kayıtlar
                         .map(record => {
                           const today = new Date();
                           const dueDate = new Date(record.dueDate);
@@ -3842,14 +3841,41 @@ const DOF8DManagement: React.FC = () => {
                           
                           let status = 'Zamanında';
                           let statusColor: 'success' | 'warning' | 'error' = 'success';
+                          let priority = 0; // Sıralama için öncelik puanı
                           
                           if (diffDays < 0) {
                             status = 'Gecikmiş';
                             statusColor = 'error';
+                            priority = 1000 + Math.abs(diffDays); // Gecikmiş olanlar en üstte, gecikme miktarına göre sıralı
                           } else if (diffDays <= 3) {
                             status = 'Yaklaşıyor';
                             statusColor = 'warning';
+                            priority = 500 + (3 - diffDays); // Yaklaşan olanlar ortada, yakınlığa göre sıralı
+                          } else {
+                            priority = 100 - diffDays; // Zamanında olanlar en altta, yakın olana göre sıralı
                           }
+                          
+                          return {
+                            ...record,
+                            diffDays,
+                            status,
+                            statusColor,
+                            priority
+                          };
+                        })
+                        // ✅ CRITICAL FIX: En çok geciken kayıtları önce göster
+                        .sort((a, b) => b.priority - a.priority) // Yüksek öncelik (gecikmiş) üstte
+                        .slice(0, 15); // İlk 15 kayıt göster
+                      
+                      console.log('🚨 Termin Süresi Analizi:', {
+                        totalRecords: metrics.filteredRecords.length,
+                        openRecords: metrics.filteredRecords.filter(r => r.status !== 'closed').length,
+                        delayedRecords: recordsWithDelay.filter(r => r.diffDays < 0).length,
+                        approachingRecords: recordsWithDelay.filter(r => r.diffDays >= 0 && r.diffDays <= 3).length,
+                        onTimeRecords: recordsWithDelay.filter(r => r.diffDays > 3).length
+                      });
+                      
+                      return recordsWithDelay.map(record => {
                           
                           return (
                             <TableRow 
@@ -3866,7 +3892,7 @@ const DOF8DManagement: React.FC = () => {
                                   bgcolor: 'grey.25'
                                 },
                                 borderLeft: '4px solid',
-                                borderColor: diffDays < 0 ? 'error.main' : diffDays <= 3 ? 'warning.main' : 'success.main'
+                                borderColor: record.diffDays < 0 ? 'error.main' : record.diffDays <= 3 ? 'warning.main' : 'success.main'
                               }}
                             >
                               <TableCell sx={{ 
@@ -3896,7 +3922,7 @@ const DOF8DManagement: React.FC = () => {
                                       width: 6,
                                       height: 6,
                                       borderRadius: '50%',
-                                      bgcolor: diffDays < 0 ? 'error.main' : diffDays <= 3 ? 'warning.main' : 'success.main'
+                                      bgcolor: record.diffDays < 0 ? 'error.main' : record.diffDays <= 3 ? 'warning.main' : 'success.main'
                                     }}
                                   />
                                   <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
@@ -3979,23 +4005,23 @@ const DOF8DManagement: React.FC = () => {
                                     <Typography 
                                       variant="h6" 
                                       fontWeight={700}
-                                      color={diffDays < 0 ? 'error.main' : diffDays <= 3 ? 'warning.main' : 'success.main'}
+                                      color={record.diffDays < 0 ? 'error.main' : record.diffDays <= 3 ? 'warning.main' : 'success.main'}
                                       sx={{ 
                                         fontSize: '1.3rem',
                                         px: 1.5,
                                         py: 0.5,
                                         borderRadius: 2,
-                                        bgcolor: diffDays < 0 ? 'error.100' : diffDays <= 3 ? 'warning.100' : 'success.100',
+                                        bgcolor: record.diffDays < 0 ? 'error.100' : record.diffDays <= 3 ? 'warning.100' : 'success.100',
                                         minWidth: 40,
                                         textAlign: 'center'
                                       }}
                                     >
-                                      {Math.abs(diffDays)}
+                                      {Math.abs(record.diffDays)}
                                     </Typography>
                                     <Chip
-                                      label={diffDays < 0 ? 'GECİKMİŞ' : diffDays <= 3 ? 'RİSKLİ' : 'NORMAL'}
+                                      label={record.diffDays < 0 ? 'GECİKMİŞ' : record.diffDays <= 3 ? 'RİSKLİ' : 'NORMAL'}
                                       size="small"
-                                      color={diffDays < 0 ? 'error' : diffDays <= 3 ? 'warning' : 'success'}
+                                      color={record.diffDays < 0 ? 'error' : record.diffDays <= 3 ? 'warning' : 'success'}
                                       sx={{ 
                                         fontWeight: 600,
                                         fontSize: '0.7rem',
@@ -4010,9 +4036,9 @@ const DOF8DManagement: React.FC = () => {
                               </TableCell>
                               <TableCell align="center">
                                 <Chip 
-                                  label={status} 
+                                  label={record.status} 
                                   size="medium" 
-                                  color={statusColor}
+                                  color={record.statusColor}
                                   sx={{ 
                                     fontWeight: 600,
                                     minWidth: 80,
