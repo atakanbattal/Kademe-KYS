@@ -5213,11 +5213,20 @@ const DOF8DManagement: React.FC = () => {
                       fullWidth
                 label="Problemin Tanımı"
                       multiline
-                      rows={3}
+                      rows={dialogMode === 'view' ? 8 : 4}
                       value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       disabled={dialogMode === 'view'}
-                sx={{ mb: 2 }}
+                sx={{ 
+                  mb: 2,
+                  '& .MuiInputBase-root': {
+                    fontSize: dialogMode === 'view' ? '16px' : '14px',
+                    lineHeight: dialogMode === 'view' ? '1.6' : '1.4',
+                  },
+                  '& .MuiInputBase-input': {
+                    padding: dialogMode === 'view' ? '16px' : '14px',
+                  }
+                }}
                     />
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
                       <TextField
