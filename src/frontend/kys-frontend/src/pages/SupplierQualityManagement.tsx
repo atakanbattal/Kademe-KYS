@@ -281,7 +281,7 @@ const SupplierQualityManagement: React.FC = () => {
       const storedNonconformities = localStorage.getItem('supplier-nonconformities');
       const storedDefects = localStorage.getItem('supplier-defects');
       const storedPairs = localStorage.getItem('supplier-pairs');
-      const storedAudits = localStorage.getItem('supplier-audits'); // EKSİK OLAN AUDIT VERİLERİ!
+      const storedAudits = localStorage.getItem('supplier-audits');
       
       console.log('🔍 localStorage kontrol:', {
         suppliers: !!storedSuppliers,
@@ -289,60 +289,71 @@ const SupplierQualityManagement: React.FC = () => {
         nonconformities: !!storedNonconformities,
         defects: !!storedDefects,
         pairs: !!storedPairs,
-        audits: !!storedAudits // Audit veri kontrolü eklendi
+        audits: !!storedAudits
       });
+      
+      // Veri yükleme başarısızlık kontrolü
+      let hasAnyData = false;
       
       if (storedSuppliers && storedSuppliers !== 'null' && storedSuppliers !== '[]') {
         const parsedSuppliers = JSON.parse(storedSuppliers);
         if (parsedSuppliers.length > 0) {
           setSuppliers(parsedSuppliers);
+          hasAnyData = true;
           console.log('✅ Tedarikçi verileri localStorage\'dan yüklendi:', parsedSuppliers.length, 'kayıt');
-        } else {
-          console.log('⚠️ localStorage\'da tedarikçi verisi boş - mock veri YÜKLENMİYOR');
-          setSuppliers([]); // Boş array set et ama mock veri yükleme
         }
+      }
+      
+      if (storedNonconformities && storedNonconformities !== 'null' && storedNonconformities !== '[]') {
+        const parsedNonconformities = JSON.parse(storedNonconformities);
+        if (parsedNonconformities.length > 0) {
+          setNonconformities(parsedNonconformities);
+          hasAnyData = true;
+          console.log('✅ Uygunsuzluk verileri localStorage\'dan yüklendi:', parsedNonconformities.length, 'kayıt');
+        }
+      }
+      
+      if (storedDefects && storedDefects !== 'null' && storedDefects !== '[]') {
+        const parsedDefects = JSON.parse(storedDefects);
+        if (parsedDefects.length > 0) {
+          setDefects(parsedDefects);
+          hasAnyData = true;
+          console.log('✅ Hata verileri localStorage\'dan yüklendi:', parsedDefects.length, 'kayıt');
+        }
+      }
+      
+      if (storedPairs && storedPairs !== 'null' && storedPairs !== '[]') {
+        const parsedPairs = JSON.parse(storedPairs);
+        if (parsedPairs.length > 0) {
+          setSupplierPairs(parsedPairs);
+          hasAnyData = true;
+          console.log('✅ Eşleştirme verileri localStorage\'dan yüklendi:', parsedPairs.length, 'kayıt');
+        }
+      }
+      
+      if (storedAudits && storedAudits !== 'null' && storedAudits !== '[]') {
+        const parsedAudits = JSON.parse(storedAudits);
+        if (parsedAudits.length > 0) {
+          setAudits(parsedAudits);
+          hasAnyData = true;
+          console.log('✅ Denetim verileri localStorage\'dan yüklendi:', parsedAudits.length, 'kayıt');
+        }
+      }
+      
+      // Hiç veri yoksa mock veri yükle (ilk kullanım)
+      if (!hasAnyData) {
+        console.log('🎲 localStorage boş - İlk kullanım için mock veri yükleniyor...');
+        loadMockData();
       } else {
-        console.log('⚠️ localStorage\'da tedarikçi verisi yok - mock veri YÜKLENMİYOR');
-        setSuppliers([]); // Boş array set et ama mock veri yükleme
+        setDataLoaded(true);
+        console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı');
       }
       
-      if (storedNonconformities) {
-        setNonconformities(JSON.parse(storedNonconformities));
-        console.log('✅ Uygunsuzluk verileri localStorage\'dan yüklendi');
-      }
-      
-      if (storedDefects) {
-        setDefects(JSON.parse(storedDefects));
-        console.log('✅ Hata verileri localStorage\'dan yüklendi');
-      }
-      
-      if (storedPairs) {
-        setSupplierPairs(JSON.parse(storedPairs));
-        console.log('✅ Eşleştirme verileri localStorage\'dan yüklendi');
-      }
-      
-      // EKSİK OLAN AUDIT VERİLERİ YÜKLEME
-      if (storedAudits) {
-        setAudits(JSON.parse(storedAudits));
-        console.log('✅ Denetim verileri localStorage\'dan yüklendi');
-      } else {
-        console.log('⚠️ localStorage\'da denetim verisi yok - boş array set ediliyor');
-        setAudits([]); // Boş audit array
-      }
-      
-      // Veri yükleme tamamlandığını işaretle
-      setDataLoaded(true);
-      console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı - MOCK VERİ ASLA YÜKLENMİYOR');
     } catch (error) {
       console.error('❌ localStorage veri yükleme hatası:', error);
-      // HATA DURUMUNDA BİLE MOCK VERİ YÜKLEME - sadece boş state
-      setSuppliers([]);
-      setNonconformities([]);
-      setDefects([]);
-      setSupplierPairs([]);
-      setAudits([]); // Audit state'i de temizle
-      setDataLoaded(true);
-      console.log('🚨 Hata durumunda boş veri seti yüklendi - MOCK VERİ YÜKLENMEDİ');
+      // Hata durumunda mock veri yükle
+      console.log('🚨 Hata durumunda mock veri yükleniyor...');
+      loadMockData();
     }
   };
 
