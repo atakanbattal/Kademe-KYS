@@ -1,0 +1,21 @@
+[build]
+  base = "src/frontend/kys-frontend"
+  publish = "src/frontend/kys-frontend/build"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "9"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production.environment]
+  REACT_APP_API_URL = "$REACT_APP_API_URL"
+  REACT_APP_NODE_ENV = "production"
+
+[context.deploy-preview.environment]
+  REACT_APP_API_URL = "$REACT_APP_API_URL"
+  REACT_APP_NODE_ENV = "development" 
