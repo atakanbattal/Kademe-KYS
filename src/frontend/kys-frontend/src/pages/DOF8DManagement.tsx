@@ -2378,6 +2378,35 @@ const DOF8DManagement: React.FC = () => {
     return Math.round((completedSteps / stepKeys.length) * 100);
   }, []);
 
+  // ⚡ PERFORMANCE OPTIMIZED: Form Input Handlers
+  const handleFormFieldChange = useCallback((field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleNestedFieldChange = useCallback((parentField: string, childField: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [parentField]: {
+        ...prev[parentField],
+        [childField]: value
+      }
+    }));
+  }, []);
+
+  // ⚡ PERFORMANCE OPTIMIZED: 8D Step Update Handler
+  const handle8DStepChange = useCallback((stepNumber: number, value: string) => {
+    const stepKeys = ['team', 'problem', 'containment', 'rootCause', 'permanentAction', 'implementation', 'prevention', 'recognition'];
+    const stepKey = `d${stepNumber}_${stepKeys[stepNumber - 1]}`;
+    
+    setFormData(prev => ({
+      ...prev,
+      d8Steps: {
+        ...prev.d8Steps,
+        [stepKey]: value
+      }
+    }));
+  }, []);
+
   // ✅ 8D Accordion Toggle Fonksiyonu
   const toggle8DAccordion = useCallback((accordionKey: string) => {
     setD8AccordionStates(prev => ({
@@ -2400,13 +2429,29 @@ const DOF8DManagement: React.FC = () => {
     });
   }, []);
 
-  // Context7 - Update 8D Progress when steps change
+  // ⚡ PERFORMANCE OPTIMIZED: Debounced 8D Progress Update
+  const debouncedUpdateProgress = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (d8Steps: any, type: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          if (type === '8d' && d8Steps) {
+            const progress = calculate8DProgress(d8Steps);
+            setFormData(prev => ({ ...prev, d8Progress: progress }));
+          }
+        }, 500); // 500ms debounce to prevent excessive updates
+      };
+    })(),
+    [calculate8DProgress]
+  );
+
+  // ⚡ PERFORMANCE OPTIMIZED: Update 8D Progress when steps change (with debounce)
   useEffect(() => {
     if (formData.type === '8d' && formData.d8Steps) {
-      const progress = calculate8DProgress(formData.d8Steps);
-      setFormData(prev => ({ ...prev, d8Progress: progress }));
+      debouncedUpdateProgress(formData.d8Steps, formData.type);
     }
-  }, [formData.d8Steps, formData.type, calculate8DProgress]);
+  }, [formData.d8Steps, formData.type, debouncedUpdateProgress]);
 
   // Context7 - Auto-open 8D accordions when type changes to 8D
   useEffect(() => {
@@ -5205,7 +5250,7 @@ const DOF8DManagement: React.FC = () => {
                       fullWidth
                       label="Başlık"
                       value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e) => handleFormFieldChange('title', e.target.value)}
                       disabled={dialogMode === 'view'}
                 sx={{ mb: 2 }}
                     />
@@ -5215,7 +5260,7 @@ const DOF8DManagement: React.FC = () => {
                       multiline
                       rows={dialogMode === 'view' ? 8 : 4}
                       value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => handleFormFieldChange('description', e.target.value)}
                       disabled={dialogMode === 'view'}
                 sx={{ 
                   mb: 2,
@@ -5233,7 +5278,7 @@ const DOF8DManagement: React.FC = () => {
                   fullWidth
                   label="Sorumlu Kişi"
                         value={formData.responsible}
-                  onChange={(e) => setFormData(prev => ({ ...prev, responsible: e.target.value }))}
+                  onChange={(e) => handleFormFieldChange('responsible', e.target.value)}
                         disabled={dialogMode === 'view'}
                       />
                     <TextField
@@ -5241,7 +5286,7 @@ const DOF8DManagement: React.FC = () => {
                   label="Hedef Kapanış Tarihi"
                       type="date"
                       value={formData.dueDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                  onChange={(e) => handleFormFieldChange('dueDate', e.target.value)}
                       disabled={dialogMode === 'view'}
                       InputLabelProps={{ shrink: true }}
                     />
@@ -5524,16 +5569,7 @@ const DOF8DManagement: React.FC = () => {
                       disabled={dialogMode === 'view'}
                         variant="outlined"
                           value={formData.d8Steps?.[`d${step.step}_${['team', 'problem', 'containment', 'rootCause', 'permanentAction', 'implementation', 'prevention', 'recognition'][step.step - 1]}`] || ''}
-                          onChange={(e) => {
-                            const stepKey = `d${step.step}_${['team', 'problem', 'containment', 'rootCause', 'permanentAction', 'implementation', 'prevention', 'recognition'][step.step - 1]}`;
-                            setFormData(prev => ({
-                              ...prev,
-                              d8Steps: {
-                                ...prev.d8Steps,
-                                [stepKey]: e.target.value
-                              }
-                            }));
-                          }}
+                          onChange={(e) => handle8DStepChange(step.step, e.target.value)}
                           sx={{ 
                             '& .MuiOutlinedInput-root': {
                               bgcolor: 'background.default'
@@ -5684,7 +5720,7 @@ const DOF8DManagement: React.FC = () => {
                     return null;
                   })()}
 
-                  {/* Özel Kök Neden Girişi */}
+                  {/* ⚡ PERFORMANCE OPTIMIZED: Özel Kök Neden Girişi */}
                   <TextField
                     fullWidth
                     label="Özel Kök Neden (İsteğe Bağlı)"
@@ -5695,24 +5731,19 @@ const DOF8DManagement: React.FC = () => {
                       const inputValue = e.target.value;
                       setFormData(prev => ({ ...prev, rootCause: inputValue }));
                       
-                      // Akıllı öneriler göster
+                      // ⚡ PERFORMANCE: Removed real-time suggestions to prevent lag
+                      // Akıllı öneriler sadece blur event'inde çalışsın
+                    }}
+                    onBlur={(e) => {
+                      // Akıllı öneriler sadece focus kaybında çalış
+                      const inputValue = e.target.value;
                       if (inputValue.length > 2) {
                         const suggestions = getRootCauseSuggestions(inputValue);
                         console.log('Kök Neden Önerileri:', suggestions);
                       }
                     }}
                     placeholder="Örn: Operatör eğitim eksikliği, makine bakım problemi, prosedür güncel değil..."
-                    helperText={(() => {
-                      if (formData.rootCause && formData.rootCause.length > 2) {
-                        const match = findBestRootCauseCategory(formData.rootCause);
-                        if (match.confidence > 50) {
-                          return `Kategori: ${match.category} (${Math.round(match.confidence)}% eşleşme)`;
-                        } else if (match.confidence > 20) {
-                          return `Benzer kategori: ${match.category} (${Math.round(match.confidence)}% eşleşme)`;
-                        }
-                      }
-                      return "5 Neden-Niçin tekniği kullanarak kök nedeni detaylandırın";
-                    })()}
+                    helperText="5 Neden-Niçin tekniği kullanarak kök nedeni detaylandırın"
                   />
 
                   {/* Akıllı Öneriler */}
