@@ -5,7 +5,8 @@ import {
   DialogActions, Chip, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, Tabs, Tab, Avatar, Grid, IconButton, Tooltip, Alert, Snackbar,
   List, ListItem, ListItemText, ListItemIcon, Switch, FormControlLabel,
-  Accordion, AccordionSummary, AccordionDetails, Badge, Divider, Checkbox
+  Accordion, AccordionSummary, AccordionDetails, Badge, Divider, Checkbox,
+  CircularProgress
 } from '@mui/material';
 import {
   Business as BusinessIcon, Add as AddIcon, Dashboard as DashboardIcon,
@@ -14,7 +15,7 @@ import {
   BugReport as BugReportIcon, Report as ReportIcon, CheckCircle as CheckCircleIcon,
   SwapHoriz as SwapHorizIcon, Visibility as ViewIcon, ExpandMore as ExpandMoreIcon,
   TrendingUp as TrendingUpIcon, Security as SecurityIcon, Star as StarIcon,
-  Search as SearchIcon
+  Search as SearchIcon, Error as ErrorIcon
 } from '@mui/icons-material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
@@ -159,6 +160,54 @@ const SUPPLY_SUBCATEGORIES = {
   ]
 };
 
+// Error Boundary Component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('🚨 SupplierQualityManagement Error Boundary yakaladı:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Box p={3}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Tedarikçi Kalite Yönetimi Modülü Hatası
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              {this.state.error?.message || 'Bilinmeyen bir hata oluştu'}
+            </Typography>
+            <Button 
+              variant="contained" 
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.reload();
+              }}
+              sx={{ mt: 2 }}
+            >
+              Sayfayı Yenile
+            </Button>
+          </Alert>
+        </Box>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const SupplierQualityManagement: React.FC = () => {
   // State Management
   const [currentTab, setCurrentTab] = useState(0);
@@ -196,6 +245,7 @@ const SupplierQualityManagement: React.FC = () => {
 
   // Load initial data
   const [dataLoaded, setDataLoaded] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   // localStorage Protection System - Component mount/unmount koruma
   useEffect(() => {
@@ -346,6 +396,7 @@ const SupplierQualityManagement: React.FC = () => {
         loadMockData();
       } else {
         setDataLoaded(true);
+        setIsLoading(false);
         console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı');
       }
       
@@ -354,6 +405,8 @@ const SupplierQualityManagement: React.FC = () => {
       // Hata durumunda mock veri yükle
       console.log('🚨 Hata durumunda mock veri yükleniyor...');
       loadMockData();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -646,6 +699,7 @@ const SupplierQualityManagement: React.FC = () => {
     
     // Veri yükleme tamamlandığını işaretle
     setDataLoaded(true);
+    setIsLoading(false);
     console.log('🎯 Mock tedarikçi verileri yüklendi ve dataLoaded true oldu');
     
     // Auto-audit check
@@ -2803,7 +2857,25 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   );
 
   // Nonconformity Management Component
-  const renderNonconformityManagement = () => (
+  const renderNonconformityManagement = () => {
+    console.log('🔍 renderNonconformityManagement çağrıldı');
+    console.log('Nonconformities data:', nonconformities);
+    console.log('Suppliers data:', suppliers);
+    console.log('dataLoaded:', dataLoaded);
+    console.log('isLoading:', isLoading);
+    
+    if (!dataLoaded) {
+      return (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+          <CircularProgress />
+          <Typography variant="body2" sx={{ ml: 2 }}>
+            Uygunsuzluk verileri yükleniyor...
+          </Typography>
+        </Box>
+      );
+    }
+    
+    return (
     <Box>
       <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
         <Button variant="contained" startIcon={<BugReportIcon />} onClick={handleCreateNonconformity}>
@@ -3030,7 +3102,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Table>
       </TableContainer>
     </Box>
-  );
+    );
+  };
 
   // Defect Tracking Component
   const renderDefectTracking = () => (
@@ -3741,916 +3814,982 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     );
   };
 
-  return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
-        <Box display="flex" gap={2} alignItems="center">
-          <FormControlLabel
-            control={
-              <Switch
-                checked={autoAuditEnabled}
-                onChange={(e) => setAutoAuditEnabled(e.target.checked)}
-                color="primary"
-              />
-            }
-            label="Otomatik Denetim"
-          />
-          <Button
-            variant="outlined"
-            startIcon={<AssessmentIcon />}
-            onClick={() => {
-              console.log('🔄 Manuel performans güncelleme başlatıldı...');
-              console.log('Mevcut tedarikçi sayısı:', suppliers.length);
-              console.log('Mevcut uygunsuzluk sayısı:', nonconformities.length);
-              console.log('Mevcut hata sayısı:', defects.length);
-              updateSupplierPerformances();
-              showSnackbar('Performanslar güncellendi', 'success');
-            }}
-            color="info"
-          >
-            Performans Yenile
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateSupplier}
-          >
-            Yeni Tedarikçi
-          </Button>
+  // Loading durumunda gösterilecek içerik
+  if (isLoading) {
+    return (
+      <ErrorBoundary>
+        <Box 
+          display="flex" 
+          flexDirection="column" 
+          justifyContent="center" 
+          alignItems="center" 
+          minHeight="60vh"
+          p={3}
+        >
+          <CircularProgress size={60} sx={{ mb: 3 }} />
+          <Typography variant="h6" gutterBottom>
+            Tedarikçi Kalite Yönetimi Yükleniyor...
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Veriler hazırlanıyor, lütfen bekleyin
+          </Typography>
         </Box>
-      </Box>
+      </ErrorBoundary>
+    );
+  }
 
-      <Paper sx={{ width: '100%', mb: 2 }}>
-        <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
-          <Tab icon={<DashboardIcon />} label="Dashboard" />
-          <Tab icon={<LinkIcon />} label="Onaylı/Alternatif Eşleştirme" />
-          <Tab icon={<BusinessIcon />} label="Tedarikçi Listesi" />
-          <Tab icon={<ScheduleIcon />} label="Denetim Takibi" />
-          <Tab icon={<BugReportIcon />} label="Uygunsuzluk Yönetimi" />
-          <Tab icon={<WarningIcon />} label="Hata Takibi" />
-          <Tab icon={<AssessmentIcon />} label="Performans Analizi" />
-        </Tabs>
-      </Paper>
+  return (
+    <ErrorBoundary>
+      <Box p={3}>
+        <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
+          <Box display="flex" gap={2} alignItems="center">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={autoAuditEnabled}
+                  onChange={(e) => setAutoAuditEnabled(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Otomatik Denetim"
+            />
+            <Button
+              variant="outlined"
+              startIcon={<AssessmentIcon />}
+              onClick={() => {
+                console.log('🔄 Manuel performans güncelleme başlatıldı...');
+                console.log('Mevcut tedarikçi sayısı:', suppliers.length);
+                console.log('Mevcut uygunsuzluk sayısı:', nonconformities.length);
+                console.log('Mevcut hata sayısı:', defects.length);
+                updateSupplierPerformances();
+                showSnackbar('Performanslar güncellendi', 'success');
+              }}
+              color="info"
+            >
+              Performans Yenile
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreateSupplier}
+            >
+              Yeni Tedarikçi
+            </Button>
+          </Box>
+        </Box>
 
-      <Box>
-        {currentTab === 0 && renderDashboard()}
-        {currentTab === 1 && renderSupplierPairing()}
-        {currentTab === 2 && renderSupplierList()}
-        {currentTab === 3 && renderAuditTracking()}
-        {currentTab === 4 && renderNonconformityManagement()}
-        {currentTab === 5 && renderDefectTracking()}
-        {currentTab === 6 && renderPerformanceAnalysis()}
-      </Box>
+        <Paper sx={{ width: '100%', mb: 2 }}>
+          <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
+            <Tab icon={<DashboardIcon />} label="Dashboard" />
+            <Tab icon={<LinkIcon />} label="Onaylı/Alternatif Eşleştirme" />
+            <Tab icon={<BusinessIcon />} label="Tedarikçi Listesi" />
+            <Tab icon={<ScheduleIcon />} label="Denetim Takibi" />
+            <Tab icon={<BugReportIcon />} label="Uygunsuzluk Yönetimi" />
+            <Tab icon={<WarningIcon />} label="Hata Takibi" />
+            <Tab icon={<AssessmentIcon />} label="Performans Analizi" />
+          </Tabs>
+        </Paper>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+                 <Box>
+           {(() => {
+             try {
+               switch (currentTab) {
+                 case 0:
+                   return renderDashboard();
+                 case 1:
+                   return renderSupplierPairing();
+                 case 2:
+                   return renderSupplierList();
+                 case 3:
+                   return renderAuditTracking();
+                 case 4:
+                   console.log('🎯 Uygunsuzluk Yönetimi tab\'ı render ediliyor...');
+                   return renderNonconformityManagement();
+                 case 5:
+                   return renderDefectTracking();
+                 case 6:
+                   return renderPerformanceAnalysis();
+                 default:
+                   return renderDashboard();
+               }
+             } catch (error) {
+               console.error('❌ Tab render hatası:', error);
+               return (
+                 <Box p={3}>
+                   <Alert severity="error">
+                     <Typography variant="h6" gutterBottom>
+                       Sekme Yükleme Hatası
+                     </Typography>
+                     <Typography variant="body2" gutterBottom>
+                       {error instanceof Error ? error.message : 'Bilinmeyen bir hata oluştu'}
+                     </Typography>
+                     <Button 
+                       variant="contained" 
+                       onClick={() => {
+                         setCurrentTab(0);
+                         window.location.reload();
+                       }}
+                       sx={{ mt: 2 }}
+                     >
+                       Ana Sayfaya Dön
+                     </Button>
+                   </Alert>
+                 </Box>
+               );
+             }
+           })()}
+         </Box>
 
-      {/* Universal Dialog for all operations */}
-      <Dialog 
-        open={dialogOpen} 
-        onClose={() => setDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {dialogType === 'supplier' && (selectedItem ? 'Tedarikçi Düzenle' : 'Yeni Tedarikçi Ekle')}
-          {dialogType === 'pair' && (selectedItem ? 'Eşleştirme Düzenle' : 'Yeni Eşleştirme Oluştur')}
-          {dialogType === 'nonconformity' && (selectedItem ? 'Uygunsuzluk Düzenle' : 'Yeni Uygunsuzluk Kaydet')}
-          {dialogType === 'defect' && (selectedItem ? 'Hata Düzenle' : 'Yeni Hata Kaydet')}
-          {dialogType === 'audit' && (selectedItem ? 'Denetim Düzenle' : 'Yeni Denetim Planla')}
-        </DialogTitle>
-        
-        <DialogContent>
-          {dialogType === 'supplier' && (
-            <Box component="form" sx={{ mt: 2 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Tedarikçi Adı"
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Tedarikçi Kodu"
-                    value={formData.code || ''}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Tür</InputLabel>
-                    <Select
-                      value={formData.type || 'onaylı'}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    >
-                      <MenuItem value="onaylı">Onaylı</MenuItem>
-                      <MenuItem value="alternatif">Alternatif</MenuItem>
-                      <MenuItem value="potansiyel">Potansiyel</MenuItem>
-                      <MenuItem value="bloklu">Bloklu</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Kategori</InputLabel>
-                    <Select
-                      value={formData.category || 'genel'}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    >
-                      <MenuItem value="stratejik">Stratejik</MenuItem>
-                      <MenuItem value="kritik">Kritik</MenuItem>
-                      <MenuItem value="rutin">Rutin</MenuItem>
-                      <MenuItem value="genel">Genel</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                
-                {/* Yeni Tedarik Türü Alanları */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Tedarik Türü</InputLabel>
-                    <Select
-                      value={formData.supplyType || 'malzeme'}
-                      onChange={(e) => {
-                        const newSupplyType = e.target.value as 'malzeme' | 'hizmet' | 'hibrit';
-                        setFormData({ 
+        {/* Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+
+        {/* Universal Dialog for all operations */}
+        <Dialog 
+          open={dialogOpen} 
+          onClose={() => setDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            {dialogType === 'supplier' && (selectedItem ? 'Tedarikçi Düzenle' : 'Yeni Tedarikçi Ekle')}
+            {dialogType === 'pair' && (selectedItem ? 'Eşleştirme Düzenle' : 'Yeni Eşleştirme Oluştur')}
+            {dialogType === 'nonconformity' && (selectedItem ? 'Uygunsuzluk Düzenle' : 'Yeni Uygunsuzluk Kaydet')}
+            {dialogType === 'defect' && (selectedItem ? 'Hata Düzenle' : 'Yeni Hata Kaydet')}
+            {dialogType === 'audit' && (selectedItem ? 'Denetim Düzenle' : 'Yeni Denetim Planla')}
+          </DialogTitle>
+          
+          <DialogContent>
+            {dialogType === 'supplier' && (
+              <Box component="form" sx={{ mt: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Tedarikçi Adı"
+                      value={formData.name || ''}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Tedarikçi Kodu"
+                      value={formData.code || ''}
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                      required
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Tür</InputLabel>
+                      <Select
+                        value={formData.type || 'onaylı'}
+                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      >
+                        <MenuItem value="onaylı">Onaylı</MenuItem>
+                        <MenuItem value="alternatif">Alternatif</MenuItem>
+                        <MenuItem value="potansiyel">Potansiyel</MenuItem>
+                        <MenuItem value="bloklu">Bloklu</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Kategori</InputLabel>
+                      <Select
+                        value={formData.category || 'genel'}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      >
+                        <MenuItem value="stratejik">Stratejik</MenuItem>
+                        <MenuItem value="kritik">Kritik</MenuItem>
+                        <MenuItem value="rutin">Rutin</MenuItem>
+                        <MenuItem value="genel">Genel</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  
+                  {/* Yeni Tedarik Türü Alanları */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Tedarik Türü</InputLabel>
+                      <Select
+                        value={formData.supplyType || 'malzeme'}
+                        onChange={(e) => {
+                          const newSupplyType = e.target.value as 'malzeme' | 'hizmet' | 'hibrit';
+                          setFormData({ 
+                            ...formData, 
+                            supplyType: newSupplyType,
+                            supplySubcategories: [] // Reset subcategories when type changes
+                          });
+                        }}
+                      >
+                        <MenuItem value="malzeme">Malzeme Tedarikçisi</MenuItem>
+                        <MenuItem value="hizmet">Hizmet Sağlayıcısı</MenuItem>
+                        <MenuItem value="hibrit">Hibrit (Malzeme + Hizmet)</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  
+                  <Grid item xs={12}>
+                    <FormControl fullWidth>
+                      <InputLabel>Alt Kategoriler</InputLabel>
+                      <Select
+                        multiple
+                        value={formData.supplySubcategories || []}
+                        onChange={(e) => setFormData({ 
                           ...formData, 
-                          supplyType: newSupplyType,
-                          supplySubcategories: [] // Reset subcategories when type changes
-                        });
-                      }}
-                    >
-                      <MenuItem value="malzeme">Malzeme Tedarikçisi</MenuItem>
-                      <MenuItem value="hizmet">Hizmet Sağlayıcısı</MenuItem>
-                      <MenuItem value="hibrit">Hibrit (Malzeme + Hizmet)</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel>Alt Kategoriler</InputLabel>
-                    <Select
-                      multiple
-                      value={formData.supplySubcategories || []}
+                          supplySubcategories: e.target.value as string[]
+                        })}
+                        renderValue={(selected) => (
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            {(selected as string[]).map((value) => (
+                              <Chip key={value} label={value} size="small" />
+                            ))}
+                          </Box>
+                        )}
+                      >
+                        {formData.supplyType && SUPPLY_SUBCATEGORIES[formData.supplyType as keyof typeof SUPPLY_SUBCATEGORIES]?.map((subcategory) => (
+                          <MenuItem key={subcategory} value={subcategory}>
+                            {subcategory}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="İletişim Kişisi"
+                      value={formData.contact?.contactPerson || ''}
                       onChange={(e) => setFormData({ 
                         ...formData, 
-                        supplySubcategories: e.target.value as string[]
+                        contact: { ...formData.contact, contactPerson: e.target.value }
                       })}
-                      renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {(selected as string[]).map((value) => (
-                            <Chip key={value} label={value} size="small" />
-                          ))}
-                        </Box>
-                      )}
-                    >
-                      {formData.supplyType && SUPPLY_SUBCATEGORIES[formData.supplyType as keyof typeof SUPPLY_SUBCATEGORIES]?.map((subcategory) => (
-                        <MenuItem key={subcategory} value={subcategory}>
-                          {subcategory}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="İletişim Kişisi"
-                    value={formData.contact?.contactPerson || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      contact: { ...formData.contact, contactPerson: e.target.value }
-                    })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="E-posta"
-                    type="email"
-                    value={formData.contact?.email || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      contact: { ...formData.contact, email: e.target.value }
-                    })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Telefon"
-                    value={formData.contact?.phone || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      contact: { ...formData.contact, phone: e.target.value }
-                    })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Adres"
-                    value={formData.contact?.address || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      contact: { ...formData.contact, address: e.target.value }
-                    })}
-                  />
-                </Grid>
-                
-                {/* Performans Skorları */}
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Performans Skorları</Typography>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Genel Performans Skoru"
-                    type="number"
-                    value={formData.performanceScore || 85}
-                    onChange={(e) => setFormData({ ...formData, performanceScore: Number(e.target.value) })}
-                    InputProps={{
-                      endAdornment: <Typography variant="caption" color="text.secondary">/100</Typography>
-                    }}
-                    inputProps={{ min: 0, max: 100 }}
-                    helperText="0-100 arası değer"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Kalite Skoru"
-                    type="number"
-                    value={formData.qualityScore || 88}
-                    onChange={(e) => setFormData({ ...formData, qualityScore: Number(e.target.value) })}
-                    InputProps={{
-                      endAdornment: <Typography variant="caption" color="text.secondary">/100</Typography>
-                    }}
-                    inputProps={{ min: 0, max: 100 }}
-                    helperText="0-100 arası değer"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Teslimat Skoru"
-                    type="number"
-                    value={formData.deliveryScore || 90}
-                    onChange={(e) => setFormData({ ...formData, deliveryScore: Number(e.target.value) })}
-                    InputProps={{
-                      endAdornment: <Typography variant="caption" color="text.secondary">/100</Typography>
-                    }}
-                    inputProps={{ min: 0, max: 100 }}
-                    helperText="0-100 arası değer"
-                  />
-                </Grid>
-                
-                {/* Risk Seviyesi ve Durum */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Risk Seviyesi</InputLabel>
-                    <Select
-                      value={formData.riskLevel || 'düşük'}
-                      onChange={(e) => setFormData({ ...formData, riskLevel: e.target.value })}
-                    >
-                      <MenuItem value="düşük">Düşük Risk</MenuItem>
-                      <MenuItem value="orta">Orta Risk</MenuItem>
-                      <MenuItem value="yüksek">Yüksek Risk</MenuItem>
-                      <MenuItem value="kritik">Kritik Risk</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Durum</InputLabel>
-                    <Select
-                      value={formData.status || 'aktif'}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    >
-                      <MenuItem value="aktif">Aktif</MenuItem>
-                      <MenuItem value="pasif">Pasif</MenuItem>
-                      <MenuItem value="denetimde">Denetimde</MenuItem>
-                      <MenuItem value="bloklu">Bloklu</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-
-          {dialogType === 'nonconformity' && (
-            <Box component="form" sx={{ mt: 2 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel>Tedarikçi</InputLabel>
-                    <Select
-                      value={formData.supplierId || ''}
-                      onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                    >
-                      {suppliers.map(supplier => (
-                        <MenuItem key={supplier.id} value={supplier.id}>
-                          {supplier.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Uygunsuzluk Başlığı"
-                    value={formData.title || ''}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                  />
-                </Grid>
-                
-                {/* Zorunlu Parça Kodu */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Parça Kodu"
-                    value={formData.partCode || ''}
-                    onChange={(e) => setFormData({ ...formData, partCode: e.target.value })}
-                    required
-                    helperText="Bu alan zorunludur"
-                    error={!formData.partCode}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Uygunsuzluk Kategorisi</InputLabel>
-                    <Select
-                      value={formData.category || 'kalite'}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    >
-                      <MenuItem value="kalite">Kalite Problemi</MenuItem>
-                      <MenuItem value="teslimat">Teslimat Problemi</MenuItem>
-                      <MenuItem value="doküman">Doküman Problemi</MenuItem>
-                      <MenuItem value="servis">Servis Problemi</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                
-                {/* Dinamik Alanlar - Kategori Bazında */}
-                {formData.category === 'kalite' && (
+                    />
+                  </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Etkilenen Parça Adedi"
-                      type="number"
-                      value={formData.quantityAffected || ''}
-                      onChange={(e) => setFormData({ ...formData, quantityAffected: Number(e.target.value) })}
-                      InputProps={{
-                        endAdornment: <Typography variant="caption" color="text.secondary">adet</Typography>
-                      }}
-                      helperText="Kalite probleminden etkilenen parça sayısı"
+                      label="E-posta"
+                      type="email"
+                      value={formData.contact?.email || ''}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        contact: { ...formData.contact, email: e.target.value }
+                      })}
                     />
                   </Grid>
-                )}
-                
-                {formData.category === 'teslimat' && (
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
-                      label="Gecikme Süresi"
-                      type="number"
-                      value={formData.delayDays || ''}
-                      onChange={(e) => setFormData({ ...formData, delayDays: Number(e.target.value) })}
-                      InputProps={{
-                        endAdornment: <Typography variant="caption" color="text.secondary">gün</Typography>
-                      }}
-                      helperText="Teslimat gecikmesi (gün olarak)"
+                      label="Telefon"
+                      value={formData.contact?.phone || ''}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        contact: { ...formData.contact, phone: e.target.value }
+                      })}
                     />
                   </Grid>
-                )}
-                
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Uygunsuzluk Açıklaması"
-                    multiline
-                    rows={3}
-                    value={formData.description || ''}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    required
-                    helperText="Uygunsuzluğun detaylı açıklaması"
-                  />
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Adres"
+                      value={formData.contact?.address || ''}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        contact: { ...formData.contact, address: e.target.value }
+                      })}
+                    />
+                  </Grid>
+                  
+                  {/* Performans Skorları */}
+                  <Grid item xs={12}>
+                    <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Performans Skorları</Typography>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Genel Performans Skoru"
+                      type="number"
+                      value={formData.performanceScore || 85}
+                      onChange={(e) => setFormData({ ...formData, performanceScore: Number(e.target.value) })}
+                      InputProps={{
+                        endAdornment: <Typography variant="caption" color="text.secondary">/100</Typography>
+                      }}
+                      inputProps={{ min: 0, max: 100 }}
+                      helperText="0-100 arası değer"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Kalite Skoru"
+                      type="number"
+                      value={formData.qualityScore || 88}
+                      onChange={(e) => setFormData({ ...formData, qualityScore: Number(e.target.value) })}
+                      InputProps={{
+                        endAdornment: <Typography variant="caption" color="text.secondary">/100</Typography>
+                      }}
+                      inputProps={{ min: 0, max: 100 }}
+                      helperText="0-100 arası değer"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Teslimat Skoru"
+                      type="number"
+                      value={formData.deliveryScore || 90}
+                      onChange={(e) => setFormData({ ...formData, deliveryScore: Number(e.target.value) })}
+                      InputProps={{
+                        endAdornment: <Typography variant="caption" color="text.secondary">/100</Typography>
+                      }}
+                      inputProps={{ min: 0, max: 100 }}
+                      helperText="0-100 arası değer"
+                    />
+                  </Grid>
+                  
+                  {/* Risk Seviyesi ve Durum */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Risk Seviyesi</InputLabel>
+                      <Select
+                        value={formData.riskLevel || 'düşük'}
+                        onChange={(e) => setFormData({ ...formData, riskLevel: e.target.value })}
+                      >
+                        <MenuItem value="düşük">Düşük Risk</MenuItem>
+                        <MenuItem value="orta">Orta Risk</MenuItem>
+                        <MenuItem value="yüksek">Yüksek Risk</MenuItem>
+                        <MenuItem value="kritik">Kritik Risk</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Durum</InputLabel>
+                      <Select
+                        value={formData.status || 'aktif'}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      >
+                        <MenuItem value="aktif">Aktif</MenuItem>
+                        <MenuItem value="pasif">Pasif</MenuItem>
+                        <MenuItem value="denetimde">Denetimde</MenuItem>
+                        <MenuItem value="bloklu">Bloklu</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Önem Derecesi</InputLabel>
-                    <Select
-                      value={formData.severity || 'düşük'}
-                      onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                    >
-                      <MenuItem value="kritik">Kritik</MenuItem>
-                      <MenuItem value="yüksek">Yüksek</MenuItem>
-                      <MenuItem value="orta">Orta</MenuItem>
-                      <MenuItem value="düşük">Düşük</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Tespit Tarihi"
-                    type="date"
-                    value={formData.detectedDate || new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setFormData({ ...formData, detectedDate: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Hedef Tamamlanma Tarihi"
-                    type="date"
-                    value={formData.dueDate || ''}
-                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Uygunsuzluğun giderilmesi gereken tarih"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Düzeltme Maliyeti (₺)"
-                    type="number"
-                    value={formData.correctionCost || 0}
-                    onChange={(e) => setFormData({ ...formData, correctionCost: Number(e.target.value) })}
-                    InputProps={{
-                      startAdornment: <Typography variant="caption" color="text.secondary">₺</Typography>
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Durum</InputLabel>
-                    <Select
-                      value={formData.status || 'açık'}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    >
-                      <MenuItem value="açık">Açık</MenuItem>
-                      <MenuItem value="araştırılıyor">Araştırılıyor</MenuItem>
-                      <MenuItem value="düzeltiliyor">Düzeltiliyor</MenuItem>
-                      <MenuItem value="kapalı">Kapalı</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-
-          {dialogType === 'defect' && (
-            <Box component="form" sx={{ mt: 2 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel>Tedarikçi</InputLabel>
-                    <Select
-                      value={formData.supplierId || ''}
-                      onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                    >
-                      {suppliers.map(supplier => (
-                        <MenuItem key={supplier.id} value={supplier.id}>
-                          {supplier.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Hata Türü"
-                    value={formData.defectType || ''}
-                    onChange={(e) => setFormData({ ...formData, defectType: e.target.value })}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Parti Numarası"
-                    value={formData.batchNumber || ''}
-                    onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Açıklama"
-                    multiline
-                    rows={3}
-                    value={formData.description || ''}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Miktar"
-                    type="number"
-                    value={formData.quantity || 0}
-                    onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControl fullWidth>
-                    <InputLabel>Önem Derecesi</InputLabel>
-                    <Select
-                      value={formData.severity || 'minor'}
-                      onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                    >
-                      <MenuItem value="kritik">Kritik</MenuItem>
-                      <MenuItem value="major">Major</MenuItem>
-                      <MenuItem value="minor">Minor</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Düzeltme Maliyeti (₺)"
-                    type="number"
-                    value={formData.correctionCost || 0}
-                    onChange={(e) => setFormData({ ...formData, correctionCost: Number(e.target.value) })}
-                  />
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-
-          {dialogType === 'pair' && (
-            <Box component="form" sx={{ mt: 2 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Typography variant="h6" gutterBottom color="primary">
-                    Tedarikçi Eşleştirme Bilgileri
-                  </Typography>
-                </Grid>
-                
-                {/* Ana Tedarikçi Seçimi */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Ana Tedarikçi</InputLabel>
-                    <Select
-                      value={formData.primarySupplierId || ''}
-                      onChange={(e) => setFormData({ ...formData, primarySupplierId: e.target.value })}
-                    >
-                      {suppliers.filter(s => s.type === 'onaylı').map(supplier => (
-                        <MenuItem key={supplier.id} value={supplier.id}>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <CheckCircleIcon color="success" fontSize="small" />
-                            {supplier.name} ({supplier.code})
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Alternatif Tedarikçi Seçimi */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Alternatif Tedarikçi</InputLabel>
-                    <Select
-                      value={formData.alternativeSupplierId || ''}
-                      onChange={(e) => setFormData({ ...formData, alternativeSupplierId: e.target.value })}
-                    >
-                      {suppliers.filter(s => s.type === 'alternatif' || s.type === 'onaylı').map(supplier => (
-                        <MenuItem key={supplier.id} value={supplier.id}>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <SwapHorizIcon color="warning" fontSize="small" />
-                            {supplier.name} ({supplier.code})
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Malzeme Türü */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Malzeme Türü</InputLabel>
-                    <Select
-                      value={formData.materialType || ''}
-                      onChange={(e) => setFormData({ ...formData, materialType: e.target.value })}
-                    >
-                      <MenuItem value="çelik">Çelik</MenuItem>
-                      <MenuItem value="alüminyum">Alüminyum</MenuItem>
-                      <MenuItem value="paslanmaz">Paslanmaz Çelik</MenuItem>
-                      <MenuItem value="döküm">Döküm</MenuItem>
-                      <MenuItem value="plastik">Plastik</MenuItem>
-                      <MenuItem value="elektronik">Elektronik</MenuItem>
-                      <MenuItem value="kauçuk">Kauçuk</MenuItem>
-                      <MenuItem value="diğer">Diğer</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Kategori */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Kategori</InputLabel>
-                    <Select
-                      value={formData.category || ''}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    >
-                      <MenuItem value="stratejik">Stratejik</MenuItem>
-                      <MenuItem value="kritik">Kritik</MenuItem>
-                      <MenuItem value="rutin">Rutin</MenuItem>
-                      <MenuItem value="genel">Genel</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Eşleştirme Nedeni */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Eşleştirme Nedeni"
-                    multiline
-                    rows={3}
-                    value={formData.reason || ''}
-                    onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                    placeholder="Bu eşleştirmenin nedenini açıklayın (örn: Risk azaltma, yedek tedarik, maliyet optimizasyonu)"
-                    helperText="Eşleştirmenin amacını ve gerekçesini belirtin"
-                  />
-                </Grid>
-
-                {/* Önerilen İnceleme Tarihi */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="İlk İnceleme Tarihi"
-                    type="date"
-                    value={formData.firstReviewDate || new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setFormData({ ...formData, firstReviewDate: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Eşleştirmenin ne zaman gözden geçirileceği"
-                  />
-                </Grid>
-
-                {/* İnceleme Periyodu */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>İnceleme Periyodu</InputLabel>
-                    <Select
-                      value={formData.reviewPeriod || '3'}
-                      onChange={(e) => setFormData({ ...formData, reviewPeriod: e.target.value })}
-                    >
-                      <MenuItem value="1">1 Ay</MenuItem>
-                      <MenuItem value="3">3 Ay</MenuItem>
-                      <MenuItem value="6">6 Ay</MenuItem>
-                      <MenuItem value="12">12 Ay</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Ek Notlar */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Ek Notlar"
-                    multiline
-                    rows={2}
-                    value={formData.notes || ''}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Varsa ek bilgiler ve özel durumlar"
-                  />
-                </Grid>
-
-                {/* Risk Değerlendirmesi */}
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" gutterBottom color="text.secondary">
-                    Risk Değerlendirmesi
-                  </Typography>
-                  <FormControl fullWidth>
-                    <InputLabel>Risk Seviyesi</InputLabel>
-                    <Select
-                      value={formData.riskLevel || 'düşük'}
-                      onChange={(e) => setFormData({ ...formData, riskLevel: e.target.value })}
-                    >
-                      <MenuItem value="düşük">
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Box width={12} height={12} bgcolor="success.main" borderRadius="50%" />
-                          Düşük Risk
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="orta">
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Box width={12} height={12} bgcolor="warning.main" borderRadius="50%" />
-                          Orta Risk
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="yüksek">
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Box width={12} height={12} bgcolor="error.main" borderRadius="50%" />
-                          Yüksek Risk
-                        </Box>
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-
-          {dialogType === 'audit' && (
-            <Box component="form" sx={{ mt: 2 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Typography variant="h6" gutterBottom color="primary">
-                    Denetim Planlama
-                  </Typography>
-                </Grid>
-                
-                {/* Tedarikçi Seçimi */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Tedarikçi</InputLabel>
-                    <Select
-                      value={formData.supplierId || ''}
-                      onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                    >
-                      {suppliers.map(supplier => (
-                        <MenuItem key={supplier.id} value={supplier.id}>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <BusinessIcon fontSize="small" />
-                            {supplier.name} - {supplier.riskLevel} risk
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Denetim Türü */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Denetim Türü</InputLabel>
-                    <Select
-                      value={formData.auditType || 'planlı'}
-                      onChange={(e) => setFormData({ ...formData, auditType: e.target.value })}
-                    >
-                      <MenuItem value="planlı">Planlı Denetim</MenuItem>
-                      <MenuItem value="ani">Ani Denetim</MenuItem>
-                      <MenuItem value="takip">Takip Denetimi</MenuItem>
-                      <MenuItem value="acil">Acil Denetim</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                {/* Denetim Tarihi */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Denetim Tarihi"
-                    type="date"
-                    value={formData.auditDate || ''}
-                    onChange={(e) => setFormData({ ...formData, auditDate: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                    required
-                  />
-                </Grid>
-
-                {/* Denetçi */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Denetçi Adı"
-                    value={formData.auditorName || ''}
-                    onChange={(e) => setFormData({ ...formData, auditorName: e.target.value })}
-                    required
-                  />
-                </Grid>
-
-                {/* Denetim Kapsamı */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Denetim Kapsamı"
-                    multiline
-                    rows={3}
-                    value={formData.auditScope || ''}
-                    onChange={(e) => setFormData({ ...formData, auditScope: e.target.value })}
-                    placeholder="Denetim kapsamını belirtin (örn: Kalite sistemi, üretim süreçleri, doküman kontrolü)"
-                  />
-                </Grid>
-
-                {/* Özel Notlar */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Özel Notlar"
-                    multiline
-                    rows={2}
-                    value={formData.auditNotes || ''}
-                    onChange={(e) => setFormData({ ...formData, auditNotes: e.target.value })}
-                    placeholder="Denetim ile ilgili özel durumlar veya dikkat edilmesi gerekenler"
-                  />
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} color="inherit">
-            İptal
-          </Button>
-          <Button onClick={handleSaveDialog} variant="contained" color="primary">
-            {selectedItem ? 'Güncelle' : 'Kaydet'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Denetim Tarihi Düzenleme Dialog */}
-      <Dialog open={auditDateDialogOpen} onClose={() => setAuditDateDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box display="flex" alignItems="center" gap={1}>
-            <ScheduleIcon color="primary" />
-            Denetim Tarihi Düzenle
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            {selectedSupplierForAudit && (
-              <>
-                <Typography variant="body1" gutterBottom>
-                  <strong>Tedarikçi:</strong> {selectedSupplierForAudit.name}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
-                  Mevcut denetim tarihi: {new Date(selectedSupplierForAudit.nextAuditDate).toLocaleDateString('tr-TR')}
-                </Typography>
-                <TextField
-                  fullWidth
-                  label="Yeni Denetim Tarihi"
-                  type="date"
-                  value={newAuditDate}
-                  onChange={(e) => setNewAuditDate(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  helperText="Denetim için yeni tarih seçin"
-                />
-              </>
+              </Box>
             )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAuditDateDialogOpen(false)} color="inherit">
-            İptal
-          </Button>
-          <Button 
-            onClick={handleSaveAuditDate} 
-            variant="contained" 
-            color="primary"
-            disabled={!newAuditDate}
-          >
-            Tarihi Güncelle
-          </Button>
-                 </DialogActions>
-       </Dialog>
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity}
-          variant="filled"
+            {dialogType === 'nonconformity' && (
+              <Box component="form" sx={{ mt: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <FormControl fullWidth>
+                      <InputLabel>Tedarikçi</InputLabel>
+                      <Select
+                        value={formData.supplierId || ''}
+                        onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                      >
+                        {suppliers.map(supplier => (
+                          <MenuItem key={supplier.id} value={supplier.id}>
+                            {supplier.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Uygunsuzluk Başlığı"
+                      value={formData.title || ''}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
+                    />
+                  </Grid>
+                  
+                  {/* Zorunlu Parça Kodu */}
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Parça Kodu"
+                      value={formData.partCode || ''}
+                      onChange={(e) => setFormData({ ...formData, partCode: e.target.value })}
+                      required
+                      helperText="Bu alan zorunludur"
+                      error={!formData.partCode}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Uygunsuzluk Kategorisi</InputLabel>
+                      <Select
+                        value={formData.category || 'kalite'}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      >
+                        <MenuItem value="kalite">Kalite Problemi</MenuItem>
+                        <MenuItem value="teslimat">Teslimat Problemi</MenuItem>
+                        <MenuItem value="doküman">Doküman Problemi</MenuItem>
+                        <MenuItem value="servis">Servis Problemi</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  
+                  {/* Dinamik Alanlar - Kategori Bazında */}
+                  {formData.category === 'kalite' && (
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Etkilenen Parça Adedi"
+                        type="number"
+                        value={formData.quantityAffected || ''}
+                        onChange={(e) => setFormData({ ...formData, quantityAffected: Number(e.target.value) })}
+                        InputProps={{
+                          endAdornment: <Typography variant="caption" color="text.secondary">adet</Typography>
+                        }}
+                        helperText="Kalite probleminden etkilenen parça sayısı"
+                      />
+                    </Grid>
+                  )}
+                  
+                  {formData.category === 'teslimat' && (
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Gecikme Süresi"
+                        type="number"
+                        value={formData.delayDays || ''}
+                        onChange={(e) => setFormData({ ...formData, delayDays: Number(e.target.value) })}
+                        InputProps={{
+                          endAdornment: <Typography variant="caption" color="text.secondary">gün</Typography>
+                        }}
+                        helperText="Teslimat gecikmesi (gün olarak)"
+                      />
+                    </Grid>
+                  )}
+                  
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Uygunsuzluk Açıklaması"
+                      multiline
+                      rows={3}
+                      value={formData.description || ''}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      required
+                      helperText="Uygunsuzluğun detaylı açıklaması"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Önem Derecesi</InputLabel>
+                      <Select
+                        value={formData.severity || 'düşük'}
+                        onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                      >
+                        <MenuItem value="kritik">Kritik</MenuItem>
+                        <MenuItem value="yüksek">Yüksek</MenuItem>
+                        <MenuItem value="orta">Orta</MenuItem>
+                        <MenuItem value="düşük">Düşük</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Tespit Tarihi"
+                      type="date"
+                      value={formData.detectedDate || new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setFormData({ ...formData, detectedDate: e.target.value })}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Hedef Tamamlanma Tarihi"
+                      type="date"
+                      value={formData.dueDate || ''}
+                      onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                      InputLabelProps={{ shrink: true }}
+                      helperText="Uygunsuzluğun giderilmesi gereken tarih"
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Düzeltme Maliyeti (₺)"
+                      type="number"
+                      value={formData.correctionCost || 0}
+                      onChange={(e) => setFormData({ ...formData, correctionCost: Number(e.target.value) })}
+                      InputProps={{
+                        startAdornment: <Typography variant="caption" color="text.secondary">₺</Typography>
+                      }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Durum</InputLabel>
+                      <Select
+                        value={formData.status || 'açık'}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      >
+                        <MenuItem value="açık">Açık</MenuItem>
+                        <MenuItem value="araştırılıyor">Araştırılıyor</MenuItem>
+                        <MenuItem value="düzeltiliyor">Düzeltiliyor</MenuItem>
+                        <MenuItem value="kapalı">Kapalı</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+
+            {dialogType === 'defect' && (
+              <Box component="form" sx={{ mt: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <FormControl fullWidth>
+                      <InputLabel>Tedarikçi</InputLabel>
+                      <Select
+                        value={formData.supplierId || ''}
+                        onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                      >
+                        {suppliers.map(supplier => (
+                          <MenuItem key={supplier.id} value={supplier.id}>
+                            {supplier.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Hata Türü"
+                      value={formData.defectType || ''}
+                      onChange={(e) => setFormData({ ...formData, defectType: e.target.value })}
+                      required
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Parti Numarası"
+                      value={formData.batchNumber || ''}
+                      onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Açıklama"
+                      multiline
+                      rows={3}
+                      value={formData.description || ''}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Miktar"
+                      type="number"
+                      value={formData.quantity || 0}
+                      onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControl fullWidth>
+                      <InputLabel>Önem Derecesi</InputLabel>
+                      <Select
+                        value={formData.severity || 'minor'}
+                        onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                      >
+                        <MenuItem value="kritik">Kritik</MenuItem>
+                        <MenuItem value="major">Major</MenuItem>
+                        <MenuItem value="minor">Minor</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Düzeltme Maliyeti (₺)"
+                      type="number"
+                      value={formData.correctionCost || 0}
+                      onChange={(e) => setFormData({ ...formData, correctionCost: Number(e.target.value) })}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+
+            {dialogType === 'pair' && (
+              <Box component="form" sx={{ mt: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      Tedarikçi Eşleştirme Bilgileri
+                    </Typography>
+                  </Grid>
+                  
+                  {/* Ana Tedarikçi Seçimi */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Ana Tedarikçi</InputLabel>
+                      <Select
+                        value={formData.primarySupplierId || ''}
+                        onChange={(e) => setFormData({ ...formData, primarySupplierId: e.target.value })}
+                      >
+                        {suppliers.filter(s => s.type === 'onaylı').map(supplier => (
+                          <MenuItem key={supplier.id} value={supplier.id}>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <CheckCircleIcon color="success" fontSize="small" />
+                              {supplier.name} ({supplier.code})
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* Alternatif Tedarikçi Seçimi */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Alternatif Tedarikçi</InputLabel>
+                      <Select
+                        value={formData.alternativeSupplierId || ''}
+                        onChange={(e) => setFormData({ ...formData, alternativeSupplierId: e.target.value })}
+                      >
+                        {suppliers.filter(s => s.type === 'alternatif' || s.type === 'onaylı').map(supplier => (
+                          <MenuItem key={supplier.id} value={supplier.id}>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <SwapHorizIcon color="warning" fontSize="small" />
+                              {supplier.name} ({supplier.code})
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* Malzeme Türü */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Malzeme Türü</InputLabel>
+                      <Select
+                        value={formData.materialType || ''}
+                        onChange={(e) => setFormData({ ...formData, materialType: e.target.value })}
+                      >
+                        <MenuItem value="çelik">Çelik</MenuItem>
+                        <MenuItem value="alüminyum">Alüminyum</MenuItem>
+                        <MenuItem value="paslanmaz">Paslanmaz Çelik</MenuItem>
+                        <MenuItem value="döküm">Döküm</MenuItem>
+                        <MenuItem value="plastik">Plastik</MenuItem>
+                        <MenuItem value="elektronik">Elektronik</MenuItem>
+                        <MenuItem value="kauçuk">Kauçuk</MenuItem>
+                        <MenuItem value="diğer">Diğer</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* Kategori */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Kategori</InputLabel>
+                      <Select
+                        value={formData.category || ''}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      >
+                        <MenuItem value="stratejik">Stratejik</MenuItem>
+                        <MenuItem value="kritik">Kritik</MenuItem>
+                        <MenuItem value="rutin">Rutin</MenuItem>
+                        <MenuItem value="genel">Genel</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* Eşleştirme Nedeni */}
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Eşleştirme Nedeni"
+                      multiline
+                      rows={3}
+                      value={formData.reason || ''}
+                      onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                      placeholder="Bu eşleştirmenin nedenini açıklayın (örn: Risk azaltma, yedek tedarik, maliyet optimizasyonu)"
+                      helperText="Eşleştirmenin amacını ve gerekçesini belirtin"
+                    />
+                  </Grid>
+
+                  {/* Önerilen İnceleme Tarihi */}
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="İlk İnceleme Tarihi"
+                      type="date"
+                      value={formData.firstReviewDate || new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setFormData({ ...formData, firstReviewDate: e.target.value })}
+                      InputLabelProps={{ shrink: true }}
+                      helperText="Eşleştirmenin ne zaman gözden geçirileceği"
+                    />
+                  </Grid>
+
+                  {/* İnceleme Periyodu */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>İnceleme Periyodu</InputLabel>
+                      <Select
+                        value={formData.reviewPeriod || '3'}
+                        onChange={(e) => setFormData({ ...formData, reviewPeriod: e.target.value })}
+                      >
+                        <MenuItem value="1">1 Ay</MenuItem>
+                        <MenuItem value="3">3 Ay</MenuItem>
+                        <MenuItem value="6">6 Ay</MenuItem>
+                        <MenuItem value="12">12 Ay</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* Ek Notlar */}
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Ek Notlar"
+                      multiline
+                      rows={2}
+                      value={formData.notes || ''}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Varsa ek bilgiler ve özel durumlar"
+                    />
+                  </Grid>
+
+                  {/* Risk Değerlendirmesi */}
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" gutterBottom color="text.secondary">
+                      Risk Değerlendirmesi
+                    </Typography>
+                    <FormControl fullWidth>
+                      <InputLabel>Risk Seviyesi</InputLabel>
+                      <Select
+                        value={formData.riskLevel || 'düşük'}
+                        onChange={(e) => setFormData({ ...formData, riskLevel: e.target.value })}
+                      >
+                        <MenuItem value="düşük">
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Box width={12} height={12} bgcolor="success.main" borderRadius="50%" />
+                            Düşük Risk
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="orta">
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Box width={12} height={12} bgcolor="warning.main" borderRadius="50%" />
+                            Orta Risk
+                          </Box>
+                        </MenuItem>
+                        <MenuItem value="yüksek">
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Box width={12} height={12} bgcolor="error.main" borderRadius="50%" />
+                            Yüksek Risk
+                          </Box>
+                        </MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+
+            {dialogType === 'audit' && (
+              <Box component="form" sx={{ mt: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      Denetim Planlama
+                    </Typography>
+                  </Grid>
+                  
+                  {/* Tedarikçi Seçimi */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Tedarikçi</InputLabel>
+                      <Select
+                        value={formData.supplierId || ''}
+                        onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                      >
+                        {suppliers.map(supplier => (
+                          <MenuItem key={supplier.id} value={supplier.id}>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <BusinessIcon fontSize="small" />
+                              {supplier.name} - {supplier.riskLevel} risk
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* Denetim Türü */}
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Denetim Türü</InputLabel>
+                      <Select
+                        value={formData.auditType || 'planlı'}
+                        onChange={(e) => setFormData({ ...formData, auditType: e.target.value })}
+                      >
+                        <MenuItem value="planlı">Planlı Denetim</MenuItem>
+                        <MenuItem value="ani">Ani Denetim</MenuItem>
+                        <MenuItem value="takip">Takip Denetimi</MenuItem>
+                        <MenuItem value="acil">Acil Denetim</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* Denetim Tarihi */}
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Denetim Tarihi"
+                      type="date"
+                      value={formData.auditDate || ''}
+                      onChange={(e) => setFormData({ ...formData, auditDate: e.target.value })}
+                      InputLabelProps={{ shrink: true }}
+                      required
+                    />
+                  </Grid>
+
+                  {/* Denetçi */}
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Denetçi Adı"
+                      value={formData.auditorName || ''}
+                      onChange={(e) => setFormData({ ...formData, auditorName: e.target.value })}
+                      required
+                    />
+                  </Grid>
+
+                  {/* Denetim Kapsamı */}
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Denetim Kapsamı"
+                      multiline
+                      rows={3}
+                      value={formData.auditScope || ''}
+                      onChange={(e) => setFormData({ ...formData, auditScope: e.target.value })}
+                      placeholder="Denetim kapsamını belirtin (örn: Kalite sistemi, üretim süreçleri, doküman kontrolü)"
+                    />
+                  </Grid>
+
+                  {/* Özel Notlar */}
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Özel Notlar"
+                      multiline
+                      rows={2}
+                      value={formData.auditNotes || ''}
+                      onChange={(e) => setFormData({ ...formData, auditNotes: e.target.value })}
+                      placeholder="Denetim ile ilgili özel durumlar veya dikkat edilmesi gerekenler"
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={() => setDialogOpen(false)} color="inherit">
+              İptal
+            </Button>
+            <Button onClick={handleSaveDialog} variant="contained" color="primary">
+              {selectedItem ? 'Güncelle' : 'Kaydet'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Denetim Tarihi Düzenleme Dialog */}
+        <Dialog open={auditDateDialogOpen} onClose={() => setAuditDateDialogOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            <Box display="flex" alignItems="center" gap={1}>
+              <ScheduleIcon color="primary" />
+              Denetim Tarihi Düzenle
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2 }}>
+              {selectedSupplierForAudit && (
+                <>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>Tedarikçi:</strong> {selectedSupplierForAudit.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
+                    Mevcut denetim tarihi: {new Date(selectedSupplierForAudit.nextAuditDate).toLocaleDateString('tr-TR')}
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    label="Yeni Denetim Tarihi"
+                    type="date"
+                    value={newAuditDate}
+                    onChange={(e) => setNewAuditDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="Denetim için yeni tarih seçin"
+                  />
+                </>
+              )}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAuditDateDialogOpen(false)} color="inherit">
+              İptal
+            </Button>
+            <Button 
+              onClick={handleSaveAuditDate} 
+              variant="contained" 
+              color="primary"
+              disabled={!newAuditDate}
+            >
+              Tarihi Güncelle
+            </Button>
+                   </DialogActions>
+         </Dialog>
+
+        {/* Snackbar for notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+          <Alert 
+            onClose={() => setSnackbar({ ...snackbar, open: false })} 
+            severity={snackbar.severity}
+            variant="filled"
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </ErrorBoundary>
   );
 };
 
