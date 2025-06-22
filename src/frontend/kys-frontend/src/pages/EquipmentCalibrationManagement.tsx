@@ -506,6 +506,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
   // Personnel management states
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
   const [openPersonnelDialog, setOpenPersonnelDialog] = useState(false);
+  const [openPersonnelManagementDialog, setOpenPersonnelManagementDialog] = useState(false);
   const [newPersonnelData, setNewPersonnelData] = useState({
     sicilNo: '',
     name: '',
@@ -748,6 +749,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
 
     // Başarı mesajı
     alert('Personel başarıyla eklendi!');
+  };
+
+  // Personel silme fonksiyonu
+  const handleDeletePersonnel = (sicilNo: string) => {
+    if (window.confirm('Bu personeli silmek istediğinizden emin misiniz?')) {
+      const updatedPersonnelList = personnelList.filter(p => p.sicilNo !== sicilNo);
+      setPersonnelList(updatedPersonnelList);
+      localStorage.setItem('personnel_data', JSON.stringify(updatedPersonnelList));
+      
+      // Eğer bu personel seçili personeller arasındaysa onu da kaldır
+      setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo));
+      
+      alert('Personel başarıyla silindi!');
+    }
   };
 
   return (
@@ -1966,53 +1981,94 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         </FormControl>
                       </Box>
                       {/* Sorumlu Personel Yönetimi */}
-                      <Box sx={{ mt: 3 }}>
-                        <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-                          Sorumlu Personel Yönetimi
+                      <Box sx={{ mt: 4, p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                        <Typography variant="h6" sx={{ mb: 3, color: 'primary.main', fontWeight: 600 }}>
+                          🧑‍💼 Sorumlu Personel Yönetimi
                         </Typography>
                         
-                        {/* Personel Seçme */}
-                        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                          <FormControl fullWidth>
-                            <InputLabel>Personel Ekle</InputLabel>
-                            <Select
-                              value=""
-                              onChange={(e) => {
-                                const sicilNo = e.target.value as string;
-                                if (sicilNo && !selectedPersonnel.includes(sicilNo)) {
-                                  setSelectedPersonnel(prev => [...prev, sicilNo]);
-                                }
-                              }}
-                              displayEmpty
+                        {/* Personel Ekleme Alanı */}
+                        <Box sx={{ mb: 3 }}>
+                          <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 500 }}>
+                            Personel Ekle:
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 2 }}>
+                            <FormControl sx={{ flex: 1 }}>
+                              <InputLabel>Mevcut Personel Seç</InputLabel>
+                              <Select
+                                value=""
+                                onChange={(e) => {
+                                  const sicilNo = e.target.value as string;
+                                  if (sicilNo && !selectedPersonnel.includes(sicilNo)) {
+                                    setSelectedPersonnel(prev => [...prev, sicilNo]);
+                                  }
+                                }}
+                                displayEmpty
+                              >
+                                <MenuItem value="">
+                                  <em>Listeden personel seçiniz...</em>
+                                </MenuItem>
+                                {personnelList
+                                  .filter(p => p.isActive && !selectedPersonnel.includes(p.sicilNo))
+                                  .map((person) => (
+                                    <MenuItem key={person.sicilNo} value={person.sicilNo}>
+                                      {person.name} - {person.sicilNo} ({person.department})
+                                    </MenuItem>
+                                  ))}
+                              </Select>
+                            </FormControl>
+                            <Button
+                              variant="contained"
+                              onClick={() => setOpenPersonnelDialog(true)}
+                              sx={{ minWidth: 120, height: 56 }}
+                              startIcon={<PersonAddIcon />}
                             >
-                              <MenuItem value="">
-                                <em>Personel seçiniz...</em>
-                              </MenuItem>
-                              {personnelList
-                                .filter(p => p.isActive && !selectedPersonnel.includes(p.sicilNo))
-                                .map((person) => (
-                                  <MenuItem key={person.sicilNo} value={person.sicilNo}>
-                                    {person.name} - {person.sicilNo} ({person.department})
-                                  </MenuItem>
-                                ))}
-                            </Select>
-                          </FormControl>
-                          <Button
-                            variant="outlined"
-                            onClick={() => setOpenPersonnelDialog(true)}
-                            sx={{ minWidth: 150 }}
-                          >
-                            Yeni Personel
-                          </Button>
+                              Yeni Ekle
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              onClick={() => setOpenPersonnelManagementDialog(true)}
+                              sx={{ minWidth: 120, height: 56 }}
+                              startIcon={<EditIcon />}
+                            >
+                              Yönetim
+                            </Button>
+                          </Box>
                         </Box>
 
-                        {/* Seçili Personeller */}
-                        {selectedPersonnel.length > 0 && (
-                          <Box>
-                            <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
-                              Seçili Personeller:
+                        {/* Seçili Personeller Listesi */}
+                        <Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+                              Seçili Personeller ({selectedPersonnel.length}):
                             </Typography>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                            {selectedPersonnel.length > 0 && (
+                              <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                onClick={() => setSelectedPersonnel([])}
+                                startIcon={<DeleteIcon />}
+                              >
+                                Tümünü Temizle
+                              </Button>
+                            )}
+                          </Box>
+                          
+                          {selectedPersonnel.length === 0 ? (
+                            <Box sx={{ 
+                              p: 3, 
+                              textAlign: 'center', 
+                              bgcolor: 'grey.50', 
+                              borderRadius: 1,
+                              border: '1px dashed',
+                              borderColor: 'grey.300'
+                            }}>
+                              <Typography variant="body2" color="text.secondary">
+                                Henüz personel seçilmedi. Yukarıdan personel ekleyebilirsiniz.
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                               {selectedPersonnel.map((sicilNo) => {
                                 const person = personnelList.find(p => p.sicilNo === sicilNo);
                                 return (
@@ -2022,22 +2078,19 @@ const EquipmentCalibrationManagement: React.FC = () => {
                                     onDelete={() => setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo))}
                                     color="primary"
                                     variant="outlined"
-                                    size="small"
+                                    size="medium"
+                                    sx={{ 
+                                      '& .MuiChip-deleteIcon': { 
+                                        fontSize: '18px',
+                                        '&:hover': { color: 'error.main' }
+                                      }
+                                    }}
                                   />
                                 );
                               })}
                             </Box>
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              size="small"
-                              onClick={() => setSelectedPersonnel([])}
-                              startIcon={<DeleteIcon />}
-                            >
-                              Tümünü Temizle
-                            </Button>
-                          </Box>
-                        )}
+                          )}
+                        </Box>
                       </Box>
                       <Box sx={{ mt: 2 }}>
                         <Button
@@ -2450,6 +2503,92 @@ const EquipmentCalibrationManagement: React.FC = () => {
             startIcon={<SaveIcon />}
           >
             Personel Ekle
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Personel Yönetimi Dialog'u */}
+      <Dialog 
+        open={openPersonnelManagementDialog} 
+        onClose={() => setOpenPersonnelManagementDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <EditIcon color="primary" />
+            Personel Yönetimi
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            {personnelList.length === 0 ? (
+              <Box sx={{ 
+                p: 4, 
+                textAlign: 'center', 
+                bgcolor: 'grey.50', 
+                borderRadius: 2,
+                border: '1px dashed',
+                borderColor: 'grey.300'
+              }}>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  Henüz personel bulunmuyor
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  "Yeni Personel Ekle" butonunu kullanarak personel ekleyebilirsiniz.
+                </Typography>
+              </Box>
+            ) : (
+              <Box>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+                  Kayıtlı Personeller ({personnelList.length})
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {personnelList.map((person) => (
+                    <Paper key={person.sicilNo} sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                          {person.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Sicil: {person.sicilNo} • {person.department} • {person.position}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Chip 
+                          label={selectedPersonnel.includes(person.sicilNo) ? "Seçili" : "Seçili Değil"}
+                          color={selectedPersonnel.includes(person.sicilNo) ? "success" : "default"}
+                          size="small"
+                        />
+                        <IconButton
+                          color="error"
+                          size="small"
+                          onClick={() => handleDeletePersonnel(person.sicilNo)}
+                          sx={{ ml: 1 }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </Paper>
+                  ))}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPersonnelManagementDialog(false)}>
+            Kapat
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={() => {
+              setOpenPersonnelManagementDialog(false);
+              setOpenPersonnelDialog(true);
+            }}
+            startIcon={<PersonAddIcon />}
+          >
+            Yeni Personel Ekle
           </Button>
         </DialogActions>
       </Dialog>
