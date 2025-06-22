@@ -8535,7 +8535,23 @@ const SmartTargetManagementComponent: React.FC<{
 
   const [selectedCategories, setSelectedCategories] = useState<VehicleCategory[]>([]);
 
-
+  // 🔄 ESKİ HEDEFLERİ TEMİZLEME FONKSİYONU
+  const clearOldTargetsAndReset = () => {
+    if (window.confirm('⚠️ Eski hedef sistemi temizlenecek ve yeni template sistemi aktif edilecek.\n\nBu işlem geri alınamaz. Devam etmek istiyor musunuz?')) {
+      // localStorage'daki eski hedefleri temizle
+      localStorage.removeItem('vehicle-targets');
+      
+      // State'i sıfırla
+      setVehicleTargets([]);
+      
+      // Veri yenileme tetikle
+      if (onDataRefresh) {
+        onDataRefresh();
+      }
+      
+      alert('✅ Eski hedefler temizlendi! Artık yeni template sistemi ile hedef oluşturabilirsiniz.');
+    }
+  };
 
   // 🚗 KATEGORİ BAZLI toplu hedef belirleme - DÜZELTME: Her dönem için geçerli hedefler
   const handleBulkTargetSet = () => {
@@ -8555,7 +8571,7 @@ const SmartTargetManagementComponent: React.FC<{
         newTargets.push({
           id: `target-${kategori}-${currentYear}-monthly-${Date.now()}`,
           kategori,
-          donem: `${currentYear}-MONTHLY`, // Tüm aylar için geçerli template
+          donem: `${currentYear} Yılı Aylık Hedef`, // Profesyonel görünüm
           donemTuru: 'ay',
           hedefler: {
             maksRetAdet: 5,        // Aylık hedef
@@ -8594,7 +8610,7 @@ const SmartTargetManagementComponent: React.FC<{
         newTargets.push({
           id: `target-${kategori}-${currentYear}-quarterly-${Date.now()}`,
           kategori,
-          donem: `${currentYear}-QUARTERLY`, // Tüm çeyrekler için geçerli template
+          donem: `${currentYear} Yılı Çeyreklik Hedef`, // Profesyonel görünüm
           donemTuru: 'ceyrek',
           hedefler: {
             maksRetAdet: 15,      // Çeyreklik hedef (3 aylık)
@@ -8633,7 +8649,7 @@ const SmartTargetManagementComponent: React.FC<{
         newTargets.push({
           id: `target-${kategori}-${currentYear}-yearly-${Date.now()}`,
           kategori,
-          donem: `${currentYear}`,
+          donem: `${currentYear} Yılı Hedef`,
           donemTuru: 'yil',
           hedefler: {
             maksRetAdet: 60,      // Yıllık hedef (12 aylık)
@@ -8681,9 +8697,9 @@ const SmartTargetManagementComponent: React.FC<{
     
     // Bilgilendirme mesajı
     const totalTargets = newTargets.length;
-    const periodText = selectedPeriod === 'ay' ? 'aylık template' : 
-                      selectedPeriod === 'ceyrek' ? 'çeyreklik template' : 'yıllık';
-    alert(`${selectedCategories.length} kategori için ${periodText} hedefler başarıyla oluşturuldu! (Toplam ${totalTargets} hedef template'i)\n\nAylık hedef: Her ay için aynı hedef değerleri geçerli olacak\nÇeyreklik hedef: Her çeyrek için aynı hedef değerleri geçerli olacak`);
+    const periodText = selectedPeriod === 'ay' ? 'aylık hedef şablonu' : 
+                      selectedPeriod === 'ceyrek' ? 'çeyreklik hedef şablonu' : 'yıllık hedef';
+    alert(`✅ ${selectedCategories.length} kategori için ${periodText} başarıyla oluşturuldu!\n\n📊 Toplam ${totalTargets} hedef şablonu aktif\n\n📋 Hedef Şablonu Sistemi:\n• Aylık: Tüm aylar için aynı hedef değerleri\n• Çeyreklik: Tüm çeyrekler için aynı hedef değerleri\n• Yıllık: Tüm yıl için tek hedef`);
   };
 
   // Hedef düzenleme
@@ -8773,7 +8789,7 @@ const SmartTargetManagementComponent: React.FC<{
       
       if (target.donemTuru === 'ay') {
         // Aylık template sistemi: Belirtilen yılın mevcut ayı için filtrele
-        if (target.donem.includes('MONTHLY')) {
+        if (target.donem.includes('Aylık Hedef')) {
           // Template sistem: Mevcut ayın verilerini göster
           const currentMonth = new Date().getMonth() + 1;
           return itemDate.getFullYear() === targetYear && 
@@ -8786,7 +8802,7 @@ const SmartTargetManagementComponent: React.FC<{
         }
       } else if (target.donemTuru === 'ceyrek') {
         // Çeyreklik template sistemi: Belirtilen yılın mevcut çeyreği için filtrele
-        if (target.donem.includes('QUARTERLY')) {
+        if (target.donem.includes('Çeyreklik Hedef')) {
           // Template sistem: Mevcut çeyreğin verilerini göster
           const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
           const itemQuarter = Math.ceil((itemDate.getMonth() + 1) / 3);
@@ -8881,6 +8897,18 @@ const SmartTargetManagementComponent: React.FC<{
           >
             Toplu Hedef Belirle
           </Button>
+          
+          {vehicleTargets.length > 0 && (
+            <Button
+              variant="outlined"
+              color="warning"
+              onClick={clearOldTargetsAndReset}
+              size="small"
+              sx={{ fontWeight: 600 }}
+            >
+              Hedef Sistemini Sıfırla
+            </Button>
+          )}
 
         </Box>
       </Box>
