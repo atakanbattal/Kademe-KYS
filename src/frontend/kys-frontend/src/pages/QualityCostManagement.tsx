@@ -8503,13 +8503,41 @@ const SmartTargetManagementComponent: React.FC<{
   const [editTargetDialogOpen, setEditTargetDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
-  // localStorage'dan hedefleri yükle
+  // localStorage'dan hedefleri yükle ve eski formatları güncelle
   useEffect(() => {
     const savedTargets = localStorage.getItem('vehicle-targets');
     if (savedTargets) {
       try {
         const parsedTargets = JSON.parse(savedTargets);
-        setVehicleTargets(parsedTargets);
+        
+        // Eski formatları yeni formata dönüştür
+        const updatedTargets = parsedTargets.map((target: VehicleTarget) => {
+          if (target.donem.includes('MONTHLY')) {
+            return {
+              ...target,
+              donem: target.donem.replace('-MONTHLY', ' Yılı Aylık Hedef')
+            };
+          } else if (target.donem.includes('QUARTERLY')) {
+            return {
+              ...target,
+              donem: target.donem.replace('-QUARTERLY', ' Yılı Çeyreklik Hedef')
+            };
+          } else if (target.donem.match(/^\d{4}$/)) {
+            return {
+              ...target,
+              donem: `${target.donem} Yılı Hedef`
+            };
+          }
+          return target;
+        });
+        
+        // Güncellenen hedefleri kaydet
+        if (JSON.stringify(parsedTargets) !== JSON.stringify(updatedTargets)) {
+          localStorage.setItem('vehicle-targets', JSON.stringify(updatedTargets));
+          console.log('🔄 Hedef formatları güncellendi');
+        }
+        
+        setVehicleTargets(updatedTargets);
       } catch (error) {
         console.error('Hedefler yüklenirken hata:', error);
       }
