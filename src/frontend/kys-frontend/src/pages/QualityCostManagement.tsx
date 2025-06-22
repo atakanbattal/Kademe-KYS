@@ -8548,104 +8548,95 @@ const SmartTargetManagementComponent: React.FC<{
     const newTargets: VehicleTarget[] = [];
 
     selectedCategories.forEach(kategori => {
+      const currentDate = new Date().toISOString();
+      
       if (selectedPeriod === 'ay') {
-        // 🗓️ AYLIK HEDEF: Her ay için ayrı hedef oluştur (12 adet hedef)
-        for (let month = 1; month <= 12; month++) {
-          const monthStr = String(month).padStart(2, '0');
-          const currentDate = new Date().toISOString();
-          
-          newTargets.push({
-            id: `target-${kategori}-${currentYear}-${monthStr}-${Date.now()}`,
-            kategori,
-            donem: `${currentYear}-${monthStr}`,
-            donemTuru: 'ay',
-            hedefler: {
-              maksRetAdet: 5,
-              maksRetMaliyet: 10000,
-              maksHurdaKg: 10,
-              maksHurdaMaliyet: 5000,
-              maksFireKg: 5,
-              maksFireMaliyet: 3000,
-              toplamMaksimumMaliyet: 20000,
-              hedefVerimlilik: 85
-            },
-            gerceklesme: {
-              guncelRetAdet: 0,
-              guncelRetMaliyet: 0,
-              guncelHurdaKg: 0,
-              guncelHurdaMaliyet: 0,
-              guncelFireKg: 0,
-              guncelFireMaliyet: 0,
-              toplamMaliyet: 0,
-              mevcutVerimlilik: 100
-            },
-            performans: {
-              retPerformans: 100,
-              hurdaPerformans: 100,
-              firePerformans: 100,
-              toplamPerformans: 100,
-              status: 'hedef_altinda'
-            },
-            createdDate: currentDate,
-            updatedDate: currentDate,
-            createdBy: 'Sistem',
-            isActive: true
-          });
-        }
-      } else if (selectedPeriod === 'ceyrek') {
-        // 🗓️ ÇEYREKLİK HEDEF: Her çeyrek için ayrı hedef oluştur (4 adet hedef)
-        for (let quarter = 1; quarter <= 4; quarter++) {
-          const currentDate = new Date().toISOString();
-          
-          newTargets.push({
-            id: `target-${kategori}-${currentYear}-Q${quarter}-${Date.now()}`,
-            kategori,
-            donem: `${currentYear}-Q${quarter}`,
-            donemTuru: 'ceyrek',
-            hedefler: {
-              maksRetAdet: 15,      // Çeyreklik için 3 ay toplamı
-              maksRetMaliyet: 30000,
-              maksHurdaKg: 30,
-              maksHurdaMaliyet: 15000,
-              maksFireKg: 15,
-              maksFireMaliyet: 9000,
-              toplamMaksimumMaliyet: 60000,
-              hedefVerimlilik: 85
-            },
-            gerceklesme: {
-              guncelRetAdet: 0,
-              guncelRetMaliyet: 0,
-              guncelHurdaKg: 0,
-              guncelHurdaMaliyet: 0,
-              guncelFireKg: 0,
-              guncelFireMaliyet: 0,
-              toplamMaliyet: 0,
-              mevcutVerimlilik: 100
-            },
-            performans: {
-              retPerformans: 100,
-              hurdaPerformans: 100,
-              firePerformans: 100,
-              toplamPerformans: 100,
-              status: 'hedef_altinda'
-            },
-            createdDate: currentDate,
-            updatedDate: currentDate,
-            createdBy: 'Sistem',
-            isActive: true
-          });
-        }
-      } else {
-        // 🗓️ YILLIK HEDEF: Tüm yıl için tek hedef (1 adet hedef)
-        const currentDate = new Date().toISOString();
-        
+        // 🗓️ AYLIK HEDEF: Tek aylık hedef template'i - tüm aylar için aynı hedef geçerli
         newTargets.push({
-          id: `target-${kategori}-${currentYear}-${Date.now()}`,
+          id: `target-${kategori}-${currentYear}-monthly-${Date.now()}`,
+          kategori,
+          donem: `${currentYear}-MONTHLY`, // Tüm aylar için geçerli template
+          donemTuru: 'ay',
+          hedefler: {
+            maksRetAdet: 5,        // Aylık hedef
+            maksRetMaliyet: 10000,
+            maksHurdaKg: 10,
+            maksHurdaMaliyet: 5000,
+            maksFireKg: 5,
+            maksFireMaliyet: 3000,
+            toplamMaksimumMaliyet: 20000,
+            hedefVerimlilik: 85
+          },
+          gerceklesme: {
+            guncelRetAdet: 0,
+            guncelRetMaliyet: 0,
+            guncelHurdaKg: 0,
+            guncelHurdaMaliyet: 0,
+            guncelFireKg: 0,
+            guncelFireMaliyet: 0,
+            toplamMaliyet: 0,
+            mevcutVerimlilik: 100
+          },
+          performans: {
+            retPerformans: 100,
+            hurdaPerformans: 100,
+            firePerformans: 100,
+            toplamPerformans: 100,
+            status: 'hedef_altinda'
+          },
+          createdDate: currentDate,
+          updatedDate: currentDate,
+          createdBy: 'Sistem',
+          isActive: true
+        });
+      } else if (selectedPeriod === 'ceyrek') {
+        // 🗓️ ÇEYREKLİK HEDEF: Tek çeyreklik hedef template'i
+        newTargets.push({
+          id: `target-${kategori}-${currentYear}-quarterly-${Date.now()}`,
+          kategori,
+          donem: `${currentYear}-QUARTERLY`, // Tüm çeyrekler için geçerli template
+          donemTuru: 'ceyrek',
+          hedefler: {
+            maksRetAdet: 15,      // Çeyreklik hedef (3 aylık)
+            maksRetMaliyet: 30000,
+            maksHurdaKg: 30,
+            maksHurdaMaliyet: 15000,
+            maksFireKg: 15,
+            maksFireMaliyet: 9000,
+            toplamMaksimumMaliyet: 60000,
+            hedefVerimlilik: 85
+          },
+          gerceklesme: {
+            guncelRetAdet: 0,
+            guncelRetMaliyet: 0,
+            guncelHurdaKg: 0,
+            guncelHurdaMaliyet: 0,
+            guncelFireKg: 0,
+            guncelFireMaliyet: 0,
+            toplamMaliyet: 0,
+            mevcutVerimlilik: 100
+          },
+          performans: {
+            retPerformans: 100,
+            hurdaPerformans: 100,
+            firePerformans: 100,
+            toplamPerformans: 100,
+            status: 'hedef_altinda'
+          },
+          createdDate: currentDate,
+          updatedDate: currentDate,
+          createdBy: 'Sistem',
+          isActive: true
+        });
+      } else {
+        // 🗓️ YILLIK HEDEF: Tek yıllık hedef
+        newTargets.push({
+          id: `target-${kategori}-${currentYear}-yearly-${Date.now()}`,
           kategori,
           donem: `${currentYear}`,
           donemTuru: 'yil',
           hedefler: {
-            maksRetAdet: 60,      // Yıllık için 12 ay toplamı
+            maksRetAdet: 60,      // Yıllık hedef (12 aylık)
             maksRetMaliyet: 120000,
             maksHurdaKg: 120,
             maksHurdaMaliyet: 60000,
@@ -8690,9 +8681,9 @@ const SmartTargetManagementComponent: React.FC<{
     
     // Bilgilendirme mesajı
     const totalTargets = newTargets.length;
-    const periodText = selectedPeriod === 'ay' ? '12 aylık' : 
-                      selectedPeriod === 'ceyrek' ? '4 çeyreklik' : 'yıllık';
-    alert(`${selectedCategories.length} kategori için ${periodText} hedefler başarıyla oluşturuldu! (Toplam ${totalTargets} hedef)`);
+    const periodText = selectedPeriod === 'ay' ? 'aylık template' : 
+                      selectedPeriod === 'ceyrek' ? 'çeyreklik template' : 'yıllık';
+    alert(`${selectedCategories.length} kategori için ${periodText} hedefler başarıyla oluşturuldu! (Toplam ${totalTargets} hedef template'i)\n\nAylık hedef: Her ay için aynı hedef değerleri geçerli olacak\nÇeyreklik hedef: Her çeyrek için aynı hedef değerleri geçerli olacak`);
   };
 
   // Hedef düzenleme
@@ -8775,21 +8766,41 @@ const SmartTargetManagementComponent: React.FC<{
       return false;
     });
 
-    // Dönem filtreleme
+    // Dönem filtreleme - Template sistemi ile uyumlu
     const periodData = vehicleData.filter(item => {
       const itemDate = new Date(item.tarih);
       const targetYear = parseInt(target.donem.split('-')[0]);
       
       if (target.donemTuru === 'ay') {
-        const targetMonth = parseInt(target.donem.split('-')[1]);
-        return itemDate.getFullYear() === targetYear && 
-               itemDate.getMonth() + 1 === targetMonth;
+        // Aylık template sistemi: Belirtilen yılın mevcut ayı için filtrele
+        if (target.donem.includes('MONTHLY')) {
+          // Template sistem: Mevcut ayın verilerini göster
+          const currentMonth = new Date().getMonth() + 1;
+          return itemDate.getFullYear() === targetYear && 
+                 itemDate.getMonth() + 1 === currentMonth;
+        } else {
+          // Eski sistem: Belirli ay için
+          const targetMonth = parseInt(target.donem.split('-')[1]);
+          return itemDate.getFullYear() === targetYear && 
+                 itemDate.getMonth() + 1 === targetMonth;
+        }
       } else if (target.donemTuru === 'ceyrek') {
-        const targetQuarter = parseInt(target.donem.split('Q')[1]);
-        const itemQuarter = Math.ceil((itemDate.getMonth() + 1) / 3);
-        return itemDate.getFullYear() === targetYear && 
-               itemQuarter === targetQuarter;
+        // Çeyreklik template sistemi: Belirtilen yılın mevcut çeyreği için filtrele
+        if (target.donem.includes('QUARTERLY')) {
+          // Template sistem: Mevcut çeyreğin verilerini göster
+          const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
+          const itemQuarter = Math.ceil((itemDate.getMonth() + 1) / 3);
+          return itemDate.getFullYear() === targetYear && 
+                 itemQuarter === currentQuarter;
+        } else {
+          // Eski sistem: Belirli çeyrek için
+          const targetQuarter = parseInt(target.donem.split('Q')[1]);
+          const itemQuarter = Math.ceil((itemDate.getMonth() + 1) / 3);
+          return itemDate.getFullYear() === targetYear && 
+                 itemQuarter === targetQuarter;
+        }
       } else {
+        // Yıllık: Tüm yıl
         return itemDate.getFullYear() === targetYear;
       }
     });
