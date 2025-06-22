@@ -75,6 +75,7 @@ import {
   Verified as VerifiedIcon,
   PriorityHigh as UrgentIcon,
   Security as SecurityIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -504,6 +505,15 @@ const EquipmentCalibrationManagement: React.FC = () => {
   
   // Personnel management states
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
+  const [openPersonnelDialog, setOpenPersonnelDialog] = useState(false);
+  const [newPersonnelData, setNewPersonnelData] = useState({
+    sicilNo: '',
+    name: '',
+    department: '',
+    position: '',
+    email: '',
+    phone: ''
+  });
 
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
@@ -696,6 +706,52 @@ const EquipmentCalibrationManagement: React.FC = () => {
       style: 'currency',
       currency: 'TRY'
     }).format(amount);
+  };
+
+  // Yeni personel kaydetme fonksiyonu
+  const handleSavePersonnel = () => {
+    if (!newPersonnelData.sicilNo || !newPersonnelData.name || !newPersonnelData.department) {
+      alert('Sicil No, Ad Soyad ve Departman alanları zorunludur!');
+      return;
+    }
+
+    // Sicil numarası zaten var mı kontrol et
+    if (personnelList.some(p => p.sicilNo === newPersonnelData.sicilNo)) {
+      alert('Bu sicil numarası zaten kullanılıyor!');
+      return;
+    }
+
+    const newPersonnel: Personnel = {
+      id: `PER-${Date.now()}`,
+      sicilNo: newPersonnelData.sicilNo,
+      name: newPersonnelData.name,
+      department: newPersonnelData.department,
+      position: newPersonnelData.position,
+      email: newPersonnelData.email,
+      phone: newPersonnelData.phone,
+      isActive: true
+    };
+
+    // Personnel listesini güncelle
+    const updatedPersonnelList = [...personnelList, newPersonnel];
+    setPersonnelList(updatedPersonnelList);
+    
+    // LocalStorage'a kaydet
+    localStorage.setItem('personnel_data', JSON.stringify(updatedPersonnelList));
+
+    // Formu temizle ve dialog'u kapat
+    setNewPersonnelData({
+      sicilNo: '',
+      name: '',
+      department: '',
+      position: '',
+      email: '',
+      phone: ''
+    });
+    setOpenPersonnelDialog(false);
+
+    // Başarı mesajı
+    alert('Personel başarıyla eklendi!');
   };
 
   return (
@@ -1913,31 +1969,16 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           </Select>
                         </FormControl>
                       </Box>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Typography variant="h6" gutterBottom>
+                      {/* Sorumlu Personel Yönetimi */}
+                      <Box sx={{ mt: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
                           Sorumlu Personel Yönetimi
                         </Typography>
                         
-                        {/* Seçili personeller */}
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {selectedPersonnel.map((sicilNo) => {
-                            const person = personnelList.find(p => p.sicilNo === sicilNo);
-                            return (
-                              <Chip
-                                key={sicilNo}
-                                label={person ? `${person.name} (${sicilNo})` : sicilNo}
-                                onDelete={() => setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo))}
-                                color="primary"
-                                variant="outlined"
-                              />
-                            );
-                          })}
-                        </Box>
-
-                        {/* Personel ekleme - Select ile */}
-                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        {/* Personel Seçme */}
+                        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                           <FormControl fullWidth>
-                            <InputLabel>Personel Seç</InputLabel>
+                            <InputLabel>Personel Ekle</InputLabel>
                             <Select
                               value=""
                               onChange={(e) => {
@@ -1960,18 +2001,47 @@ const EquipmentCalibrationManagement: React.FC = () => {
                                 ))}
                             </Select>
                           </FormControl>
-                          
-                          {selectedPersonnel.length > 0 && (
+                          <Button
+                            variant="outlined"
+                            onClick={() => setOpenPersonnelDialog(true)}
+                            sx={{ minWidth: 150 }}
+                          >
+                            Yeni Personel
+                          </Button>
+                        </Box>
+
+                        {/* Seçili Personeller */}
+                        {selectedPersonnel.length > 0 && (
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                              Seçili Personeller:
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                              {selectedPersonnel.map((sicilNo) => {
+                                const person = personnelList.find(p => p.sicilNo === sicilNo);
+                                return (
+                                  <Chip
+                                    key={sicilNo}
+                                    label={person ? `${person.name} (${sicilNo})` : sicilNo}
+                                    onDelete={() => setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo))}
+                                    color="primary"
+                                    variant="outlined"
+                                    size="small"
+                                  />
+                                );
+                              })}
+                            </Box>
                             <Button
                               variant="outlined"
                               color="error"
+                              size="small"
                               onClick={() => setSelectedPersonnel([])}
                               startIcon={<DeleteIcon />}
                             >
-                              Tümünü Sil
+                              Tümünü Temizle
                             </Button>
-                          )}
-                        </Box>
+                          </Box>
+                        )}
                       </Box>
                       <Box sx={{ mt: 2 }}>
                         <Button
@@ -2318,6 +2388,90 @@ const EquipmentCalibrationManagement: React.FC = () => {
               Kaydet
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Yeni Personel Ekleme Dialog'u */}
+      <Dialog 
+        open={openPersonnelDialog} 
+        onClose={() => setOpenPersonnelDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PersonAddIcon color="primary" />
+            Yeni Personel Ekle
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+            <TextField
+              fullWidth
+              label="Sicil Numarası *"
+              value={newPersonnelData.sicilNo}
+              onChange={(e) => setNewPersonnelData({...newPersonnelData, sicilNo: e.target.value})}
+              placeholder="001, 002, 003..."
+              inputProps={{ maxLength: 10 }}
+            />
+            
+            <TextField
+              fullWidth
+              label="Ad Soyad *"
+              value={newPersonnelData.name}
+              onChange={(e) => setNewPersonnelData({...newPersonnelData, name: e.target.value})}
+              placeholder="Ahmet YILMAZ"
+            />
+            
+            <FormControl fullWidth>
+              <InputLabel>Departman *</InputLabel>
+              <Select
+                value={newPersonnelData.department}
+                onChange={(e) => setNewPersonnelData({...newPersonnelData, department: e.target.value})}
+              >
+                {DEPARTMENTS.map((dept) => (
+                  <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
+            <TextField
+              fullWidth
+              label="Pozisyon"
+              value={newPersonnelData.position}
+              onChange={(e) => setNewPersonnelData({...newPersonnelData, position: e.target.value})}
+              placeholder="Kalite Teknisyeni, Makine Operatörü..."
+            />
+            
+            <TextField
+              fullWidth
+              label="E-posta"
+              type="email"
+              value={newPersonnelData.email}
+              onChange={(e) => setNewPersonnelData({...newPersonnelData, email: e.target.value})}
+              placeholder="ahmet.yilmaz@firma.com"
+            />
+            
+            <TextField
+              fullWidth
+              label="Telefon"
+              value={newPersonnelData.phone}
+              onChange={(e) => setNewPersonnelData({...newPersonnelData, phone: e.target.value})}
+              placeholder="0532 123 45 67"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenPersonnelDialog(false)}>
+            İptal
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSavePersonnel}
+            startIcon={<SaveIcon />}
+          >
+            Personel Ekle
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
