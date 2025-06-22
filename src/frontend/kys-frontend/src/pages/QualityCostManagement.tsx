@@ -9022,9 +9022,9 @@ const SmartTargetManagementComponent: React.FC<{
             </Button>
           </Box>
         ) : viewMode === 'cards' ? (
-          <Grid container spacing={3}>
+          <Grid container spacing={2}>
             {vehicleTargets.map((target) => (
-              <Grid item xs={12} md={6} lg={4} key={target.id}>
+              <Grid item xs={12} sm={6} lg={4} key={target.id}>
                 <Card sx={{ 
                   height: '100%',
                   border: '1px solid',
@@ -9032,45 +9032,96 @@ const SmartTargetManagementComponent: React.FC<{
                               target.performans.status === 'hedefte' ? 'warning.main' : 'success.main',
                   borderLeft: '4px solid',
                   borderLeftColor: target.performans.status === 'hedef_ustunde' ? 'error.main' :
-                                  target.performans.status === 'hedefte' ? 'warning.main' : 'success.main'
-                }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                      <Typography variant="h6" fontWeight="bold">
+                                  target.performans.status === 'hedefte' ? 'warning.main' : 'success.main',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                    transform: 'translateY(-2px)'
+                  }
+                                  }}>
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="h6" fontWeight="bold" sx={{ 
+                        fontSize: '1.1rem',
+                        lineHeight: 1.3,
+                        mb: 1
+                      }}>
                         {target.kategori || target.aracModeli}
                       </Typography>
                       <Chip 
                         label={target.donem}
                         size="small"
                         color="primary"
+                        sx={{ 
+                          fontSize: '0.75rem',
+                          height: 24,
+                          '& .MuiChip-label': {
+                            px: 1
+                          }
+                        }}
                       />
                     </Box>
                     
                     {/* Kategori detayları */}
                     {target.kategori && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2, fontSize: '0.75rem' }}>
-                        <Box component="span" sx={{ fontWeight: 600 }}>İçerir:</Box>{' '}
-                        {target.kategori === 'Kompakt Araçlar' && 'Aga2100, Aga3000, Aga6000'}
-                        {target.kategori === 'Araç Üstü Vakumlu' && 'KDM80, KDM70, KDM35, Çay Toplama Makinesi'}
-                        {target.kategori === 'Çekilir Tip Mekanik Süpürgeler' && 'FTH-240, Çelik-2000, Ural'}
-                        {target.kategori === 'Kompost Makinesi' && 'Kompost Makinesi'}
-                        {target.kategori === 'Rusya Motor Odası' && 'Rusya Motor Odası'}
-                        {target.kategori === 'HSCK' && 'HSCK'}
-                      </Typography>
+                      <Box sx={{ 
+                        bgcolor: 'grey.50', 
+                        p: 1.5, 
+                        borderRadius: 1, 
+                        mb: 2,
+                        border: '1px solid',
+                        borderColor: 'grey.200'
+                      }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ 
+                          fontSize: '0.75rem',
+                          lineHeight: 1.4
+                        }}>
+                          <Box component="span" sx={{ fontWeight: 600, color: 'primary.main' }}>İçerir:</Box>
+                          <br />
+                          <Box component="span" sx={{ fontWeight: 500 }}>
+                            {target.kategori === 'Kompakt Araçlar' && 'Aga2100, Aga3000, Aga6000'}
+                            {target.kategori === 'Araç Üstü Vakumlu' && 'KDM80, KDM70, KDM35, Çay Toplama Makinesi'}
+                            {target.kategori === 'Çekilir Tip Mekanik Süpürgeler' && 'FTH-240, Çelik-2000, Ural'}
+                            {target.kategori === 'Kompost Makinesi' && 'Kompost Makinesi'}
+                            {target.kategori === 'Rusya Motor Odası' && 'Rusya Motor Odası'}
+                            {target.kategori === 'HSCK' && 'HSCK'}
+                          </Box>
+                        </Typography>
+                      </Box>
                     )}
 
                     {/* Performans Özeti */}
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-                        Genel Performans: %{target.performans.toplamPerformans.toFixed(1)}
-                      </Typography>
+                    <Box sx={{ 
+                      bgcolor: target.performans.status === 'hedef_ustunde' ? 'error.50' :
+                               target.performans.status === 'hedefte' ? 'warning.50' : 'success.50',
+                      p: 2, 
+                      borderRadius: 2, 
+                      mb: 2,
+                      border: '1px solid',
+                      borderColor: target.performans.status === 'hedef_ustunde' ? 'error.200' :
+                                  target.performans.status === 'hedefte' ? 'warning.200' : 'success.200'
+                    }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.9rem' }}>
+                          Genel Performans
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold" sx={{ 
+                          color: target.performans.status === 'hedef_ustunde' ? 'error.main' :
+                                 target.performans.status === 'hedefte' ? 'warning.main' : 'success.main',
+                          fontSize: '1rem'
+                        }}>
+                          %{target.performans.toplamPerformans.toFixed(1)}
+                        </Typography>
+                      </Box>
                       <LinearProgress 
                         variant="determinate" 
                         value={Math.min(100, target.performans.toplamPerformans)}
                         sx={{ 
                           height: 8, 
                           borderRadius: 4,
-                          bgcolor: 'grey.300',
+                          bgcolor: 'rgba(255,255,255,0.7)',
                           '& .MuiLinearProgress-bar': {
                             bgcolor: target.performans.status === 'hedef_ustunde' ? 'error.main' :
                                     target.performans.status === 'hedefte' ? 'warning.main' : 'success.main'
@@ -9081,26 +9132,101 @@ const SmartTargetManagementComponent: React.FC<{
 
                     {/* Detaylı Metrikler */}
                     <Box sx={{ mb: 2 }}>
-                      <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
-                        Ret: {target.gerceklesme.guncelRetAdet}/{target.hedefler.maksRetAdet} adet
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
-                        Hurda: {target.gerceklesme.guncelHurdaKg.toFixed(1)}/{target.hedefler.maksHurdaKg} kg
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
-                        Fire: {target.gerceklesme.guncelFireKg.toFixed(1)}/{target.hedefler.maksFireKg} kg
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        Toplam: ₺{target.gerceklesme.toplamMaliyet.toLocaleString()}/₺{target.hedefler.toplamMaksimumMaliyet.toLocaleString()}
-                      </Typography>
+                      <Grid container spacing={1}>
+                        <Grid item xs={6}>
+                          <Box sx={{ 
+                            bgcolor: 'grey.50', 
+                            p: 1.5, 
+                            borderRadius: 1,
+                            textAlign: 'center',
+                            border: '1px solid',
+                            borderColor: 'grey.200'
+                          }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                              RET
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
+                              {target.gerceklesme.guncelRetAdet}/{target.hedefler.maksRetAdet}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                              adet
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ 
+                            bgcolor: 'grey.50', 
+                            p: 1.5, 
+                            borderRadius: 1,
+                            textAlign: 'center',
+                            border: '1px solid',
+                            borderColor: 'grey.200'
+                          }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                              HURDA
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
+                              {target.gerceklesme.guncelHurdaKg.toFixed(1)}/{target.hedefler.maksHurdaKg}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                              kg
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ 
+                            bgcolor: 'grey.50', 
+                            p: 1.5, 
+                            borderRadius: 1,
+                            textAlign: 'center',
+                            border: '1px solid',
+                            borderColor: 'grey.200'
+                          }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                              FIRE
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
+                              {target.gerceklesme.guncelFireKg.toFixed(1)}/{target.hedefler.maksFireKg}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                              kg
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ 
+                            bgcolor: 'primary.50', 
+                            p: 1.5, 
+                            borderRadius: 1,
+                            textAlign: 'center',
+                            border: '1px solid',
+                            borderColor: 'primary.200'
+                          }}>
+                            <Typography variant="caption" color="primary.main" sx={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                              TOPLAM
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.8rem', color: 'primary.main' }}>
+                              ₺{target.gerceklesme.toplamMaliyet.toLocaleString()}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                              /₺{target.hedefler.toplamMaksimumMaliyet.toLocaleString()}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
                     </Box>
 
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
                       <Button
                         size="small"
                         variant="outlined"
                         onClick={() => handleEditTarget(target)}
                         startIcon={<EditIcon />}
+                        sx={{ 
+                          flex: 1,
+                          fontSize: '0.75rem',
+                          py: 0.5
+                        }}
                       >
                         Düzenle
                       </Button>
@@ -9110,6 +9236,11 @@ const SmartTargetManagementComponent: React.FC<{
                         color="error"
                         onClick={() => handleDeleteTarget(target.id)}
                         startIcon={<DeleteIcon />}
+                        sx={{ 
+                          flex: 1,
+                          fontSize: '0.75rem',
+                          py: 0.5
+                        }}
                       >
                         Sil
                       </Button>
