@@ -747,8 +747,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
     });
     setOpenPersonnelDialog(false);
 
-    // Başarı mesajı
-    alert('Personel başarıyla eklendi!');
+    // Başarı - sessiz ekleme
   };
 
   // Personel silme fonksiyonu
@@ -760,8 +759,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
       
       // Eğer bu personel seçili personeller arasındaysa onu da kaldır
       setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo));
-      
-      alert('Personel başarıyla silindi!');
     }
   };
 
@@ -1983,7 +1980,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       {/* Sorumlu Personel Yönetimi */}
                       <Box sx={{ mt: 4, p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                         <Typography variant="h6" sx={{ mb: 3, color: 'primary.main', fontWeight: 600 }}>
-                          🧑‍💼 Sorumlu Personel Yönetimi
+                          Sorumlu Personel Yönetimi
                         </Typography>
                         
                         {/* Personel Ekleme Alanı */}
@@ -1993,7 +1990,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 2 }}>
                             <FormControl sx={{ flex: 1 }}>
-                              <InputLabel>Mevcut Personel Seç</InputLabel>
+                              <InputLabel>Personel Seç</InputLabel>
                               <Select
                                 value=""
                                 onChange={(e) => {
@@ -2005,13 +2002,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
                                 displayEmpty
                               >
                                 <MenuItem value="">
-                                  <em>Listeden personel seçiniz...</em>
+                                  <em>Seçiniz...</em>
                                 </MenuItem>
                                 {personnelList
                                   .filter(p => p.isActive && !selectedPersonnel.includes(p.sicilNo))
                                   .map((person) => (
                                     <MenuItem key={person.sicilNo} value={person.sicilNo}>
-                                      {person.name} - {person.sicilNo} ({person.department})
+                                      {person.name} ({person.sicilNo})
                                     </MenuItem>
                                   ))}
                               </Select>
