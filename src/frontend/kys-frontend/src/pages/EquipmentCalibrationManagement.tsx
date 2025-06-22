@@ -1724,8 +1724,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         <ScienceIcon color="primary" />
                       </ListItemIcon>
                       <ListItemText
-                        primary="5 Kalibrasyon İşlemi"
-                        secondary="Toplam tahmini maliyet: ₺12,500"
+                        primary={`${metrics.calibrationDue} Kalibrasyon İşlemi`}
+                        secondary={`${metrics.calibrationDue > 0 ? 'Vadesi yaklaşan ekipmanlar' : 'Planlanan kalibrasyon yok'}`}
                       />
                     </ListItem>
                     <ListItem>
@@ -1733,8 +1733,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         <BuildIcon color="primary" />
                       </ListItemIcon>
                       <ListItemText
-                        primary="8 Bakım İşlemi"
-                        secondary="Toplam tahmini maliyet: ₺8,750"
+                        primary={`${metrics.maintenanceDue} Bakım İşlemi`}
+                        secondary={`${metrics.maintenanceDue > 0 ? 'Vadesi yaklaşan bakımlar' : 'Planlanan bakım yok'}`}
                       />
                     </ListItem>
                     <ListItem>
@@ -1742,44 +1742,44 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         <ChecklistIcon color="success" />
                       </ListItemIcon>
                       <ListItemText
-                        primary="12 Rutin Kontrol"
-                        secondary="Haftalık kontroller"
+                        primary={`${metrics.totalEquipment} Toplam Ekipman`}
+                        secondary={`${metrics.activeEquipment} aktif ekipman takip ediliyor`}
                       />
                     </ListItem>
                   </List>
                 </Paper>
               </Box>
 
-              {/* Maliyet Takibi */}
+              {/* Durum Özeti */}
               <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
                 <Paper sx={{ p: 3 }}>
                   <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <MoneyIcon color="secondary" />
-                    Maliyet Takibi
+                    <AssessmentIcon color="secondary" />
+                    Durum Özeti
                   </Typography>
                   <List>
                     <ListItem>
                       <ListItemText
-                        primary="Bu Ay Kalibrasyon Maliyeti"
-                        secondary={formatCurrency(25000)}
+                        primary="Kalibrasyon Durumu"
+                        secondary={`${equipmentList.filter(eq => eq.calibrationStatus === 'valid').length} geçerli, ${equipmentList.filter(eq => eq.calibrationStatus === 'due').length} vadesi yakın, ${equipmentList.filter(eq => eq.calibrationStatus === 'overdue').length} vadesi geçmiş`}
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
-                        primary="Bu Ay Bakım Maliyeti"
-                        secondary={formatCurrency(18500)}
+                        primary="Bakım Durumu"
+                        secondary={`${equipmentList.filter(eq => eq.maintenanceStatus === 'good').length} iyi durumda, ${equipmentList.filter(eq => eq.maintenanceStatus === 'due').length} bakım gerekli, ${equipmentList.filter(eq => eq.maintenanceStatus === 'critical').length} kritik`}
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
-                        primary="Yıllık Toplam Maliyet"
-                        secondary={formatCurrency(285000)}
+                        primary="Kritik Ekipmanlar"
+                        secondary={`${equipmentList.filter(eq => eq.criticalEquipment).length} kritik ekipman takip ediliyor`}
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
-                        primary="Bütçe Kullanım Oranı"
-                        secondary="68% (₺285,000 / ₺420,000)"
+                        primary="Lokasyon Dağılımı"
+                        secondary={`${new Set(equipmentList.map(eq => eq.location)).size} farklı lokasyonda ekipman`}
                       />
                     </ListItem>
                   </List>
