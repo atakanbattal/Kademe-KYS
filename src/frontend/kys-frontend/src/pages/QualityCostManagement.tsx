@@ -1377,157 +1377,19 @@ export default function QualityCostManagement() {
           console.log('🚀 TREND ANALYSIS DEBUG BİTTİ');
           console.log('🚀 =================================');
         } else {
-          // ✅ VERİ YOKSA ÖRNEK VERİ OLUŞTUR VE KAYDET
-          console.log('🔍 localStorage veri bulunamadı - Örnek veri oluşturuluyor...');
+          // ✅ VERİ YOKSA BOŞ BAŞLAT - MOCK VERİ DEVRE DIŞI
+          console.log('🔍 localStorage veri bulunamadı - Boş veri ile başlatılıyor (mock veri devre dışı)...');
           
-          const sampleCostData = [
-            {
-              id: 'sample_1',
-              tarih: '2024-11-15',
-              maliyetTuru: 'hurda',
-              maliyet: 45000,
-              parcaKodu: 'TF-001',
-              birim: 'Üretim',
-              miktar: 150,
-              aciklama: 'Kaynak hatası nedeniyle hurda',
-              createdAt: '2024-11-15T10:00:00Z'
-            },
-            {
-              id: 'sample_2', 
-              tarih: '2024-11-18',
-              maliyetTuru: 'yeniden_islem',
-              maliyet: 32000,
-              parcaKodu: 'TF-002',
-              birim: 'Kalite Kontrol',
-              miktar: 80,
-              aciklama: 'Boyut sapması yeniden işleme',
-              createdAt: '2024-11-18T14:30:00Z'
-            },
-            {
-              id: 'sample_3',
-              tarih: '2024-12-02',
-              maliyetTuru: 'garanti',
-              maliyet: 28000,
-              parcaKodu: 'TF-001',
-              birim: 'Müşteri Hizmetleri',
-              miktar: 45,
-              aciklama: 'Müşteri garanti talebi',
-              createdAt: '2024-12-02T09:15:00Z'
-            },
-            {
-              id: 'sample_4',
-              tarih: '2024-12-05',
-              maliyetTuru: 'test',
-              maliyet: 15000,
-              parcaKodu: 'TF-003',
-              birim: 'Laboratuvar',
-              miktar: 25,
-              aciklama: 'Ek test maliyeti',
-              createdAt: '2024-12-05T16:20:00Z'
-            },
-            {
-              id: 'sample_5',
-              tarih: '2024-12-10',
-              maliyetTuru: 'egitim',
-              maliyet: 12000,
-              parcaKodu: 'GENEL',
-              birim: 'İnsan Kaynakları',
-              miktar: 20,
-              aciklama: 'Kalite eğitimi maliyeti',
-              createdAt: '2024-12-10T11:45:00Z'
-            }
-          ];
-          
-          // localStorage'a örnek veri kaydet
-          localStorage.setItem('kys-cost-management-data', JSON.stringify(sampleCostData));
-          console.log('✅ Örnek kalitesizlik maliyeti verileri localStorage kayıt edildi:', sampleCostData.length, 'kayıt');
-          
-          // Şimdi bu örnek veri ile analytics oluştur
-          const generateSampleAnalytics = () => {
-            const categoryColors = {
-              'İç Hata': '#ef4444',
-              'Dış Hata': '#f97316', 
-              'Değerlendirme': '#3b82f6',
-              'Önleme': '#22c55e'
-            };
-            
-            const mapMaliyetTuruToCOPQ = (maliyetTuru: string) => {
-              const mapping: { [key: string]: string } = {
-                'hurda': 'İç Hata',
-                'yeniden_islem': 'İç Hata',
-                'fire': 'İç Hata',
-                'test': 'Değerlendirme',
-                'denetim': 'Değerlendirme',
-                'garanti': 'Dış Hata',
-                'iade': 'Dış Hata',
-                'sikayet': 'Dış Hata',
-                'egitim': 'Önleme',
-                'onleme': 'Önleme'
-              };
-              return mapping[maliyetTuru] || 'İç Hata';
-            };
-            
-            const copqBreakdown = sampleCostData
-              .reduce((acc: any[], item: any) => {
-                const copqCategory = mapMaliyetTuruToCOPQ(item.maliyetTuru);
-                const existing = acc.find(c => c.name === copqCategory);
-                if (existing) {
-                  existing.value += item.maliyet;
-                } else {
-                  acc.push({ 
-                    name: copqCategory,
-                    category: copqCategory, 
-                    value: item.maliyet,
-                    color: categoryColors[copqCategory] || '#6b7280'
-                  });
-                }
-                return acc;
-              }, []);
-              
-            const byParcaKodu = sampleCostData
-              .reduce((acc: any[], item: any) => {
-                const existing = acc.find(p => p.parcaKodu === item.parcaKodu);
-                if (existing) {
-                  existing.totalCost += item.maliyet;
-                  existing.count += 1;
-                } else {
-                  acc.push({
-                    parcaKodu: item.parcaKodu,
-                    totalCost: item.maliyet,
-                    count: 1
-                  });
-                }
-                return acc;
-              }, [])
-              .sort((a: any, b: any) => b.totalCost - a.totalCost);
-              
-            // Örnek trend data oluştur (son 6 ay)
-            const trendData = [
-              { month: 'Temmuz', internal: 85000, external: 42000, appraisal: 25000, prevention: 18000, total: 170000 },
-              { month: 'Ağustos', internal: 92000, external: 38000, appraisal: 22000, prevention: 20000, total: 172000 },
-              { month: 'Eylül', internal: 78000, external: 45000, appraisal: 28000, prevention: 19000, total: 170000 },
-              { month: 'Ekim', internal: 88000, external: 41000, appraisal: 26000, prevention: 21000, total: 176000 },
-              { month: 'Kasım', internal: 77000, external: 36000, appraisal: 24000, prevention: 23000, total: 160000 },
-              { month: 'Aralık', internal: 77000, external: 28000, appraisal: 15000, prevention: 12000, total: 132000 }
-            ];
-            
-            const totalCost = sampleCostData.reduce((sum: number, item: any) => sum + item.maliyet, 0);
-            const totalItems = sampleCostData.length;
-            const avgCost = totalCost / totalItems;
-            
-            return {
-              totalSummary: { totalCost, totalItems, avgCost },
-              copqBreakdown,
-              byParcaKodu,
-              trendData,
-              byMaliyetTuru: [],
-              sampleDataGenerated: true
-            };
-          };
-          
-          const sampleAnalytics = generateSampleAnalytics();
-          setRealTimeAnalytics(sampleAnalytics);
-          console.log('✅ Örnek analytics verileri oluşturuldu ve yüklendi:', sampleAnalytics);
+          // Boş analytics oluştur
+          setRealTimeAnalytics({
+            totalSummary: { totalCost: 0, totalItems: 0, avgCost: 0 },
+            copqBreakdown: [],
+            byParcaKodu: [],
+            trendData: [],
+            byMaliyetTuru: [],
+            sampleDataGenerated: false
+          });
+          console.log('✅ Boş analytics verileri yüklendi (mock veri devre dışı)');
         }
       } catch (error) {
         console.error('❌ Failed to load initial analytics:', error);
@@ -4032,7 +3894,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         const totalQuantity = vehicleData.reduce((sum, item) => sum + (Number(item.miktar) || Number(item.adet) || 1), 0);
         const totalWeight = vehicleData.reduce((sum, item) => sum + (Number(item.agirlik) || 0), 0);
 
-        // 📊 Detaylı Atık Türü Dağılımı - Doğru Birimlerle
+        // 📊 Detaylı Atık Türü Dağılımı - DÜZELTME: Hurda kayıt sayısı = Ret sayısı
         const retData = vehicleData.filter(item => 
           item.atikTuru === 'Ret' || 
           item.maliyetTuru?.toLowerCase().includes('ret') ||
@@ -4051,8 +3913,9 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           item.aciklama?.toLowerCase().includes('fire')
         );
 
-        // Ret: adet cinsinden
-        const retAdet = retData.reduce((sum, item) => sum + (Number(item.miktar) || Number(item.adet) || 1), 0);
+        // 🔧 DÜZELTME: Ret sayısı = Hurda kayıt sayısı olmalı
+        // Her hurda kaydı 1 ret sayısına karşılık gelir
+        const retAdet = hurdaData.length; // Hurda kayıt sayısı = Ret sayısı
         const retMaliyet = retData.reduce((sum, item) => sum + (Number(item.maliyet) || 0), 0);
 
         // Hurda: kg cinsinden - 0 kg ise maliyet gösterme
