@@ -752,14 +752,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
 
   // Personel silme fonksiyonu
   const handleDeletePersonnel = (sicilNo: string) => {
-    if (window.confirm('Bu personeli silmek istediğinizden emin misiniz?')) {
-      const updatedPersonnelList = personnelList.filter(p => p.sicilNo !== sicilNo);
-      setPersonnelList(updatedPersonnelList);
-      localStorage.setItem('personnel_data', JSON.stringify(updatedPersonnelList));
-      
-      // Eğer bu personel seçili personeller arasındaysa onu da kaldır
-      setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo));
-    }
+    const updatedPersonnelList = personnelList.filter(p => p.sicilNo !== sicilNo);
+    setPersonnelList(updatedPersonnelList);
+    localStorage.setItem('personnel_data', JSON.stringify(updatedPersonnelList));
+    
+    // Eğer bu personel seçili personeller arasındaysa onu da kaldır
+    setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo));
   };
 
   return (
@@ -2001,9 +1999,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
                                 }}
                                 displayEmpty
                               >
-                                <MenuItem value="">
-                                  <em>Seçiniz...</em>
-                                </MenuItem>
                                 {personnelList
                                   .filter(p => p.isActive && !selectedPersonnel.includes(p.sicilNo))
                                   .map((person) => (
