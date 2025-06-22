@@ -510,9 +510,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
     sicilNo: '',
     name: '',
     department: '',
-    position: '',
-    email: '',
-    phone: ''
+    position: ''
   });
 
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -727,8 +725,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
       name: newPersonnelData.name,
       department: newPersonnelData.department,
       position: newPersonnelData.position,
-      email: newPersonnelData.email,
-      phone: newPersonnelData.phone,
+      email: '',
+      phone: '',
       isActive: true
     };
 
@@ -744,9 +742,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
       sicilNo: '',
       name: '',
       department: '',
-      position: '',
-      email: '',
-      phone: ''
+      position: ''
     });
     setOpenPersonnelDialog(false);
 
@@ -2441,23 +2437,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
               value={newPersonnelData.position}
               onChange={(e) => setNewPersonnelData({...newPersonnelData, position: e.target.value})}
               placeholder="Kalite Teknisyeni, Makine Operatörü..."
-            />
-            
-            <TextField
-              fullWidth
-              label="E-posta"
-              type="email"
-              value={newPersonnelData.email}
-              onChange={(e) => setNewPersonnelData({...newPersonnelData, email: e.target.value})}
-              placeholder="ahmet.yilmaz@firma.com"
-            />
-            
-            <TextField
-              fullWidth
-              label="Telefon"
-              value={newPersonnelData.phone}
-              onChange={(e) => setNewPersonnelData({...newPersonnelData, phone: e.target.value})}
-              placeholder="0532 123 45 67"
             />
           </Box>
         </DialogContent>
