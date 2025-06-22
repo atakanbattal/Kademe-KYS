@@ -103,7 +103,7 @@ interface Equipment {
   category: string;
   location: string;
   department: string;
-  responsiblePerson: string;
+  responsiblePersons: string[]; // Sicil numaraları array'i
   purchaseDate: string;
   installationDate: string;
   warrantyExpiry: string;
@@ -119,7 +119,6 @@ interface Equipment {
   nextMaintenanceDate: string;
   maintenanceStatus: 'good' | 'due' | 'overdue' | 'critical';
   criticalEquipment: boolean;
-  cost: number;
   specifications: string;
   operatingManual: string;
   notes: string;
@@ -145,7 +144,6 @@ interface CalibrationCertificate {
   humidity: number;
   status: 'valid' | 'expired' | 'invalid';
   certificateFile: string;
-  cost: number;
   notes: string;
   traceability: string;
   environmentalConditions: string;
@@ -170,7 +168,6 @@ interface MaintenanceRecord {
   maintenanceType: 'preventive' | 'corrective' | 'predictive' | 'emergency';
   description: string;
   performedBy: string;
-  cost: number;
   partsReplaced: string[];
   nextMaintenanceDate: string;
   workOrderNumber: string;
@@ -217,47 +214,65 @@ const EQUIPMENT_CATEGORIES = [
 ];
 
 const LOCATIONS = [
-  'Kaynak Atölyesi',
-  'Montaj Hattı',
-  'Kalite Kontrol Lab',
-  'Boyahane',
-  'Makine İşleme',
+  'Ar-Ge',
+  'Girdi Kalite Kontrol',
+  'Proses Kalite Kontrol',
+  'Final Kalite Kontrol',
   'Depo',
-  'Elektrik Paneli',
-  'Üretim Hattı 1',
-  'Üretim Hattı 2',
-  'Kesim Atölyesi',
-  'Büro',
-  'R&D Lab',
+  'Tesellüm',
+  'Kesim',
+  'Büküm',
+  'Çatım',
+  'Kaynakhane',
+  'Boyahane',
+  'Elektrik Montaj',
+  'Mekanik Montaj',
+  'Planlama',
+  'Satın Alma',
+  'Makine İşleme',
   'Test Sahası',
   'Dış Saha'
 ];
 
 const DEPARTMENTS = [
+  'Ar-Ge',
+  'Girdi Kalite Kontrol',
+  'Proses Kalite Kontrol', 
+  'Final Kalite Kontrol',
   'Üretim',
-  'Kalite Kontrol',
-  'Bakım-Onarım',
-  'R&D',
+  'Kaynakhane',
+  'Boyahane',
+  'Elektrik Montaj',
+  'Mekanik Montaj',
+  'Planlama',
   'Satın Alma',
-  'İnsan Kaynakları',
-  'Finans',
+  'Depo',
+  'Tesellüm',
+  'Bakım-Onarım',
   'Bilgi İşlem',
-  'Güvenlik',
-  'Çevre'
+  'Güvenlik'
 ];
 
-const RESPONSIBLE_PERSONS = [
-  'Ahmet Yılmaz',
-  'Mehmet Kaya',
-  'Fatma Demir',
-  'Ali Özkan',
-  'Ayşe Şahin',
-  'Mustafa Çelik',
-  'Zehra Arslan',
-  'Hasan Yıldız',
-  'Emine Koç',
-  'İbrahim Güzel'
-];
+// Personel interface'i
+interface Personnel {
+  id: string;
+  sicilNo: string;
+  name: string;
+  department: string;
+  position: string;
+  email: string;
+  phone: string;
+  isActive: boolean;
+}
+
+// Personel verileri - localStorage'dan yüklenecek
+const getPersonnelData = (): Personnel[] => {
+  const stored = localStorage.getItem('personnel_data');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  return [];
+};
 
 // Removed unused constant CALIBRATION_STANDARDS
 
@@ -417,6 +432,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const [expanded, setExpanded] = useState<string | false>('filters');
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view' | 'calibration' | 'maintenance'>('create');
+  const [dialogTitle, setDialogTitle] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [activeStep, setActiveStep] = useState(0);
 
@@ -448,123 +464,30 @@ const EquipmentCalibrationManagement: React.FC = () => {
     category: '',
     location: '',
     department: '',
-    responsiblePerson: '',
+    responsiblePersons: [],
     status: 'active',
     calibrationRequired: false,
     calibrationFrequency: 12,
     maintenanceRequired: true,
     maintenanceFrequency: 6,
     criticalEquipment: false,
-    cost: 0,
     specifications: '',
     notes: ''
   });
 
-  // Sample data
-  const [equipmentList, setEquipmentList] = useState<Equipment[]>([
-    {
-      id: 'EQ-2024-001',
-      equipmentCode: 'CAL-001',
-      name: 'Dijital Kumpas',
-      manufacturer: 'Mitutoyo',
-      model: 'CD-15CPX',
-      serialNumber: 'MT2024001',
-      category: 'Ölçüm Cihazları',
-      location: 'Kalite Kontrol Lab',
-      department: 'Kalite Kontrol',
-      responsiblePerson: 'Ahmet Yılmaz',
-      purchaseDate: '2023-01-15',
-      installationDate: '2023-01-20',
-      warrantyExpiry: '2025-01-15',
-      status: 'active',
-      calibrationRequired: true,
-      calibrationFrequency: 12,
-      lastCalibrationDate: '2024-01-15',
-      nextCalibrationDate: '2025-01-15',
-      calibrationStatus: 'valid',
-      maintenanceRequired: true,
-      maintenanceFrequency: 6,
-      lastMaintenanceDate: '2024-07-01',
-      nextMaintenanceDate: '2025-01-01',
-      maintenanceStatus: 'good',
-      criticalEquipment: true,
-      cost: 2500,
-      specifications: '0-150mm, ±0.02mm accuracy',
-      operatingManual: 'manual_cal001.pdf',
-      notes: 'Kritik ölçüm cihazı - günlük kontrol gerekli',
-      images: [],
-      certificates: [],
-      maintenanceRecords: []
-    },
-    {
-      id: 'EQ-2024-002',
-      equipmentCode: 'WLD-005',
-      name: 'MIG Kaynak Makinesi',
-      manufacturer: 'Lincoln Electric',
-      model: 'PowerMIG 350MP',
-      serialNumber: 'LE2024005',
-      category: 'Kaynak Ekipmanları',
-      location: 'Kaynak Atölyesi',
-      department: 'Üretim',
-      responsiblePerson: 'Mehmet Kaya',
-      purchaseDate: '2023-06-10',
-      installationDate: '2023-06-15',
-      warrantyExpiry: '2026-06-10',
-      status: 'active',
-      calibrationRequired: true,
-      calibrationFrequency: 6,
-      lastCalibrationDate: '2024-09-01',
-      nextCalibrationDate: '2025-03-01',
-      calibrationStatus: 'valid',
-      maintenanceRequired: true,
-      maintenanceFrequency: 3,
-      lastMaintenanceDate: '2024-11-01',
-      nextMaintenanceDate: '2025-02-01',
-      maintenanceStatus: 'due',
-      criticalEquipment: true,
-      cost: 15000,
-      specifications: '350A, 380V, MIG/MAG/Stick',
-      operatingManual: 'manual_wld005.pdf',
-      notes: 'Yüksek üretim hattı ekipmanı',
-      images: [],
-      certificates: [],
-      maintenanceRecords: []
-    },
-    {
-      id: 'EQ-2024-003',
-      equipmentCode: 'TST-012',
-      name: 'Ultrasonik Test Cihazı',
-      manufacturer: 'Olympus',
-      model: 'EPOCH 650',
-      serialNumber: 'OL2024012',
-      category: 'Test Ekipmanları',
-      location: 'Kalite Kontrol Lab',
-      department: 'Kalite Kontrol',
-      responsiblePerson: 'Fatma Demir',
-      purchaseDate: '2023-03-20',
-      installationDate: '2023-03-25',
-      warrantyExpiry: '2025-03-20',
-      status: 'active',
-      calibrationRequired: true,
-      calibrationFrequency: 12,
-      lastCalibrationDate: '2024-03-01',
-      nextCalibrationDate: '2025-03-01',
-      calibrationStatus: 'due',
-      maintenanceRequired: true,
-      maintenanceFrequency: 12,
-      lastMaintenanceDate: '2024-03-01',
-      nextMaintenanceDate: '2025-03-01',
-      maintenanceStatus: 'good',
-      criticalEquipment: true,
-      cost: 8500,
-      specifications: '0.5-635MHz, A-scan, B-scan capability',
-      operatingManual: 'manual_tst012.pdf',
-      notes: 'NDT Level 2 operatör gerekli',
-      images: [],
-      certificates: [],
-      maintenanceRecords: []
-    }
-  ]);
+  // Equipment data - localStorage'dan yüklenir
+  const [equipmentList, setEquipmentList] = useState<Equipment[]>(() => {
+    const stored = localStorage.getItem('equipment_calibration_data');
+    return stored ? JSON.parse(stored) : [];
+  });
+
+  // Personnel data
+  const [personnelList, setPersonnelList] = useState<Personnel[]>(() => getPersonnelData());
+  
+  // Personnel management states
+  const [personnelDialogOpen, setPersonnelDialogOpen] = useState(false);
+  const [personnelSearchTerm, setPersonnelSearchTerm] = useState('');
+  const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
 
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
@@ -588,7 +511,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
       if (filters.status && equipment.status !== filters.status) return false;
       if (filters.calibrationStatus && equipment.calibrationStatus !== filters.calibrationStatus) return false;
       if (filters.maintenanceStatus && equipment.maintenanceStatus !== filters.maintenanceStatus) return false;
-      if (filters.responsiblePerson && equipment.responsiblePerson !== filters.responsiblePerson) return false;
+      if (filters.responsiblePerson && !equipment.responsiblePersons.includes(filters.responsiblePerson)) return false;
       if (filters.criticalOnly && !equipment.criticalEquipment) return false;
       if (filters.overdueOnly && equipment.calibrationStatus !== 'overdue' && equipment.maintenanceStatus !== 'overdue') return false;
       return true;
@@ -636,6 +559,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
 
   const openCreateDialog = () => {
     setDialogMode('create');
+    setDialogTitle('Yeni Ekipman Kaydı');
     setFormData({
       equipmentCode: '',
       name: '',
@@ -645,14 +569,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
       category: '',
       location: '',
       department: '',
-      responsiblePerson: '',
+      responsiblePersons: [],
       status: 'active',
       calibrationRequired: false,
       calibrationFrequency: 12,
       maintenanceRequired: true,
       maintenanceFrequency: 6,
       criticalEquipment: false,
-      cost: 0,
       specifications: '',
       notes: ''
     });
@@ -664,11 +587,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const handleViewEquipment = (equipment: Equipment) => {
     setSelectedEquipment(equipment);
     setDialogMode('view');
+    setDialogTitle(`${equipment.name} - Detaylar`);
     setOpenDialog(true);
   };
 
   const handleEditEquipment = (equipment: Equipment) => {
     setSelectedEquipment(equipment);
+    setDialogTitle(`${equipment.name} - Düzenle`);
     setFormData({
       equipmentCode: equipment.equipmentCode,
       name: equipment.name,
@@ -678,14 +603,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
       category: equipment.category,
       location: equipment.location,
       department: equipment.department,
-      responsiblePerson: equipment.responsiblePerson,
+      responsiblePersons: equipment.responsiblePersons,
       status: equipment.status,
       calibrationRequired: equipment.calibrationRequired,
       calibrationFrequency: equipment.calibrationFrequency,
       maintenanceRequired: equipment.maintenanceRequired,
       maintenanceFrequency: equipment.maintenanceFrequency,
       criticalEquipment: equipment.criticalEquipment,
-      cost: equipment.cost,
       specifications: equipment.specifications,
       notes: equipment.notes
     });
@@ -697,12 +621,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const handleCalibration = (equipment: Equipment) => {
     setSelectedEquipment(equipment);
     setDialogMode('calibration');
+    setDialogTitle(`Kalibrasyon İşlemi - ${equipment.name}`);
     setOpenDialog(true);
   };
 
   const handleMaintenance = (equipment: Equipment) => {
     setSelectedEquipment(equipment);
     setDialogMode('maintenance');
+    setDialogTitle(`Bakım İşlemi - ${equipment.name}`);
     setOpenDialog(true);
   };
 
@@ -795,7 +721,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
                   <TextField
                     fullWidth
                     label="Ekipman Arama"
@@ -1308,7 +1234,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           maxWidth: '100px'
                         }}
                       >
-                        {equipment.responsiblePerson}
+                        {equipment.responsiblePersons.map(sicil => {
+                          const person = personnelList.find(p => p.sicilNo === sicil);
+                          return person ? person.name : sicil;
+                        }).join(', ')}
                       </Typography>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
@@ -1494,12 +1423,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
         <Box>
           <Typography variant="h5" gutterBottom>Kalibrasyon Takip Sistemi</Typography>
           
-          <Alert severity="info" sx={{ mb: 3 }}>
-            <Typography variant="body2">
-              <strong>ISO 10012 Uyumluluğu:</strong> Tüm kalibrasyonlar ulusal veya uluslararası ölçü standartlarına izlenebilir olmalıdır.
-              Kalibrasyon sonuçları, ölçüm belirsizlikleri ve uygunluk değerlendirmeleri kaydedilmelidir.
-            </Typography>
-          </Alert>
+
 
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             {/* Yaklaşan Kalibrasyonlar */}
@@ -1586,12 +1510,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
         <Box>
           <Typography variant="h5" gutterBottom>Bakım Takip Sistemi</Typography>
           
-          <Alert severity="info" sx={{ mb: 3 }}>
-            <Typography variant="body2">
-              <strong>ISO 9001:2015 Madde 7.1.5:</strong> Ölçme ve izleme kaynaklarının, 
-              geçerli sonuçlar sağlamak üzere uygun şekilde korunması ve bakımının yapılması gerekmektedir.
-            </Typography>
-          </Alert>
+
 
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             {/* Yaklaşan Bakımlar */}
@@ -1891,10 +1810,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
       {/* Create/Edit Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="xl" fullWidth>
         <DialogTitle>
-          {dialogMode === 'create' ? 'Yeni Ekipman Ekle' :
+          {dialogTitle || (dialogMode === 'create' ? 'Yeni Ekipman Ekle' :
            dialogMode === 'edit' ? 'Ekipman Düzenle' :
            dialogMode === 'calibration' ? 'Kalibrasyon Kaydı' :
-           dialogMode === 'maintenance' ? 'Bakım Kaydı' : 'Ekipman Detayları'}
+           dialogMode === 'maintenance' ? 'Bakım Kaydı' : 'Ekipman Detayları')}
         </DialogTitle>
         <DialogContent>
           {dialogMode === 'create' || dialogMode === 'edit' ? (
@@ -1976,28 +1895,78 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           </Select>
                         </FormControl>
                       </Box>
-                      <Box sx={{ display: 'flex', gap: 2 }}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Sorumlu Kişi</InputLabel>
-                          <Select
-                            value={formData.responsiblePerson || ''}
-                            onChange={(e) => setFormData({...formData, responsiblePerson: e.target.value})}
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Typography variant="h6" gutterBottom>
+                          Sorumlu Personel Yönetimi
+                        </Typography>
+                        
+                        {/* Seçili personeller */}
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {selectedPersonnel.map((sicilNo) => {
+                            const person = personnelList.find(p => p.sicilNo === sicilNo);
+                            return (
+                              <Chip
+                                key={sicilNo}
+                                label={person ? `${person.name} (${sicilNo})` : sicilNo}
+                                onDelete={() => setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo))}
+                                color="primary"
+                                variant="outlined"
+                              />
+                            );
+                          })}
+                        </Box>
+
+                        {/* Personel arama ve ekleme */}
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                          <TextField
+                            fullWidth
+                            label="Personel Ara (Sicil No veya İsim)"
+                            value={personnelSearchTerm}
+                            onChange={(e) => setPersonnelSearchTerm(e.target.value)}
+                            placeholder="Sicil numarası veya isim ile arayın..."
+                          />
+                          <Button
+                            variant="outlined"
+                            onClick={() => setPersonnelDialogOpen(true)}
+                            startIcon={<AddIcon />}
                           >
-                            {RESPONSIBLE_PERSONS.map((person) => (
-                              <MenuItem key={person} value={person}>{person}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <TextField
-                          fullWidth
-                          label="Maliyet"
-                          type="number"
-                          value={formData.cost || 0}
-                          onChange={(e) => setFormData({...formData, cost: parseFloat(e.target.value) || 0})}
-                          InputProps={{
-                            startAdornment: <InputAdornment position="start">₺</InputAdornment>
-                          }}
-                        />
+                            Personel Seç
+                          </Button>
+                        </Box>
+
+                        {/* Filtered personnel list */}
+                        {personnelSearchTerm && (
+                          <Box sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid #ddd', borderRadius: 1 }}>
+                            {personnelList
+                              .filter(p => 
+                                p.isActive && (
+                                  p.sicilNo.toLowerCase().includes(personnelSearchTerm.toLowerCase()) ||
+                                  p.name.toLowerCase().includes(personnelSearchTerm.toLowerCase())
+                                )
+                              )
+                              .map((person) => (
+                                <Box
+                                  key={person.sicilNo}
+                                  sx={{ 
+                                    p: 1, 
+                                    cursor: 'pointer', 
+                                    '&:hover': { backgroundColor: 'grey.100' },
+                                    borderBottom: '1px solid #eee'
+                                  }}
+                                  onClick={() => {
+                                    if (!selectedPersonnel.includes(person.sicilNo)) {
+                                      setSelectedPersonnel(prev => [...prev, person.sicilNo]);
+                                      setPersonnelSearchTerm('');
+                                    }
+                                  }}
+                                >
+                                  <Typography variant="body2">
+                                    {person.name} - {person.sicilNo} ({person.department})
+                                  </Typography>
+                                </Box>
+                              ))}
+                          </Box>
+                        )}
                       </Box>
                       <Box sx={{ mt: 2 }}>
                         <Button
@@ -2103,9 +2072,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           startIcon={<SaveIcon />}
                           onClick={() => {
                             // Save logic here
-                            const newEquipment = {
+                            const newEquipment: Equipment = {
                               ...formData,
                               id: `EQ-${new Date().getFullYear()}-${String(equipmentList.length + 1).padStart(3, '0')}`,
+                              responsiblePersons: selectedPersonnel,
                               purchaseDate: new Date().toISOString().split('T')[0],
                               installationDate: new Date().toISOString().split('T')[0],
                               warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 2).toISOString().split('T')[0],
@@ -2118,10 +2088,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
                               images: [],
                               certificates: [],
                               maintenanceRecords: []
-                            };
-                            setEquipmentList([...equipmentList, newEquipment as Equipment]);
+                            } as Equipment;
+                            
+                            const updatedList = [...equipmentList, newEquipment];
+                            setEquipmentList(updatedList);
+                            localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedList));
                             setOpenDialog(false);
                             setActiveStep(0);
+                            setSelectedPersonnel([]);
                           }}
                         >
                           Kaydet
@@ -2131,6 +2105,187 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </StepContent>
                 </Step>
               </Stepper>
+            </Box>
+          ) : dialogMode === 'calibration' ? (
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Kalibrasyon İşlemi - {selectedEquipment?.name}
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Kalibrasyon Tarihi"
+                  type="date"
+                  defaultValue={new Date().toISOString().split('T')[0]}
+                  InputLabelProps={{ shrink: true }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Kalibratör Firma"
+                  placeholder="Kalibrasyon yapan firma adı"
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Sertifika Numarası"
+                  placeholder="Kalibrasyon sertifika numarası"
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Akreditasyon Numarası"
+                  placeholder="Akreditasyon numarası"
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Kalibrasyon Standardı"
+                  placeholder="Kullanılan kalibrasyon standardı"
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Ölçüm Belirsizliği"
+                  placeholder="±0.02 mm"
+                />
+                
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <TextField
+                    fullWidth
+                    label="Sıcaklık (°C)"
+                    type="number"
+                    defaultValue={20}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Nem (%)"
+                    type="number"
+                    defaultValue={50}
+                  />
+                </Box>
+                
+                <TextField
+                  fullWidth
+                  label="Kalibrasyon Sonucu"
+                  multiline
+                  rows={4}
+                  placeholder="Kalibrasyon sonuçları ve ölçüm değerleri"
+                />
+                
+                <FormControl fullWidth>
+                  <InputLabel>Uygunluk Değerlendirmesi</InputLabel>
+                  <Select defaultValue="pass">
+                    <MenuItem value="pass">Uygun</MenuItem>
+                    <MenuItem value="fail">Uygun Değil</MenuItem>
+                    <MenuItem value="conditional">Şartlı Uygun</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                <TextField
+                  fullWidth
+                  label="Sonraki Kalibrasyon Tarihi"
+                  type="date"
+                  defaultValue={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                  InputLabelProps={{ shrink: true }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Notlar"
+                  multiline
+                  rows={3}
+                  placeholder="Ek bilgiler ve özel notlar"
+                />
+              </Box>
+            </Box>
+          ) : dialogMode === 'maintenance' ? (
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Bakım İşlemi - {selectedEquipment?.name}
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Bakım Tarihi"
+                  type="date"
+                  defaultValue={new Date().toISOString().split('T')[0]}
+                  InputLabelProps={{ shrink: true }}
+                />
+                
+                <FormControl fullWidth>
+                  <InputLabel>Bakım Türü</InputLabel>
+                  <Select defaultValue="preventive">
+                    <MenuItem value="preventive">Önleyici Bakım</MenuItem>
+                    <MenuItem value="corrective">Düzeltici Bakım</MenuItem>
+                    <MenuItem value="predictive">Öngörülü Bakım</MenuItem>
+                    <MenuItem value="emergency">Acil Bakım</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                <TextField
+                  fullWidth
+                  label="İş Emri Numarası"
+                  placeholder="WO-2024-001"
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Bakım Yapan Kişi"
+                  placeholder="Bakım teknisyeninin adı"
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Bakım Açıklaması"
+                  multiline
+                  rows={4}
+                  placeholder="Yapılan bakım işlemlerinin detaylı açıklaması"
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Değiştirilen Parçalar"
+                  multiline
+                  rows={2}
+                  placeholder="Değiştirilen parça listesi (her satıra bir parça)"
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Bakım Süresi (Saat)"
+                  type="number"
+                  defaultValue={2}
+                />
+                
+                <FormControl fullWidth>
+                  <InputLabel>Bakım Durumu</InputLabel>
+                  <Select defaultValue="completed">
+                    <MenuItem value="completed">Tamamlandı</MenuItem>
+                    <MenuItem value="pending">Beklemede</MenuItem>
+                    <MenuItem value="in_progress">Devam Ediyor</MenuItem>
+                    <MenuItem value="cancelled">İptal Edildi</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                <TextField
+                  fullWidth
+                  label="Sonraki Bakım Tarihi"
+                  type="date"
+                  defaultValue={new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                  InputLabelProps={{ shrink: true }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Bakım Notları"
+                  multiline
+                  rows={3}
+                  placeholder="Bakım sonrası gözlemler ve öneriler"
+                />
+              </Box>
             </Box>
           ) : (
             <Box sx={{ mt: 2 }}>
@@ -2144,6 +2299,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
           <Button onClick={() => setOpenDialog(false)}>
             {dialogMode === 'view' ? 'Kapat' : 'İptal'}
           </Button>
+          {(dialogMode === 'calibration' || dialogMode === 'maintenance') && (
+            <Button 
+              variant="contained" 
+              color="primary"
+              startIcon={<SaveIcon />}
+              onClick={() => {
+                // Save calibration/maintenance record
+                console.log(`${dialogMode} kaydedildi`);
+                setOpenDialog(false);
+              }}
+            >
+              Kaydet
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
