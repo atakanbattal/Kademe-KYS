@@ -47,6 +47,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  ListSubheader,
 } from '@mui/material';
 import {
   Assessment as AssessmentIcon,
@@ -95,6 +96,7 @@ import {
   ExpandLess as ExpandLessIcon,
   FilterList as FilterListIcon,
   Tune as TuneIcon,
+  Science as ScienceIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -124,7 +126,20 @@ import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/d
 // 🚗 YENİ: UNIFIED QUALITY & VEHICLE INTERFACES
 // ============================================
 
-// Araç modelleri
+// ============================================
+// 🚗 YENİ: ARAÇ KATEGORİLERİ SİSTEMİ
+// ============================================
+
+// Araç kategorileri
+type VehicleCategory = 
+  | 'Kompakt Araçlar'
+  | 'Araç Üstü Vakumlu'
+  | 'Çekilir Tip Mekanik Süpürgeler'
+  | 'Kompost Makinesi'
+  | 'Rusya Motor Odası'
+  | 'HSCK';
+
+// Spesifik araç modelleri
 type VehicleModel = 
   | 'FTH-240'
   | 'Çelik-2000'
@@ -140,8 +155,79 @@ type VehicleModel =
   | 'Ural'
   | 'HSCK';
 
+// Kategori ve model eşleştirmesi
+const VEHICLE_CATEGORIES: Record<VehicleCategory, VehicleModel[]> = {
+  'Kompakt Araçlar': ['Aga2100', 'Aga3000', 'Aga6000'],
+  'Araç Üstü Vakumlu': ['KDM 80', 'KDM 70', 'KDM 35', 'Çay Toplama Makinesi'],
+  'Çekilir Tip Mekanik Süpürgeler': ['FTH-240', 'Çelik-2000', 'Ural'],
+  'Kompost Makinesi': ['Kompost Makinesi'],
+  'Rusya Motor Odası': ['Rusya Motor Odası'],
+  'HSCK': ['HSCK']
+};
+
+// Model'den kategoriye mapping
+const MODEL_TO_CATEGORY: Record<VehicleModel, VehicleCategory> = {
+  'Aga2100': 'Kompakt Araçlar',
+  'Aga3000': 'Kompakt Araçlar',
+  'Aga6000': 'Kompakt Araçlar',
+  'KDM 80': 'Araç Üstü Vakumlu',
+  'KDM 70': 'Araç Üstü Vakumlu',
+  'KDM 35': 'Araç Üstü Vakumlu',
+  'Çay Toplama Makinesi': 'Araç Üstü Vakumlu',
+  'FTH-240': 'Çekilir Tip Mekanik Süpürgeler',
+  'Çelik-2000': 'Çekilir Tip Mekanik Süpürgeler',
+  'Ural': 'Çekilir Tip Mekanik Süpürgeler',
+  'Kompost Makinesi': 'Kompost Makinesi',
+  'Rusya Motor Odası': 'Rusya Motor Odası',
+  'HSCK': 'HSCK'
+};
+
 // Atık türleri
 type WasteType = 'Ret' | 'Hurda' | 'Fire' | 'Diğer';
+
+// Malzeme türleri
+type MaterialType = 
+  // Yapısal Çelikler
+  | 'S235' | 'S275' | 'S355' | 'S420' | 'S460'
+  // Paslanmaz Çelikler  
+  | '304 Paslanmaz' | '316 Paslanmaz' | '321 Paslanmaz' | '430 Paslanmaz'
+  // Aşınma Dayanımlı Çelikler
+  | 'Hardox400' | 'Hardox450' | 'Hardox460' | 'Hardox500' | 'Hardox600'
+  // Yüksek Mukavemetli Çelikler
+  | 'S690' | 'S890' | 'S960'
+  // Özel Alaşımlar
+  | 'Cor-Ten A' | 'Cor-Ten B' | 'Weathering Steel'
+  // Alüminyum Alaşımlar
+  | 'Al 1050' | 'Al 3003' | 'Al 5754' | 'Al 6061'
+  // Galvaniz ve Kaplama
+  | 'DX51D+Z' | 'DX52D+Z' | 'DX53D+Z'
+  // Diğer
+  | 'Diğer';
+
+// Kategorize edilmiş malzeme türleri
+const MATERIAL_TYPE_CATEGORIES = {
+  'Yapısal Çelikler': ['S235', 'S275', 'S355', 'S420', 'S460'] as MaterialType[],
+  'Paslanmaz Çelikler': ['304 Paslanmaz', '316 Paslanmaz', '321 Paslanmaz', '430 Paslanmaz'] as MaterialType[],
+  'Aşınma Dayanımlı Çelikler': ['Hardox400', 'Hardox450', 'Hardox460', 'Hardox500', 'Hardox600'] as MaterialType[],
+  'Yüksek Mukavemetli Çelikler': ['S690', 'S890', 'S960'] as MaterialType[],
+  'Özel Alaşımlar': ['Cor-Ten A', 'Cor-Ten B', 'Weathering Steel'] as MaterialType[],
+  'Alüminyum Alaşımlar': ['Al 1050', 'Al 3003', 'Al 5754', 'Al 6061'] as MaterialType[],
+  'Galvaniz ve Kaplama': ['DX51D+Z', 'DX52D+Z', 'DX53D+Z'] as MaterialType[],
+  'Diğer': ['Diğer'] as MaterialType[]
+};
+
+// Malzeme fiyat bilgisi
+interface MaterialPricing {
+  id: string;
+  malzemeTuru: MaterialType;
+  alisKgFiyati: number;    // Alış fiyatı (₺/kg)
+  satisKgFiyati: number;   // Satış fiyatı (₺/kg) - hurda/fire satış
+  fireGeriKazanimOrani: number; // Fire geri kazanım oranı (%)
+  hurdaGeriKazanimOrani: number; // Hurda geri kazanım oranı (%)
+  guncellemeTarihi: string;
+  aktif: boolean;
+  aciklama?: string;
+}
 
 // Unified Quality Record - Hem kalitesizlik maliyeti hem araç takibi için
 interface UnifiedQualityRecord {
@@ -167,6 +253,13 @@ interface UnifiedQualityRecord {
   unit?: 'adet' | 'kg' | 'lt' | 'ton';
   category?: string;        // Motor Parçaları, Şase Elemanları, vs.
   
+  // YENİ: Malzeme bazlı maliyet hesaplama
+  malzemeTuru?: MaterialType;  // Malzeme cinsi
+  malzemeAlisFiyati?: number;  // Otomatik doldurulur
+  malzemeSatisFiyati?: number; // Otomatik doldurulur
+  netMaliyet?: number;         // Gerçek net maliyet (alış - satış)
+  geriKazanim?: number;        // Geri kazanım miktarı (₺)
+  
   // Otomatik hesaplanan alanlar
   birimMaliyet?: number;    // maliyet/miktar
   kgMaliyet?: number;       // maliyet/kg
@@ -177,10 +270,54 @@ interface UnifiedQualityRecord {
   quantity?: number;        // compat field
 }
 
-// Araç hedefleri için interface
+// Araç kategorisi hedefleri için interface
+interface VehicleCategoryTarget {
+  id: string;
+  kategori: VehicleCategory;
+  donem: string;            // 2025-01, 2025-Q1, 2025
+  donemTuru: 'ay' | 'ceyrek' | 'yil';
+  
+  hedefler: {
+    maksRetAdet: number;
+    maksRetMaliyet: number;
+    maksHurdaKg: number;
+    maksHurdaMaliyet: number;
+    maksFireKg: number;       // Fire için kg birimi
+    maksFireMaliyet: number;
+    toplamMaksimumMaliyet: number;
+    hedefVerimlilik: number; // %
+  };
+  
+  gerceklesme: {
+    guncelRetAdet: number;
+    guncelRetMaliyet: number;
+    guncelHurdaKg: number;
+    guncelHurdaMaliyet: number;
+    guncelFireKg: number;     // Fire için kg birimi
+    guncelFireMaliyet: number;
+    toplamMaliyet: number;
+    mevcutVerimlilik: number; // %
+  };
+  
+  performans: {
+    retPerformans: number;    // %
+    hurdaPerformans: number;  // %
+    firePerformans: number;   // %
+    toplamPerformans: number; // %
+    status: 'hedef_altinda' | 'hedefte' | 'hedef_ustunde';
+  };
+  
+  createdDate: string;
+  updatedDate: string;
+  createdBy: string;
+  isActive: boolean;
+}
+
+// Geriye uyumluluk için VehicleTarget (eskisi gibi)
 interface VehicleTarget {
   id: string;
-  aracModeli: VehicleModel;
+  aracModeli?: VehicleModel; // Optional çünkü kategori bazlı da olabilir
+  kategori?: VehicleCategory; // Yeni: kategori bazlı hedefler
   donem: string;            // 2025-01, 2025-Q1, 2025
   donemTuru: 'ay' | 'ceyrek' | 'yil';
   
@@ -221,11 +358,36 @@ interface VehicleTarget {
 }
 
 // Akıllı Hedef Önerisi Interface'i
-
+interface SmartTargetSuggestion {
+  aracModeli?: VehicleModel; // Geriye uyumluluk için
+  kategori?: VehicleCategory; // Yeni: kategori bazlı öneriler
+  displayName?: string; // Görüntülenecek isim
+  onerilenHedefler: {
+    retAdet: number;
+    retMaliyet: number;
+    hurdaKg: number;
+    hurdaMaliyet: number;
+    fireKg: number;
+    fireMaliyet: number;
+    toplamMaliyet: number;
+  };
+  gecmisPerformans: {
+    son3AyOrtalama: number;
+    son6AyOrtalama: number;
+    yillikOrtalama: number;
+    trend: 'iyilesen' | 'stabil' | 'kotulesen';
+  };
+  oneriSebebi: string;
+  guvenilirlik: number; // %
+}
 
 // Araç performans analizi
 interface VehiclePerformanceAnalysis {
-  aracModeli: VehicleModel;
+  aracModeli?: VehicleModel; // Optional: spesifik model
+  kategori?: VehicleCategory; // Yeni: kategori bazlı analiz
+  displayName?: string; // Görüntülenecek isim (kategori adı ya da model adı)
+  // Geriye uyumluluk için backup
+  categoryModels?: VehicleModel[]; // Kategorideki alt modeller
   toplam: {
     kayitSayisi: number;
     toplamMaliyet: number;
@@ -513,6 +675,12 @@ export default function QualityCostManagement() {
   
   // ✅ REAL-TIME TRIGGER: localStorage değişikliklerini dinlemek için state
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0);
+
+  // ✅ ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: Otomatik veri yenileme fonksiyonu
+  const triggerDataRefresh = useCallback(() => {
+    console.log('🔄 Veri yenileme tetiklendi...');
+    setDataRefreshTrigger(prev => prev + 1);
+  }, []);
 
   // ✅ Professional Modal Dialog States
   const [modalOpen, setModalOpen] = useState(false);
@@ -3709,12 +3877,45 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     const [viewMode, setViewMode] = useState<'cards' | 'table' | 'charts'>('cards');
     const [sortBy, setSortBy] = useState<'maliyet' | 'miktar' | 'trend' | 'alfabetik'>('maliyet');
     const [showOnlyProblematic, setShowOnlyProblematic] = useState(false);
+    const [forceRefresh, setForceRefresh] = useState(0);
+
+    // ✅ ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: Event listener ile veri güncellemelerini dinle
+    useEffect(() => {
+      const handleCostDataUpdate = () => {
+        console.log('🔄 Araç bazlı takip kartları güncelleniyor...');
+        setForceRefresh(prev => prev + 1);
+      };
+
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'kys-cost-management-data' && e.newValue) {
+          console.log('🔄 localStorage değişikliği tespit edildi, araç kartları güncelleniyor...');
+          setForceRefresh(prev => prev + 1);
+        }
+      };
+
+      window.addEventListener('costDataUpdated', handleCostDataUpdate);
+      window.addEventListener('storage', handleStorageChange);
+      
+      return () => {
+        window.removeEventListener('costDataUpdated', handleCostDataUpdate);
+        window.removeEventListener('storage', handleStorageChange);
+      };
+    }, []);
 
     // 🚀 Gelişmiş Araç Bazlı Veri Analizi
     // 🚀 Gelişmiş Araç Bazlı Veri Analizi - Birleşik Veri Yönetiminden Doğru Veriler
     const vehicleAnalysis = useMemo(() => {
-      // Birleşik veri yönetimi sekmesindeki güncel kayıtları kullan
-      let realData = globalFilteredData && globalFilteredData.length > 0 ? globalFilteredData : filteredData;
+      // ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: En güncel localStorage verisini kullan
+      let realData;
+      try {
+        const latestData = localStorage.getItem('kys-cost-management-data');
+        realData = latestData ? JSON.parse(latestData) : [];
+        console.log('🔄 Araç bazlı takip - localStorage verisi yenilendi:', realData.length, 'kayıt');
+      } catch (error) {
+        console.error('localStorage okuma hatası:', error);
+        realData = globalFilteredData && globalFilteredData.length > 0 ? globalFilteredData : filteredData;
+      }
+      
       if (!realData || realData.length === 0) return [];
       
       // 📅 ZAMAN FİLTRESİ UYGULAMA - selectedTimeRange'e göre filtreleme
@@ -3758,14 +3959,20 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       // Veri kaynağı öncelik sırası: globalFilteredData > filteredData > [] (zaman filtreli)
       
       const analysis: VehiclePerformanceAnalysis[] = [];
-      const vehicleModels: VehicleModel[] = [
-        'FTH-240', 'Çelik-2000', 'Aga2100', 'Aga3000', 'Aga6000',
-        'Kompost Makinesi', 'Çay Toplama Makinesi', 'KDM 35', 'KDM 70', 'KDM 80',
-        'Rusya Motor Odası', 'Ural', 'HSCK'
+      
+      // 🚗 YENİ: KATEGORİ BAZLI ANALİZ SİSTEMİ
+      const vehicleCategories: VehicleCategory[] = [
+        'Kompakt Araçlar',
+        'Araç Üstü Vakumlu', 
+        'Çekilir Tip Mekanik Süpürgeler',
+        'Kompost Makinesi',
+        'Rusya Motor Odası',
+        'HSCK'
       ];
 
-      vehicleModels.forEach(model => {
-        // Birleşik veri yönetiminden doğru araç verilerini al - GELİŞMİŞ FİLTRELEME
+      vehicleCategories.forEach(category => {
+        const categoryModels = VEHICLE_CATEGORIES[category];
+        // 🚗 KATEGORİ BAZLI VERİ FİLTRELEME - Kategorideki tüm araçları dahil et
         const vehicleData = realData.filter(item => {
           // Tüm olası araç alanlarını kontrol et
           const aracField = item.arac || item.aracModeli || item.vehicle || item.vehicleModel || '';
@@ -3773,51 +3980,54 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           const aciklamaField = item.aciklama || item.description || '';
           const parcaKoduField = item.parcaKodu || '';
           
-          // Araç modeli eşleştirme için anahtar kelimeler
-          const modelKeywords = {
-            'FTH-240': ['fth', 'fth-240', 'fth240'],
-            'Çelik-2000': ['çelik', 'celik', 'çelik-2000', 'celik-2000', 'çelik2000'],
-            'Aga2100': ['aga2100', 'aga 2100', 'aga-2100'],
-            'Aga3000': ['aga3000', 'aga 3000', 'aga-3000'],
-            'Aga6000': ['aga6000', 'aga 6000', 'aga-6000'],
-            'Kompost Makinesi': ['kompost', 'kompost makinesi', 'kompost_makinesi'],
-            'Çay Toplama Makinesi': ['çay', 'çay toplama', 'çay_toplama', 'çay makinesi', 'çay_makinesi'],
-            'KDM 35': ['kdm35', 'kdm 35', 'kdm-35'],
-            'KDM 70': ['kdm70', 'kdm 70', 'kdm-70'],
-            'KDM 80': ['kdm80', 'kdm 80', 'kdm-80'],
-            'Rusya Motor Odası': ['rusya', 'motor odası', 'motor_odası', 'rusya motor'],
-            'Ural': ['ural'],
-            'HSCK': ['hsck', 'h.s.c.k', 'h s c k']
-          };
-          
-          const keywords = modelKeywords[model] || [model.toLowerCase()];
-          
-          // SÜPER GELİŞMİŞ EŞLEŞTİRME MANTĞI - TÜM OLASI ALANLAR
-          const allTextFields = [
-            aracField, birimField, aciklamaField, parcaKoduField,
-            item.maliyetTuru || '', item.atikTuru || '', item.category || '',
-            item.unit || '', item.vehicle || '', item.vehicleModel || '',
-            item.description || '', item.type || '', item.name || ''
-          ].join(' ').toLowerCase();
-          
-          // Direkt eşleşme kontrolü
-          const directMatch = item.aracModeli === model;
-          
-          // Anahtar kelime eşleşmesi
-          const keywordMatch = keywords.some(keyword => 
-            allTextFields.includes(keyword.toLowerCase())
-          );
-          
-          // Kısmi eşleşme (model adının parçaları)
-          const modelParts = model.toLowerCase().split(/[\s\-_]+/);
-          const partialMatch = modelParts.length > 1 && modelParts.some(part => 
-            part.length > 2 && allTextFields.includes(part)
-          );
-          
-          return directMatch || keywordMatch || partialMatch;
+          // Kategorideki her model için kontrol et
+          return categoryModels.some(model => {
+            // Araç modeli eşleştirme için anahtar kelimeler
+            const modelKeywords = {
+              'FTH-240': ['fth', 'fth-240', 'fth240'],
+              'Çelik-2000': ['çelik', 'celik', 'çelik-2000', 'celik-2000', 'çelik2000'],
+              'Aga2100': ['aga2100', 'aga 2100', 'aga-2100'],
+              'Aga3000': ['aga3000', 'aga 3000', 'aga-3000'],
+              'Aga6000': ['aga6000', 'aga 6000', 'aga-6000'],
+              'Kompost Makinesi': ['kompost', 'kompost makinesi', 'kompost_makinesi'],
+              'Çay Toplama Makinesi': ['çay', 'çay toplama', 'çay_toplama', 'çay makinesi', 'çay_makinesi'],
+              'KDM 35': ['kdm35', 'kdm 35', 'kdm-35'],
+              'KDM 70': ['kdm70', 'kdm 70', 'kdm-70'],
+              'KDM 80': ['kdm80', 'kdm 80', 'kdm-80'],
+              'Rusya Motor Odası': ['rusya', 'motor odası', 'motor_odası', 'rusya motor'],
+              'Ural': ['ural'],
+              'HSCK': ['hsck', 'h.s.c.k', 'h s c k']
+            };
+            
+            const keywords = modelKeywords[model] || [model.toLowerCase()];
+            
+            // SÜPER GELİŞMİŞ EŞLEŞTİRME MANTĞI - TÜM OLASI ALANLAR
+            const allTextFields = [
+              aracField, birimField, aciklamaField, parcaKoduField,
+              item.maliyetTuru || '', item.atikTuru || '', item.category || '',
+              item.unit || '', item.vehicle || '', item.vehicleModel || '',
+              item.description || '', item.type || '', item.name || ''
+            ].join(' ').toLowerCase();
+            
+            // Direkt eşleşme kontrolü
+            const directMatch = item.aracModeli === model;
+            
+            // Anahtar kelime eşleşmesi
+            const keywordMatch = keywords.some(keyword => 
+              allTextFields.includes(keyword.toLowerCase())
+            );
+            
+            // Kısmi eşleşme (model adının parçaları)
+            const modelParts = model.toLowerCase().split(/[\s\-_]+/);
+            const partialMatch = modelParts.length > 1 && modelParts.some(part => 
+              part.length > 2 && allTextFields.includes(part)
+            );
+            
+            return directMatch || keywordMatch || partialMatch;
+          });
         });
 
-        // Tüm araç modelleri için kart oluştur (veri olsun ya da olmasın)
+        // 🚗 KATEGORİ BAZLI ANALİZ - Kategorideki tüm araçların verilerini topla
         const totalCost = vehicleData.reduce((sum, item) => sum + (Number(item.maliyet) || 0), 0);
         const totalQuantity = vehicleData.reduce((sum, item) => sum + (Number(item.miktar) || Number(item.adet) || 1), 0);
         const totalWeight = vehicleData.reduce((sum, item) => sum + (Number(item.agirlik) || 0), 0);
@@ -3853,14 +4063,16 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         const fireKg = fireData.reduce((sum, item) => sum + (Number(item.agirlik) || Number(item.miktar) || 0), 0);
         const fireMaliyet = fireKg > 0 ? fireData.reduce((sum, item) => sum + (Number(item.maliyet) || 0), 0) : 0;
 
-        // 🎯 Hedef Karşılaştırması - Gerçek hedeflerle
-        const vehicleTarget = vehicleTargets.find(target => target.aracModeli === model);
-        const monthlyTarget = vehicleTarget?.hedefler.toplamMaksimumMaliyet || 50000;
+        // 🎯 Hedef Karşılaştırması - Kategori bazlı hedeflerle
+        const categoryTarget = vehicleTargets.find(target => target.kategori === category);
+        const monthlyTarget = categoryTarget?.hedefler.toplamMaksimumMaliyet || 50000;
         const currentMonthCost = totalCost;
         const targetDeviation = monthlyTarget > 0 ? ((currentMonthCost - monthlyTarget) / monthlyTarget) * 100 : 0;
 
         analysis.push({
-          aracModeli: model,
+          kategori: category,
+          displayName: category,
+          categoryModels: categoryModels,
           toplam: {
             kayitSayisi: vehicleData.length,
             toplamMaliyet: totalCost,
@@ -3910,7 +4122,11 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           sortedAnalysis.sort((a, b) => b.toplam.toplamMaliyet - a.toplam.toplamMaliyet);
           break;
         case 'alfabetik':
-          sortedAnalysis.sort((a, b) => a.aracModeli.localeCompare(b.aracModeli, 'tr'));
+          sortedAnalysis.sort((a, b) => {
+            const nameA = a.displayName || a.kategori || a.aracModeli || '';
+            const nameB = b.displayName || b.kategori || b.aracModeli || '';
+            return nameA.localeCompare(nameB, 'tr');
+          });
           break;
       }
 
@@ -3924,13 +4140,31 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         );
       }
 
-      // 🔍 Araç Filtresi
+      // 🔍 Araç/Kategori Filtresi
       if (selectedVehicle) {
-        sortedAnalysis = sortedAnalysis.filter(item => item.aracModeli === selectedVehicle);
+        sortedAnalysis = sortedAnalysis.filter(item => 
+          item.aracModeli === selectedVehicle || 
+          item.kategori === selectedVehicle ||
+          item.displayName === selectedVehicle ||
+          item.categoryModels?.includes(selectedVehicle as VehicleModel)
+        );
       }
 
+      // 🐛 DEBUG: Kategori sıralama kontrolü
+      console.log('🔢 Kategori Sıralama Debug:', {
+        sortBy,
+        totalCategories: sortedAnalysis.length,
+        categories: sortedAnalysis.map((item, index) => ({
+          index: index + 1,
+          displayName: item.displayName || item.kategori || item.aracModeli,
+          toplam: item.toplam.toplamMaliyet,
+          kayitSayisi: item.toplam.kayitSayisi
+        })),
+        rawAnalysis: analysis.length
+      });
+
       return sortedAnalysis;
-    }, [globalFilteredData, filteredData, sortBy, showOnlyProblematic, selectedVehicle, selectedTimeRange, vehicleTargets]);
+    }, [globalFilteredData, filteredData, sortBy, showOnlyProblematic, selectedVehicle, selectedTimeRange, vehicleTargets, dataRefreshTrigger, forceRefresh]);
 
     // 📊 Özet İstatistikler
     const summaryStats = useMemo(() => {
@@ -3952,48 +4186,130 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       };
     }, [vehicleAnalysis]);
 
-    // Profesyonel Araç Kartı Render Fonksiyonu
-    const renderVehicleCard = (vehicle: VehiclePerformanceAnalysis, index: number) => (
-      <Grid item xs={12} md={6} lg={4} key={vehicle.aracModeli}>
-        <Card 
-          sx={{ 
-            height: '100%',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            border: '1px solid',
-            borderColor: vehicle.hedefKarsilastirma?.durum === 'kritik' ? 'error.main' : 
-                        vehicle.hedefKarsilastirma?.durum === 'dikkat' ? 'warning.main' : 'divider',
-            borderLeft: '4px solid',
-            borderLeftColor: vehicle.hedefKarsilastirma?.durum === 'kritik' ? 'error.main' : 
-                            vehicle.hedefKarsilastirma?.durum === 'dikkat' ? 'warning.main' : 'success.main',
-            '&:hover': {
-              transform: 'translateY(-2px)',
-              boxShadow: 4,
-              borderColor: 'primary.main'
-            }
-          }}
-          onClick={() => onVehiclePerformanceClick?.(vehicle.aracModeli)}
-        >
-          <CardContent sx={{ p: 3 }}>
-            {/* Başlık ve Sıralama */}
-            <Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="h6" fontWeight={600} color="primary.main" noWrap>
-                  {vehicle.aracModeli}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {vehicle.hedefKarsilastirma?.durum === 'kritik' ? 'Kritik Durum' :
-                   vehicle.hedefKarsilastirma?.durum === 'dikkat' ? 'Dikkat Gerekli' : 'Normal Performans'}
-                </Typography>
+    // 🚗 KATEGORİ BAZLI Araç Kartı Render Fonksiyonu
+    const renderVehicleCard = (vehicle: VehiclePerformanceAnalysis, index: number) => {
+      // 🚗 KATEGORİ BAZLI GÖRÜNTÜLEME: kategori ve displayName'i kullan
+      const displayName = vehicle.displayName || vehicle.kategori || vehicle.aracModeli || 'Bilinmeyen Kategori';
+      const cardKey = vehicle.kategori || vehicle.aracModeli || `category-${index}`;
+      
+      // 🐛 DEBUG: Kart sıralama kontrolü
+      console.log(`🃏 Kart ${index + 1} Debug:`, {
+        index: index + 1,
+        displayName,
+        cardKey,
+        maliyet: vehicle.toplam.toplamMaliyet,
+        kayitSayisi: vehicle.toplam.kayitSayisi,
+        kategori: vehicle.kategori,
+        aracModeli: vehicle.aracModeli
+      });
+      
+      return (
+        <Grid item xs={12} md={6} lg={4} key={cardKey}>
+          <Card 
+            sx={{ 
+              height: '100%',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              border: '1px solid',
+              borderColor: vehicle.hedefKarsilastirma?.durum === 'kritik' ? 'error.main' : 
+                          vehicle.hedefKarsilastirma?.durum === 'dikkat' ? 'warning.main' : 'divider',
+              borderLeft: '4px solid',
+              borderLeftColor: vehicle.hedefKarsilastirma?.durum === 'kritik' ? 'error.main' : 
+                              vehicle.hedefKarsilastirma?.durum === 'dikkat' ? 'warning.main' : 'success.main',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: 4,
+                borderColor: 'primary.main'
+              }
+            }}
+            onClick={() => {
+              // Kategori detayına tıklama - kategori bilgisini gönder
+              if (vehicle.kategori) {
+                console.log('🔍 Kategori detayına tıklandı:', vehicle.kategori, vehicle.categoryModels);
+                // onVehiclePerformanceClick?.(vehicle.kategori);
+              }
+            }}
+          >
+            <CardContent sx={{ p: 3 }}>
+              {/* 🚗 KATEGORİ Başlık ve Durum - Profesyonel Layout */}
+              <Box sx={{ mb: 3 }}>
+                {/* Üst Bölüm: Başlık ve Sıra Numarası */}
+                <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                  <Box sx={{ flex: 1, pr: 2 }}>
+                    <Typography 
+                      variant="h6" 
+                      fontWeight={700} 
+                      color="primary.main" 
+                      sx={{ 
+                        fontSize: '1.1rem',
+                        lineHeight: 1.3,
+                        letterSpacing: '0.02em'
+                      }}
+                    >
+                      {displayName}
+                    </Typography>
+                  </Box>
+                  <Chip 
+                    label={`#${index + 1}`} 
+                    size="medium"
+                    variant="filled"
+                    color={index === 0 ? 'error' : index < 3 ? 'warning' : 'primary'}
+                    sx={{ 
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                      height: '32px',
+                      minWidth: '48px'
+                    }}
+                  />
+                </Box>
+                
+                {/* Alt Bölüm: Kategori Modelleri ve Durum */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {/* Alt modelleri göster */}
+                  {vehicle.categoryModels && vehicle.categoryModels.length > 0 && (
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary" 
+                      sx={{ 
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        lineHeight: 1.2,
+                        bgcolor: 'grey.50',
+                        px: 1,
+                        py: 0.5,
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'grey.200'
+                      }}
+                    >
+                      <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                        İçerir:
+                      </Box> {vehicle.categoryModels.join(', ')}
+                    </Typography>
+                  )}
+                  
+                  {/* Durum Chip'i */}
+                  <Box>
+                    <Chip
+                      label={
+                        vehicle.hedefKarsilastirma?.durum === 'kritik' ? 'Kritik Durum' :
+                        vehicle.hedefKarsilastirma?.durum === 'dikkat' ? 'Dikkat Gerekli' : 'Normal Performans'
+                      }
+                      size="small"
+                      variant="outlined"
+                      color={
+                        vehicle.hedefKarsilastirma?.durum === 'kritik' ? 'error' :
+                        vehicle.hedefKarsilastirma?.durum === 'dikkat' ? 'warning' : 'success'
+                      }
+                      sx={{ 
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        height: '24px'
+                      }}
+                    />
+                  </Box>
+                </Box>
               </Box>
-              <Chip 
-                label={`#${index + 1}`} 
-                size="small"
-                variant="filled"
-                color={index === 0 ? 'error' : index < 3 ? 'warning' : 'primary'}
-                sx={{ fontWeight: 600 }}
-              />
-            </Box>
 
             {/* Ana Metrikler */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -4055,94 +4371,52 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
             {/* Detaylı Hedef Karşılaştırması */}
             {(() => {
-              // Süper güçlü hedef eşleştirme sistemi
-              let vehicleTarget = null;
+              // 🚗 KATEGORİ BAZLI hedef eşleştirme sistemi
+              let categoryTarget = null;
               
-              // 1. Exact match
-              vehicleTarget = vehicleTargets.find(target => target.aracModeli === vehicle.aracModeli);
-              
-              // 2. Case-insensitive exact match
-              if (!vehicleTarget) {
-                vehicleTarget = vehicleTargets.find(target => 
-                  target.aracModeli.toLowerCase().trim() === vehicle.aracModeli.toLowerCase().trim()
-                );
+              // 1. Kategori bazlı hedef arama
+              if (vehicle.kategori) {
+                categoryTarget = vehicleTargets.find(target => target.kategori === vehicle.kategori);
               }
               
-              // 3. Partial match (içerir kontrolü)
-              if (!vehicleTarget) {
-                vehicleTarget = vehicleTargets.find(target => {
-                  const targetModel = target.aracModeli.toLowerCase().trim();
-                  const vehicleModel = vehicle.aracModeli.toLowerCase().trim();
-                  return targetModel.includes(vehicleModel) || vehicleModel.includes(targetModel);
-                });
-              }
-              
-              // 4. Özel araç eşleştirmeleri (manuel mapping)
-              if (!vehicleTarget) {
-                const vehicleMapping: Record<string, string> = {
-                  'HSCK': 'HSCK',
-                  'Aga2100': 'Aga2100',
-                  'Aga3000': 'Aga3000',
-                  'Aga6000': 'Aga6000',
-                  'FTH-240': 'FTH-240',
-                  'Çelik-2000': 'Çelik-2000',
-                  'Kompost Makinesi': 'Kompost Makinesi',
-                  'Çay Toplama Makinesi': 'Çay Toplama Makinesi',
-                  'KDM 35': 'KDM 35',
-                  'KDM 70': 'KDM 70',
-                  'KDM 80': 'KDM 80',
-                  'Rusya Motor Odası': 'Rusya Motor Odası',
-                  'Ural': 'Ural'
-                };
-                
-                const mappedName = vehicleMapping[vehicle.aracModeli];
-                if (mappedName) {
-                  vehicleTarget = vehicleTargets.find(target => target.aracModeli === mappedName);
-                }
-              }
-              
-              // 5. Benzer kelime eşleştirme
-              if (!vehicleTarget) {
-                vehicleTarget = vehicleTargets.find(target => {
-                  const targetWords = target.aracModeli.toLowerCase().split(/[\s\-_]+/);
-                  const vehicleWords = vehicle.aracModeli.toLowerCase().split(/[\s\-_]+/);
-                  
-                  // En az bir kelime eşleşmesi varsa
-                  return targetWords.some(tw => vehicleWords.some(vw => tw === vw || tw.includes(vw) || vw.includes(tw)));
-                });
+              // 2. Geriye uyumluluk için aracModeli kontrolü
+              if (!categoryTarget && vehicle.aracModeli) {
+                categoryTarget = vehicleTargets.find(target => target.aracModeli === vehicle.aracModeli);
               }
               
               // Debug bilgisi ekle
-              console.log('🎯 Süper Hedef Eşleştirme Debug:', {
-                vehicleModel: vehicle.aracModeli,
-                availableTargets: vehicleTargets.map(t => t.aracModeli),
-                foundTarget: vehicleTarget?.aracModeli || 'Bulunamadı',
+              console.log('🎯 Kategori Bazlı Hedef Eşleştirme Debug:', {
+                kategori: vehicle.kategori,
+                displayName: displayName,
+                availableTargets: vehicleTargets.map(t => ({ kategori: t.kategori, aracModeli: t.aracModeli })),
+                foundTarget: categoryTarget?.kategori || categoryTarget?.aracModeli || 'Bulunamadı',
                 totalTargets: vehicleTargets.length
               });
               
-              if (!vehicleTarget) {
+              if (!categoryTarget) {
                 return (
                   <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px dashed', borderColor: 'grey.300' }}>
                     <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
                       Hedef Performansı
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: 2 }}>
-                      Bu araç modeli ({vehicle.aracModeli}) için henüz hedef belirlenmemiş.
+                      Bu kategori ({displayName}) için henüz hedef belirlenmemiş.
                     </Typography>
                     <Button
                       variant="contained"
                       color="primary"
                       size="small"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         // Akıllı Hedef Yönetimi sekmesine geç
-                        setCurrentTab(4); // Tab index 4 = Akıllı Hedef Yönetimi
+                        window.dispatchEvent(new CustomEvent('switchToTargetManagement', { detail: { kategori: vehicle.kategori } }));
                       }}
                       sx={{ mb: 1 }}
                     >
                       Hedef Belirle
                     </Button>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      Mevcut hedefler: {vehicleTargets.map(t => t.aracModeli).join(', ') || 'Hiç hedef yok'}
+                      Mevcut hedefler: {vehicleTargets.map(t => t.kategori || t.aracModeli).join(', ') || 'Hiç hedef yok'}
                     </Typography>
                   </Box>
                 );
@@ -4162,14 +4436,14 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 return Math.round(performanceRatio);
               };
 
-              const retPerformans = calculatePerformance(vehicle.atikTuruDagilim.ret.adet, vehicleTarget.hedefler.maksRetAdet);
-              const hurdaPerformans = calculatePerformance(vehicle.atikTuruDagilim.hurda.kg, vehicleTarget.hedefler.maksHurdaKg);
-              const firePerformans = calculatePerformance(vehicle.atikTuruDagilim.fire.kg, vehicleTarget.hedefler.maksFireKg);
+              const retPerformans = calculatePerformance(vehicle.atikTuruDagilim.ret.adet, categoryTarget.hedefler.maksRetAdet);
+              const hurdaPerformans = calculatePerformance(vehicle.atikTuruDagilim.hurda.kg, categoryTarget.hedefler.maksHurdaKg);
+              const firePerformans = calculatePerformance(vehicle.atikTuruDagilim.fire.kg, categoryTarget.hedefler.maksFireKg);
 
               return (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
-                    Hedef Performansı ({vehicleTarget.donem})
+                    Hedef Performansı ({categoryTarget.donem})
                   </Typography>
                   
                   {/* Ret Hedef Karşılaştırması */}
@@ -4182,7 +4456,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Maks Hedef: {vehicleTarget.hedefler.maksRetAdet} adet
+                        Maks Hedef: {categoryTarget.hedefler.maksRetAdet} adet
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Gerçek: {vehicle.atikTuruDagilim.ret.adet} adet
@@ -4213,7 +4487,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Maks Hedef: {vehicleTarget.hedefler.maksHurdaKg} kg
+                        Maks Hedef: {categoryTarget.hedefler.maksHurdaKg} kg
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Gerçek: {vehicle.atikTuruDagilim.hurda.kg.toFixed(1)} kg
@@ -4244,7 +4518,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="caption" color="text.secondary">
-                        Maks Hedef: {vehicleTarget.hedefler.maksFireKg} kg
+                        Maks Hedef: {categoryTarget.hedefler.maksFireKg} kg
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Gerçek: {vehicle.atikTuruDagilim.fire.kg.toFixed(1)} kg
@@ -4270,11 +4544,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               );
             })()}
           </CardContent>
-
-
         </Card>
       </Grid>
     );
+  };
 
     return (
       <Box sx={{ p: 3 }}>
@@ -5130,6 +5403,11 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             label="Birim Maliyet Ayarları" 
             iconPosition="start"
           />
+          <Tab 
+            icon={<ScienceIcon />} 
+                          label="Malzeme Maliyet Ayarları" 
+            iconPosition="start"
+          />
         </Tabs>
       </Paper>
 
@@ -5148,7 +5426,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           onCostTypeAnalysisClick={interactiveFunctions.handleCostTypeAnalysisClick}
           onVehicleAnalysisClick={interactiveFunctions.handleVehicleAnalysisClick}
         />}
-        {currentTab === 1 && <DataManagementComponent onDataChange={setRealTimeAnalytics} filteredData={globalFilteredData} onDataRefresh={() => setDataRefreshTrigger(prev => prev + 1)} />}
+        {currentTab === 1 && <DataManagementComponent onDataChange={setRealTimeAnalytics} filteredData={globalFilteredData} onDataRefresh={() => {
+              setDataRefreshTrigger(prev => prev + 1);
+              triggerDataRefresh();
+            }} />}
         {currentTab === 2 && <VehicleTrackingDashboard 
           realTimeData={realTimeAnalytics} 
           filteredData={globalFilteredData}
@@ -5172,6 +5453,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               }}
             />}
         {currentTab === 5 && <CostSettingsComponent />}
+        {currentTab === 6 && <MaterialPricingManagementComponent />}
         </Box>
 
       {/* Floating Action Button */}
@@ -5191,6 +5473,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           } else if (currentTab === 5) {
             // Birim maliyet ayarları sekmesindeyse yeni ayar ekle
             const event = new CustomEvent('addNewCostSetting');
+            window.dispatchEvent(event);
+          } else if (currentTab === 6) {
+            // Malzeme maliyet ayarları sekmesindeyse yeni malzeme ekle
+            const event = new CustomEvent('addNewMaterial');
             window.dispatchEvent(event);
           } else {
             // Diğer sekmelerde veri yönetimi sekmesine git
@@ -6248,13 +6534,21 @@ const ProfessionalDataTable: React.FC<{
     tarih: new Date().toISOString().split('T')[0],
     durum: 'aktif',
     
-    // ✅ YENİ: Araç bazlı tracking alanları
+    // ✅ YENİ: Araç kategorisi ve model sistemi
+    aracKategorisi: '' as VehicleCategory | '',
     aracModeli: '' as VehicleModel | '',
     atikTuru: '' as WasteType | '',
     miktar: 0, // adet cinsinden
     unit: 'adet' as 'adet' | 'kg' | 'lt' | 'ton',
     category: '', // Motor Parçaları, Şase Elemanları, vs.
     aciklama: '', // Detaylı açıklama
+    
+    // ✅ YENİ: Fire ve Hurda için alış/satış fiyatları
+    hurdaSatisFiyati: 0, // Hurda satış fiyatı ₺/kg
+    fireGeriKazanim: 0,  // Fire geri kazanım değeri ₺/kg
+    
+    // ✅ YENİ: Malzeme bazlı maliyet hesaplama
+    malzemeTuru: '' as MaterialType | ''
   });
 
   // ✅ Context7: filters now comes from global props (no local filter state needed)
@@ -6265,13 +6559,13 @@ const ProfessionalDataTable: React.FC<{
 
   // ✅ Context7: Memoized Arrays to prevent infinite loops
   const maliyetTurleri = useMemo(() => [
-    { value: 'hurda', label: 'Hurda Maliyeti', requiresTime: false, requiresWeight: false },
-    { value: 'yeniden_islem', label: 'Yeniden İşlem Maliyeti', requiresTime: true, timeUnit: 'dakika', requiresWeight: false },
-    { value: 'fire', label: 'Fire Maliyeti', requiresTime: false, requiresWeight: true, weightUnit: 'kg' }, // NEW: Weight-based
-    { value: 'garanti', label: 'Garanti Maliyeti', requiresTime: false, requiresWeight: false },
-    { value: 'iade', label: 'İade Maliyeti', requiresTime: false, requiresWeight: false },
-    { value: 'sikayet', label: 'Şikayet Maliyeti', requiresTime: false, requiresWeight: false },
-    { value: 'onleme', label: 'Önleme Maliyeti', requiresTime: true, timeUnit: 'saat', requiresWeight: false }
+    { value: 'hurda', label: 'Hurda Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: true },
+    { value: 'yeniden_islem', label: 'Yeniden İşlem Maliyeti', requiresTime: true, timeUnit: 'dakika', requiresWeight: false, requiresMaterial: false },
+    { value: 'fire', label: 'Fire Maliyeti', requiresTime: false, requiresWeight: true, weightUnit: 'kg', requiresMaterial: true }, // NEW: Weight-based
+    { value: 'garanti', label: 'Garanti Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: false },
+    { value: 'iade', label: 'İade Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: false },
+    { value: 'sikayet', label: 'Şikayet Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: false },
+    { value: 'onleme', label: 'Önleme Maliyeti', requiresTime: true, timeUnit: 'saat', requiresWeight: false, requiresMaterial: false }
   ], []);
 
   // ✅ Context7: Memoized Arrays to prevent infinite loops
@@ -6290,6 +6584,16 @@ const ProfessionalDataTable: React.FC<{
     { value: 'uretim_planlama', label: 'Üretim Planlama' }
   ], []);
 
+  // ✅ YENİ: Araç kategorileri listesi
+  const aracKategorileri = useMemo(() => [
+    { value: 'Kompakt Araçlar', label: 'Kompakt Araçlar' },
+    { value: 'Araç Üstü Vakumlu', label: 'Araç Üstü Vakumlu' },
+    { value: 'Çekilir Tip Mekanik Süpürgeler', label: 'Çekilir Tip Mekanik Süpürgeler' },
+    { value: 'Kompost Makinesi', label: 'Kompost Makinesi' },
+    { value: 'Rusya Motor Odası', label: 'Rusya Motor Odası' },
+    { value: 'HSCK', label: 'HSCK' }
+  ], []);
+
   // ✅ Context7: Memoized Arrays to prevent infinite loops
   const araclar = useMemo(() => [
     { value: 'fth240', label: 'FTH-240' },
@@ -6306,6 +6610,15 @@ const ProfessionalDataTable: React.FC<{
     { value: 'ural', label: 'Ural' },
     { value: 'hsck', label: 'HSCK' }
   ], []);
+
+  // ✅ YENİ: Kategoriye göre araç modelleri filtreleme
+  const getModelsForCategory = useCallback((category: VehicleCategory) => {
+    const models = VEHICLE_CATEGORIES[category] || [];
+    return models.map(model => {
+      const aracItem = araclar.find(a => a.label === model);
+      return aracItem || { value: model.toLowerCase().replace(/[\s\-]/g, '_'), label: model };
+    });
+  }, [araclar]);
 
   // ✅ Context7: Sample Data Generation with Real Part Codes
   const generateSampleData = useCallback(() => {
@@ -6376,6 +6689,10 @@ const ProfessionalDataTable: React.FC<{
       birim: '',
       arac: '',
       parcaKodu: '', // ✅ Context7: Include new field
+    
+    // ✅ YENİ: Fire ve Hurda için alış/satış fiyatları
+    hurdaSatisFiyati: 0,
+    fireGeriKazanim: 0,
       maliyet: 0,
       sure: 0,
       birimMaliyet: 0,
@@ -6385,13 +6702,17 @@ const ProfessionalDataTable: React.FC<{
       tarih: new Date().toISOString().split('T')[0],
       durum: 'aktif',
       
-      // ✅ YENİ: Araç bazlı tracking alanları
+      // ✅ YENİ: Araç kategorisi ve model sistemi
+      aracKategorisi: '' as VehicleCategory | '',
       aracModeli: '' as VehicleModel | '',
       atikTuru: '' as WasteType | '',
       miktar: 0,
       unit: 'adet' as 'adet' | 'kg' | 'lt' | 'ton',
       category: '',
       aciklama: '',
+      
+      // ✅ YENİ: Malzeme bazlı maliyet hesaplama
+      malzemeTuru: '' as MaterialType | '',
     });
     setDialogOpen(true);
   }, []);
@@ -6420,6 +6741,54 @@ const ProfessionalDataTable: React.FC<{
   const getSelectedMaliyetTuruInfo = () => {
     return maliyetTurleri.find(mt => mt.value === formData.maliyetTuru);
   };
+
+  // ✅ YENİ: Malzeme fiyatlarını localStorage'dan yükle
+  const [materialPricings, setMaterialPricings] = useState<MaterialPricing[]>([]);
+
+  useEffect(() => {
+    const savedPricings = localStorage.getItem('material-pricings');
+    if (savedPricings) {
+      try {
+        const parsedPricings = JSON.parse(savedPricings);
+        setMaterialPricings(parsedPricings);
+      } catch (error) {
+        console.error('Malzeme fiyatları yüklenirken hata:', error);
+      }
+    }
+  }, []);
+
+  // ✅ YENİ: Malzeme seçildiğinde otomatik fiyat çekme
+  useEffect(() => {
+    if (formData.malzemeTuru && materialPricings.length > 0) {
+      const selectedMaterial = materialPricings.find(
+        mat => mat.malzemeTuru === formData.malzemeTuru && mat.aktif
+      );
+      
+      if (selectedMaterial) {
+        // Fire maliyeti için fire geri kazanım değerini hesapla
+        if (formData.maliyetTuru === 'fire') {
+          const fireGeriKazanimDegeri = selectedMaterial.satisKgFiyati * (selectedMaterial.fireGeriKazanimOrani / 100);
+          setFormData(prev => ({ 
+            ...prev, 
+            fireGeriKazanim: fireGeriKazanimDegeri,
+            malzemeAlisFiyati: selectedMaterial.alisKgFiyati,
+            malzemeSatisFiyati: selectedMaterial.satisKgFiyati
+          }));
+        }
+        
+        // Hurda maliyeti için hurda satış fiyatını hesapla
+        if (formData.maliyetTuru === 'hurda') {
+          const hurdaSatisDegeri = selectedMaterial.satisKgFiyati * (selectedMaterial.hurdaGeriKazanimOrani / 100);
+          setFormData(prev => ({ 
+            ...prev, 
+            hurdaSatisFiyati: hurdaSatisDegeri,
+            malzemeAlisFiyati: selectedMaterial.alisKgFiyati,
+            malzemeSatisFiyati: selectedMaterial.satisKgFiyati
+          }));
+        }
+      }
+    }
+  }, [formData.malzemeTuru, formData.maliyetTuru, materialPricings]);
 
   // ✅ Context7: Auto-fetch Logic with useEffect for Real-time Updates and Unit Conversion
   useEffect(() => {
@@ -6458,11 +6827,9 @@ const ProfessionalDataTable: React.FC<{
       }
     }
     
-    // Auto-fetch weight-based cost when maliyetTuru changes to fire
-    if (maliyetTuruInfo?.requiresWeight && formData.maliyetTuru === 'fire') {
+    // Auto-fetch weight-based cost - SADECE GENEL ATIK MALİYETLERİ
+    if (maliyetTuruInfo?.requiresWeight) {
       const agirlikSettings = [
-        { maliyetTuru: 'fire', kgMaliyet: 45 },
-        { maliyetTuru: 'hurda', kgMaliyet: 35 },
         { maliyetTuru: 'metal_kaybi', kgMaliyet: 50 },
         { maliyetTuru: 'atik', kgMaliyet: 15 },
         { maliyetTuru: 'geri_donusum', kgMaliyet: 25 }
@@ -6483,12 +6850,64 @@ const ProfessionalDataTable: React.FC<{
       return formData.sure * formData.birimMaliyet;
     }
     
-    // ✅ Context7: Special logic for Hurda (Scrap) - Net Loss Calculation
+    // Hurda maliyeti hesabı - Hem malzeme bazlı hem eski sistem
     if (formData.maliyetTuru === 'hurda' && formData.agirlik > 0) {
-      const hurdaSatisGeliri = formData.agirlik * (formData.kgMaliyet || 45); // Default 45₺/kg
-      const parcaMaliyeti = formData.parcaMaliyeti || 0;
-      // Net Zarar = Parça Maliyeti - Hurda Satış Geliri
-      return Math.max(0, parcaMaliyeti - hurdaSatisGeliri);
+      // Önce malzeme bazlı hesaplama deneyelim
+      if (formData.malzemeTuru) {
+        const selectedMaterial = materialPricings.find(
+          mat => mat.malzemeTuru === formData.malzemeTuru && mat.aktif
+        );
+        
+        if (selectedMaterial) {
+          // Malzeme alış maliyeti
+          const malzemeAlisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
+          
+          // Hurda satış geliri (direkt satış fiyatı)
+          const hurdaSatisGeliri = formData.agirlik * selectedMaterial.satisKgFiyati;
+          
+          // Net Hurda Zararı = Malzeme Alış Maliyeti - Hurda Satış Geliri
+          return Math.max(0, malzemeAlisMaliyeti - hurdaSatisGeliri);
+        }
+      }
+      
+      // Fallback: Eski sistem - parcaMaliyeti varsa kullan, yoksa ağırlık × fiyat hesabı yap
+      if (formData.parcaMaliyeti && formData.parcaMaliyeti > 0) {
+        const hurdaSatisGeliri = formData.agirlik * (formData.hurdaSatisFiyati || 45);
+        return Math.max(0, formData.parcaMaliyeti - hurdaSatisGeliri);
+      } else {
+        // Parça maliyeti girilmemişse basit ağırlık × fiyat hesabı
+        return formData.agirlik * (formData.hurdaSatisFiyati || 45);
+      }
+    }
+
+    // Fire maliyeti hesabı - Hem malzeme bazlı hem eski sistem
+    if (formData.maliyetTuru === 'fire' && formData.agirlik > 0) {
+      // Önce malzeme bazlı hesaplama deneyelim
+      if (formData.malzemeTuru) {
+        const selectedMaterial = materialPricings.find(
+          mat => mat.malzemeTuru === formData.malzemeTuru && mat.aktif
+        );
+        
+        if (selectedMaterial) {
+          // Malzeme alış maliyeti
+          const malzemeAlisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
+          
+          // Fire satış geliri (direkt satış fiyatı)
+          const fireSatisGeliri = formData.agirlik * selectedMaterial.satisKgFiyati;
+          
+          // Net Fire Zararı = Malzeme Alış Maliyeti - Fire Satış Geliri
+          return Math.max(0, malzemeAlisMaliyeti - fireSatisGeliri);
+        }
+      }
+      
+      // Fallback: Eski sistem - parcaMaliyeti varsa kullan, yoksa ağırlık × fiyat hesabı yap
+      if (formData.parcaMaliyeti && formData.parcaMaliyeti > 0) {
+        const fireGeriKazanim = formData.agirlik * (formData.fireGeriKazanim || 0);
+        return Math.max(0, formData.parcaMaliyeti - fireGeriKazanim);
+      } else {
+        // Parça maliyeti girilmemişse basit ağırlık × fiyat hesabı
+        return formData.agirlik * (formData.kgMaliyet || 50); // Default fire maliyeti
+      }
     }
     
     // Weight-based calculation (Fire, etc.)
@@ -6497,7 +6916,7 @@ const ProfessionalDataTable: React.FC<{
     }
     
     return formData.maliyet;
-  }, [formData, getSelectedMaliyetTuruInfo]);
+  }, [formData, getSelectedMaliyetTuruInfo, materialPricings]);
 
   const getMaliyetTuruColor = (maliyetTuru: string) => {
     const colorMap: Record<string, 'error' | 'warning' | 'info' | 'success'> = {
@@ -6532,12 +6951,20 @@ const ProfessionalDataTable: React.FC<{
       durum: entry.durum,
       
       // ✅ YENİ: Araç bazlı tracking alanları
+      aracKategorisi: entry.aracKategorisi || MODEL_TO_CATEGORY[entry.aracModeli] || '' as VehicleCategory | '',
       aracModeli: entry.aracModeli || '' as VehicleModel | '',
       atikTuru: entry.atikTuru || '' as WasteType | '',
       miktar: entry.miktar || 0,
       unit: entry.unit || 'adet' as 'adet' | 'kg' | 'lt' | 'ton',
       category: entry.category || '',
       aciklama: entry.aciklama || '',
+      
+      // ✅ YENİ: Fire ve Hurda için alış/satış fiyatları
+      hurdaSatisFiyati: entry.hurdaSatisFiyati || 0,
+      fireGeriKazanim: entry.fireGeriKazanim || 0,
+      
+      // ✅ YENİ: Malzeme bazlı maliyet hesaplama
+      malzemeTuru: entry.malzemeTuru || '' as MaterialType | '',
     });
     setDialogOpen(true);
   }, []);
@@ -6566,6 +6993,9 @@ const ProfessionalDataTable: React.FC<{
       // ✅ REAL-TIME TRIGGER: Ana component'te globalFilteredData yeniden hesaplansın
       onDataRefresh?.();
       
+      // ✅ ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: Araç kartlarını güncelle
+      window.dispatchEvent(new CustomEvent('costDataUpdated'));
+      
       // ✅ REAL-TIME ANALYTICS UPDATE: Analytics yeniden hesaplanacak (useEffect ile)
       setTimeout(() => {
         const freshAnalytics = getAnalyticsFromData(sortedUpdatedData);
@@ -6587,6 +7017,9 @@ const ProfessionalDataTable: React.FC<{
       
       // ✅ REAL-TIME TRIGGER: Ana component'te globalFilteredData yeniden hesaplansın
       onDataRefresh?.();
+      
+      // ✅ ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: Araç kartlarını güncelle
+      window.dispatchEvent(new CustomEvent('costDataUpdated'));
       
       // ✅ REAL-TIME ANALYTICS UPDATE: Analytics yeniden hesaplanacak (useEffect ile)  
       setTimeout(() => {
@@ -6615,6 +7048,9 @@ const ProfessionalDataTable: React.FC<{
       
       // ✅ REAL-TIME TRIGGER: Ana component'te globalFilteredData yeniden hesaplansın
       onDataRefresh?.();
+      
+      // ✅ ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: Araç kartlarını güncelle
+      window.dispatchEvent(new CustomEvent('costDataUpdated'));
       
       // ✅ REAL-TIME ANALYTICS UPDATE: Analytics yeniden hesaplanacak (useEffect ile)  
       setTimeout(() => {
@@ -7204,20 +7640,79 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 </Select>
               </FormControl>
             </Grid>
+            {/* 🚗 YENİ: Kategori Bazlı Araç Seçimi */}
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
-                <InputLabel>Araç</InputLabel>
+                <InputLabel>Araç Kategorisi</InputLabel>
                 <Select
-                  value={formData.arac}
-                  onChange={(e) => setFormData({...formData, arac: e.target.value})}
-                  label="Araç"
+                  value={formData.aracKategorisi}
+                  onChange={(e) => {
+                    const selectedCategory = e.target.value as VehicleCategory;
+                    setFormData({
+                      ...formData, 
+                      aracKategorisi: selectedCategory,
+                      aracModeli: '', // Reset model when category changes
+                      arac: '' // Clear old arac field
+                    });
+                  }}
+                  label="Araç Kategorisi"
                 >
-                  {araclar.map(a => (
-                    <MenuItem key={a.value} value={a.value}>{a.label}</MenuItem>
+                  {aracKategorileri.map(kat => (
+                    <MenuItem key={kat.value} value={kat.value}>
+                      {kat.label}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
+
+            {/* 🚗 YENİ: Kategori Seçilirse Alt Model Seçimi */}
+            {formData.aracKategorisi && (
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Araç Modeli</InputLabel>
+                  <Select
+                    value={formData.aracModeli}
+                    onChange={(e) => {
+                      const selectedModel = e.target.value as VehicleModel;
+                      const selectedArac = araclar.find(a => a.label === selectedModel);
+                      setFormData({
+                        ...formData, 
+                        aracModeli: selectedModel,
+                        arac: selectedArac?.value || '' // Backward compatibility
+                      });
+                    }}
+                    label="Araç Modeli"
+                  >
+                    {getModelsForCategory(formData.aracKategorisi).map(model => (
+                      <MenuItem key={model.value} value={model.label}>
+                        {model.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+            
+            {/* 🚗 Geriye Uyumluluk: Kategori seçilmemişse direkt araç seçimi */}
+            {!formData.aracKategorisi && (
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Araç</InputLabel>
+                  <Select
+                    value={formData.arac}
+                    onChange={(e) => setFormData({...formData, arac: e.target.value})}
+                    label="Araç"
+                  >
+                    {araclar.map(a => (
+                      <MenuItem key={a.value} value={a.value}>{a.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+            
+
             
             {/* ✅ Context7: Optional Part Code for Analytics */}
             <Grid item xs={12} md={6}>
@@ -7350,13 +7845,38 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     InputProps={{
                       startAdornment: <InputAdornment position="start">-₺</InputAdornment>
                     }}
-                    helperText={`₺${formData.parcaMaliyeti} - ₺${(formData.agirlik * (formData.kgMaliyet || 45)).toFixed(2)} = Net Zarar ₺${calculateDynamicCost()}`}
+                    helperText={
+                      formData.parcaMaliyeti > 0 
+                        ? `₺${formData.parcaMaliyeti} - ₺${(formData.agirlik * (formData.kgMaliyet || 45)).toFixed(2)} = Net Zarar ₺${calculateDynamicCost()}`
+                        : `${formData.agirlik} kg × ₺${formData.kgMaliyet || 45} = ₺${calculateDynamicCost()}`
+                    }
                     color="error"
                   />
                 </Grid>
               </>
-            ) : getSelectedMaliyetTuruInfo()?.requiresWeight ? (
+            ) : getSelectedMaliyetTuruInfo()?.requiresMaterial ? (
               <>
+                <Grid item xs={12} md={4}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Malzeme Türü</InputLabel>
+                    <Select
+                      value={formData.malzemeTuru}
+                      onChange={(e) => setFormData({...formData, malzemeTuru: e.target.value as MaterialType})}
+                      label="Malzeme Türü"
+                    >
+                      {Object.entries(MATERIAL_TYPE_CATEGORIES).map(([category, materials]) => [
+                        <ListSubheader key={category} sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                          {category}
+                        </ListSubheader>,
+                        ...materials.map((material) => (
+                          <MenuItem key={material} value={material}>
+                            {material}
+                          </MenuItem>
+                        ))
+                      ])}
+                    </Select>
+                  </FormControl>
+                </Grid>
                 <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
@@ -7368,38 +7888,50 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     InputProps={{
                       endAdornment: <InputAdornment position="end">kg</InputAdornment>
                     }}
-                    helperText="Fire miktarını kilogram cinsinden girin"
+                    helperText="Malzeme miktarını kilogram cinsinden girin"
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
-                    required
-                    label="Kg Maliyeti (₺/kg)"
-                    type="number"
-                    value={formData.kgMaliyet}
-                    onChange={(e) => setFormData({...formData, kgMaliyet: parseFloat(e.target.value) || 0})}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">₺</InputAdornment>,
-                      endAdornment: <InputAdornment position="end">/kg</InputAdornment>
-                    }}
-                    helperText={formData.kgMaliyet > 0 ? `Otomatik çekilen: ₺${formData.kgMaliyet}/kg` : "Ayarlardan otomatik çekilir"}
-                    color={formData.kgMaliyet > 0 ? "success" : "primary"}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Toplam Maliyet (₺)"
+                    label="Net Maliyet (₺)"
                     type="number"
                     value={calculateDynamicCost()}
                     disabled
                     InputProps={{
                       startAdornment: <InputAdornment position="start">₺</InputAdornment>
                     }}
-                    helperText={`${formData.agirlik} kg × ₺${formData.kgMaliyet} = ₺${calculateDynamicCost()}`}
+                    helperText="Malzeme maliyet ayarlarından otomatik hesaplanır"
+                    color="success"
                   />
                 </Grid>
+                
+                {/* Malzeme bazlı hesaplama detayları - BASİTLEŞTİRİLMİŞ */}
+                {formData.malzemeTuru && materialPricings.length > 0 && (
+                  <Grid item xs={12}>
+                    {(() => {
+                      const selectedMaterial = materialPricings.find(
+                        mat => mat.malzemeTuru === formData.malzemeTuru && mat.aktif
+                      );
+                      
+                      if (selectedMaterial && formData.agirlik > 0) {
+                        const malzemeAlisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
+                        const satisGeliri = formData.agirlik * selectedMaterial.satisKgFiyati;
+                        const netZarar = Math.max(0, malzemeAlisMaliyeti - satisGeliri);
+                        
+                        const maliyetTuruText = formData.maliyetTuru === 'hurda' ? 'Hurda' : 'Fire';
+                        
+                        return (
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>Hesaplama:</strong> {formData.agirlik} kg × ₺{selectedMaterial.alisKgFiyati}/kg - {formData.agirlik} kg × ₺{selectedMaterial.satisKgFiyati}/kg = <strong>₺{netZarar.toFixed(2)} Net {maliyetTuruText} Zararı</strong>
+                          </Typography>
+                        );
+                      }
+                      
+                      return null;
+                    })()}
+                  </Grid>
+                )}
               </>
             ) : (
               <Grid item xs={12} md={6}>
@@ -7441,6 +7973,20 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 </Select>
               </FormControl>
             </Grid>
+
+            {/* ✅ YENİ: Açıklama Alanı */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Açıklama (İsteğe Bağlı)"
+                multiline
+                rows={2}
+                value={formData.aciklama}
+                onChange={(e) => setFormData({...formData, aciklama: e.target.value})}
+                placeholder="Maliyet kaydıyla ilgili detaylı açıklama yazabilirsiniz..."
+                helperText="Problem açıklaması, öneriler veya notlarınızı buraya yazabilirsiniz"
+              />
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -7451,10 +7997,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             disabled={
               !formData.maliyetTuru || 
               !formData.birim || 
-              !formData.arac || 
- 
-              (formData.maliyetTuru === 'hurda' ? 
-                (formData.agirlik <= 0 || formData.parcaMaliyeti <= 0) : 
+              (!formData.aracKategorisi && !formData.arac) || // Kategori veya eski araç seçimi zorunlu
+              (formData.aracKategorisi && !formData.aracModeli) || // Kategori seçilmişse model zorunlu
+              ((formData.maliyetTuru === 'hurda' || formData.maliyetTuru === 'fire') ? 
+                formData.agirlik <= 0 : // Sadece ağırlık zorunlu, malzeme opsiyonel
                 calculateDynamicCost() <= 0
               )
             }
@@ -7479,6 +8025,461 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           <Button onClick={() => setDeleteConfirmOpen(false)}>İptal</Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
             Sil
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+// ✅ Context7: Professional Material Pricing Management System
+// 🧪 Malzeme Fiyat Yönetimi Komponenti
+// 🧪 BASİTLEŞTİRİLMİŞ MALZEME FİYAT YÖNETİMİ - Sadece Alış/Satış Fiyatı
+const MaterialPricingManagementComponent: React.FC = () => {
+  const [materialPricings, setMaterialPricings] = useState<MaterialPricing[]>([]);
+  const [editingMaterial, setEditingMaterial] = useState<MaterialPricing | null>(null);
+  const [materialFormOpen, setMaterialFormOpen] = useState(false);
+  const [materialFormData, setMaterialFormData] = useState<Partial<MaterialPricing>>({});
+
+  // localStorage'dan malzeme fiyatlarını yükle
+  useEffect(() => {
+    const savedPricings = localStorage.getItem('material-pricings');
+    if (savedPricings) {
+      try {
+        const parsedPricings = JSON.parse(savedPricings);
+        setMaterialPricings(parsedPricings);
+      } catch (error) {
+        console.error('Malzeme fiyatları yüklenirken hata:', error);
+        initializeDefaultMaterials();
+      }
+    } else {
+      initializeDefaultMaterials();
+    }
+  }, []);
+
+  // Varsayılan malzeme fiyatlarını oluştur
+  const initializeDefaultMaterials = () => {
+    const defaultMaterials: MaterialPricing[] = [
+      {
+        id: 'mat-s235-001',
+        malzemeTuru: 'S235',
+        alisKgFiyati: 25.50,
+        satisKgFiyati: 8.75,
+        fireGeriKazanimOrani: 35,    // Sistem tarafından otomatik hesaplanan
+        hurdaGeriKazanimOrani: 85,   // Sistem tarafından otomatik hesaplanan
+        guncellemeTarihi: new Date().toISOString(),
+        aktif: true,
+        aciklama: 'Yapısal çelik'
+      },
+      {
+        id: 'mat-s355-001',
+        malzemeTuru: 'S355',
+        alisKgFiyati: 28.75,
+        satisKgFiyati: 9.25,
+        fireGeriKazanimOrani: 40,
+        hurdaGeriKazanimOrani: 90,
+        guncellemeTarihi: new Date().toISOString(),
+        aktif: true,
+        aciklama: 'Yüksek mukavemetli çelik'
+      },
+      {
+        id: 'mat-304-001',
+        malzemeTuru: '304 Paslanmaz',
+        alisKgFiyati: 85.50,
+        satisKgFiyati: 45.75,
+        fireGeriKazanimOrani: 55,
+        hurdaGeriKazanimOrani: 95,
+        guncellemeTarihi: new Date().toISOString(),
+        aktif: true,
+        aciklama: 'Paslanmaz çelik'
+      },
+      {
+        id: 'mat-hardox-001',
+        malzemeTuru: 'Hardox460',
+        alisKgFiyati: 45.25,
+        satisKgFiyati: 12.50,
+        fireGeriKazanimOrani: 30,
+        hurdaGeriKazanimOrani: 80,
+        guncellemeTarihi: new Date().toISOString(),
+        aktif: true,
+        aciklama: 'Aşınma dayanımlı çelik'
+      }
+    ];
+    
+    setMaterialPricings(defaultMaterials);
+    localStorage.setItem('material-pricings', JSON.stringify(defaultMaterials));
+  };
+
+  // Malzeme fiyatlarını localStorage'a kaydet
+  useEffect(() => {
+    if (materialPricings.length > 0) {
+      localStorage.setItem('material-pricings', JSON.stringify(materialPricings));
+    }
+  }, [materialPricings]);
+
+  // FAB Event Listener
+  useEffect(() => {
+    const handleAddNewMaterial = () => {
+      handleAddMaterial();
+    };
+
+    window.addEventListener('addNewMaterial', handleAddNewMaterial);
+    return () => {
+      window.removeEventListener('addNewMaterial', handleAddNewMaterial);
+    };
+  }, []);
+
+  // Yeni malzeme ekleme
+  const handleAddMaterial = () => {
+    setEditingMaterial(null);
+    setMaterialFormData({
+      malzemeTuru: 'S235',
+      alisKgFiyati: 0,
+      satisKgFiyati: 0,
+      fireGeriKazanimOrani: 35,
+      hurdaGeriKazanimOrani: 85,
+      aktif: true
+    });
+    setMaterialFormOpen(true);
+  };
+
+  // Malzeme düzenleme
+  const handleEditMaterial = (material: MaterialPricing) => {
+    setEditingMaterial(material);
+    setMaterialFormData(material);
+    setMaterialFormOpen(true);
+  };
+
+  // Malzeme kaydetme - BASİTLEŞTİRİLMİŞ
+  const handleSaveMaterial = () => {
+    if (!materialFormData.malzemeTuru || !materialFormData.alisKgFiyati || !materialFormData.satisKgFiyati) {
+      alert('Lütfen malzeme türü, alış fiyatı ve satış fiyatı alanlarını doldurun');
+      return;
+    }
+
+    // Otomatik geri kazanım oranları (sistem tarafından hesaplanır)
+    const getDefaultRecoveryRates = (materialType: MaterialType) => {
+      const rates = {
+        // Yapısal Çelikler
+        'S235': { fire: 35, hurda: 85 }, 'S275': { fire: 37, hurda: 87 }, 'S355': { fire: 40, hurda: 90 },
+        'S420': { fire: 42, hurda: 88 }, 'S460': { fire: 45, hurda: 92 },
+        // Paslanmaz Çelikler
+        '304 Paslanmaz': { fire: 55, hurda: 95 }, '316 Paslanmaz': { fire: 60, hurda: 96 },
+        '321 Paslanmaz': { fire: 58, hurda: 94 }, '430 Paslanmaz': { fire: 50, hurda: 90 },
+        // Aşınma Dayanımlı
+        'Hardox400': { fire: 28, hurda: 78 }, 'Hardox450': { fire: 30, hurda: 80 }, 'Hardox460': { fire: 30, hurda: 80 },
+        'Hardox500': { fire: 32, hurda: 82 }, 'Hardox600': { fire: 35, hurda: 85 },
+        // Yüksek Mukavemetli
+        'S690': { fire: 48, hurda: 88 }, 'S890': { fire: 50, hurda: 90 }, 'S960': { fire: 52, hurda: 92 },
+        // Özel Alaşımlar
+        'Cor-Ten A': { fire: 40, hurda: 85 }, 'Cor-Ten B': { fire: 42, hurda: 87 }, 'Weathering Steel': { fire: 38, hurda: 83 },
+        // Alüminyum
+        'Al 1050': { fire: 70, hurda: 98 }, 'Al 3003': { fire: 68, hurda: 97 }, 'Al 5754': { fire: 65, hurda: 96 }, 'Al 6061': { fire: 72, hurda: 98 },
+        // Galvaniz
+        'DX51D+Z': { fire: 25, hurda: 75 }, 'DX52D+Z': { fire: 27, hurda: 77 }, 'DX53D+Z': { fire: 30, hurda: 80 },
+        // Diğer
+        'Diğer': { fire: 30, hurda: 75 }
+      };
+      return rates[materialType] || rates['Diğer'];
+    };
+
+    const recoveryRates = getDefaultRecoveryRates(materialFormData.malzemeTuru!);
+
+    const materialData: MaterialPricing = {
+      id: editingMaterial?.id || `mat-${Date.now()}`,
+      malzemeTuru: materialFormData.malzemeTuru!,
+      alisKgFiyati: materialFormData.alisKgFiyati!,
+      satisKgFiyati: materialFormData.satisKgFiyati!,
+      fireGeriKazanimOrani: recoveryRates.fire,      // Otomatik hesaplanan
+      hurdaGeriKazanimOrani: recoveryRates.hurda,    // Otomatik hesaplanan
+      guncellemeTarihi: new Date().toISOString(),
+      aktif: materialFormData.aktif !== false,
+      aciklama: materialFormData.aciklama || ''
+    };
+
+    if (editingMaterial) {
+      setMaterialPricings(prev => 
+        prev.map(mat => mat.id === editingMaterial.id ? materialData : mat)
+      );
+    } else {
+      setMaterialPricings(prev => [...prev, materialData]);
+    }
+
+    setMaterialFormOpen(false);
+    setEditingMaterial(null);
+    setMaterialFormData({});
+    
+    // Başarı mesajı
+    const action = editingMaterial ? 'güncellendi' : 'eklendi';
+    alert(`${materialFormData.malzemeTuru} malzeme fiyatı başarıyla ${action}!`);
+  };
+
+  // Malzeme silme
+  const handleDeleteMaterial = (materialId: string) => {
+    if (window.confirm('Bu malzeme fiyatını silmek istediğinizden emin misiniz?')) {
+      setMaterialPricings(prev => prev.filter(mat => mat.id !== materialId));
+    }
+  };
+
+  const getMaterialTypeColor = (type: MaterialType) => {
+    const colors = {
+      // Yapısal Çelikler - Mavi tonları
+      'S235': '#2196F3', 'S275': '#1976D2', 'S355': '#1565C0', 'S420': '#0D47A1', 'S460': '#0277BD',
+      // Paslanmaz Çelikler - Turuncu tonları  
+      '304 Paslanmaz': '#FF9800', '316 Paslanmaz': '#F57C00', '321 Paslanmaz': '#EF6C00', '430 Paslanmaz': '#E65100',
+      // Aşınma Dayanımlı - Mor tonları
+      'Hardox400': '#9C27B0', 'Hardox450': '#8E24AA', 'Hardox460': '#7B1FA2', 'Hardox500': '#6A1B9A', 'Hardox600': '#4A148C',
+      // Yüksek Mukavemetli - Yeşil tonları
+      'S690': '#4CAF50', 'S890': '#388E3C', 'S960': '#2E7D32',
+      // Özel Alaşımlar - Kahverengi tonları
+      'Cor-Ten A': '#8D6E63', 'Cor-Ten B': '#6D4C41', 'Weathering Steel': '#5D4037',
+      // Alüminyum - Gri tonları
+      'Al 1050': '#9E9E9E', 'Al 3003': '#757575', 'Al 5754': '#616161', 'Al 6061': '#424242',
+      // Galvaniz - Cyan tonları
+      'DX51D+Z': '#00BCD4', 'DX52D+Z': '#0097A7', 'DX53D+Z': '#00838F',
+      // Diğer
+      'Diğer': '#757575'
+    };
+    return colors[type] || colors['Diğer'];
+  };
+
+  return (
+    <Box>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6" fontWeight="bold">
+            Malzeme Maliyet Ayarları
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddMaterial}
+          >
+            Yeni Malzeme Ekle
+          </Button>
+        </Box>
+
+        {/* BASİTLEŞTİRİLMİŞ TABLO GÖRÜNÜMÜ */}
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell><strong>Malzeme Türü</strong></TableCell>
+                <TableCell align="right"><strong>Alış Fiyatı (₺/kg)</strong></TableCell>
+                <TableCell align="right"><strong>Satış Fiyatı (₺/kg)</strong></TableCell>
+                <TableCell align="center"><strong>Durum</strong></TableCell>
+                <TableCell align="center"><strong>İşlemler</strong></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {materialPricings.map((material) => (
+                <TableRow 
+                  key={material.id}
+                  sx={{ 
+                    opacity: material.aktif ? 1 : 0.6,
+                    borderLeft: '4px solid',
+                    borderLeftColor: getMaterialTypeColor(material.malzemeTuru)
+                  }}
+                >
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box 
+                        sx={{ 
+                          width: 12, 
+                          height: 12, 
+                          borderRadius: '50%', 
+                          backgroundColor: getMaterialTypeColor(material.malzemeTuru) 
+                        }} 
+                      />
+                      <Typography variant="body2" fontWeight="bold">
+                        {material.malzemeTuru}
+                      </Typography>
+                    </Box>
+                    {material.aciklama && (
+                      <Typography variant="caption" color="text.secondary">
+                        {material.aciklama}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" fontWeight="bold" color="primary">
+                      ₺{material.alisKgFiyati.toFixed(2)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" fontWeight="bold" color="success.main">
+                      ₺{material.satisKgFiyati.toFixed(2)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      label={material.aktif ? 'Aktif' : 'Pasif'}
+                      size="small"
+                      color={material.aktif ? 'success' : 'default'}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditMaterial(material)}
+                        color="primary"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteMaterial(material.id)}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
+             {/* BASİTLEŞTİRİLMİŞ Malzeme Ekleme/Düzenleme Dialog */}
+      <Dialog 
+        open={materialFormOpen} 
+        onClose={() => setMaterialFormOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingMaterial ? 'Malzeme Fiyatını Düzenle' : 'Yeni Malzeme Fiyatı Ekle'}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Malzeme Türü</InputLabel>
+                <Select
+                  value={materialFormData.malzemeTuru || ''}
+                  onChange={(e) => setMaterialFormData(prev => ({ ...prev, malzemeTuru: e.target.value as MaterialType }))}
+                  label="Malzeme Türü"
+                >
+                  {/* Yapısal Çelikler */}
+                  <ListSubheader>Yapısal Çelikler</ListSubheader>
+                  <MenuItem value="S235">S235 - Yapısal Çelik</MenuItem>
+                  <MenuItem value="S275">S275 - Yapısal Çelik</MenuItem>
+                  <MenuItem value="S355">S355 - Yüksek Mukavemetli</MenuItem>
+                  <MenuItem value="S420">S420 - Yüksek Mukavemetli</MenuItem>
+                  <MenuItem value="S460">S460 - Yüksek Mukavemetli</MenuItem>
+                  
+                  {/* Paslanmaz Çelikler */}
+                  <ListSubheader>Paslanmaz Çelikler</ListSubheader>
+                  <MenuItem value="304 Paslanmaz">304 Paslanmaz</MenuItem>
+                  <MenuItem value="316 Paslanmaz">316 Paslanmaz</MenuItem>
+                  <MenuItem value="321 Paslanmaz">321 Paslanmaz</MenuItem>
+                  <MenuItem value="430 Paslanmaz">430 Paslanmaz</MenuItem>
+                  
+                  {/* Aşınma Dayanımlı Çelikler */}
+                  <ListSubheader>Aşınma Dayanımlı Çelikler</ListSubheader>
+                  <MenuItem value="Hardox400">Hardox400</MenuItem>
+                  <MenuItem value="Hardox450">Hardox450</MenuItem>
+                  <MenuItem value="Hardox460">Hardox460</MenuItem>
+                  <MenuItem value="Hardox500">Hardox500</MenuItem>
+                  <MenuItem value="Hardox600">Hardox600</MenuItem>
+                  
+                  {/* Yüksek Mukavemetli Çelikler */}
+                  <ListSubheader>Yüksek Mukavemetli Çelikler</ListSubheader>
+                  <MenuItem value="S690">S690</MenuItem>
+                  <MenuItem value="S890">S890</MenuItem>
+                  <MenuItem value="S960">S960</MenuItem>
+                  
+                  {/* Özel Alaşımlar */}
+                  <ListSubheader>Özel Alaşımlar</ListSubheader>
+                  <MenuItem value="Cor-Ten A">Cor-Ten A - Atmosfer Dayanımlı</MenuItem>
+                  <MenuItem value="Cor-Ten B">Cor-Ten B - Atmosfer Dayanımlı</MenuItem>
+                  <MenuItem value="Weathering Steel">Weathering Steel</MenuItem>
+                  
+                  {/* Alüminyum Alaşımlar */}
+                  <ListSubheader>Alüminyum Alaşımlar</ListSubheader>
+                  <MenuItem value="Al 1050">Al 1050 - Saf Alüminyum</MenuItem>
+                  <MenuItem value="Al 3003">Al 3003 - Genel Amaçlı</MenuItem>
+                  <MenuItem value="Al 5754">Al 5754 - Denizcilik</MenuItem>
+                  <MenuItem value="Al 6061">Al 6061 - Yapısal</MenuItem>
+                  
+                  {/* Galvaniz ve Kaplama */}
+                  <ListSubheader>Galvaniz ve Kaplama</ListSubheader>
+                  <MenuItem value="DX51D+Z">DX51D+Z - Galvanizli</MenuItem>
+                  <MenuItem value="DX52D+Z">DX52D+Z - Galvanizli</MenuItem>
+                  <MenuItem value="DX53D+Z">DX53D+Z - Galvanizli</MenuItem>
+                  
+                  {/* Diğer */}
+                  <ListSubheader>Diğer</ListSubheader>
+                  <MenuItem value="Diğer">Diğer Malzeme</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Alış Fiyatı"
+                type="number"
+                value={materialFormData.alisKgFiyati || ''}
+                onChange={(e) => setMaterialFormData(prev => ({ ...prev, alisKgFiyati: parseFloat(e.target.value) || 0 }))}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+                  endAdornment: <InputAdornment position="end">/kg</InputAdornment>
+                }}
+                helperText="Malzeme satın alma fiyatı"
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Satış Fiyatı"
+                type="number"
+                value={materialFormData.satisKgFiyati || ''}
+                onChange={(e) => setMaterialFormData(prev => ({ ...prev, satisKgFiyati: parseFloat(e.target.value) || 0 }))}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+                  endAdornment: <InputAdornment position="end">/kg</InputAdornment>
+                }}
+                helperText="Hurda/Fire satış fiyatı"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={materialFormData.aktif !== false}
+                    onChange={(e) => setMaterialFormData(prev => ({ ...prev, aktif: e.target.checked }))}
+                  />
+                }
+                label="Bu malzeme fiyatını aktif olarak kullan"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Açıklama (Opsiyonel)"
+                value={materialFormData.aciklama || ''}
+                onChange={(e) => setMaterialFormData(prev => ({ ...prev, aciklama: e.target.value }))}
+                placeholder="Örn: Genel kullanım malzemesi"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMaterialFormOpen(false)}>
+            İptal
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveMaterial}
+          >
+            {editingMaterial ? 'Güncelle' : 'Kaydet'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -7522,76 +8523,176 @@ const SmartTargetManagementComponent: React.FC<{
     }
   }, [vehicleTargets]);
 
-  // Araç modelleri listesi
-  const vehicleModels: VehicleModel[] = [
-    'FTH-240', 'Çelik-2000', 'Aga2100', 'Aga3000', 'Aga6000',
-    'Kompost Makinesi', 'Çay Toplama Makinesi', 'KDM 35', 'KDM 70', 
-    'KDM 80', 'Rusya Motor Odası', 'Ural', 'HSCK'
+  // 🚗 KATEGORİ BAZLI hedef yönetimi 
+  const vehicleCategories: VehicleCategory[] = [
+    'Kompakt Araçlar',
+    'Araç Üstü Vakumlu', 
+    'Çekilir Tip Mekanik Süpürgeler',
+    'Kompost Makinesi',
+    'Rusya Motor Odası',
+    'HSCK'
   ];
 
+  const [selectedCategories, setSelectedCategories] = useState<VehicleCategory[]>([]);
 
 
-  // Toplu hedef belirleme
+
+  // 🚗 KATEGORİ BAZLI toplu hedef belirleme - DÜZELTME: Her dönem için geçerli hedefler
   const handleBulkTargetSet = () => {
-    if (selectedVehicles.length === 0) {
-      alert('Lütfen en az bir araç seçin');
+    if (selectedCategories.length === 0) {
+      alert('Lütfen en az bir kategori seçin');
       return;
     }
 
-    const newTargets: VehicleTarget[] = selectedVehicles.map(aracModeli => {
-      const currentDate = new Date().toISOString();
-      
-      return {
-        id: `target-${aracModeli}-${Date.now()}`,
-        aracModeli,
-        donem: selectedPeriod === 'ay' ? 
-          `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}` :
-          selectedPeriod === 'ceyrek' ?
-          `${new Date().getFullYear()}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}` :
-          `${new Date().getFullYear()}`,
-        donemTuru: selectedPeriod,
-        hedefler: {
-          maksRetAdet: 5,
-          maksRetMaliyet: 10000,
-          maksHurdaKg: 10,
-          maksHurdaMaliyet: 5000,
-          maksFireKg: 5,
-          maksFireMaliyet: 3000,
-          toplamMaksimumMaliyet: 20000,
-          hedefVerimlilik: 85
-        },
-        gerceklesme: {
-          guncelRetAdet: 0,
-          guncelRetMaliyet: 0,
-          guncelHurdaKg: 0,
-          guncelHurdaMaliyet: 0,
-          guncelFireKg: 0,
-          guncelFireMaliyet: 0,
-          toplamMaliyet: 0,
-          mevcutVerimlilik: 100
-        },
-        performans: {
-          retPerformans: 100,
-          hurdaPerformans: 100,
-          firePerformans: 100,
-          toplamPerformans: 100,
-          status: 'hedef_altinda'
-        },
-        createdDate: currentDate,
-        updatedDate: currentDate,
-        createdBy: 'Sistem',
-        isActive: true
-      };
+    const currentYear = new Date().getFullYear();
+    const newTargets: VehicleTarget[] = [];
+
+    selectedCategories.forEach(kategori => {
+      if (selectedPeriod === 'ay') {
+        // 🗓️ AYLIK HEDEF: Her ay için ayrı hedef oluştur (12 adet hedef)
+        for (let month = 1; month <= 12; month++) {
+          const monthStr = String(month).padStart(2, '0');
+          const currentDate = new Date().toISOString();
+          
+          newTargets.push({
+            id: `target-${kategori}-${currentYear}-${monthStr}-${Date.now()}`,
+            kategori,
+            donem: `${currentYear}-${monthStr}`,
+            donemTuru: 'ay',
+            hedefler: {
+              maksRetAdet: 5,
+              maksRetMaliyet: 10000,
+              maksHurdaKg: 10,
+              maksHurdaMaliyet: 5000,
+              maksFireKg: 5,
+              maksFireMaliyet: 3000,
+              toplamMaksimumMaliyet: 20000,
+              hedefVerimlilik: 85
+            },
+            gerceklesme: {
+              guncelRetAdet: 0,
+              guncelRetMaliyet: 0,
+              guncelHurdaKg: 0,
+              guncelHurdaMaliyet: 0,
+              guncelFireKg: 0,
+              guncelFireMaliyet: 0,
+              toplamMaliyet: 0,
+              mevcutVerimlilik: 100
+            },
+            performans: {
+              retPerformans: 100,
+              hurdaPerformans: 100,
+              firePerformans: 100,
+              toplamPerformans: 100,
+              status: 'hedef_altinda'
+            },
+            createdDate: currentDate,
+            updatedDate: currentDate,
+            createdBy: 'Sistem',
+            isActive: true
+          });
+        }
+      } else if (selectedPeriod === 'ceyrek') {
+        // 🗓️ ÇEYREKLİK HEDEF: Her çeyrek için ayrı hedef oluştur (4 adet hedef)
+        for (let quarter = 1; quarter <= 4; quarter++) {
+          const currentDate = new Date().toISOString();
+          
+          newTargets.push({
+            id: `target-${kategori}-${currentYear}-Q${quarter}-${Date.now()}`,
+            kategori,
+            donem: `${currentYear}-Q${quarter}`,
+            donemTuru: 'ceyrek',
+            hedefler: {
+              maksRetAdet: 15,      // Çeyreklik için 3 ay toplamı
+              maksRetMaliyet: 30000,
+              maksHurdaKg: 30,
+              maksHurdaMaliyet: 15000,
+              maksFireKg: 15,
+              maksFireMaliyet: 9000,
+              toplamMaksimumMaliyet: 60000,
+              hedefVerimlilik: 85
+            },
+            gerceklesme: {
+              guncelRetAdet: 0,
+              guncelRetMaliyet: 0,
+              guncelHurdaKg: 0,
+              guncelHurdaMaliyet: 0,
+              guncelFireKg: 0,
+              guncelFireMaliyet: 0,
+              toplamMaliyet: 0,
+              mevcutVerimlilik: 100
+            },
+            performans: {
+              retPerformans: 100,
+              hurdaPerformans: 100,
+              firePerformans: 100,
+              toplamPerformans: 100,
+              status: 'hedef_altinda'
+            },
+            createdDate: currentDate,
+            updatedDate: currentDate,
+            createdBy: 'Sistem',
+            isActive: true
+          });
+        }
+      } else {
+        // 🗓️ YILLIK HEDEF: Tüm yıl için tek hedef (1 adet hedef)
+        const currentDate = new Date().toISOString();
+        
+        newTargets.push({
+          id: `target-${kategori}-${currentYear}-${Date.now()}`,
+          kategori,
+          donem: `${currentYear}`,
+          donemTuru: 'yil',
+          hedefler: {
+            maksRetAdet: 60,      // Yıllık için 12 ay toplamı
+            maksRetMaliyet: 120000,
+            maksHurdaKg: 120,
+            maksHurdaMaliyet: 60000,
+            maksFireKg: 60,
+            maksFireMaliyet: 36000,
+            toplamMaksimumMaliyet: 240000,
+            hedefVerimlilik: 85
+          },
+          gerceklesme: {
+            guncelRetAdet: 0,
+            guncelRetMaliyet: 0,
+            guncelHurdaKg: 0,
+            guncelHurdaMaliyet: 0,
+            guncelFireKg: 0,
+            guncelFireMaliyet: 0,
+            toplamMaliyet: 0,
+            mevcutVerimlilik: 100
+          },
+          performans: {
+            retPerformans: 100,
+            hurdaPerformans: 100,
+            firePerformans: 100,
+            toplamPerformans: 100,
+            status: 'hedef_altinda'
+          },
+          createdDate: currentDate,
+          updatedDate: currentDate,
+          createdBy: 'Sistem',
+          isActive: true
+        });
+      }
     });
 
     setVehicleTargets(prev => [...prev, ...newTargets]);
     setBulkTargetDialogOpen(false);
-    setSelectedVehicles([]);
+    setSelectedCategories([]);
     
     // ✅ REAL-TIME UPDATE: Hedef oluşturulduktan sonra araç bazlı takip modülünü güncelle
     if (onDataRefresh) {
       onDataRefresh();
     }
+    
+    // Bilgilendirme mesajı
+    const totalTargets = newTargets.length;
+    const periodText = selectedPeriod === 'ay' ? '12 aylık' : 
+                      selectedPeriod === 'ceyrek' ? '4 çeyreklik' : 'yıllık';
+    alert(`${selectedCategories.length} kategori için ${periodText} hedefler başarıyla oluşturuldu! (Toplam ${totalTargets} hedef)`);
   };
 
   // Hedef düzenleme
@@ -7638,9 +8739,40 @@ const SmartTargetManagementComponent: React.FC<{
         item.aciklama || '', item.parcaKodu || ''
       ].join(' ').toLowerCase();
       
-      const keywords = [target.aracModeli.toLowerCase()];
-      return keywords.some(keyword => allTextFields.includes(keyword)) || 
-             item.aracModeli === target.aracModeli;
+      // Kategori bazlı hedef için kategorideki tüm modelleri kontrol et
+      if (target.kategori) {
+        const categoryModels = VEHICLE_CATEGORIES[target.kategori] || [];
+        return categoryModels.some(model => {
+          const modelKeywords = {
+            'FTH-240': ['fth', 'fth-240', 'fth240'],
+            'Çelik-2000': ['çelik', 'celik', 'çelik-2000', 'celik-2000'],
+            'Aga2100': ['aga2100', 'aga 2100', 'aga-2100'],
+            'Aga3000': ['aga3000', 'aga 3000', 'aga-3000'],
+            'Aga6000': ['aga6000', 'aga 6000', 'aga-6000'],
+            'Kompost Makinesi': ['kompost'],
+            'Çay Toplama Makinesi': ['çay', 'toplama'],
+            'KDM 35': ['kdm35', 'kdm 35', 'kdm-35'],
+            'KDM 70': ['kdm70', 'kdm 70', 'kdm-70'],
+            'KDM 80': ['kdm80', 'kdm 80', 'kdm-80'],
+            'Rusya Motor Odası': ['rusya', 'motor'],
+            'Ural': ['ural'],
+            'HSCK': ['hsck']
+          };
+          
+          const keywords = modelKeywords[model] || [model.toLowerCase()];
+          return keywords.some(keyword => allTextFields.includes(keyword)) || 
+                 item.aracModeli === model;
+        });
+      }
+      
+      // Eski sistem uyumluluğu - spesifik model hedefi
+      if (target.aracModeli) {
+        const keywords = [target.aracModeli.toLowerCase()];
+        return keywords.some(keyword => allTextFields.includes(keyword)) || 
+               item.aracModeli === target.aracModeli;
+      }
+      
+      return false;
     });
 
     // Dönem filtreleme
@@ -7838,7 +8970,7 @@ const SmartTargetManagementComponent: React.FC<{
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                       <Typography variant="h6" fontWeight="bold">
-                        {target.aracModeli}
+                        {target.kategori || target.aracModeli}
                       </Typography>
                       <Chip 
                         label={target.donem}
@@ -7846,6 +8978,19 @@ const SmartTargetManagementComponent: React.FC<{
                         color="primary"
                       />
                     </Box>
+                    
+                    {/* Kategori detayları */}
+                    {target.kategori && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2, fontSize: '0.75rem' }}>
+                        <Box component="span" sx={{ fontWeight: 600 }}>İçerir:</Box>{' '}
+                        {target.kategori === 'Kompakt Araçlar' && 'Aga2100, Aga3000, Aga6000'}
+                        {target.kategori === 'Araç Üstü Vakumlu' && 'KDM80, KDM70, KDM35, Çay Toplama Makinesi'}
+                        {target.kategori === 'Çekilir Tip Mekanik Süpürgeler' && 'FTH-240, Çelik-2000, Ural'}
+                        {target.kategori === 'Kompost Makinesi' && 'Kompost Makinesi'}
+                        {target.kategori === 'Rusya Motor Odası' && 'Rusya Motor Odası'}
+                        {target.kategori === 'HSCK' && 'HSCK'}
+                      </Typography>
+                    )}
 
                     {/* Performans Özeti */}
                     <Box sx={{ mb: 3 }}>
@@ -7941,26 +9086,41 @@ const SmartTargetManagementComponent: React.FC<{
             </Grid>
             <Grid item xs={12}>
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-                Hedef Belirlenecek Araçlar:
+                Hedef Belirlenecek Araç Kategorileri:
               </Typography>
               <Grid container spacing={1}>
-                {vehicleModels.map((vehicle) => (
-                  <Grid item xs={6} md={4} key={vehicle}>
+                {vehicleCategories.map((category) => (
+                  <Grid item xs={12} md={6} key={category}>
                     <FormControlLabel
                       control={
                         <Switch
-                          checked={selectedVehicles.includes(vehicle)}
+                          checked={selectedCategories.includes(category)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedVehicles(prev => [...prev, vehicle]);
+                              setSelectedCategories(prev => [...prev, category]);
                             } else {
-                              setSelectedVehicles(prev => prev.filter(v => v !== vehicle));
+                              setSelectedCategories(prev => prev.filter(v => v !== category));
                             }
                           }}
                         />
                       }
-                      label={vehicle}
+                      label={category}
+                      sx={{
+                        '& .MuiFormControlLabel-label': {
+                          fontWeight: 600,
+                          fontSize: '0.9rem'
+                        }
+                      }}
                     />
+                    {/* Kategori detayları */}
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4, mt: 0.5 }}>
+                      {category === 'Kompakt Araçlar' && 'Aga2100, Aga3000, Aga6000'}
+                      {category === 'Araç Üstü Vakumlu' && 'KDM80, KDM70, KDM35, Çay Toplama Makinesi'}
+                      {category === 'Çekilir Tip Mekanik Süpürgeler' && 'FTH-240, Çelik-2000, Ural'}
+                      {category === 'Kompost Makinesi' && 'Kompost Makinesi'}
+                      {category === 'Rusya Motor Odası' && 'Rusya Motor Odası'}
+                      {category === 'HSCK' && 'HSCK'}
+                    </Typography>
                   </Grid>
                 ))}
               </Grid>
@@ -7974,9 +9134,9 @@ const SmartTargetManagementComponent: React.FC<{
           <Button 
             variant="contained" 
             onClick={handleBulkTargetSet}
-            disabled={selectedVehicles.length === 0}
+            disabled={selectedCategories.length === 0}
           >
-            Hedefleri Belirle ({selectedVehicles.length} araç)
+            Hedefleri Belirle ({selectedCategories.length} kategori)
           </Button>
         </DialogActions>
       </Dialog>
@@ -7989,7 +9149,7 @@ const SmartTargetManagementComponent: React.FC<{
         fullWidth
       >
         <DialogTitle>
-          Hedef Düzenle - {editingTarget?.aracModeli}
+          Hedef Düzenle - {editingTarget?.kategori || editingTarget?.aracModeli}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -8193,13 +9353,13 @@ const CostSettingsComponent: React.FC = () => {
 
   // ✅ Context7: Configuration Arrays with Dependencies for useCallback
   const maliyetTurleriConfig = useMemo(() => [
-    { value: 'yeniden_islem', label: 'Yeniden İşlem Maliyeti', requiresTime: true, timeUnit: 'dakika' },
-    { value: 'onleme', label: 'Önleme Maliyeti', requiresTime: true, timeUnit: 'saat' },
-    { value: 'fire', label: 'Fire Maliyeti', requiresWeight: true, weightUnit: 'kg' },
-    { value: 'hurda', label: 'Hurda Maliyeti', requiresWeight: true, weightUnit: 'kg' },
-    { value: 'garanti', label: 'Garanti Maliyeti', requiresUnit: true, unitType: 'adet' },
-    { value: 'iade', label: 'İade Maliyeti', requiresUnit: true, unitType: 'adet' },
-    { value: 'sikayet', label: 'Şikayet Maliyeti', requiresUnit: true, unitType: 'adet' }
+    { value: 'yeniden_islem', label: 'Yeniden İşlem Maliyeti', requiresTime: true, timeUnit: 'dakika', requiresWeight: false, requiresMaterial: false },
+    { value: 'onleme', label: 'Önleme Maliyeti', requiresTime: true, timeUnit: 'saat', requiresWeight: false, requiresMaterial: false },
+    { value: 'fire', label: 'Fire Maliyeti', requiresMaterial: true, weightUnit: 'kg', requiresTime: false, requiresWeight: true },
+    { value: 'hurda', label: 'Hurda Maliyeti', requiresMaterial: true, weightUnit: 'kg', requiresTime: false, requiresWeight: true },
+    { value: 'garanti', label: 'Garanti Maliyeti', requiresUnit: true, unitType: 'adet', requiresTime: false, requiresWeight: false, requiresMaterial: false },
+    { value: 'iade', label: 'İade Maliyeti', requiresUnit: true, unitType: 'adet', requiresTime: false, requiresWeight: false, requiresMaterial: false },
+    { value: 'sikayet', label: 'Şikayet Maliyeti', requiresUnit: true, unitType: 'adet', requiresTime: false, requiresWeight: false, requiresMaterial: false }
   ], []);
 
   const departmanlar = useMemo(() => [
@@ -8225,10 +9385,8 @@ const CostSettingsComponent: React.FC = () => {
     { value: 'adet', label: 'Adet', symbol: '₺/adet' }
   ], []);
 
-  // ✅ Context7: Weight-based costs configuration
+  // Context7: Weight-based costs configuration - SADECE GENEL ATIK MALİYETLERİ
   const agirlikMaliyetleri = useMemo(() => [
-    { value: 'fire', label: 'Fire Maliyeti', kgMaliyet: 45 },
-    { value: 'hurda', label: 'Hurda Maliyeti', kgMaliyet: 35 },
     { value: 'metal_kaybi', label: 'Metal Kaybı', kgMaliyet: 50 },
     { value: 'atik', label: 'Atık Maliyeti', kgMaliyet: 15 },
     { value: 'geri_donusum', label: 'Geri Dönüşüm', kgMaliyet: 25 }
@@ -8255,7 +9413,7 @@ const CostSettingsComponent: React.FC = () => {
       });
     });
 
-    // ✅ Context7: Weight-based configurations
+    // Context7: Weight-based configurations - SADECE GENEL ATIK MALİYETLERİ
     maliyetTurleriConfig.filter(mt => mt.requiresWeight).forEach(maliyetTuru => {
       const weightConfig = agirlikMaliyetleri.find(a => a.value === maliyetTuru.value);
       if (weightConfig) {
@@ -8342,13 +9500,20 @@ const CostSettingsComponent: React.FC = () => {
           }
         }
 
-        // Auto-fetch weight-based cost
+        // Auto-fetch weight-based cost - SADECE GENEL ATIK MALİYETLERİ
         if (maliyetTuruInfo.requiresWeight) {
           const weightConfig = agirlikMaliyetleri.find(a => a.value === maliyetTuru);
           if (weightConfig) {
             updatedData.birimMaliyet = weightConfig.kgMaliyet;
             updatedData.departman = 'genel';
           }
+        }
+
+        // Fire ve Hurda artık malzeme maliyet ayarlarından alınır
+        if (maliyetTuruInfo.requiresMaterial) {
+          updatedData.departman = 'genel';
+          updatedData.birimTuru = 'kg';
+          updatedData.birimMaliyet = 0; // Malzeme seçildiğinde otomatik hesaplanacak
         }
 
         return updatedData;
