@@ -3725,6 +3725,481 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
   // ✅ Context7 Component: Analytics Dashboard with Enhanced Wide Layout
   // ✅ YENİ: ARAÇ BAZLI TAKİP DASHBOARD'U
+  // Araç Detay Analizi İçerik Bileşeni
+  const VehicleDetailAnalysisContent: React.FC<{ vehicle: VehiclePerformanceAnalysis }> = ({ vehicle }) => {
+    const theme = useTheme();
+    
+    // Gerçek veri kaynağından detaylı analiz için veri al
+    const [detailedData, setDetailedData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    
+    useEffect(() => {
+      const loadDetailedData = () => {
+        try {
+          const rawData = localStorage.getItem('kys-cost-management-data');
+          const allData = rawData ? JSON.parse(rawData) : [];
+          
+          // Bu araç kategorisine ait tüm kayıtları filtrele
+          const categoryModels = vehicle.categoryModels || [];
+          const vehicleData = allData.filter((item: any) => {
+            const aracField = item.arac || item.aracModeli || item.vehicle || item.vehicleModel || '';
+            const birimField = item.birim || '';
+            const aciklamaField = item.aciklama || item.description || '';
+            const parcaKoduField = item.parcaKodu || '';
+            
+            // Kategori eşleştirme mantığı
+            return categoryModels.some((model: VehicleModel) => {
+              const modelKeywords = {
+                'FTH-240': ['fth', 'fth-240', 'fth240'],
+                'Çelik-2000': ['çelik', 'celik', 'çelik-2000', 'celik-2000', 'çelik2000'],
+                'Aga2100': ['aga2100', 'aga 2100', 'aga-2100'],
+                'Aga3000': ['aga3000', 'aga 3000', 'aga-3000'],
+                'Aga6000': ['aga6000', 'aga 6000', 'aga-6000'],
+                'Kompost Makinesi': ['kompost', 'kompost makinesi', 'kompost_makinesi'],
+                'Çay Toplama Makinesi': ['çay', 'çay toplama', 'çay_toplama', 'çay makinesi', 'çay_makinesi'],
+                'KDM 35': ['kdm35', 'kdm 35', 'kdm-35'],
+                'KDM 70': ['kdm70', 'kdm 70', 'kdm-70'],
+                'KDM 80': ['kdm80', 'kdm 80', 'kdm-80'],
+                'Rusya Motor Odası': ['rusya', 'motor odası', 'motor_odası', 'rusya motor'],
+                'Ural': ['ural'],
+                'HSCK': ['hsck', 'h.s.c.k', 'h s c k']
+              };
+              
+              const keywords = modelKeywords[model] || [model.toLowerCase()];
+              const allTextFields = [
+                aracField, birimField, aciklamaField, parcaKoduField,
+                item.maliyetTuru || '', item.atikTuru || '', item.category || ''
+              ].join(' ').toLowerCase();
+              
+              const directMatch = item.aracModeli === model;
+              const keywordMatch = keywords.some(keyword => 
+                allTextFields.includes(keyword.toLowerCase())
+              );
+              
+              return directMatch || keywordMatch;
+            });
+          });
+          
+          setDetailedData(vehicleData);
+          setLoading(false);
+        } catch (error) {
+          console.error('Detaylı veri yüklenirken hata:', error);
+          setDetailedData([]);
+          setLoading(false);
+        }
+      };
+      
+      loadDetailedData();
+    }, [vehicle]);
+    
+    // Aylık trend verisi oluştur
+    const monthlyTrend = useMemo(() => {
+      const monthlyData: { [key: string]: number } = {};
+      const last12Months = [];
+      
+      // Son 12 ayı oluştur
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthKey = date.toLocaleDateString('tr-TR', { year: 'numeric', month: 'short' });
+        monthlyData[monthKey] = 0;
+        last12Months.push(monthKey);
+      }
+      
+      // Verileri aylara göre grupla
+      detailedData.forEach(item => {
+        const itemDate = new Date(item.tarih || item.createdDate);
+        const monthKey = itemDate.toLocaleDateString('tr-TR', { year: 'numeric', month: 'short' });
+        if (monthlyData.hasOwnProperty(monthKey)) {
+          monthlyData[monthKey] += Number(item.maliyet) || 0;
+        }
+      });
+      
+      return last12Months.map(month => ({
+        month,
+        maliyet: monthlyData[month]
+      }));
+    }, [detailedData]);
+    
+    // Alt kırılım analizi
+    const subCategoryAnalysis = useMemo(() => {
+      const analysis: { [key: string]: { count: number; cost: number; records: any[] } } = {};
+      
+      vehicle.categoryModels?.forEach(model => {
+        analysis[model] = { count: 0, cost: 0, records: [] };
+      });
+      
+      detailedData.forEach(item => {
+        // Her kaydın hangi alt modele ait olduğunu belirle
+        const matchedModel = vehicle.categoryModels?.find(model => {
+          const modelKeywords = {
+            'FTH-240': ['fth', 'fth-240', 'fth240'],
+            'Çelik-2000': ['çelik', 'celik', 'çelik-2000'],
+            'Aga2100': ['aga2100', 'aga 2100'],
+            'Aga3000': ['aga3000', 'aga 3000'],
+            'Aga6000': ['aga6000', 'aga 6000'],
+            'Kompost Makinesi': ['kompost'],
+            'Çay Toplama Makinesi': ['çay', 'çay toplama'],
+            'KDM 35': ['kdm35', 'kdm 35'],
+            'KDM 70': ['kdm70', 'kdm 70'],
+            'KDM 80': ['kdm80', 'kdm 80'],
+            'Rusya Motor Odası': ['rusya', 'motor odası'],
+            'Ural': ['ural'],
+            'HSCK': ['hsck']
+          };
+          
+          const keywords = modelKeywords[model] || [model.toLowerCase()];
+          const allText = [
+            item.arac || '', item.aracModeli || '', item.birim || '',
+            item.aciklama || '', item.parcaKodu || ''
+          ].join(' ').toLowerCase();
+          
+          return item.aracModeli === model || keywords.some(k => allText.includes(k));
+        });
+        
+        if (matchedModel && analysis[matchedModel]) {
+          analysis[matchedModel].count++;
+          analysis[matchedModel].cost += Number(item.maliyet) || 0;
+          analysis[matchedModel].records.push(item);
+        }
+      });
+      
+      return analysis;
+    }, [detailedData, vehicle.categoryModels]);
+    
+    // Maliyet türü dağılımı
+    const costTypeDistribution = useMemo(() => {
+      const distribution: { [key: string]: number } = {};
+      
+      detailedData.forEach(item => {
+        const costType = item.maliyetTuru || 'Bilinmeyen';
+        distribution[costType] = (distribution[costType] || 0) + (Number(item.maliyet) || 0);
+      });
+      
+      return Object.entries(distribution).map(([type, cost]) => ({
+        type,
+        cost,
+        percentage: vehicle.toplam.toplamMaliyet > 0 ? (cost / vehicle.toplam.toplamMaliyet) * 100 : 0
+      })).sort((a, b) => b.cost - a.cost);
+    }, [detailedData, vehicle.toplam.toplamMaliyet]);
+    
+    if (loading) {
+      return (
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <LinearProgress sx={{ mb: 2 }} />
+          <Typography>Detaylı analiz yükleniyor...</Typography>
+        </Box>
+      );
+    }
+    
+    return (
+      <Box>
+        {/* Özet Bilgiler */}
+        <Paper sx={{ m: 3, p: 3, borderRadius: 2, bgcolor: 'primary.50' }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h4" fontWeight={700} color="primary.main">
+                  ₺{(vehicle.toplam.toplamMaliyet / 1000).toFixed(0)}K
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Toplam Maliyet
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h4" fontWeight={700} color="info.main">
+                  {vehicle.toplam.kayitSayisi}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Toplam Kayıt
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h4" fontWeight={700} color="warning.main">
+                  {vehicle.categoryModels?.length || 0}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Alt Araç Sayısı
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h4" fontWeight={700} color={
+                  vehicle.trend.trendYonu === 'yukselis' ? 'error.main' :
+                  vehicle.trend.trendYonu === 'dususte' ? 'success.main' : 'info.main'
+                }>
+                  {vehicle.trend.yuzdelikDegisim > 0 ? '+' : ''}{vehicle.trend.yuzdelikDegisim.toFixed(1)}%
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Trend Değişimi
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
+        
+        {/* Aylık Trend Grafiği */}
+        <Paper sx={{ m: 3, p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TimelineIcon color="primary" />
+            Son 12 Ay Maliyet Trendi
+          </Typography>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={monthlyTrend}>
+              <defs>
+                <linearGradient id="costGradientModal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" fontSize={11} />
+              <YAxis tickFormatter={(value) => `₺${(value/1000).toFixed(0)}K`} fontSize={11} />
+              <ChartTooltip 
+                formatter={(value) => [`₺${Number(value).toLocaleString()}`, 'Maliyet']}
+                labelStyle={{ fontWeight: 'bold' }}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="maliyet" 
+                stroke={theme.palette.primary.main}
+                strokeWidth={2}
+                fill="url(#costGradientModal)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Paper>
+        
+        {/* Alt Kırılım Analizi */}
+        <Paper sx={{ m: 3, p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DirectionsCarIcon color="primary" />
+            Alt Araç Kırılımı
+          </Typography>
+          <Grid container spacing={2}>
+            {Object.entries(subCategoryAnalysis).map(([model, data]) => (
+              <Grid item xs={12} md={6} lg={4} key={model}>
+                <Card sx={{ 
+                  height: '100%',
+                  border: '1px solid',
+                  borderColor: data.count > 0 ? 'primary.200' : 'grey.200',
+                  bgcolor: data.count > 0 ? 'primary.50' : 'grey.50'
+                }}>
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight={600} color="primary.main" gutterBottom>
+                      {model}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Kayıt Sayısı:
+                      </Typography>
+                      <Typography variant="body2" fontWeight={600}>
+                        {data.count}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Toplam Maliyet:
+                      </Typography>
+                      <Typography variant="body2" fontWeight={600} color={data.cost > 0 ? 'error.main' : 'text.secondary'}>
+                        ₺{data.cost.toLocaleString()}
+                      </Typography>
+                    </Box>
+                    {data.cost > 0 && vehicle.toplam.toplamMaliyet > 0 && (
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={(data.cost / vehicle.toplam.toplamMaliyet) * 100}
+                        sx={{ mt: 1, height: 6, borderRadius: 3 }}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+        
+        {/* Maliyet Türü Dağılımı */}
+        <Paper sx={{ m: 3, p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PieChartIcon color="primary" />
+            Maliyet Türü Dağılımı
+          </Typography>
+          <Grid container spacing={2}>
+            {costTypeDistribution.map((item, index) => (
+              <Grid item xs={12} md={6} key={item.type}>
+                <Box sx={{ 
+                  p: 2, 
+                  border: '1px solid',
+                  borderColor: 'grey.200',
+                  borderRadius: 2,
+                  bgcolor: 'grey.50'
+                }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="subtitle2" fontWeight={600}>
+                      {item.type}
+                    </Typography>
+                    <Chip 
+                      label={`${item.percentage.toFixed(1)}%`}
+                      size="small"
+                      color={index === 0 ? 'error' : index === 1 ? 'warning' : 'info'}
+                    />
+                  </Box>
+                  <Typography variant="h6" fontWeight={700} color="error.main">
+                    ₺{item.cost.toLocaleString()}
+                  </Typography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={item.percentage}
+                    sx={{ mt: 1, height: 6, borderRadius: 3 }}
+                    color={index === 0 ? 'error' : index === 1 ? 'warning' : 'info'}
+                  />
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+        
+        {/* Atık Türü Detay Analizi */}
+        <Paper sx={{ m: 3, p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AssessmentIcon color="primary" />
+            Atık Türü Detay Analizi
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 2, bgcolor: 'error.50', border: '1px solid', borderColor: 'error.200' }}>
+                <Typography variant="subtitle1" fontWeight={600} color="error.main" gutterBottom>
+                  Ret Analizi
+                </Typography>
+                <Typography variant="h5" fontWeight={700} color="error.main">
+                  {vehicle.atikTuruDagilim.ret.adet} adet
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Toplam Ret Sayısı
+                </Typography>
+                <Typography variant="h6" fontWeight={600} color="error.main">
+                  ₺{vehicle.atikTuruDagilim.ret.maliyet.toLocaleString()}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Ret Maliyeti
+                </Typography>
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 2, bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200' }}>
+                <Typography variant="subtitle1" fontWeight={600} color="warning.main" gutterBottom>
+                  Hurda Analizi
+                </Typography>
+                <Typography variant="h5" fontWeight={700} color="warning.main">
+                  {vehicle.atikTuruDagilim.hurda.kg.toFixed(1)} kg
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Toplam Hurda Ağırlığı
+                </Typography>
+                <Typography variant="h6" fontWeight={600} color="warning.main">
+                  {vehicle.atikTuruDagilim.hurda.maliyet > 0 ? 
+                    `₺${vehicle.atikTuruDagilim.hurda.maliyet.toLocaleString()}` : 
+                    'Maliyet Yok'
+                  }
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Hurda Maliyeti
+                </Typography>
+              </Paper>
+            </Grid>
+            
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 2, bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
+                <Typography variant="subtitle1" fontWeight={600} color="info.main" gutterBottom>
+                  Fire Analizi
+                </Typography>
+                <Typography variant="h5" fontWeight={700} color="info.main">
+                  {vehicle.atikTuruDagilim.fire.kg.toFixed(1)} kg
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Toplam Fire Ağırlığı
+                </Typography>
+                <Typography variant="h6" fontWeight={600} color="info.main">
+                  {vehicle.atikTuruDagilim.fire.maliyet > 0 ? 
+                    `₺${vehicle.atikTuruDagilim.fire.maliyet.toLocaleString()}` : 
+                    'Maliyet Yok'
+                  }
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Fire Maliyeti
+                </Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Paper>
+        
+        {/* Son Kayıtlar */}
+        <Paper sx={{ m: 3, p: 3, borderRadius: 2 }}>
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TableChartIcon color="primary" />
+            Son Kayıtlar ({detailedData.length} toplam)
+          </Typography>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Tarih</strong></TableCell>
+                  <TableCell><strong>Maliyet Türü</strong></TableCell>
+                  <TableCell align="right"><strong>Maliyet</strong></TableCell>
+                  <TableCell><strong>Açıklama</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {detailedData.slice(0, 10).map((record, index) => (
+                  <TableRow key={index} hover>
+                    <TableCell>
+                      {new Date(record.tarih || record.createdDate).toLocaleDateString('tr-TR')}
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={record.maliyetTuru || 'Bilinmeyen'} 
+                        size="small"
+                        color={
+                          (record.maliyetTuru || '').toLowerCase().includes('hurda') ? 'warning' :
+                          (record.maliyetTuru || '').toLowerCase().includes('fire') ? 'info' :
+                          (record.maliyetTuru || '').toLowerCase().includes('ret') ? 'error' : 'default'
+                        }
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight={600} color="error.main">
+                        ₺{(Number(record.maliyet) || 0).toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
+                        {record.aciklama || 'Açıklama yok'}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          {detailedData.length > 10 && (
+            <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                ... ve {detailedData.length - 10} kayıt daha
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      </Box>
+    );
+  };
+
   const VehicleTrackingDashboard: React.FC<{ 
     realTimeData?: any, 
     filteredData?: any[],
@@ -3740,6 +4215,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     const [sortBy, setSortBy] = useState<'maliyet' | 'miktar' | 'trend' | 'alfabetik'>('maliyet');
     const [showOnlyProblematic, setShowOnlyProblematic] = useState(false);
     const [forceRefresh, setForceRefresh] = useState(0);
+    
+    // 📊 Araç Detay Modal State
+    const [vehicleDetailModal, setVehicleDetailModal] = useState<{
+      open: boolean;
+      vehicle: VehiclePerformanceAnalysis | null;
+    }>({ open: false, vehicle: null });
 
     // ✅ ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: Event listener ile veri güncellemelerini dinle
     useEffect(() => {
@@ -4086,11 +4567,9 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               }
             }}
             onClick={() => {
-              // Kategori detayına tıklama - kategori bilgisini gönder
-              if (vehicle.kategori) {
-                console.log('🔍 Kategori detayına tıklandı:', vehicle.kategori, vehicle.categoryModels);
-                // onVehiclePerformanceClick?.(vehicle.kategori);
-              }
+              // Araç detay modalını aç
+              console.log('🔍 Araç kartı tıklandı:', vehicle.kategori || vehicle.aracModeli, vehicle.categoryModels);
+              setVehicleDetailModal({ open: true, vehicle });
             }}
           >
             <CardContent sx={{ p: 3 }}>
@@ -4569,6 +5048,53 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             </Typography>
           </Paper>
         )}
+
+        {/* 📊 Araç Detay Modal */}
+        <Dialog
+          open={vehicleDetailModal.open}
+          onClose={() => setVehicleDetailModal({ open: false, vehicle: null })}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              minHeight: '80vh'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            bgcolor: 'primary.main', 
+            color: 'white', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            p: 3
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <DirectionsCarIcon sx={{ fontSize: 32 }} />
+              <Box>
+                <Typography variant="h5" fontWeight={700}>
+                  {vehicleDetailModal.vehicle?.displayName || vehicleDetailModal.vehicle?.kategori || 'Araç Detayları'}
+                </Typography>
+                <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+                  Detaylı Performans Analizi ve Trend Görünümü
+                </Typography>
+              </Box>
+            </Box>
+            <IconButton 
+              onClick={() => setVehicleDetailModal({ open: false, vehicle: null })}
+              sx={{ color: 'white' }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+
+          <DialogContent sx={{ p: 0, maxHeight: '80vh', overflow: 'auto' }}>
+            {vehicleDetailModal.vehicle && (
+              <VehicleDetailAnalysisContent vehicle={vehicleDetailModal.vehicle} />
+            )}
+          </DialogContent>
+        </Dialog>
       </Box>
     );
   };
@@ -9967,7 +10493,7 @@ const CostSettingsComponent: React.FC = () => {
       <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
         <Button
           variant="outlined"
-          size="large"
+          size="medium"
           sx={{ 
             minWidth: 120,
             borderRadius: 2,
@@ -10117,5 +10643,5 @@ const CostSettingsComponent: React.FC = () => {
         </DialogActions>
       </Dialog>
     </Box>
-  );
-};
+      );
+  };
