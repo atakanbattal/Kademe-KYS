@@ -271,7 +271,25 @@ const getPersonnelData = (): Personnel[] => {
   if (stored) {
     return JSON.parse(stored);
   }
-  return [];
+  
+  // Eğer hiç veri yoksa örnek personel verileri oluştur
+  const samplePersonnel: Personnel[] = [
+    { id: '1', sicilNo: '001', name: 'Ahmet Yılmaz', department: 'Ar-Ge', position: 'Mühendis', email: 'ahmet.yilmaz@kademe.com', phone: '0532 123 4567', isActive: true },
+    { id: '2', sicilNo: '002', name: 'Mehmet Kaya', department: 'Girdi Kalite Kontrol', position: 'Tekniker', email: 'mehmet.kaya@kademe.com', phone: '0532 234 5678', isActive: true },
+    { id: '3', sicilNo: '003', name: 'Fatma Demir', department: 'Proses Kalite Kontrol', position: 'Uzman', email: 'fatma.demir@kademe.com', phone: '0532 345 6789', isActive: true },
+    { id: '4', sicilNo: '004', name: 'Ali Özkan', department: 'Final Kalite Kontrol', position: 'Mühendis', email: 'ali.ozkan@kademe.com', phone: '0532 456 7890', isActive: true },
+    { id: '5', sicilNo: '005', name: 'Ayşe Şahin', department: 'Üretim', position: 'Operatör', email: 'ayse.sahin@kademe.com', phone: '0532 567 8901', isActive: true },
+    { id: '6', sicilNo: '006', name: 'Mustafa Çelik', department: 'Kaynakhane', position: 'Kaynakçı', email: 'mustafa.celik@kademe.com', phone: '0532 678 9012', isActive: true },
+    { id: '7', sicilNo: '007', name: 'Zehra Arslan', department: 'Boyahane', position: 'Tekniker', email: 'zehra.arslan@kademe.com', phone: '0532 789 0123', isActive: true },
+    { id: '8', sicilNo: '008', name: 'Hasan Yıldız', department: 'Elektrik Montaj', position: 'Elektrikçi', email: 'hasan.yildiz@kademe.com', phone: '0532 890 1234', isActive: true },
+    { id: '9', sicilNo: '009', name: 'Emine Koç', department: 'Mekanik Montaj', position: 'Tekniker', email: 'emine.koc@kademe.com', phone: '0532 901 2345', isActive: true },
+    { id: '10', sicilNo: '010', name: 'İbrahim Güzel', department: 'Planlama', position: 'Planlama Uzmanı', email: 'ibrahim.guzel@kademe.com', phone: '0532 012 3456', isActive: true },
+    { id: '11', sicilNo: '011', name: 'Sema Aydın', department: 'Satın Alma', position: 'Satın Alma Uzmanı', email: 'sema.aydin@kademe.com', phone: '0532 123 4567', isActive: true },
+    { id: '12', sicilNo: '012', name: 'Osman Polat', department: 'Depo', position: 'Depo Sorumlusu', email: 'osman.polat@kademe.com', phone: '0532 234 5678', isActive: true }
+  ];
+  
+  localStorage.setItem('personnel_data', JSON.stringify(samplePersonnel));
+  return samplePersonnel;
 };
 
 // Removed unused constant CALIBRATION_STANDARDS
@@ -485,8 +503,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const [personnelList, setPersonnelList] = useState<Personnel[]>(() => getPersonnelData());
   
   // Personnel management states
-  const [personnelDialogOpen, setPersonnelDialogOpen] = useState(false);
-  const [personnelSearchTerm, setPersonnelSearchTerm] = useState('');
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
 
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -560,6 +576,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const openCreateDialog = () => {
     setDialogMode('create');
     setDialogTitle('Yeni Ekipman Kaydı');
+    setSelectedPersonnel([]);
     setFormData({
       equipmentCode: '',
       name: '',
@@ -594,6 +611,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const handleEditEquipment = (equipment: Equipment) => {
     setSelectedEquipment(equipment);
     setDialogTitle(`${equipment.name} - Düzenle`);
+    setSelectedPersonnel(equipment.responsiblePersons || []);
     setFormData({
       equipmentCode: equipment.equipmentCode,
       name: equipment.name,
@@ -1916,57 +1934,44 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           })}
                         </Box>
 
-                        {/* Personel arama ve ekleme */}
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          <TextField
-                            fullWidth
-                            label="Personel Ara (Sicil No veya İsim)"
-                            value={personnelSearchTerm}
-                            onChange={(e) => setPersonnelSearchTerm(e.target.value)}
-                            placeholder="Sicil numarası veya isim ile arayın..."
-                          />
-                          <Button
-                            variant="outlined"
-                            onClick={() => setPersonnelDialogOpen(true)}
-                            startIcon={<AddIcon />}
-                          >
-                            Personel Seç
-                          </Button>
-                        </Box>
-
-                        {/* Filtered personnel list */}
-                        {personnelSearchTerm && (
-                          <Box sx={{ maxHeight: 200, overflow: 'auto', border: '1px solid #ddd', borderRadius: 1 }}>
-                            {personnelList
-                              .filter(p => 
-                                p.isActive && (
-                                  p.sicilNo.toLowerCase().includes(personnelSearchTerm.toLowerCase()) ||
-                                  p.name.toLowerCase().includes(personnelSearchTerm.toLowerCase())
-                                )
-                              )
-                              .map((person) => (
-                                <Box
-                                  key={person.sicilNo}
-                                  sx={{ 
-                                    p: 1, 
-                                    cursor: 'pointer', 
-                                    '&:hover': { backgroundColor: 'grey.100' },
-                                    borderBottom: '1px solid #eee'
-                                  }}
-                                  onClick={() => {
-                                    if (!selectedPersonnel.includes(person.sicilNo)) {
-                                      setSelectedPersonnel(prev => [...prev, person.sicilNo]);
-                                      setPersonnelSearchTerm('');
-                                    }
-                                  }}
-                                >
-                                  <Typography variant="body2">
+                        {/* Personel ekleme - Select ile */}
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                          <FormControl fullWidth>
+                            <InputLabel>Personel Seç</InputLabel>
+                            <Select
+                              value=""
+                              onChange={(e) => {
+                                const sicilNo = e.target.value as string;
+                                if (sicilNo && !selectedPersonnel.includes(sicilNo)) {
+                                  setSelectedPersonnel(prev => [...prev, sicilNo]);
+                                }
+                              }}
+                              displayEmpty
+                            >
+                              <MenuItem value="">
+                                <em>Personel seçiniz...</em>
+                              </MenuItem>
+                              {personnelList
+                                .filter(p => p.isActive && !selectedPersonnel.includes(p.sicilNo))
+                                .map((person) => (
+                                  <MenuItem key={person.sicilNo} value={person.sicilNo}>
                                     {person.name} - {person.sicilNo} ({person.department})
-                                  </Typography>
-                                </Box>
-                              ))}
-                          </Box>
-                        )}
+                                  </MenuItem>
+                                ))}
+                            </Select>
+                          </FormControl>
+                          
+                          {selectedPersonnel.length > 0 && (
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              onClick={() => setSelectedPersonnel([])}
+                              startIcon={<DeleteIcon />}
+                            >
+                              Tümünü Sil
+                            </Button>
+                          )}
+                        </Box>
                       </Box>
                       <Box sx={{ mt: 2 }}>
                         <Button
