@@ -7841,11 +7841,11 @@ const ProfessionalDataTable: React.FC<{
     if (formData.maliyetTuru === 'hurda') {
       // ADET bazlı hurda hesaplaması
       if (formData.unit === 'adet' && formData.miktar > 0) {
-        // Adet × (Parça maliyeti - Hurda satış geliri)
-        const parcaMaliyeti = formData.birimMaliyet || 0;
-        const hurdaSatisGeliri = formData.kgMaliyet || 0;
-        const fiyatFarki = parcaMaliyeti - hurdaSatisGeliri;
-        return Math.max(0, formData.miktar * fiyatFarki);
+        // Toplam Maliyet - (Toplam Ağırlık × Hurda Satış Fiyatı/kg)
+        const toplamMaliyet = formData.miktar * (formData.birimMaliyet || 0);
+        const toplamAgirlık = formData.miktar * (formData.agirlik || 0);
+        const hurdaSatisGeliri = toplamAgirlık * (formData.kgMaliyet || 0);
+        return Math.max(0, toplamMaliyet - hurdaSatisGeliri);
       }
       
       // KG bazlı hurda hesaplaması
@@ -8901,7 +8901,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 ) : (
                   <>
                     {/* ADET bazlı hurda formu */}
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={2}>
                       <TextField
                         fullWidth
                         required
@@ -8916,7 +8916,22 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       />
                     </Grid>
                     
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={2}>
+                      <TextField
+                        fullWidth
+                        required
+                        label="Parça Ağırlığı (kg/adet)"
+                        type="number"
+                        value={formData.agirlik || 0}
+                        onChange={(e) => setFormData({...formData, agirlik: parseFloat(e.target.value) || 0})}
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">kg/adet</InputAdornment>
+                        }}
+                        helperText="Her parçanın ağırlığı"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={2}>
                       <TextField
                         fullWidth
                         required
@@ -8933,23 +8948,23 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       />
                     </Grid>
                     
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={2}>
                       <TextField
                         fullWidth
-                        label="Hurda Satış Geliri (₺/adet)"
+                        label="Hurda Satış Fiyatı (₺/kg)"
                         type="number"
                         value={formData.kgMaliyet || 0}
                         onChange={(e) => setFormData({...formData, kgMaliyet: parseFloat(e.target.value) || 0})}
                         InputProps={{
                           startAdornment: <InputAdornment position="start">₺</InputAdornment>,
-                          endAdornment: <InputAdornment position="end">/adet</InputAdornment>
+                          endAdornment: <InputAdornment position="end">/kg</InputAdornment>
                         }}
-                        helperText="Parça başına hurda geliri"
+                        helperText="Hurdanın kg satış fiyatı"
                         color="success"
                       />
                     </Grid>
                     
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
                         label="Net Hurda Zararı (₺)"
@@ -8959,7 +8974,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         InputProps={{
                           startAdornment: <InputAdornment position="start">-₺</InputAdornment>
                         }}
-                        helperText={`${formData.miktar || 0} adet × (₺${formData.birimMaliyet || 0} - ₺${formData.kgMaliyet || 0}) = ₺${calculateDynamicCost()}`}
+                        helperText={(() => {
+                          const toplamMaliyet = (formData.miktar || 0) * (formData.birimMaliyet || 0);
+                          const toplamAgirlık = (formData.miktar || 0) * (formData.agirlik || 0);
+                          const hurdaGeliri = toplamAgirlık * (formData.kgMaliyet || 0);
+                          return `${formData.miktar || 0} adet × ₺${formData.birimMaliyet || 0} - ${toplamAgirlık.toFixed(1)} kg × ₺${formData.kgMaliyet || 0} = ₺${calculateDynamicCost()}`;
+                        })()}
                         color="error"
                       />
                     </Grid>
@@ -9122,7 +9142,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               (formData.aracKategorisi === 'Genel' && !formData.aciklama?.trim()) || // Genel kategoride açıklama zorunlu
               // Hurda ve fire için özel validasyon
               (formData.maliyetTuru === 'hurda' ? 
-                (formData.unit === 'adet' ? (formData.miktar <= 0 || formData.birimMaliyet <= 0) : formData.agirlik <= 0) :
+                (formData.unit === 'adet' ? (formData.miktar <= 0 || formData.birimMaliyet <= 0 || formData.agirlik <= 0) : formData.agirlik <= 0) :
                 formData.maliyetTuru === 'fire' ? 
                   formData.agirlik <= 0 : 
                   calculateDynamicCost() <= 0
