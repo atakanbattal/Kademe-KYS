@@ -8783,7 +8783,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         .filter(material => material.aktif)
                         .map((material) => (
                           <MenuItem key={material.id} value={material.malzemeTuru}>
-                            {material.malzemeTuru} (₺{material.satisKgFiyati}/kg)
+                            {material.malzemeTuru} (₺{material.alisKgFiyati}/kg alış)
                           </MenuItem>
                         ))}
                     </Select>
@@ -8813,7 +8813,15 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     fullWidth
                     label="Hurda Satış Fiyatı (₺/kg)"
                     type="number"
-                    value={formData.malzemeTuru && materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.satisKgFiyati || formData.kgMaliyet || 45}
+                    value={(() => {
+                      if (formData.malzemeTuru) {
+                        const selectedMaterial = materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru);
+                        if (selectedMaterial) {
+                          return (selectedMaterial.alisKgFiyati * selectedMaterial.hurdaGeriKazanimOrani / 100).toFixed(2);
+                        }
+                      }
+                      return formData.kgMaliyet || 45;
+                    })()}
                     onChange={(e) => {
                       if (!formData.malzemeTuru) {
                         setFormData({...formData, kgMaliyet: parseFloat(e.target.value) || 45})
@@ -8824,7 +8832,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       startAdornment: <InputAdornment position="start">₺</InputAdornment>,
                       endAdornment: <InputAdornment position="end">/kg</InputAdornment>
                     }}
-                    helperText={formData.malzemeTuru ? "Malzeme ayarlarından otomatik çekildi" : "Hurdayı sattığınız birim fiyat"}
+                    helperText={formData.malzemeTuru ? "Alış fiyatı × geri kazanım oranından hesaplandı" : "Hurdayı sattığınız birim fiyat"}
                     color={formData.malzemeTuru ? "success" : "primary"}
                   />
                 </Grid>
@@ -8855,11 +8863,17 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     InputProps={{
                       startAdornment: <InputAdornment position="start">-₺</InputAdornment>
                     }}
-                    helperText={
-                      formData.parcaMaliyeti > 0 
-                        ? `₺${formData.parcaMaliyeti} - ₺${(formData.agirlik * (formData.malzemeTuru && materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.alisKgFiyati * (materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.hurdaGeriKazanimOrani || 50) / 100 || formData.hurdaSatisFiyati || 45)).toFixed(2)} = Net Zarar ₺${calculateDynamicCost()}`
-                        : `${formData.agirlik} kg × ₺${formData.malzemeTuru && materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.alisKgFiyati * (materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.hurdaGeriKazanimOrani || 50) / 100 || formData.hurdaSatisFiyati || 45} = ₺${calculateDynamicCost()}`
-                    }
+                    helperText={(() => {
+                      if (formData.malzemeTuru && formData.agirlik > 0) {
+                        const selectedMaterial = materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru);
+                        if (selectedMaterial) {
+                          const alisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
+                          const satisGeliri = formData.agirlik * selectedMaterial.alisKgFiyati * (selectedMaterial.hurdaGeriKazanimOrani / 100);
+                          return `${formData.agirlik} kg × ₺${selectedMaterial.alisKgFiyati}/kg - ${formData.agirlik} kg × ₺${selectedMaterial.alisKgFiyati}/kg × %${selectedMaterial.hurdaGeriKazanimOrani} = ₺${calculateDynamicCost()}`;
+                        }
+                      }
+                      return `Net hurda zararı hesaplanır`;
+                    })()}
                     color="error"
                   />
                 </Grid>
