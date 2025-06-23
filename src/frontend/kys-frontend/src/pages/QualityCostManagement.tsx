@@ -80,6 +80,7 @@ import {
   Report as ReportIcon,
   DirectionsCar as DirectionsCarIcon,
   CalendarToday as CalendarTodayIcon,
+  DateRange as DateRangeIcon,
   Close as CloseIcon,
   ReportProblem as ReportProblemIcon,
   DirectionsCar as VehicleIcon,
@@ -2960,54 +2961,44 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           {/* YENİ: Bu Ay Üretim Özeti Kartı */}
           <Grid item xs={12} sm={6} md={4}>
             <Fade in timeout={700}>
-              <MetricCard 
+              <Card 
                 onClick={() => {
                   // Aylık Üretim Sayıları sekmesine git
                   const customEvent = new CustomEvent('goToProductionTab');
                   window.dispatchEvent(customEvent);
                 }}
                 sx={{ 
-                  borderLeft: '4px solid #9c27b0',
+                  p: 3, 
+                  textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 25px rgba(156, 39, 176, 0.15)',
-                    borderColor: '#9c27b0'
+                    transform: 'translateY(-2px)',
+                    boxShadow: 4
                   }
                 }}
               >
-                <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                  <Box sx={{ mb: 2 }}>
-                    <FactoryIcon sx={{ fontSize: 40, color: '#9c27b0' }} />
-                  </Box>
-                  <Typography variant="h5" fontWeight="bold" color="secondary.main">
-                    {productionSummary.totalVehicles}
-                  </Typography>
-                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                    Bu Ay Üretim
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <FactoryIcon sx={{ fontSize: 40, color: 'purple', mb: 2 }} />
+                <Typography variant="h4" fontWeight="600" color="purple">
+                  {productionSummary.totalVehicles}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Bu Ay Üretim
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                  <Chip 
+                    label={`${productionSummary.activeModels} Model`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  {productionSummary.topProducingModel && (
                     <Chip 
-                      label={`${productionSummary.activeModels} Model`}
+                      label={productionSummary.topProducingModel.model}
                       size="small"
-                      color="secondary"
-                      variant="outlined"
                     />
-                    {productionSummary.topProducingModel && (
-                      <Chip 
-                        label={productionSummary.topProducingModel.model}
-                        size="small"
-                        color="secondary"
-                        variant="filled"
-                      />
-                    )}
-                  </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Ort: {productionSummary.averageProduction} adet/model
-                  </Typography>
-                </CardContent>
-              </MetricCard>
+                  )}
+                </Box>
+              </Card>
             </Fade>
           </Grid>
         </Grid>
@@ -4307,12 +4298,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     onEditTarget?: (target: VehicleTarget) => void,
     onVehiclePerformanceClick?: (vehicleModel: VehicleModel) => void
   }> = ({ realTimeData, filteredData, vehicleTargets = [], onAddTarget, onEditTarget, onVehiclePerformanceClick }) => {
-    const [selectedVehicle, setSelectedVehicle] = useState<VehicleModel | ''>('');
-    const [selectedPeriod, setSelectedPeriod] = useState<'ay' | 'ceyrek' | 'yil'>('ay');
-    const [selectedTimeRange, setSelectedTimeRange] = useState<'1ay' | '3ay' | '6ay' | '1yil'>('3ay');
     const [viewMode, setViewMode] = useState<'cards' | 'table' | 'charts'>('cards');
-    const [sortBy, setSortBy] = useState<'maliyet' | 'miktar' | 'trend' | 'alfabetik'>('maliyet');
-    const [showOnlyProblematic, setShowOnlyProblematic] = useState(false);
     const [forceRefresh, setForceRefresh] = useState(0);
     
     // 📊 Araç Detay Modal State
@@ -4386,9 +4372,34 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         }
       })();
       
-             // ⚡ YENİ: Kategori bazlı verileri öncelendir
-       const activeCategoryData = categoryProductionData.filter(p => p.isActive !== false);
-       const activeOldData = oldModelData.filter(p => p.isActive !== false);
+      // ⚡ Tarih filtreleme ile aktif verileri al - globalFilters kullan
+      const activeCategoryData = categoryProductionData.filter(p => {
+        const isActive = p.isActive !== false;
+        const matchesDate = !globalFilters.selectedMonth || p.donem === globalFilters.selectedMonth;
+        
+        console.log(`📅 KATEGORİ TARIH FİLTRESİ: ${p.kategori} - ${p.donem}`, {
+          isActive,
+          matchesDate,
+          selectedDate: globalFilters.selectedMonth,
+          recordDate: p.donem
+        });
+        
+        return isActive && matchesDate;
+      });
+      
+      const activeOldData = oldModelData.filter(p => {
+        const isActive = p.isActive !== false;
+        const matchesDate = !globalFilters.selectedMonth || p.donem === globalFilters.selectedMonth;
+        
+        console.log(`📅 ESKİ VERİ TARIH FİLTRESİ: ${p.aracModeli} - ${p.donem}`, {
+          isActive,
+          matchesDate,
+          selectedDate: globalFilters.selectedMonth,
+          recordDate: p.donem
+        });
+        
+        return isActive && matchesDate;
+      });
        
        console.log('🔍 AKTİF VERİ FİLTRELEME:', {
          categoryCount: categoryProductionData.length,
@@ -4526,7 +4537,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       
       console.log('⚠️ Hiç üretim verisi bulunamadı:', vehicle);
       return { uretilenAdet: 0, planlanmisAdet: 0, gerceklesmeOrani: 0, kayitSayisi: 0 };
-    }, [currentMonth, forceRefresh]); // monthlyProductionData hook dependency'sini kaldırdık
+    }, [currentMonth, forceRefresh, globalFilters.selectedMonth]); // Tarih filtreleme eklendi
 
     const calculatePerVehicleCosts = useCallback((vehicle: VehiclePerformanceAnalysis, productionCount: number) => {
       if (productionCount === 0) {
@@ -4589,42 +4600,27 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       
       if (!realData || realData.length === 0) return [];
       
-      // 📅 ZAMAN FİLTRESİ UYGULAMA - selectedTimeRange'e göre filtreleme
-      const now = new Date();
-      const getDateThreshold = (timeRange: typeof selectedTimeRange) => {
-        const threshold = new Date(now);
-        switch (timeRange) {
-          case '1ay':
-            threshold.setMonth(threshold.getMonth() - 1);
-            break;
-          case '3ay':
-            threshold.setMonth(threshold.getMonth() - 3);
-            break;
-          case '6ay':
-            threshold.setMonth(threshold.getMonth() - 6);
-            break;
-          case '1yil':
-            threshold.setFullYear(threshold.getFullYear() - 1);
-            break;
-          default:
-            threshold.setMonth(threshold.getMonth() - 3); // Default 3 ay
-        }
-        return threshold;
-      };
-
-      const dateThreshold = getDateThreshold(selectedTimeRange);
-      
-      // Tarih filtrelemesi uygula
-      realData = realData.filter(item => {
-        const itemDate = new Date(item.tarih || item.createdDate || item.date);
-        return itemDate >= dateThreshold;
+      // 📅 Tarih filtreleme ile verileri filtrele - globalFilters.selectedMonth kullan
+      const filteredByDate = realData.filter(item => {
+        if (!globalFilters.selectedMonth) return true; // Tarih filtresi yoksa tüm veriler
+        
+        const itemDate = item.tarih || item.createdDate || '';
+        const itemMonth = itemDate.substring(0, 7); // YYYY-MM formatına çevir
+        return itemMonth === globalFilters.selectedMonth;
       });
       
-      console.log(`🔍 Zaman Filtresi (${selectedTimeRange}):`, {
-        originalDataCount: (globalFilteredData && globalFilteredData.length > 0 ? globalFilteredData : filteredData).length,
-        filteredDataCount: realData.length,
-        dateThreshold: dateThreshold.toLocaleDateString('tr-TR'),
-        timeRange: selectedTimeRange
+      console.log(`🔍 Tarih Filtreleme (Global Filters):`, {
+        originalDataCount: realData.length,
+        selectedMonth: globalFilters.selectedMonth,
+        selectedYear: globalFilters.selectedYear,
+        filteredDataCount: filteredByDate.length,
+        sampleFilteredItems: filteredByDate.slice(0, 3).map(item => ({
+          id: item.id,
+          tarih: item.tarih,
+          createdDate: item.createdDate,
+          month: (item.tarih || item.createdDate || '').substring(0, 7),
+          maliyet: item.maliyet
+        }))
       });
       
       // Veri kaynağı öncelik sırası: globalFilteredData > filteredData > [] (zaman filtreli)
@@ -4644,7 +4640,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       vehicleCategories.forEach(category => {
         const categoryModels = VEHICLE_CATEGORIES[category];
         // 🚗 KATEGORİ BAZLI VERİ FİLTRELEME - Kategorideki tüm araçları dahil et
-        const vehicleData = realData.filter(item => {
+        const vehicleData = filteredByDate.filter(item => {
           // Tüm olası araç alanlarını kontrol et
           const aracField = item.arac || item.aracModeli || item.vehicle || item.vehicleModel || '';
           const birimField = item.birim || '';
@@ -4735,11 +4731,20 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         const fireKg = fireData.reduce((sum, item) => sum + (Number(item.agirlik) || Number(item.miktar) || 0), 0);
         const fireMaliyet = fireKg > 0 ? fireData.reduce((sum, item) => sum + (Number(item.maliyet) || 0), 0) : 0;
 
-        // 🎯 Hedef Karşılaştırması - Kategori bazlı hedeflerle
+            // 🎯 Hedef Karşılaştırması - Basit kategori bazlı hedefler
         const categoryTarget = vehicleTargets.find(target => target.kategori === category);
         const monthlyTarget = categoryTarget?.hedefler.toplamMaksimumMaliyet || 50000;
         const currentMonthCost = totalCost;
         const targetDeviation = monthlyTarget > 0 ? ((currentMonthCost - monthlyTarget) / monthlyTarget) * 100 : 0;
+        
+        console.log(`📊 ${category} HEDEF KARŞILAŞTIRMA:`, {
+          totalTargetsAvailable: vehicleTargets.length,
+          categoryTargetFound: !!categoryTarget,
+          categoryTargetDonem: categoryTarget?.donem,
+          monthlyTarget,
+          currentMonthCost,
+          targetDeviation
+        });
 
         analysis.push({
           kategori: category,
@@ -4780,51 +4785,11 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         });
       });
 
-      // 🔄 Sıralama
-      let sortedAnalysis = [...analysis];
-      switch (sortBy) {
-        case 'maliyet':
-          sortedAnalysis.sort((a, b) => b.toplam.toplamMaliyet - a.toplam.toplamMaliyet);
-          break;
-        case 'miktar':
-          sortedAnalysis.sort((a, b) => b.toplam.kayitSayisi - a.toplam.kayitSayisi);
-          break;
-        case 'trend':
-          // Trend kaldırıldığı için maliyet sıralaması yap
-          sortedAnalysis.sort((a, b) => b.toplam.toplamMaliyet - a.toplam.toplamMaliyet);
-          break;
-        case 'alfabetik':
-          sortedAnalysis.sort((a, b) => {
-            const nameA = a.displayName || a.kategori || a.aracModeli || '';
-            const nameB = b.displayName || b.kategori || b.aracModeli || '';
-            return nameA.localeCompare(nameB, 'tr');
-          });
-          break;
-      }
-
-      // Sadece Problemli Araçları Göster - Düzeltilmiş filtre
-      if (showOnlyProblematic) {
-        sortedAnalysis = sortedAnalysis.filter(item => 
-          item.hedefKarsilastirma?.durum === 'kritik' ||
-          item.hedefKarsilastirma?.durum === 'dikkat' ||
-          item.toplam.toplamMaliyet > 75000 || // Yüksek maliyet
-          (item.atikTuruDagilim.ret.maliyet + item.atikTuruDagilim.hurda.maliyet + item.atikTuruDagilim.fire.maliyet) > 50000
-        );
-      }
-
-      // 🔍 Araç/Kategori Filtresi
-      if (selectedVehicle) {
-        sortedAnalysis = sortedAnalysis.filter(item => 
-          item.aracModeli === selectedVehicle || 
-          item.kategori === selectedVehicle ||
-          item.displayName === selectedVehicle ||
-          item.categoryModels?.includes(selectedVehicle as VehicleModel)
-        );
-      }
+      // 🔄 Basit sıralama - Maliyet en yüksek olan önce
+      const sortedAnalysis = [...analysis].sort((a, b) => b.toplam.toplamMaliyet - a.toplam.toplamMaliyet);
 
       // 🐛 DEBUG: Kategori sıralama kontrolü
       console.log('🔢 Kategori Sıralama Debug:', {
-        sortBy,
         totalCategories: sortedAnalysis.length,
         categories: sortedAnalysis.map((item, index) => ({
           index: index + 1,
@@ -4836,7 +4801,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       });
 
       return sortedAnalysis;
-    }, [globalFilteredData, filteredData, sortBy, showOnlyProblematic, selectedVehicle, selectedTimeRange, vehicleTargets, dataRefreshTrigger, forceRefresh]);
+    }, [globalFilteredData, filteredData, vehicleTargets, dataRefreshTrigger, forceRefresh, globalFilters.selectedMonth]);
 
     // 📊 Özet İstatistikler
     const summaryStats = useMemo(() => {
@@ -5110,7 +5075,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
             {/* Detaylı Hedef Karşılaştırması */}
             {(() => {
-              // 🚗 KATEGORİ BAZLI hedef eşleştirme sistemi
+              // 🚗 KATEGORİ BAZLI hedef eşleştirme sistemi - SADELEŞTİRİLDİ
               let categoryTarget = null;
               
               // 1. Kategori bazlı hedef arama
@@ -5127,9 +5092,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               console.log('🎯 Kategori Bazlı Hedef Eşleştirme Debug:', {
                 kategori: vehicle.kategori,
                 displayName: displayName,
-                availableTargets: vehicleTargets.map(t => ({ kategori: t.kategori, aracModeli: t.aracModeli })),
+                totalTargetsCount: vehicleTargets.length,
+                availableTargets: vehicleTargets.map(t => ({ kategori: t.kategori, aracModeli: t.aracModeli, donem: t.donem })),
                 foundTarget: categoryTarget?.kategori || categoryTarget?.aracModeli || 'Bulunamadı',
-                totalTargets: vehicleTargets.length
+                foundTargetDonem: categoryTarget?.donem
               });
               
               if (!categoryTarget) {
@@ -5155,7 +5121,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       Hedef Belirle
                     </Button>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      Mevcut hedefler: {vehicleTargets.map(t => t.kategori || t.aracModeli).join(', ') || 'Hiç hedef yok'}
+                      Mevcut hedefler: {vehicleTargets.map(t => `${t.kategori || t.aracModeli} (${t.donem})`).join(', ') || 'Hiç hedef yok'}
                     </Typography>
                   </Box>
                 );
@@ -5473,22 +5439,14 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
     return (
       <Box sx={{ p: 3 }}>
-        {/* Başlık ve Açıklama */}
+        {/* KPI Dashboard */}
         <Box sx={{ mb: 4 }}>
-          
-          {/* KPI Dashboard */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" fontWeight={600}>
-                  Araç Performans Özeti
-                </Typography>
+                {/* Başlık alanları kaldırıldı */}
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Chip 
-                    label={`Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')}`}
-                    size="small"
-                    variant="outlined"
-                  />
+                  {/* Son güncelleme chip'i kaldırıldı */}
                 </Box>
               </Box>
             </Grid>
@@ -5589,6 +5547,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
 
 
+
+
         {/* Ana İçerik Alanı */}
         {viewMode === 'cards' && (
           <>
@@ -5599,6 +5559,13 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 size="small" 
                 sx={{ ml: 2 }}
                 color="primary"
+              />
+              <Chip 
+                label={`${globalFilters.selectedMonth || 'Tüm aylar'} dönemi`} 
+                size="small" 
+                sx={{ ml: 1 }}
+                color="secondary"
+                variant="outlined"
               />
             </Typography>
             
@@ -6282,7 +6249,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 <InputLabel>Ay</InputLabel>
                 <Select
                   value={globalFilters.selectedMonth}
-                  onChange={(e) => setGlobalFilters({...globalFilters, selectedMonth: e.target.value})}
+                  onChange={(e) => {
+                    setGlobalFilters({...globalFilters, selectedMonth: e.target.value});
+                    console.log('📅 Ay filtresi değişti - araç kartları güncellenecek:', e.target.value);
+                  }}
                   label="Ay"
                   disabled={!globalFilters.selectedYear}
                 >
