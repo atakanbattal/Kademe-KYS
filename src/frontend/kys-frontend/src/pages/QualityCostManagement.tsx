@@ -488,6 +488,47 @@ interface ParetoAnalysis {
   count: number;
 }
 
+// ============================================
+// 🚗 YENİ: AYLIK ÜRETİM ARAÇ SAYILARI SİSTEMİ
+// ============================================
+
+// ✅ TAMAMEN YENİ: Kategori Bazlı Üretim Verisi
+interface MonthlyCategoryProduction {
+  id: string;
+  kategori: VehicleCategory;
+  displayName: string;      // Görüntülenecek isim
+  donem: string;            // 2025-01 formatında
+  donemTuru: 'ay';          // Şu an sadece aylık
+  uretilenAracSayisi: number;
+  planlanmisUretim: number;
+  gerceklesmeOrani: number; // (üretilen/planlanan) * 100
+  categoryModels: VehicleModel[]; // Bu kategorideki modeller
+  createdDate: string;
+  updatedDate: string;
+  createdBy: string;
+  isActive: boolean;
+  aciklama?: string;
+}
+
+// ⚠️ GERIYE UYUMLULUK: Eski interface (deprecated, yavaş yavaş kaldırılacak)
+interface MonthlyVehicleProduction {
+  id: string;
+  aracModeli: VehicleModel;
+  kategori: VehicleCategory;
+  donem: string;            // 2025-01 formatında
+  donemTuru: 'ay';          // Şu an sadece aylık
+  uretilenAracSayisi: number;
+  planlanmisUretim?: number; // Opsiyonel: planlanan üretim
+  gerceklesmeOrani?: number; // (üretilen/planlanan) * 100
+  // Hedef alanları kaldırıldı - Hedefler sekmesinden çekilecek
+  // Gerçek değerler kalitesizlik maliyeti verilerinden hesaplanacak
+  createdDate: string;
+  updatedDate: string;
+  createdBy: string;
+  isActive: boolean;
+  aciklama?: string;
+}
+
 // ✅ Context7 Styled Components
 const MetricCard = styled(Card)(({ theme }) => ({
   height: '100%',
@@ -2678,6 +2719,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     const topProblemPart = partCodeData[0];
             const criticalPartsCount = partCodeData.filter(part => (part.toplam || part.totalCost || 0) > realAvgCost * 2).length;
     
+    // ✅ YENİ: Üretim verisi özeti
+    const currentPeriod = new Date().toISOString().substring(0, 7);
+    const productionSummary = getProductionSummary(currentPeriod);
+    
     return (
       <Box>
         {/* ✅ Context7: Enhanced KPI Cards with Real Data */}
@@ -2907,6 +2952,60 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     color="warning"
                     variant="outlined"
                   />
+                </CardContent>
+              </MetricCard>
+            </Fade>
+          </Grid>
+
+          {/* YENİ: Bu Ay Üretim Özeti Kartı */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Fade in timeout={700}>
+              <MetricCard 
+                onClick={() => {
+                  // Aylık Üretim Sayıları sekmesine git
+                  const customEvent = new CustomEvent('goToProductionTab');
+                  window.dispatchEvent(customEvent);
+                }}
+                sx={{ 
+                  borderLeft: '4px solid #9c27b0',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 25px rgba(156, 39, 176, 0.15)',
+                    borderColor: '#9c27b0'
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <FactoryIcon sx={{ fontSize: 40, color: '#9c27b0' }} />
+                  </Box>
+                  <Typography variant="h5" fontWeight="bold" color="secondary.main">
+                    {productionSummary.totalVehicles}
+                  </Typography>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                    Bu Ay Üretim
+                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Chip 
+                      label={`${productionSummary.activeModels} Model`}
+                      size="small"
+                      color="secondary"
+                      variant="outlined"
+                    />
+                    {productionSummary.topProducingModel && (
+                      <Chip 
+                        label={productionSummary.topProducingModel.model}
+                        size="small"
+                        color="secondary"
+                        variant="filled"
+                      />
+                    )}
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    Ort: {productionSummary.averageProduction} adet/model
+                  </Typography>
                 </CardContent>
               </MetricCard>
             </Fade>
@@ -4222,6 +4321,231 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       vehicle: VehiclePerformanceAnalysis | null;
     }>({ open: false, vehicle: null });
 
+    // 📈 AYLIK ÜRETİM VERİLERİ HOOK - Component seviyesine taşındı
+    const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []); // 2025-01 formatı
+    
+    const monthlyProductionData = useMemo(() => {
+      try {
+        const savedProductions = JSON.parse(localStorage.getItem('monthly_vehicle_productions') || '[]') as MonthlyVehicleProduction[];
+        const filteredData = savedProductions.filter(p => p.donem === currentMonth && p.isActive);
+        
+        console.log('📊 Monthly Production Data Debug:', {
+          currentMonth,
+          totalSavedProductions: savedProductions.length,
+          filteredForCurrentMonth: filteredData.length,
+          allProductions: savedProductions,
+          filteredProductions: filteredData,
+          forceRefreshCount: forceRefresh
+        });
+        
+        return filteredData;
+      } catch (error) {
+        console.error('Üretim verisi okuma hatası:', error);
+        return [];
+      }
+    }, [currentMonth, forceRefresh]);
+
+    // 🎯 ARAÇ BAŞINA MALIYET HESAPLAMA FUNCTIONları - Component seviyesine taşındı
+    const getProductionDataForVehicle = useCallback((vehicle: VehiclePerformanceAnalysis) => {
+      // ⚡ KRİTİK FIX: localStorage'dan gerçek veri okuma ve kontrol
+      console.log('🚀 getProductionDataForVehicle çağrıldı:', {
+        vehicleKategori: vehicle.kategori,
+        vehicleCategoryModels: vehicle.categoryModels,
+        displayName: vehicle.displayName
+      });
+      
+      // ⚡ YENİ: Kategori bazlı ve eski model bazlı verileri birleştir
+      const categoryProductionData = (() => {
+        try {
+          const rawData = localStorage.getItem('monthly_category_productions');
+          if (!rawData || rawData === 'null' || rawData === '[]') {
+            return [];
+          }
+          const parsed = JSON.parse(rawData) as MonthlyCategoryProduction[];
+          console.log('✅ KATEGORİ bazlı veri:', parsed.length + ' kayıt', parsed);
+          return parsed;
+        } catch (error) {
+          console.error('❌ Kategori veri parse hatası:', error);
+          return [];
+        }
+      })();
+      
+      // Eski model bazlı veriler (geriye uyumluluk)
+      const oldModelData = (() => {
+        try {
+          const rawData = localStorage.getItem('monthly_vehicle_productions');
+          if (!rawData || rawData === 'null' || rawData === '[]') {
+            return [];
+          }
+          const parsed = JSON.parse(rawData) as MonthlyVehicleProduction[];
+          console.log('📦 ESKİ model bazlı veri:', parsed.length + ' kayıt', parsed);
+          return parsed;
+        } catch (error) {
+          console.error('❌ Eski veri parse hatası:', error);
+          return [];
+        }
+      })();
+      
+             // ⚡ YENİ: Kategori bazlı verileri öncelendir
+       const activeCategoryData = categoryProductionData.filter(p => p.isActive !== false);
+       const activeOldData = oldModelData.filter(p => p.isActive !== false);
+       
+       console.log('🔍 AKTİF VERİ FİLTRELEME:', {
+         categoryCount: categoryProductionData.length,
+         activeCategoryCount: activeCategoryData.length,
+         oldDataCount: oldModelData.length,
+         activeOldCount: activeOldData.length,
+         categoryData: activeCategoryData.map(p => ({
+           id: p.id,
+           kategori: p.kategori,
+           displayName: p.displayName,
+           donem: p.donem,
+           uretilen: p.uretilenAracSayisi,
+           planlanan: p.planlanmisUretim,
+           models: p.categoryModels
+         })),
+         oldData: activeOldData.map(p => ({
+           id: p.id,
+           model: p.aracModeli,
+           kategori: p.kategori,
+           donem: p.donem,
+           uretilen: p.uretilenAracSayisi
+         }))
+       });
+
+      console.log('🔍 ENHANCED getProductionDataForVehicle Debug:', {
+        vehicleKategori: vehicle.kategori,
+        vehicleAracModeli: vehicle.aracModeli,
+        vehicleDisplayName: vehicle.displayName,
+        currentMonth: currentMonth,
+        categoryDataCount: categoryProductionData.length,
+        activeCategoryDataCount: activeCategoryData.length,
+        oldDataCount: oldModelData.length,
+        activeOldDataCount: activeOldData.length,
+        categoryProductionData: categoryProductionData,
+        activeCategoryData: activeCategoryData,
+        monthlyProductionDataFromHook: monthlyProductionData
+      });
+
+      // Kategori bazlı filtreleme önceliği - DÜZELTME: Model bazında da eşleştir
+      if (vehicle.kategori) {
+        console.log('🎯 KATEGORİ FİLTRELEME BAŞLANIYOR:', {
+          arananKategori: vehicle.kategori,
+          kategoridekiModeller: vehicle.categoryModels,
+          toplamAktifKategoriVeri: activeCategoryData.length,
+          toplamAktifEskiVeri: activeOldData.length
+        });
+        
+        // ⚡ YENİ: Önce kategori bazlı verileri kontrol et
+        const categoryMatch = activeCategoryData.find(p => p.kategori === vehicle.kategori);
+        
+        if (categoryMatch) {
+          console.log('✅ KATEGORİ BAZLI VERİ BULUNDU:', categoryMatch);
+          
+          const result = {
+            uretilenAdet: categoryMatch.uretilenAracSayisi,
+            planlanmisAdet: categoryMatch.planlanmisUretim,
+            gerceklesmeOrani: categoryMatch.gerceklesmeOrani,
+            kayitSayisi: 1
+          };
+          
+          console.log(`✅ Kategori ${vehicle.kategori} sonuç:`, result);
+          return result;
+        }
+        
+        // Fallback: Eski model bazlı verilerden kategori toplama
+        console.log('⚠️ Kategori verisi yok, eski verilerden toplama yapılıyor...');
+        const categoryProductions = activeOldData.filter(p => {
+          // Direkt kategori eşleştirmesi
+          const directCategoryMatch = p.kategori === vehicle.kategori;
+          
+          // Model bazında kategori eşleştirmesi - KDM 80 → Araç Üstü Vakumlu
+          const modelInCategory = vehicle.categoryModels?.includes(p.aracModeli);
+          
+          // Hem kategori hem model eşleştirmesi
+          const match = directCategoryMatch || modelInCategory;
+          
+          console.log(`📊 DETAYLI FİLTRELEME: ${p.aracModeli} (${p.kategori})`, {
+            directCategoryMatch: `${p.kategori} === ${vehicle.kategori} = ${directCategoryMatch}`,
+            modelInCategory: `${vehicle.categoryModels} includes ${p.aracModeli} = ${modelInCategory}`,
+            finalMatch: match,
+            productionData: {
+              id: p.id,
+              aracModeli: p.aracModeli,
+              kategori: p.kategori,
+              donem: p.donem,
+              uretilen: p.uretilenAracSayisi,
+              planlanan: p.planlanmisUretim
+            }
+          });
+          return match;
+        });
+        
+        console.log(`📈 Kategori ${vehicle.kategori} için bulunan üretim kayıtları:`, categoryProductions);
+        
+        // Kategorideki toplam üretim sayısını hesapla
+        const totalProduced = categoryProductions.reduce((sum, p) => sum + p.uretilenAracSayisi, 0);
+        const totalPlanned = categoryProductions.reduce((sum, p) => sum + (p.planlanmisUretim || 0), 0);
+        
+        const result = {
+          uretilenAdet: totalProduced,
+          planlanmisAdet: totalPlanned,
+          gerceklesmeOrani: totalPlanned > 0 ? (totalProduced / totalPlanned) * 100 : 0,
+          kayitSayisi: categoryProductions.length
+        };
+        
+        console.log(`✅ Kategori ${vehicle.kategori} sonuç:`, result);
+        return result;
+      }
+      
+      // Tek model bazlı veri (geriye uyumluluk)
+      if (vehicle.aracModeli) {
+        const modelProduction = activeOldData.find(p => {
+          const match = p.aracModeli === vehicle.aracModeli;
+          console.log(`🚗 Model Filtreleme: ${p.aracModeli} vs ${vehicle.aracModeli}`, {
+            match,
+            productionDonem: p.donem,
+            currentMonth: currentMonth,
+            isActive: p.isActive
+          });
+          return match;
+        });
+        
+        console.log(`🏭 Model ${vehicle.aracModeli} için bulunan üretim kaydı:`, modelProduction);
+        
+        const result = {
+          uretilenAdet: modelProduction?.uretilenAracSayisi || 0,
+          planlanmisAdet: modelProduction?.planlanmisUretim || 0,
+          gerceklesmeOrani: modelProduction?.gerceklesmeOrani || 0,
+          kayitSayisi: modelProduction ? 1 : 0
+        };
+        
+        console.log(`✅ Model ${vehicle.aracModeli} sonuç:`, result);
+        return result;
+      }
+      
+      console.log('⚠️ Hiç üretim verisi bulunamadı:', vehicle);
+      return { uretilenAdet: 0, planlanmisAdet: 0, gerceklesmeOrani: 0, kayitSayisi: 0 };
+    }, [currentMonth, forceRefresh]); // monthlyProductionData hook dependency'sini kaldırdık
+
+    const calculatePerVehicleCosts = useCallback((vehicle: VehiclePerformanceAnalysis, productionCount: number) => {
+      if (productionCount === 0) {
+        return {
+          retPerVehicle: 0,
+          hurdaPerVehicle: 0,
+          firePerVehicle: 0,
+          totalPerVehicle: 0
+        };
+      }
+      
+      return {
+        retPerVehicle: vehicle.atikTuruDagilim.ret.adet / productionCount,
+        hurdaPerVehicle: vehicle.atikTuruDagilim.hurda.kg / productionCount,
+        firePerVehicle: vehicle.atikTuruDagilim.fire.kg / productionCount,
+        totalPerVehicle: vehicle.toplam.toplamMaliyet / productionCount
+      };
+    }, []);
+
     // ✅ ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: Event listener ile veri güncellemelerini dinle
     useEffect(() => {
       const handleCostDataUpdate = () => {
@@ -4230,8 +4554,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       };
 
       const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === 'kys-cost-management-data' && e.newValue) {
-          console.log('🔄 localStorage değişikliği tespit edildi, araç kartları güncelleniyor...');
+        if ((e.key === 'kys-cost-management-data' || e.key === 'monthly_vehicle_productions') && e.newValue) {
+          console.log('🔄 localStorage değişikliği tespit edildi, araç kartları güncelleniyor...', {
+            key: e.key,
+            oldValue: e.oldValue ? 'var' : 'yok',
+            newValue: e.newValue ? 'var' : 'yok'
+          });
           setForceRefresh(prev => prev + 1);
         }
       };
@@ -4536,6 +4864,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       const displayName = vehicle.displayName || vehicle.kategori || vehicle.aracModeli || 'Bilinmeyen Kategori';
       const cardKey = vehicle.kategori || vehicle.aracModeli || `category-${index}`;
       
+      // 📈 ÜRETİM VERİLERİNİ ÇEK - Component hook'larını kullan
+      const productionData = getProductionDataForVehicle(vehicle);
+      const perVehicleCosts = calculatePerVehicleCosts(vehicle, productionData.uretilenAdet);
+      
       // 🐛 DEBUG: Kart sıralama kontrolü
       console.log(`🃏 Kart ${index + 1} Debug:`, {
         index: index + 1,
@@ -4544,7 +4876,9 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         maliyet: vehicle.toplam.toplamMaliyet,
         kayitSayisi: vehicle.toplam.kayitSayisi,
         kategori: vehicle.kategori,
-        aracModeli: vehicle.aracModeli
+        aracModeli: vehicle.aracModeli,
+        productionData,
+        perVehicleCosts
       });
       
       return (
@@ -4653,8 +4987,28 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 </Box>
               </Box>
 
-            {/* Ana Metrikler */}
+            {/* Üretim ve Maliyet Metrikler */}
             <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid item xs={6}>
+                <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
+                  <Typography variant="h6" fontWeight={700} color="success.main">
+                    {productionData.uretilenAdet}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Üretilen
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={6}>
+                <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
+                  <Typography variant="h6" fontWeight={700} color="primary.main">
+                    {productionData.planlanmisAdet}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Planlanan
+                  </Typography>
+                </Paper>
+              </Grid>
               <Grid item xs={6}>
                 <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'error.50', border: '1px solid', borderColor: 'error.200' }}>
                   <Typography variant="h6" fontWeight={700} color="error.main">
@@ -4666,47 +5020,90 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 </Paper>
               </Grid>
               <Grid item xs={6}>
-                <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
-                  <Typography variant="h6" fontWeight={700} color="info.main">
-                    {vehicle.toplam.kayitSayisi}
+                <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200' }}>
+                  <Typography variant="h6" fontWeight={700} color="warning.main">
+                    {productionData.gerceklesmeOrani.toFixed(1)}%
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Kayıt Sayısı
+                    Gerçekleşme Oranı
                   </Typography>
                 </Paper>
               </Grid>
             </Grid>
 
-            {/* Atık Türü Dağılımı */}
+            {/* Atık Türü Dağılımı ve Araç Başına Değerler */}
             <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
-              Atık Türü Dağılımı
+              Atık Türü Dağılımı ve Araç Başına Değerler
             </Typography>
             <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box sx={{ width: 12, height: 12, bgcolor: 'error.main', borderRadius: '50%', mr: 1.5 }} />
-                  <Typography variant="body2" fontWeight={500}>Ret: {vehicle.atikTuruDagilim.ret.adet} adet</Typography>
+              {/* Ret */}
+              <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'error.50', borderRadius: 1, border: '1px solid', borderColor: 'error.200' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ width: 12, height: 12, bgcolor: 'error.main', borderRadius: '50%', mr: 1.5 }} />
+                    <Typography variant="body2" fontWeight={600} color="error.main">
+                      Ret: {vehicle.atikTuruDagilim.ret.adet} adet
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" fontWeight={700} color="error.main">
+                    ₺{vehicle.atikTuruDagilim.ret.maliyet.toLocaleString()}
+                  </Typography>
                 </Box>
-                <Typography variant="body2" fontWeight={600}>₺{vehicle.atikTuruDagilim.ret.maliyet.toLocaleString()}</Typography>
+                {productionData.uretilenAdet > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+                    Araç başına: {perVehicleCosts.retPerVehicle.toFixed(2)} adet/araç
+                  </Typography>
+                )}
               </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box sx={{ width: 12, height: 12, bgcolor: 'warning.main', borderRadius: '50%', mr: 1.5 }} />
-                  <Typography variant="body2" fontWeight={500}>Hurda: {vehicle.atikTuruDagilim.hurda.kg.toFixed(1)} kg</Typography>
+
+              {/* Hurda */}
+              <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'warning.50', borderRadius: 1, border: '1px solid', borderColor: 'warning.200' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ width: 12, height: 12, bgcolor: 'warning.main', borderRadius: '50%', mr: 1.5 }} />
+                    <Typography variant="body2" fontWeight={600} color="warning.main">
+                      Hurda: {vehicle.atikTuruDagilim.hurda.kg.toFixed(1)} kg
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" fontWeight={700} color="warning.main">
+                    {vehicle.atikTuruDagilim.hurda.kg > 0 ? `₺${vehicle.atikTuruDagilim.hurda.maliyet.toLocaleString()}` : '-'}
+                  </Typography>
                 </Box>
-                <Typography variant="body2" fontWeight={600}>
-                  {vehicle.atikTuruDagilim.hurda.kg > 0 ? `₺${vehicle.atikTuruDagilim.hurda.maliyet.toLocaleString()}` : '-'}
-                </Typography>
+                {productionData.uretilenAdet > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+                    Araç başına: {perVehicleCosts.hurdaPerVehicle.toFixed(2)} kg/araç
+                  </Typography>
+                )}
               </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Box sx={{ width: 12, height: 12, bgcolor: 'info.main', borderRadius: '50%', mr: 1.5 }} />
-                  <Typography variant="body2" fontWeight={500}>Fire: {vehicle.atikTuruDagilim.fire.kg.toFixed(1)} kg</Typography>
+
+              {/* Fire */}
+              <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ width: 12, height: 12, bgcolor: 'info.main', borderRadius: '50%', mr: 1.5 }} />
+                    <Typography variant="body2" fontWeight={600} color="info.main">
+                      Fire: {vehicle.atikTuruDagilim.fire.kg.toFixed(1)} kg
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" fontWeight={700} color="info.main">
+                    {vehicle.atikTuruDagilim.fire.maliyet > 0 ? `₺${vehicle.atikTuruDagilim.fire.maliyet.toLocaleString()}` : '-'}
+                  </Typography>
                 </Box>
-                <Typography variant="body2" fontWeight={600}>
-                  {vehicle.atikTuruDagilim.fire.maliyet > 0 ? `₺${vehicle.atikTuruDagilim.fire.maliyet.toLocaleString()}` : '-'}
-                </Typography>
+                {productionData.uretilenAdet > 0 && (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+                    Araç başına: {perVehicleCosts.firePerVehicle.toFixed(2)} kg/araç
+                  </Typography>
+                )}
               </Box>
+
+              {/* Toplam Araç Başına Maliyet */}
+              {productionData.uretilenAdet > 0 && (
+                <Box sx={{ p: 1.5, bgcolor: 'grey.100', borderRadius: 1, border: '2px solid', borderColor: 'grey.300' }}>
+                  <Typography variant="body2" fontWeight={700} color="text.primary" textAlign="center">
+                    Araç Başına Toplam Maliyet: ₺{perVehicleCosts.totalPerVehicle.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </Typography>
+                </Box>
+              )}
             </Box>
 
 
@@ -4764,23 +5161,44 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 );
               }
 
-              // Performans hesaplamaları - Düşük değerler iyi olduğu için ters mantık
-              const calculatePerformance = (actual: number, maxTarget: number) => {
-                if (maxTarget <= 0) return 100; // Hedef sıfırsa tam performans
-                if (actual === 0) return 100; // Gerçekleşen sıfırsa mükemmel performans
+              // ⚡ ARAÇ BAŞINA PERFORMANS HESAPLAMA - Hedefler araç başına olduğu için üretim sayısıyla çarpılır
+              const calculatePerVehiclePerformance = (actualTotal: number, perVehicleTarget: number, productionCount: number) => {
+                if (perVehicleTarget <= 0 || productionCount <= 0) return 100; // Hedef veya üretim sıfırsa tam performans
+                if (actualTotal === 0) return 100; // Gerçekleşen sıfırsa mükemmel performans
+                
+                // Araç başına hedefi toplam hedefe çevir
+                const totalTarget = perVehicleTarget * productionCount;
                 
                 // Hedef altında kalma oranı = ne kadar iyi olduğu
-                // Örnek: Fire hedefi 40, gerçekleşen 20 ise → (40-20)/40 * 100 = %50 performans
-                // Örnek: Fire hedefi 40, gerçekleşen 30 ise → (40-30)/40 * 100 = %25 performans
-                // Örnek: Fire hedefi 40, gerçekleşen 50 ise → (40-50)/40 * 100 = -%25 (0'a çekiliyor)
-                
-                const performanceRatio = Math.max(0, (maxTarget - actual) / maxTarget * 100);
+                // Örnek: Araç başı Fire hedefi 0.25 kg/araç, 4 araç üretim → Toplam hedef: 1.0 kg
+                // Gerçekleşen: 0.5 kg → (1.0-0.5)/1.0 * 100 = %50 performans
+                const performanceRatio = Math.max(0, (totalTarget - actualTotal) / totalTarget * 100);
                 return Math.round(performanceRatio);
               };
 
-              const retPerformans = calculatePerformance(vehicle.atikTuruDagilim.ret.adet, categoryTarget.hedefler.maksRetAdet);
-              const hurdaPerformans = calculatePerformance(vehicle.atikTuruDagilim.hurda.kg, categoryTarget.hedefler.maksHurdaKg);
-              const firePerformans = calculatePerformance(vehicle.atikTuruDagilim.fire.kg, categoryTarget.hedefler.maksFireKg);
+              // Üretim verilerini al
+              const productionData = getProductionDataForVehicle(vehicle);
+              const productionCount = productionData.uretilenAdet || 1; // Sıfıra bölmeyi önle
+              
+              console.log('🎯 ARAÇ BAŞINA PERFORMANS HESAPLAMA:', {
+                vehicleKategori: vehicle.kategori,
+                productionCount: productionCount,
+                categoryTarget: categoryTarget.hedefler,
+                actualValues: {
+                  retAdet: vehicle.atikTuruDagilim.ret.adet,
+                  hurdaKg: vehicle.atikTuruDagilim.hurda.kg,
+                  fireKg: vehicle.atikTuruDagilim.fire.kg
+                },
+                calculatedTotalTargets: {
+                  retTotal: categoryTarget.hedefler.maksRetAdet * productionCount,
+                  hurdaTotal: categoryTarget.hedefler.maksHurdaKg * productionCount,
+                  fireTotal: categoryTarget.hedefler.maksFireKg * productionCount
+                }
+              });
+
+              const retPerformans = calculatePerVehiclePerformance(vehicle.atikTuruDagilim.ret.adet, categoryTarget.hedefler.maksRetAdet, productionCount);
+              const hurdaPerformans = calculatePerVehiclePerformance(vehicle.atikTuruDagilim.hurda.kg, categoryTarget.hedefler.maksHurdaKg, productionCount);
+              const firePerformans = calculatePerVehiclePerformance(vehicle.atikTuruDagilim.fire.kg, categoryTarget.hedefler.maksFireKg, productionCount);
 
               return (
                 <Box sx={{ mb: 3 }}>
@@ -4789,97 +5207,259 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   </Typography>
                   
                   {/* Ret Hedef Karşılaştırması */}
-                  <Box sx={{ mb: 2, p: 2, bgcolor: 'error.50', borderRadius: 1, border: '1px solid', borderColor: 'error.200' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="body2" fontWeight={600} color="error.main">Ret Hedefi</Typography>
-                      <Typography variant="body2" fontWeight={600} color={retPerformans >= 80 ? 'success.main' : retPerformans >= 60 ? 'warning.main' : 'error.main'}>
-                        {retPerformans.toFixed(0)}%
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Maks Hedef: {categoryTarget.hedefler.maksRetAdet} adet
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Gerçek: {vehicle.atikTuruDagilim.ret.adet} adet
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={retPerformans}
-                      sx={{ 
-                        height: 6, 
-                        borderRadius: 3,
-                        bgcolor: 'error.100',
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: retPerformans >= 80 ? 'success.main' : retPerformans >= 60 ? 'warning.main' : 'error.main',
-                          borderRadius: 3
-                        }
-                      }}
-                    />
-                  </Box>
+                  <Card sx={{ 
+                    mb: 2, 
+                    borderRadius: 3,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    overflow: 'hidden'
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Box sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            bgcolor: 'error.main' 
+                          }} />
+                          <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+                            Ret Performansı
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={`${retPerformans}%`}
+                          color={retPerformans >= 80 ? 'success' : retPerformans >= 60 ? 'warning' : 'error'}
+                          variant="filled"
+                          sx={{ 
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            minWidth: 60
+                          }}
+                        />
+                      </Box>
+                      
+                      <Grid container spacing={2} sx={{ mb: 2 }}>
+                        <Grid item xs={6}>
+                          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              Hedef
+                            </Typography>
+                            <Typography variant="h6" fontWeight={600} color="text.primary">
+                              {categoryTarget.hedefler.maksRetAdet.toFixed(2)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              adet/araç
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              Gerçek
+                            </Typography>
+                            <Typography variant="h6" fontWeight={600} color="text.primary">
+                              {(vehicle.atikTuruDagilim.ret.adet / productionCount).toFixed(2)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              adet/araç
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                      
+                      <Box sx={{ position: 'relative' }}>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={retPerformans}
+                          sx={{ 
+                            height: 12, 
+                            borderRadius: 6,
+                            bgcolor: 'grey.200',
+                            '& .MuiLinearProgress-bar': {
+                              borderRadius: 6,
+                              background: retPerformans >= 80 
+                                ? 'linear-gradient(90deg, #4caf50 0%, #66bb6a 100%)'
+                                : retPerformans >= 60 
+                                  ? 'linear-gradient(90deg, #ff9800 0%, #ffb74d 100%)'
+                                  : 'linear-gradient(90deg, #f44336 0%, #ef5350 100%)'
+                            }
+                          }}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
 
                   {/* Hurda Hedef Karşılaştırması */}
-                  <Box sx={{ mb: 2, p: 2, bgcolor: 'warning.50', borderRadius: 1, border: '1px solid', borderColor: 'warning.200' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="body2" fontWeight={600} color="warning.main">Hurda Hedefi</Typography>
-                      <Typography variant="body2" fontWeight={600} color={hurdaPerformans >= 80 ? 'success.main' : hurdaPerformans >= 60 ? 'warning.main' : 'error.main'}>
-                        {hurdaPerformans.toFixed(0)}%
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Maks Hedef: {categoryTarget.hedefler.maksHurdaKg} kg
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Gerçek: {vehicle.atikTuruDagilim.hurda.kg.toFixed(1)} kg
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={hurdaPerformans}
-                      sx={{ 
-                        height: 6, 
-                        borderRadius: 3,
-                        bgcolor: 'warning.100',
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: hurdaPerformans >= 80 ? 'success.main' : hurdaPerformans >= 60 ? 'warning.main' : 'error.main',
-                          borderRadius: 3
-                        }
-                      }}
-                    />
-                  </Box>
+                  <Card sx={{ 
+                    mb: 2, 
+                    borderRadius: 3,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    overflow: 'hidden'
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Box sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            bgcolor: 'warning.main' 
+                          }} />
+                          <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+                            Hurda Performansı
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={`${hurdaPerformans}%`}
+                          color={hurdaPerformans >= 80 ? 'success' : hurdaPerformans >= 60 ? 'warning' : 'error'}
+                          variant="filled"
+                          sx={{ 
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            minWidth: 60
+                          }}
+                        />
+                      </Box>
+                      
+                      <Grid container spacing={2} sx={{ mb: 2 }}>
+                        <Grid item xs={6}>
+                          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              Hedef
+                            </Typography>
+                            <Typography variant="h6" fontWeight={600} color="text.primary">
+                              {categoryTarget.hedefler.maksHurdaKg.toFixed(2)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              kg/araç
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              Gerçek
+                            </Typography>
+                            <Typography variant="h6" fontWeight={600} color="text.primary">
+                              {(vehicle.atikTuruDagilim.hurda.kg / productionCount).toFixed(2)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              kg/araç
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                      
+                      <Box sx={{ position: 'relative' }}>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={hurdaPerformans}
+                          sx={{ 
+                            height: 12, 
+                            borderRadius: 6,
+                            bgcolor: 'grey.200',
+                            '& .MuiLinearProgress-bar': {
+                              borderRadius: 6,
+                              background: hurdaPerformans >= 80 
+                                ? 'linear-gradient(90deg, #4caf50 0%, #66bb6a 100%)'
+                                : hurdaPerformans >= 60 
+                                  ? 'linear-gradient(90deg, #ff9800 0%, #ffb74d 100%)'
+                                  : 'linear-gradient(90deg, #f44336 0%, #ef5350 100%)'
+                            }
+                          }}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
 
                   {/* Fire Hedef Karşılaştırması */}
-                  <Box sx={{ mb: 2, p: 2, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="body2" fontWeight={600} color="info.main">Fire Hedefi</Typography>
-                      <Typography variant="body2" fontWeight={600} color={firePerformans >= 80 ? 'success.main' : firePerformans >= 60 ? 'warning.main' : 'error.main'}>
-                        {firePerformans.toFixed(0)}%
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Maks Hedef: {categoryTarget.hedefler.maksFireKg} kg
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Gerçek: {vehicle.atikTuruDagilim.fire.kg.toFixed(1)} kg
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={firePerformans}
-                      sx={{ 
-                        height: 6, 
-                        borderRadius: 3,
-                        bgcolor: 'info.100',
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: firePerformans >= 80 ? 'success.main' : firePerformans >= 60 ? 'warning.main' : 'error.main',
-                          borderRadius: 3
-                        }
-                      }}
-                    />
-                  </Box>
+                  <Card sx={{ 
+                    mb: 2, 
+                    borderRadius: 3,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    overflow: 'hidden'
+                  }}>
+                    <CardContent sx={{ p: 3 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Box sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            bgcolor: 'info.main' 
+                          }} />
+                          <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+                            Fire Performansı
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={`${firePerformans}%`}
+                          color={firePerformans >= 80 ? 'success' : firePerformans >= 60 ? 'warning' : 'error'}
+                          variant="filled"
+                          sx={{ 
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            minWidth: 60
+                          }}
+                        />
+                      </Box>
+                      
+                      <Grid container spacing={2} sx={{ mb: 2 }}>
+                        <Grid item xs={6}>
+                          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              Hedef
+                            </Typography>
+                            <Typography variant="h6" fontWeight={600} color="text.primary">
+                              {categoryTarget.hedefler.maksFireKg.toFixed(2)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              kg/araç
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ textAlign: 'center', p: 1.5, bgcolor: 'grey.50', borderRadius: 2 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              Gerçek
+                            </Typography>
+                            <Typography variant="h6" fontWeight={600} color="text.primary">
+                              {(vehicle.atikTuruDagilim.fire.kg / productionCount).toFixed(2)}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              kg/araç
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                      
+                      <Box sx={{ position: 'relative' }}>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={firePerformans}
+                          sx={{ 
+                            height: 12, 
+                            borderRadius: 6,
+                            bgcolor: 'grey.200',
+                            '& .MuiLinearProgress-bar': {
+                              borderRadius: 6,
+                              background: firePerformans >= 80 
+                                ? 'linear-gradient(90deg, #4caf50 0%, #66bb6a 100%)'
+                                : firePerformans >= 60 
+                                  ? 'linear-gradient(90deg, #ff9800 0%, #ffb74d 100%)'
+                                  : 'linear-gradient(90deg, #f44336 0%, #ef5350 100%)'
+                            }
+                          }}
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
 
 
                 </Box>
@@ -4898,6 +5478,20 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           
           {/* KPI Dashboard */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" fontWeight={600}>
+                  Araç Performans Özeti
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Chip 
+                    label={`Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')}`}
+                    size="small"
+                    variant="outlined"
+                  />
+                </Box>
+              </Box>
+            </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Card 
                 sx={{ 
@@ -5797,6 +6391,11 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                           label="Malzeme Maliyet Ayarları" 
             iconPosition="start"
           />
+          <Tab 
+            icon={<FactoryIcon />} 
+            label="Aylık Üretim Sayıları" 
+            iconPosition="start"
+          />
         </Tabs>
       </Paper>
 
@@ -5843,6 +6442,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             />}
         {currentTab === 5 && <CostSettingsComponent />}
         {currentTab === 6 && <MaterialPricingManagementComponent />}
+                    {currentTab === 7 && <CategoryProductionManagementComponent onTabChange={setCurrentTab} />}
         </Box>
 
       {/* Floating Action Button */}
@@ -5866,6 +6466,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           } else if (currentTab === 6) {
             // Malzeme maliyet ayarları sekmesindeyse yeni malzeme ekle
             const event = new CustomEvent('addNewMaterial');
+            window.dispatchEvent(event);
+          } else if (currentTab === 7) {
+            // Aylık üretim sayıları sekmesindeyse yeni üretim kaydı ekle
+            const event = new CustomEvent('addNewProductionRecord');
             window.dispatchEvent(event);
           } else {
             // Diğer sekmelerde veri yönetimi sekmesine git
@@ -10645,3 +11249,777 @@ const CostSettingsComponent: React.FC = () => {
     </Box>
       );
   };
+
+// ============================================
+// 🚗 YENİ: AYLIK ÜRETİM ARAÇ SAYILARI UTİLİTY FONKSİYONLARI
+// ============================================
+
+// Utility fonksiyon: Belirli araç modeli ve dönem için üretim verisini çek
+const getMonthlyProductionData = (vehicleModel: VehicleModel, period: string): MonthlyVehicleProduction | null => {
+  try {
+    const stored = localStorage.getItem('monthly_vehicle_production_data');
+    if (!stored) return null;
+    
+    const data: MonthlyVehicleProduction[] = JSON.parse(stored);
+    return data.find(prod => 
+      prod.aracModeli === vehicleModel && 
+      prod.donem === period && 
+      prod.isActive
+    ) || null;
+  } catch (error) {
+    console.error('Üretim verisi yüklenemedi:', error);
+    return null;
+  }
+};
+
+// Utility fonksiyon: Araç başına ortalama hesaplama
+const calculatePerVehicleAverage = (
+  totalValue: number, 
+  vehicleModel: VehicleModel, 
+  period: string
+): number => {
+  const productionData = getMonthlyProductionData(vehicleModel, period);
+  if (!productionData || productionData.uretilenAracSayisi === 0) {
+    return totalValue; // Üretim verisi yoksa toplam değeri döndür
+  }
+  
+  return totalValue / productionData.uretilenAracSayisi;
+};
+
+// Utility fonksiyon: Araç bazında hedef performans hesaplama
+const calculateVehicleTargetPerformance = (
+  actualPerVehicle: number,
+  vehicleModel: VehicleModel,
+  period: string,
+  targetType: 'ret' | 'hurda' | 'fire'
+): { performance: number; status: string; targetValue: number } => {
+  try {
+    // Hedef sekmesinden hedef değerleri çek
+    const storedTargets = localStorage.getItem('vehicle_targets');
+    if (!storedTargets) {
+      return { performance: 0, status: 'hedef_yok', targetValue: 0 };
+    }
+
+    const targets: VehicleTarget[] = JSON.parse(storedTargets);
+    const vehicleTarget = targets.find(target => 
+      target.aracModeli === vehicleModel && 
+      target.donem === period && 
+      target.isActive
+    );
+
+    if (!vehicleTarget) {
+      return { performance: 0, status: 'hedef_yok', targetValue: 0 };
+    }
+
+    // Aylık üretim sayısını al
+    const productionData = getMonthlyProductionData(vehicleModel, period);
+    if (!productionData || productionData.uretilenAracSayisi === 0) {
+      return { performance: 0, status: 'uretim_yok', targetValue: 0 };
+    }
+
+    // Hedefi araç başına çevir
+    let totalTargetValue = 0;
+    switch (targetType) {
+      case 'ret':
+        totalTargetValue = vehicleTarget.hedefler.maksRetAdet;
+        break;
+      case 'hurda':
+        totalTargetValue = vehicleTarget.hedefler.maksHurdaKg;
+        break;
+      case 'fire':
+        totalTargetValue = vehicleTarget.hedefler.maksFireKg;
+        break;
+    }
+
+    const targetPerVehicle = totalTargetValue / productionData.uretilenAracSayisi;
+
+    if (targetPerVehicle === 0) {
+      return { performance: 0, status: 'hedef_yok', targetValue: 0 };
+    }
+
+    // Ret, hurda, fire için düşük değer iyidir (inverse performance)
+    const performance = targetPerVehicle > 0 ? Math.max(0, (targetPerVehicle - actualPerVehicle) / targetPerVehicle * 100) : 0;
+    
+    let status = 'kritik';
+    if (performance >= 80) status = 'basarili';
+    else if (performance >= 60) status = 'dikkat';
+    else if (performance >= 40) status = 'uyari';
+    
+    return { performance, status, targetValue: targetPerVehicle };
+  } catch (error) {
+    console.error('Target performance calculation error:', error);
+    return { performance: 0, status: 'hata', targetValue: 0 };
+  }
+};
+
+// Utility fonksiyon: Toplam üretim veri özeti
+const getProductionSummary = (period?: string): {
+  totalVehicles: number;
+  activeModels: number;
+  averageProduction: number;
+  topProducingModel: { model: VehicleModel; count: number } | null;
+} => {
+  try {
+    const stored = localStorage.getItem('monthly_vehicle_production_data');
+    if (!stored) return { totalVehicles: 0, activeModels: 0, averageProduction: 0, topProducingModel: null };
+    
+    const data: MonthlyVehicleProduction[] = JSON.parse(stored);
+    let filteredData = data.filter(prod => prod.isActive);
+    
+    if (period) {
+      filteredData = filteredData.filter(prod => prod.donem === period);
+    }
+    
+    const totalVehicles = filteredData.reduce((sum, prod) => sum + prod.uretilenAracSayisi, 0);
+    const activeModels = new Set(filteredData.map(prod => prod.aracModeli)).size;
+    const averageProduction = filteredData.length > 0 ? totalVehicles / filteredData.length : 0;
+    
+    // En çok üretilen model
+    const modelCounts = filteredData.reduce((acc, prod) => {
+      acc[prod.aracModeli] = (acc[prod.aracModeli] || 0) + prod.uretilenAracSayisi;
+      return acc;
+    }, {} as Record<VehicleModel, number>);
+    
+    const topProducingModel = Object.entries(modelCounts)
+      .sort(([,a], [,b]) => b - a)[0];
+    
+    return {
+      totalVehicles,
+      activeModels,
+      averageProduction: Math.round(averageProduction),
+      topProducingModel: topProducingModel ? { 
+        model: topProducingModel[0] as VehicleModel, 
+        count: topProducingModel[1] 
+      } : null
+    };
+  } catch (error) {
+    console.error('Üretim özeti hesaplanamadı:', error);
+    return { totalVehicles: 0, activeModels: 0, averageProduction: 0, topProducingModel: null };
+  }
+};
+
+// ============================================
+// 🚗 YENİ: ENTEGRE AYLIK ÜRETİM ARAÇ SAYILARI YÖNETİMİ
+// Hedefler SmartTargetManagementComponent'ten çekilir
+// ============================================
+
+// ✅ YENİ: KATEGORİ BAZLI AYLIK ÜRETİM YÖNETİMİ
+const CategoryProductionManagementComponent: React.FC<{ 
+  onTabChange?: (tabIndex: number) => void 
+}> = ({ onTabChange }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // ✅ YENİ: Kategori bazlı state'ler
+  const [categoryProductions, setCategoryProductions] = useState<MonthlyCategoryProduction[]>([]);
+  const [filteredProductions, setFilteredProductions] = useState<MonthlyCategoryProduction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<VehicleCategory | ''>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProduction, setEditingProduction] = useState<MonthlyCategoryProduction | null>(null);
+
+
+  // ✅ YENİ: Kategori bazlı form data
+  const [formData, setFormData] = useState<Partial<MonthlyCategoryProduction>>({
+    kategori: 'Araç Üstü Vakumlu',
+    displayName: 'Araç Üstü Vakumlu',
+    donem: new Date().toISOString().substring(0, 7), // YYYY-MM format
+    donemTuru: 'ay',
+    uretilenAracSayisi: 0,
+    planlanmisUretim: 0,
+    gerceklesmeOrani: 0,
+    categoryModels: VEHICLE_CATEGORIES['Araç Üstü Vakumlu'],
+    isActive: true,
+    aciklama: ''
+  });
+
+  // ✅ YENİ: Kategori bazlı storage key
+  const STORAGE_KEY = 'monthly_category_productions';
+
+  // Veri yükleme
+  useEffect(() => {
+    loadProductionData();
+  }, []);
+
+  // Filtreleme
+  useEffect(() => {
+    applyFilters();
+  }, [categoryProductions, searchTerm, selectedCategory, selectedMonth]);
+
+  // Event listeners
+  useEffect(() => {
+    const handleAddNewRecord = () => {
+      setEditingProduction(null);
+      setFormData({
+        kategori: 'Araç Üstü Vakumlu',
+        displayName: 'Araç Üstü Vakumlu',
+        donem: new Date().toISOString().substring(0, 7),
+        donemTuru: 'ay',
+        uretilenAracSayisi: 0,
+        planlanmisUretim: 0,
+        gerceklesmeOrani: 0,
+        categoryModels: VEHICLE_CATEGORIES['Araç Üstü Vakumlu'],
+        isActive: true,
+        aciklama: ''
+      });
+      setDialogOpen(true);
+    };
+
+    window.addEventListener('addNewProductionRecord', handleAddNewRecord);
+    
+    // Üretim sekmesine yönlendirme event listener'ı
+    const handleGoToProductionTab = () => {
+      if (onTabChange) {
+        onTabChange(7); // Aylık Üretim Sayıları sekmesi
+      }
+    };
+    
+    window.addEventListener('goToProductionTab', handleGoToProductionTab);
+    
+    return () => {
+      window.removeEventListener('addNewProductionRecord', handleAddNewRecord);
+      window.removeEventListener('goToProductionTab', handleGoToProductionTab);
+    };
+  }, []);
+
+  const loadProductionData = () => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        setCategoryProductions(data);
+      } else {
+        // Boş veri ile başla - kullanıcı manuel olarak ekleyecek
+        setCategoryProductions([]);
+      }
+    } catch (error) {
+      console.error('Kategori üretim verisi yüklenemedi:', error);
+      setCategoryProductions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateSampleCategoryProductionData = (): MonthlyCategoryProduction[] => {
+    const currentDate = new Date();
+    const sampleData: MonthlyCategoryProduction[] = [];
+    
+    // Son 6 ay için örnek veri
+    for (let i = 0; i < 6; i++) {
+      const month = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthString = month.toISOString().substring(0, 7);
+      
+      // Her kategori için veri oluştur
+      Object.entries(VEHICLE_CATEGORIES).forEach(([categoryName, models]) => {
+        const kategori = categoryName as VehicleCategory;
+        const baseProduction = Math.floor(Math.random() * 30) + 5; // 5-35 arası (kategori toplamı)
+        const planlanmis = baseProduction + Math.floor(Math.random() * 10);
+        const gerceklesme = planlanmis > 0 ? Math.round((baseProduction / planlanmis) * 100) : 0;
+        
+        sampleData.push({
+          id: `${monthString}-${kategori}-category`,
+          kategori,
+          displayName: kategori,
+          donem: monthString,
+          donemTuru: 'ay',
+          uretilenAracSayisi: baseProduction,
+          planlanmisUretim: planlanmis,
+          gerceklesmeOrani: gerceklesme,
+          categoryModels: models,
+          createdDate: new Date().toISOString(),
+          updatedDate: new Date().toISOString(),
+          createdBy: 'system',
+          isActive: true,
+          aciklama: `${monthString} dönemi ${kategori} kategorisi üretim verisi`
+        });
+      });
+    }
+    
+    return sampleData;
+  };
+
+  const applyFilters = () => {
+    let filtered = [...categoryProductions];
+
+    // Arama terimi
+    if (searchTerm) {
+      filtered = filtered.filter(prod => 
+        prod.kategori.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prod.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prod.donem.includes(searchTerm) ||
+        (prod.aciklama && prod.aciklama.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Kategori filtresi
+    if (selectedCategory) {
+      filtered = filtered.filter(prod => prod.kategori === selectedCategory);
+    }
+
+    // Ay filtresi
+    if (selectedMonth) {
+      filtered = filtered.filter(prod => prod.donem === selectedMonth);
+    }
+
+    // Aktif olanlar önce
+    filtered.sort((a, b) => {
+      if (a.isActive && !b.isActive) return -1;
+      if (!a.isActive && b.isActive) return 1;
+      return new Date(b.donem).getTime() - new Date(a.donem).getTime();
+    });
+
+    setFilteredProductions(filtered);
+  };
+
+  const handleSaveProduction = () => {
+    if (!formData.kategori || !formData.donem || !formData.uretilenAracSayisi || !formData.planlanmisUretim) {
+      alert('Lütfen tüm zorunlu alanları doldurun!');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const gerceklesmeOrani = formData.planlanmisUretim && formData.planlanmisUretim > 0 
+      ? (formData.uretilenAracSayisi! / formData.planlanmisUretim) * 100 
+      : 100;
+
+    if (editingProduction) {
+      // Güncelleme
+      const updatedProductions = categoryProductions.map(prod => 
+        prod.id === editingProduction.id 
+          ? {
+              ...prod,
+              ...formData,
+              categoryModels: VEHICLE_CATEGORIES[formData.kategori!], // Kategori modelleri güncelle
+              gerceklesmeOrani,
+              updatedDate: now
+            } as MonthlyCategoryProduction
+          : prod
+      );
+      setCategoryProductions(updatedProductions);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProductions));
+    } else {
+      // Yeni kayıt
+      const newProduction: MonthlyCategoryProduction = {
+        id: `${formData.donem}-${formData.kategori}-${Date.now()}`,
+        kategori: formData.kategori!,
+        displayName: formData.kategori!,
+        donem: formData.donem!,
+        donemTuru: 'ay',
+        uretilenAracSayisi: formData.uretilenAracSayisi!,
+        planlanmisUretim: formData.planlanmisUretim!,
+        gerceklesmeOrani,
+        categoryModels: VEHICLE_CATEGORIES[formData.kategori!],
+        createdDate: now,
+        updatedDate: now,
+        createdBy: 'user',
+        isActive: formData.isActive ?? true,
+        aciklama: formData.aciklama
+      };
+      
+      const newProductions = [...categoryProductions, newProduction];
+      setCategoryProductions(newProductions);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newProductions));
+    }
+
+    setDialogOpen(false);
+    setEditingProduction(null);
+  };
+
+  const handleEditProduction = (production: MonthlyCategoryProduction) => {
+    setEditingProduction(production);
+    setFormData({
+      kategori: production.kategori,
+      displayName: production.displayName,
+      donem: production.donem,
+      donemTuru: production.donemTuru,
+      uretilenAracSayisi: production.uretilenAracSayisi,
+      planlanmisUretim: production.planlanmisUretim,
+      gerceklesmeOrani: production.gerceklesmeOrani,
+      categoryModels: production.categoryModels,
+      isActive: production.isActive,
+      aciklama: production.aciklama
+    });
+    setDialogOpen(true);
+  };
+
+  const handleDeleteProduction = (production: MonthlyCategoryProduction) => {
+    // Direkt sil - onay mesajı yok
+    const updatedProductions = categoryProductions.filter(prod => prod.id !== production.id);
+    setCategoryProductions(updatedProductions);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProductions));
+  };
+
+  const getStatusColor = (production: MonthlyCategoryProduction) => {
+    if (!production.isActive) return 'default';
+    if (!production.gerceklesmeOrani) return 'primary';
+    if (production.gerceklesmeOrani >= 100) return 'success';
+    if (production.gerceklesmeOrani >= 90) return 'warning';
+    return 'error';
+  };
+
+  const getStatusText = (production: MonthlyCategoryProduction) => {
+    if (!production.isActive) return 'Pasif';
+    if (!production.gerceklesmeOrani) return 'Veri Yok';
+    return `%${production.gerceklesmeOrani.toFixed(1)} Gerçekleşme`;
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <LinearProgress />
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>
+          Aylık üretim verileri yükleniyor...
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Aylık Üretim Araç Sayıları
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Araç modelleri bazında aylık üretim sayılarını yönetin. Bu veriler ret, hurda ve fire hedeflerinin doğru hesaplanmasında kullanılır.
+        </Typography>
+      </Box>
+
+      {/* Filters */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Grid container spacing={3} alignItems="center">
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              placeholder="Araç modeli, kategori veya ay ile ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Kategori</InputLabel>
+              <Select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value as VehicleCategory | '')}
+                label="Kategori"
+              >
+                <MenuItem value="">Tümü</MenuItem>
+                {Object.keys(VEHICLE_CATEGORIES).map(category => (
+                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              type="month"
+              label="Ay Seçin"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('');
+                setSelectedMonth('');
+              }}
+            >
+              Temizle
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <FactoryIcon sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6">Toplam Kayıt</Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                {filteredProductions.length}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <DirectionsCarIcon sx={{ mr: 1, color: 'success.main' }} />
+                <Typography variant="h6">Bu Ay Üretilen</Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                {filteredProductions
+                  .filter(p => p.donem === new Date().toISOString().substring(0, 7))
+                  .reduce((sum, p) => sum + p.uretilenAracSayisi, 0)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <TrendingUpIcon sx={{ mr: 1, color: 'warning.main' }} />
+                <Typography variant="h6">Ortalama Üretim</Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                {filteredProductions.length > 0 
+                  ? Math.round(filteredProductions.reduce((sum, p) => sum + p.uretilenAracSayisi, 0) / filteredProductions.length)
+                  : 0}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <TargetIcon sx={{ mr: 1, color: 'error.main' }} />
+                <Typography variant="h6">Hedef Tutma Oranı</Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                %{filteredProductions.length > 0 
+                  ? Math.round(filteredProductions
+                      .filter(p => p.gerceklesmeOrani && p.gerceklesmeOrani >= 90)
+                      .length / filteredProductions.length * 100)
+                  : 0}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Data Table */}
+      <TableContainer component={Paper} sx={{ mb: 3 }}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
+              <TableCell sx={{ fontWeight: 'bold' }}>Dönem</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Araç Modeli</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Üretilen</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Planlanan</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Gerçekleşme</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Birim Hedefler</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Durum</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>İşlemler</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredProductions.map((production) => (
+              <TableRow key={production.id}>
+                <TableCell>
+                  <Chip 
+                    label={production.donem} 
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {production.displayName}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {production.kategori}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    {production.uretilenAracSayisi} adet
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {production.planlanmisUretim || '-'} adet
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={getStatusText(production)}
+                    color={getStatusColor(production)}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    Hedefler sekmesinden çekilir
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={production.isActive}
+                    onChange={(e) => {
+                      const updatedProductions = categoryProductions.map(p =>
+                        p.id === production.id ? { ...p, isActive: e.target.checked } : p
+                      );
+                      setCategoryProductions(updatedProductions);
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProductions));
+                    }}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <IconButton 
+                      size="small" 
+                      color="primary"
+                      onClick={() => handleEditProduction(production)}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={() => handleDeleteProduction(production)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+            {filteredProductions.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography color="text.secondary">
+                    Kayıt bulunamadı. Yeni üretim kaydı ekleyin.
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Add/Edit Dialog */}
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+          color: 'white',
+          fontWeight: 'bold'
+        }}>
+          {editingProduction ? 'Üretim Kaydını Düzenle' : 'Yeni Üretim Kaydı Ekle'}
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Kategori</InputLabel>
+                <Select
+                  value={formData.kategori || ''}
+                  onChange={(e) => {
+                    const kategori = e.target.value as VehicleCategory;
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      kategori: kategori,
+                      displayName: kategori,
+                      categoryModels: VEHICLE_CATEGORIES[kategori]
+                    }));
+                  }}
+                  label="Kategori"
+                >
+                  {Object.keys(VEHICLE_CATEGORIES).map(kategori => (
+                    <MenuItem key={kategori} value={kategori}>{kategori}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="month"
+                label="Dönem"
+                value={formData.donem || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, donem: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Üretilen Araç Sayısı"
+                value={formData.uretilenAracSayisi || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, uretilenAracSayisi: parseInt(e.target.value) || 0 }))}
+                InputProps={{
+                  endAdornment: <InputAdornment position="end">adet</InputAdornment>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Planlanan Üretim"
+                value={formData.planlanmisUretim || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, planlanmisUretim: parseInt(e.target.value) || 0 }))}
+                InputProps={{
+                  endAdornment: <InputAdornment position="end">adet</InputAdornment>
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Açıklama"
+                value={formData.aciklama || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, aciklama: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.isActive ?? true}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                  />
+                }
+                label="Aktif"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setDialogOpen(false)} variant="outlined">
+            İptal
+          </Button>
+          <Button onClick={handleSaveProduction} variant="contained">
+            {editingProduction ? 'Güncelle' : 'Kaydet'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
+    </Box>
+  );
+};
