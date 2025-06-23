@@ -7831,65 +7831,51 @@ const ProfessionalDataTable: React.FC<{
       return formData.sure * formData.birimMaliyet;
     }
     
-    // Hurda maliyeti hesabı - Hem malzeme bazlı hem eski sistem
+    // Hurda maliyeti hesabı - Basit: (Alış fiyatı - Satış fiyatı) × Ağırlık
     if (formData.maliyetTuru === 'hurda' && formData.agirlik > 0) {
-      // Önce malzeme bazlı hesaplama deneyelim
+      // Malzeme bazlı hesaplama
       if (formData.malzemeTuru) {
         const selectedMaterial = materialPricings.find(
           mat => mat.malzemeTuru === formData.malzemeTuru && mat.aktif
         );
         
         if (selectedMaterial) {
-          // Malzeme alış maliyeti
-          const malzemeAlisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
-          
-          // Hurda satış geliri (alış fiyatı × hurda geri kazanım oranı)
-          const hurdaGeriKazanimOrani = selectedMaterial.hurdaGeriKazanimOrani / 100;
-          const hurdaSatisGeliri = formData.agirlik * selectedMaterial.alisKgFiyati * hurdaGeriKazanimOrani;
-          
-          // Net Hurda Zararı = Malzeme Alış Maliyeti - Hurda Satış Geliri
-          return Math.max(0, malzemeAlisMaliyeti - hurdaSatisGeliri);
+          // Basit formül: (Alış fiyatı - Satış fiyatı) × Ağırlık
+          const fiyatFarki = selectedMaterial.alisKgFiyati - selectedMaterial.satisKgFiyati;
+          return Math.max(0, formData.agirlik * fiyatFarki);
         }
       }
       
-      // Fallback: Eski sistem - parcaMaliyeti varsa kullan, yoksa ağırlık × fiyat hesabı yap
+      // Fallback: Manuel fiyat girişi
       if (formData.parcaMaliyeti && formData.parcaMaliyeti > 0) {
         const hurdaSatisGeliri = formData.agirlik * (formData.hurdaSatisFiyati || 45);
         return Math.max(0, formData.parcaMaliyeti - hurdaSatisGeliri);
       } else {
-        // Parça maliyeti girilmemişse basit ağırlık × fiyat hesabı
         return formData.agirlik * (formData.hurdaSatisFiyati || 45);
       }
     }
 
-    // Fire maliyeti hesabı - Hem malzeme bazlı hem eski sistem
+    // Fire maliyeti hesabı - Basit: (Alış fiyatı - Satış fiyatı) × Ağırlık
     if (formData.maliyetTuru === 'fire' && formData.agirlik > 0) {
-      // Önce malzeme bazlı hesaplama deneyelim
+      // Malzeme bazlı hesaplama
       if (formData.malzemeTuru) {
         const selectedMaterial = materialPricings.find(
           mat => mat.malzemeTuru === formData.malzemeTuru && mat.aktif
         );
         
         if (selectedMaterial) {
-          // Malzeme alış maliyeti
-          const malzemeAlisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
-          
-          // Fire satış geliri (alış fiyatı × fire geri kazanım oranı)
-          const fireGeriKazanimOrani = selectedMaterial.fireGeriKazanimOrani / 100;
-          const fireSatisGeliri = formData.agirlik * selectedMaterial.alisKgFiyati * fireGeriKazanimOrani;
-          
-          // Net Fire Zararı = Malzeme Alış Maliyeti - Fire Satış Geliri
-          return Math.max(0, malzemeAlisMaliyeti - fireSatisGeliri);
+          // Basit formül: (Alış fiyatı - Satış fiyatı) × Ağırlık
+          const fiyatFarki = selectedMaterial.alisKgFiyati - selectedMaterial.satisKgFiyati;
+          return Math.max(0, formData.agirlik * fiyatFarki);
         }
       }
       
-      // Fallback: Eski sistem - parcaMaliyeti varsa kullan, yoksa ağırlık × fiyat hesabı yap
+      // Fallback: Manuel fiyat girişi
       if (formData.parcaMaliyeti && formData.parcaMaliyeti > 0) {
         const fireGeriKazanim = formData.agirlik * (formData.fireGeriKazanim || 0);
         return Math.max(0, formData.parcaMaliyeti - fireGeriKazanim);
       } else {
-        // Parça maliyeti girilmemişse basit ağırlık × fiyat hesabı
-        return formData.agirlik * (formData.kgMaliyet || 50); // Default fire maliyeti
+        return formData.agirlik * (formData.kgMaliyet || 50);
       }
     }
     
@@ -8783,7 +8769,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         .filter(material => material.aktif)
                         .map((material) => (
                           <MenuItem key={material.id} value={material.malzemeTuru}>
-                            {material.malzemeTuru} (₺{material.alisKgFiyati}/kg alış)
+                            {material.malzemeTuru} (₺{material.alisKgFiyati}/kg alış - ₺{material.satisKgFiyati}/kg satış)
                           </MenuItem>
                         ))}
                     </Select>
@@ -8817,7 +8803,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       if (formData.malzemeTuru) {
                         const selectedMaterial = materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru);
                         if (selectedMaterial) {
-                          return (selectedMaterial.alisKgFiyati * selectedMaterial.hurdaGeriKazanimOrani / 100).toFixed(2);
+                          return selectedMaterial.satisKgFiyati;
                         }
                       }
                       return formData.kgMaliyet || 45;
@@ -8832,7 +8818,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       startAdornment: <InputAdornment position="start">₺</InputAdornment>,
                       endAdornment: <InputAdornment position="end">/kg</InputAdornment>
                     }}
-                    helperText={formData.malzemeTuru ? "Alış fiyatı × geri kazanım oranından hesaplandı" : "Hurdayı sattığınız birim fiyat"}
+                    helperText={formData.malzemeTuru ? "Malzeme ayarlarından otomatik çekildi" : "Hurdayı sattığınız birim fiyat"}
                     color={formData.malzemeTuru ? "success" : "primary"}
                   />
                 </Grid>
@@ -8867,9 +8853,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       if (formData.malzemeTuru && formData.agirlik > 0) {
                         const selectedMaterial = materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru);
                         if (selectedMaterial) {
-                          const alisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
-                          const satisGeliri = formData.agirlik * selectedMaterial.alisKgFiyati * (selectedMaterial.hurdaGeriKazanimOrani / 100);
-                          return `${formData.agirlik} kg × ₺${selectedMaterial.alisKgFiyati}/kg - ${formData.agirlik} kg × ₺${selectedMaterial.alisKgFiyati}/kg × %${selectedMaterial.hurdaGeriKazanimOrani} = ₺${calculateDynamicCost()}`;
+                          return `${formData.agirlik} kg × (₺${selectedMaterial.alisKgFiyati} - ₺${selectedMaterial.satisKgFiyati}) = ₺${calculateDynamicCost()}`;
                         }
                       }
                       return `Net hurda zararı hesaplanır`;
@@ -8939,18 +8923,13 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       );
                       
                       if (selectedMaterial && formData.agirlik > 0) {
-                        const malzemeAlisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
-                        const geriKazanimOrani = formData.maliyetTuru === 'hurda' 
-                          ? selectedMaterial.hurdaGeriKazanimOrani 
-                          : selectedMaterial.fireGeriKazanimOrani;
-                        const satisGeliri = formData.agirlik * selectedMaterial.alisKgFiyati * (geriKazanimOrani / 100);
-                        const netZarar = Math.max(0, malzemeAlisMaliyeti - satisGeliri);
-                        
+                        const fiyatFarki = selectedMaterial.alisKgFiyati - selectedMaterial.satisKgFiyati;
+                        const netZarar = Math.max(0, formData.agirlik * fiyatFarki);
                         const maliyetTuruText = formData.maliyetTuru === 'hurda' ? 'Hurda' : 'Fire';
                         
                         return (
                           <Typography variant="body2" color="text.secondary">
-                            <strong>Hesaplama:</strong> {formData.agirlik} kg × ₺{selectedMaterial.alisKgFiyati}/kg - {formData.agirlik} kg × ₺{selectedMaterial.alisKgFiyati}/kg × %{geriKazanimOrani} = <strong>₺{netZarar.toFixed(2)} Net {maliyetTuruText} Zararı</strong>
+                            <strong>Hesaplama:</strong> {formData.agirlik} kg × (₺{selectedMaterial.alisKgFiyati} - ₺{selectedMaterial.satisKgFiyati}) = <strong>₺{netZarar.toFixed(2)} Net {maliyetTuruText} Zararı</strong>
                           </Typography>
                         );
                       }
