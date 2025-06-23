@@ -7837,28 +7837,42 @@ const ProfessionalDataTable: React.FC<{
       return formData.sure * formData.birimMaliyet;
     }
     
-    // Hurda maliyeti hesabı - Basit: (Alış fiyatı - Satış fiyatı) × Ağırlık
-    if (formData.maliyetTuru === 'hurda' && formData.agirlik > 0) {
-      // Malzeme bazlı hesaplama
-      if (formData.malzemeTuru) {
-        const selectedMaterial = materialPricings.find(
-          mat => mat.malzemeTuru === formData.malzemeTuru && mat.aktif
-        );
+    // Hurda maliyeti hesabı 
+    if (formData.maliyetTuru === 'hurda') {
+      // ADET bazlı hurda hesaplaması
+      if (formData.unit === 'adet' && formData.miktar > 0) {
+        // Adet × (Parça maliyeti - Hurda satış geliri)
+        const parcaMaliyeti = formData.birimMaliyet || 0;
+        const hurdaSatisGeliri = formData.kgMaliyet || 0;
+        const fiyatFarki = parcaMaliyeti - hurdaSatisGeliri;
+        return Math.max(0, formData.miktar * fiyatFarki);
+      }
+      
+      // KG bazlı hurda hesaplaması
+      if (formData.unit === 'kg' && formData.agirlik > 0) {
+        // Malzeme bazlı hesaplama
+        if (formData.malzemeTuru) {
+          const selectedMaterial = materialPricings.find(
+            mat => mat.malzemeTuru === formData.malzemeTuru && mat.aktif
+          );
+          
+          if (selectedMaterial) {
+            // Basit formül: (Alış fiyatı - Satış fiyatı) × Ağırlık
+            const fiyatFarki = selectedMaterial.alisKgFiyati - selectedMaterial.satisKgFiyati;
+            return Math.max(0, formData.agirlik * fiyatFarki);
+          }
+        }
         
-        if (selectedMaterial) {
-          // Basit formül: (Alış fiyatı - Satış fiyatı) × Ağırlık
-          const fiyatFarki = selectedMaterial.alisKgFiyati - selectedMaterial.satisKgFiyati;
-          return Math.max(0, formData.agirlik * fiyatFarki);
+        // Fallback: Manuel fiyat girişi
+        if (formData.parcaMaliyeti && formData.parcaMaliyeti > 0) {
+          const hurdaSatisGeliri = formData.agirlik * (formData.hurdaSatisFiyati || 45);
+          return Math.max(0, formData.parcaMaliyeti - hurdaSatisGeliri);
+        } else {
+          return formData.agirlik * (formData.hurdaSatisFiyati || 45);
         }
       }
       
-      // Fallback: Manuel fiyat girişi
-      if (formData.parcaMaliyeti && formData.parcaMaliyeti > 0) {
-        const hurdaSatisGeliri = formData.agirlik * (formData.hurdaSatisFiyati || 45);
-        return Math.max(0, formData.parcaMaliyeti - hurdaSatisGeliri);
-      } else {
-        return formData.agirlik * (formData.hurdaSatisFiyati || 45);
-      }
+      return 0; // Herhangi bir miktar girilmemişse
     }
 
     // Fire maliyeti hesabı - Basit: (Alış fiyatı - Satış fiyatı) × Ağırlık
@@ -7930,7 +7944,7 @@ const ProfessionalDataTable: React.FC<{
       aracModeli: entry.aracModeli || '' as VehicleModel | '',
       atikTuru: entry.atikTuru || '' as WasteType | '',
       miktar: entry.miktar || 0,
-      unit: entry.unit || 'adet' as 'adet' | 'kg' | 'lt' | 'ton',
+      unit: entry.unit || (entry.agirlik > 0 ? 'kg' : 'adet') as 'adet' | 'kg' | 'lt' | 'ton', // Ağırlık varsa kg, yoksa adet
       category: entry.category || '',
       aciklama: entry.aciklama || '',
       
@@ -8755,114 +8769,202 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               </>
             ) : formData.maliyetTuru === 'hurda' ? (
               <>
-                {/* ✅ YENİ: Hurda için malzeme seçimi eklendi */}
-                <Grid item xs={12} md={4}>
-                  <FormControl fullWidth>
-                    <InputLabel>Malzeme Türü (Opsiyonel)</InputLabel>
+                {/* ✅ YENİ: Hurda için birim seçimi eklendi */}
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Hurda Birimi</InputLabel>
                     <Select
-                      value={formData.malzemeTuru || ''}
-                      onChange={(e) => setFormData({...formData, malzemeTuru: e.target.value as MaterialType || ''})}
-                      label="Malzeme Türü (Opsiyonel)"
+                      value={formData.unit || 'kg'}
+                      onChange={(e) => setFormData({...formData, unit: e.target.value as 'kg' | 'adet', agirlik: 0, miktar: 0})}
+                      label="Hurda Birimi"
                     >
-                      <MenuItem value="">
-                        <em>Manuel Fiyat Girişi</em>
-                      </MenuItem>
-                      {materialPricings
-                        .filter(material => material.aktif)
-                        .map((material) => (
-                          <MenuItem key={material.id} value={material.malzemeTuru}>
-                            {material.malzemeTuru} (₺{material.alisKgFiyati}/kg alış - ₺{material.satisKgFiyati}/kg satış)
-                          </MenuItem>
-                        ))}
+                      <MenuItem value="kg">Kilogram (kg)</MenuItem>
+                      <MenuItem value="adet">Adet</MenuItem>
                     </Select>
                     <FormHelperText>
-                      Malzeme seçerseniz fiyatlar otomatik doldurulur
+                      Hurda türüne göre birim seçin
                     </FormHelperText>
                   </FormControl>
                 </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    required
-                    label="Hurda Ağırlığı (kg)"
-                    type="number"
-                    value={formData.agirlik}
-                    onChange={(e) => setFormData({...formData, agirlik: parseFloat(e.target.value) || 0})}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">kg</InputAdornment>
-                    }}
-                    helperText="Hurdaya çıkan malzeme miktarı"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Hurda Satış Fiyatı (₺/kg)"
-                    type="number"
-                    value={(() => {
-                      if (formData.malzemeTuru) {
-                        const selectedMaterial = materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru);
-                        if (selectedMaterial) {
-                          return selectedMaterial.satisKgFiyati;
-                        }
-                      }
-                      return formData.kgMaliyet || 45;
-                    })()}
-                    onChange={(e) => {
-                      if (!formData.malzemeTuru) {
-                        setFormData({...formData, kgMaliyet: parseFloat(e.target.value) || 45})
-                      }
-                    }}
-                    disabled={!!formData.malzemeTuru}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">₺</InputAdornment>,
-                      endAdornment: <InputAdornment position="end">/kg</InputAdornment>
-                    }}
-                    helperText={formData.malzemeTuru ? "Malzeme ayarlarından otomatik çekildi" : "Hurdayı sattığınız birim fiyat"}
-                    color={formData.malzemeTuru ? "success" : "primary"}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    required
-                    label="Parça Maliyeti (₺)"
-                    type="number"
-                    value={formData.parcaMaliyeti}
-                    onChange={(e) => setFormData({...formData, parcaMaliyeti: parseFloat(e.target.value) || 0})}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">₺</InputAdornment>
-                    }}
-                    helperText="Parçanın orijinal maliyeti"
-                    color="primary"
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Net Hurda Zararı (₺)"
-                    type="number"
-                    value={calculateDynamicCost()}
-                    disabled
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">-₺</InputAdornment>
-                    }}
-                    helperText={(() => {
-                      if (formData.malzemeTuru && formData.agirlik > 0) {
-                        const selectedMaterial = materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru);
-                        if (selectedMaterial) {
-                          return `${formData.agirlik} kg × (₺${selectedMaterial.alisKgFiyati} - ₺${selectedMaterial.satisKgFiyati}) = ₺${calculateDynamicCost()}`;
-                        }
-                      }
-                      return `Net hurda zararı hesaplanır`;
-                    })()}
-                    color="error"
-                  />
-                </Grid>
+
+                {formData.unit === 'kg' ? (
+                  <>
+                    {/* KG bazlı hurda formu */}
+                    <Grid item xs={12} md={4}>
+                      <FormControl fullWidth>
+                        <InputLabel>Malzeme Türü (Opsiyonel)</InputLabel>
+                        <Select
+                          value={formData.malzemeTuru || ''}
+                          onChange={(e) => setFormData({...formData, malzemeTuru: e.target.value as MaterialType || ''})}
+                          label="Malzeme Türü (Opsiyonel)"
+                        >
+                          <MenuItem value="">
+                            <em>Manuel Fiyat Girişi</em>
+                          </MenuItem>
+                          {materialPricings
+                            .filter(material => material.aktif)
+                            .map((material) => (
+                              <MenuItem key={material.id} value={material.malzemeTuru}>
+                                {material.malzemeTuru} (₺{material.alisKgFiyati}/kg alış - ₺{material.satisKgFiyati}/kg satış)
+                              </MenuItem>
+                            ))}
+                        </Select>
+                        <FormHelperText>
+                          Malzeme seçerseniz fiyatlar otomatik doldurulur
+                        </FormHelperText>
+                      </FormControl>
+                    </Grid>
+                    
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        required
+                        label="Hurda Ağırlığı (kg)"
+                        type="number"
+                        value={formData.agirlik}
+                        onChange={(e) => setFormData({...formData, agirlik: parseFloat(e.target.value) || 0})}
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">kg</InputAdornment>
+                        }}
+                        helperText="Hurdaya çıkan malzeme miktarı"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={2}>
+                      <TextField
+                        fullWidth
+                        label="Hurda Satış Fiyatı (₺/kg)"
+                        type="number"
+                        value={(() => {
+                          if (formData.malzemeTuru) {
+                            const selectedMaterial = materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru);
+                            if (selectedMaterial) {
+                              return selectedMaterial.satisKgFiyati;
+                            }
+                          }
+                          return formData.kgMaliyet || 45;
+                        })()}
+                        onChange={(e) => {
+                          if (!formData.malzemeTuru) {
+                            setFormData({...formData, kgMaliyet: parseFloat(e.target.value) || 45})
+                          }
+                        }}
+                        disabled={!!formData.malzemeTuru}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+                          endAdornment: <InputAdornment position="end">/kg</InputAdornment>
+                        }}
+                        helperText={formData.malzemeTuru ? "Otomatik" : "Satış fiyatı"}
+                        color={formData.malzemeTuru ? "success" : "primary"}
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        required
+                        label="Parça Maliyeti (₺)"
+                        type="number"
+                        value={formData.parcaMaliyeti}
+                        onChange={(e) => setFormData({...formData, parcaMaliyeti: parseFloat(e.target.value) || 0})}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">₺</InputAdornment>
+                        }}
+                        helperText="Parçanın orijinal maliyeti"
+                        color="primary"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Net Hurda Zararı (₺)"
+                        type="number"
+                        value={calculateDynamicCost()}
+                        disabled
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">-₺</InputAdornment>
+                        }}
+                        helperText={(() => {
+                          if (formData.malzemeTuru && formData.agirlik > 0) {
+                            const selectedMaterial = materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru);
+                            if (selectedMaterial) {
+                              return `${formData.agirlik} kg × (₺${selectedMaterial.alisKgFiyati} - ₺${selectedMaterial.satisKgFiyati}) = ₺${calculateDynamicCost()}`;
+                            }
+                          }
+                          return `Net hurda zararı hesaplanır`;
+                        })()}
+                        color="error"
+                      />
+                    </Grid>
+                  </>
+                ) : (
+                  <>
+                    {/* ADET bazlı hurda formu */}
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        required
+                        label="Hurda Adedi"
+                        type="number"
+                        value={formData.miktar || 0}
+                        onChange={(e) => setFormData({...formData, miktar: parseFloat(e.target.value) || 0})}
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">adet</InputAdornment>
+                        }}
+                        helperText="Hurdaya çıkan parça sayısı"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        required
+                        label="Parça Maliyeti (₺/adet)"
+                        type="number"
+                        value={formData.birimMaliyet || 0}
+                        onChange={(e) => setFormData({...formData, birimMaliyet: parseFloat(e.target.value) || 0})}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+                          endAdornment: <InputAdornment position="end">/adet</InputAdornment>
+                        }}
+                        helperText="Her bir parçanın maliyeti"
+                        color="primary"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={3}>
+                      <TextField
+                        fullWidth
+                        label="Hurda Satış Geliri (₺/adet)"
+                        type="number"
+                        value={formData.kgMaliyet || 0}
+                        onChange={(e) => setFormData({...formData, kgMaliyet: parseFloat(e.target.value) || 0})}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+                          endAdornment: <InputAdornment position="end">/adet</InputAdornment>
+                        }}
+                        helperText="Parça başına hurda geliri"
+                        color="success"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Net Hurda Zararı (₺)"
+                        type="number"
+                        value={calculateDynamicCost()}
+                        disabled
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">-₺</InputAdornment>
+                        }}
+                        helperText={`${formData.miktar || 0} adet × (₺${formData.birimMaliyet || 0} - ₺${formData.kgMaliyet || 0}) = ₺${calculateDynamicCost()}`}
+                        color="error"
+                      />
+                    </Grid>
+                  </>
+                )}
               </>
             ) : getSelectedMaliyetTuruInfo()?.requiresMaterial ? (
               <>
@@ -9018,9 +9120,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               (!formData.aracKategorisi && !formData.arac) || // Kategori veya eski araç seçimi zorunlu
               (formData.aracKategorisi && formData.aracKategorisi !== 'Genel' && !formData.aracModeli) || // Genel hariç kategori seçilmişse model zorunlu
               (formData.aracKategorisi === 'Genel' && !formData.aciklama?.trim()) || // Genel kategoride açıklama zorunlu
-              ((formData.maliyetTuru === 'hurda' || formData.maliyetTuru === 'fire') ? 
-                formData.agirlik <= 0 : // Sadece ağırlık zorunlu, malzeme opsiyonel
-                calculateDynamicCost() <= 0
+              // Hurda ve fire için özel validasyon
+              (formData.maliyetTuru === 'hurda' ? 
+                (formData.unit === 'adet' ? (formData.miktar <= 0 || formData.birimMaliyet <= 0) : formData.agirlik <= 0) :
+                formData.maliyetTuru === 'fire' ? 
+                  formData.agirlik <= 0 : 
+                  calculateDynamicCost() <= 0
               )
             }
           >
