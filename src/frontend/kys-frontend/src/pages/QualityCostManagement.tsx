@@ -7745,8 +7745,9 @@ const ProfessionalDataTable: React.FC<{
       
       if (selectedMaterial) {
         // Fire maliyeti için fire geri kazanım değerini hesapla
+        // Fire maliyeti için geri kazanım değerini hesapla (alış fiyatı × geri kazanım oranı)
         if (formData.maliyetTuru === 'fire') {
-          const fireGeriKazanimDegeri = selectedMaterial.satisKgFiyati * (selectedMaterial.fireGeriKazanimOrani / 100);
+          const fireGeriKazanimDegeri = selectedMaterial.alisKgFiyati * (selectedMaterial.fireGeriKazanimOrani / 100);
           setFormData(prev => ({ 
             ...prev, 
             fireGeriKazanim: fireGeriKazanimDegeri,
@@ -7755,9 +7756,9 @@ const ProfessionalDataTable: React.FC<{
           }));
         }
         
-        // Hurda maliyeti için hurda satış fiyatını hesapla
+        // Hurda maliyeti için hurda satış fiyatını hesapla (alış fiyatı × geri kazanım oranı)
         if (formData.maliyetTuru === 'hurda') {
-          const hurdaSatisDegeri = selectedMaterial.satisKgFiyati * (selectedMaterial.hurdaGeriKazanimOrani / 100);
+          const hurdaSatisDegeri = selectedMaterial.alisKgFiyati * (selectedMaterial.hurdaGeriKazanimOrani / 100);
           setFormData(prev => ({ 
             ...prev, 
             hurdaSatisFiyati: hurdaSatisDegeri,
@@ -7842,8 +7843,9 @@ const ProfessionalDataTable: React.FC<{
           // Malzeme alış maliyeti
           const malzemeAlisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
           
-          // Hurda satış geliri (direkt satış fiyatı)
-          const hurdaSatisGeliri = formData.agirlik * selectedMaterial.satisKgFiyati;
+          // Hurda satış geliri (alış fiyatı × hurda geri kazanım oranı)
+          const hurdaGeriKazanimOrani = selectedMaterial.hurdaGeriKazanimOrani / 100;
+          const hurdaSatisGeliri = formData.agirlik * selectedMaterial.alisKgFiyati * hurdaGeriKazanimOrani;
           
           // Net Hurda Zararı = Malzeme Alış Maliyeti - Hurda Satış Geliri
           return Math.max(0, malzemeAlisMaliyeti - hurdaSatisGeliri);
@@ -7872,8 +7874,9 @@ const ProfessionalDataTable: React.FC<{
           // Malzeme alış maliyeti
           const malzemeAlisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
           
-          // Fire satış geliri (direkt satış fiyatı)
-          const fireSatisGeliri = formData.agirlik * selectedMaterial.satisKgFiyati;
+          // Fire satış geliri (alış fiyatı × fire geri kazanım oranı)
+          const fireGeriKazanimOrani = selectedMaterial.fireGeriKazanimOrani / 100;
+          const fireSatisGeliri = formData.agirlik * selectedMaterial.alisKgFiyati * fireGeriKazanimOrani;
           
           // Net Fire Zararı = Malzeme Alış Maliyeti - Fire Satış Geliri
           return Math.max(0, malzemeAlisMaliyeti - fireSatisGeliri);
@@ -8854,8 +8857,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     }}
                     helperText={
                       formData.parcaMaliyeti > 0 
-                        ? `₺${formData.parcaMaliyeti} - ₺${(formData.agirlik * (formData.malzemeTuru && materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.satisKgFiyati || formData.kgMaliyet || 45)).toFixed(2)} = Net Zarar ₺${calculateDynamicCost()}`
-                        : `${formData.agirlik} kg × ₺${formData.malzemeTuru && materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.satisKgFiyati || formData.kgMaliyet || 45} = ₺${calculateDynamicCost()}`
+                        ? `₺${formData.parcaMaliyeti} - ₺${(formData.agirlik * (formData.malzemeTuru && materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.alisKgFiyati * (materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.hurdaGeriKazanimOrani || 50) / 100 || formData.hurdaSatisFiyati || 45)).toFixed(2)} = Net Zarar ₺${calculateDynamicCost()}`
+                        : `${formData.agirlik} kg × ₺${formData.malzemeTuru && materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.alisKgFiyati * (materialPricings.find(m => m.malzemeTuru === formData.malzemeTuru)?.hurdaGeriKazanimOrani || 50) / 100 || formData.hurdaSatisFiyati || 45} = ₺${calculateDynamicCost()}`
                     }
                     color="error"
                   />
@@ -8923,14 +8926,17 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       
                       if (selectedMaterial && formData.agirlik > 0) {
                         const malzemeAlisMaliyeti = formData.agirlik * selectedMaterial.alisKgFiyati;
-                        const satisGeliri = formData.agirlik * selectedMaterial.satisKgFiyati;
+                        const geriKazanimOrani = formData.maliyetTuru === 'hurda' 
+                          ? selectedMaterial.hurdaGeriKazanimOrani 
+                          : selectedMaterial.fireGeriKazanimOrani;
+                        const satisGeliri = formData.agirlik * selectedMaterial.alisKgFiyati * (geriKazanimOrani / 100);
                         const netZarar = Math.max(0, malzemeAlisMaliyeti - satisGeliri);
                         
                         const maliyetTuruText = formData.maliyetTuru === 'hurda' ? 'Hurda' : 'Fire';
                         
                         return (
                           <Typography variant="body2" color="text.secondary">
-                            <strong>Hesaplama:</strong> {formData.agirlik} kg × ₺{selectedMaterial.alisKgFiyati}/kg - {formData.agirlik} kg × ₺{selectedMaterial.satisKgFiyati}/kg = <strong>₺{netZarar.toFixed(2)} Net {maliyetTuruText} Zararı</strong>
+                            <strong>Hesaplama:</strong> {formData.agirlik} kg × ₺{selectedMaterial.alisKgFiyati}/kg - {formData.agirlik} kg × ₺{selectedMaterial.alisKgFiyati}/kg × %{geriKazanimOrani} = <strong>₺{netZarar.toFixed(2)} Net {maliyetTuruText} Zararı</strong>
                           </Typography>
                         );
                       }
