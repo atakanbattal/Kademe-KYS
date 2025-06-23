@@ -8387,10 +8387,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
-        COPQ Veri Yönetimi
-      </Typography>
       
       {/* Analytics Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -9269,10 +9265,7 @@ const MaterialPricingManagementComponent: React.FC = () => {
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6" fontWeight="bold">
-            Malzeme Maliyet Ayarları
-          </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 3 }}>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -11708,15 +11701,7 @@ const CategoryProductionManagementComponent: React.FC<{
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-          Aylık Üretim Araç Sayıları
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Araç modelleri bazında aylık üretim sayılarını yönetin. Bu veriler ret, hurda ve fire hedeflerinin doğru hesaplanmasında kullanılır.
-        </Typography>
-      </Box>
+
 
       {/* Filters */}
       <Paper sx={{ p: 3, mb: 3 }}>
