@@ -138,7 +138,8 @@ type VehicleCategory =
   | 'Çekilir Tip Mekanik Süpürgeler'
   | 'Kompost Makinesi'
   | 'Rusya Motor Odası'
-  | 'HSCK';
+  | 'HSCK'
+  | 'Genel';
 
 // Spesifik araç modelleri
 type VehicleModel = 
@@ -154,7 +155,10 @@ type VehicleModel =
   | 'KDM 80'
   | 'Rusya Motor Odası'
   | 'Ural'
-  | 'HSCK';
+  | 'HSCK'
+  | 'Genel Amaçlı'
+  | 'Özel Proje'
+  | 'Protip';
 
 // Kategori ve model eşleştirmesi
 const VEHICLE_CATEGORIES: Record<VehicleCategory, VehicleModel[]> = {
@@ -163,7 +167,8 @@ const VEHICLE_CATEGORIES: Record<VehicleCategory, VehicleModel[]> = {
   'Çekilir Tip Mekanik Süpürgeler': ['FTH-240', 'Çelik-2000', 'Ural'],
   'Kompost Makinesi': ['Kompost Makinesi'],
   'Rusya Motor Odası': ['Rusya Motor Odası'],
-  'HSCK': ['HSCK']
+  'HSCK': ['HSCK'],
+  'Genel': ['Genel Amaçlı', 'Özel Proje', 'Protip'] // Genel kategori modelleri
 };
 
 // Model'den kategoriye mapping
@@ -180,7 +185,10 @@ const MODEL_TO_CATEGORY: Record<VehicleModel, VehicleCategory> = {
   'Ural': 'Çekilir Tip Mekanik Süpürgeler',
   'Kompost Makinesi': 'Kompost Makinesi',
   'Rusya Motor Odası': 'Rusya Motor Odası',
-  'HSCK': 'HSCK'
+  'HSCK': 'HSCK',
+  'Genel Amaçlı': 'Genel',
+  'Özel Proje': 'Genel',
+  'Protip': 'Genel'
 };
 
 // Atık türleri
@@ -2961,44 +2969,49 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           {/* YENİ: Bu Ay Üretim Özeti Kartı */}
           <Grid item xs={12} sm={6} md={4}>
             <Fade in timeout={700}>
-              <Card 
+              <MetricCard
                 onClick={() => {
                   // Aylık Üretim Sayıları sekmesine git
                   const customEvent = new CustomEvent('goToProductionTab');
                   window.dispatchEvent(customEvent);
                 }}
                 sx={{ 
-                  p: 3, 
-                  textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: 4
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 25px rgba(156, 39, 176, 0.15)',
+                    borderColor: '#9c27b0'
                   }
                 }}
               >
-                <FactoryIcon sx={{ fontSize: 40, color: 'purple', mb: 2 }} />
-                <Typography variant="h4" fontWeight="600" color="purple">
-                  {productionSummary.totalVehicles}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Bu Ay Üretim
-                </Typography>
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <FactoryIcon sx={{ fontSize: 40, color: 'purple' }} />
+                  </Box>
+                  <Typography variant="h4" fontWeight="bold" color="purple">
+                    {productionSummary.totalVehicles}
+                  </Typography>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                    Bu Ay Üretim
+                  </Typography>
                   <Chip 
                     label={`${productionSummary.activeModels} Model`}
                     size="small"
+                    color="default"
                     variant="outlined"
                   />
                   {productionSummary.topProducingModel && (
-                    <Chip 
-                      label={productionSummary.topProducingModel.model}
-                      size="small"
-                    />
+                    <Box sx={{ mt: 1 }}>
+                      <Chip 
+                        label={productionSummary.topProducingModel.model}
+                        size="small"
+                        sx={{ ml: 1 }}
+                      />
+                    </Box>
                   )}
-                </Box>
-              </Card>
+                </CardContent>
+              </MetricCard>
             </Fade>
           </Grid>
         </Grid>
@@ -7554,7 +7567,8 @@ const ProfessionalDataTable: React.FC<{
     { value: 'Çekilir Tip Mekanik Süpürgeler', label: 'Çekilir Tip Mekanik Süpürgeler' },
     { value: 'Kompost Makinesi', label: 'Kompost Makinesi' },
     { value: 'Rusya Motor Odası', label: 'Rusya Motor Odası' },
-    { value: 'HSCK', label: 'HSCK' }
+    { value: 'HSCK', label: 'HSCK' },
+    { value: 'Genel', label: 'Genel (Araç Spesifik Olmayan)' }
   ], []);
 
   // ✅ Context7: Memoized Arrays to prevent infinite loops
@@ -8629,8 +8643,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               </FormControl>
             </Grid>
 
-            {/* 🚗 YENİ: Kategori Seçilirse Alt Model Seçimi */}
-            {formData.aracKategorisi && (
+            {/* 🚗 YENİ: Kategori Seçilirse Alt Model Seçimi (Genel kategori hariç) */}
+            {formData.aracKategorisi && formData.aracKategorisi !== 'Genel' && (
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth required>
                   <InputLabel>Araç Modeli</InputLabel>
@@ -8654,6 +8668,17 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     ))}
                   </Select>
                 </FormControl>
+              </Grid>
+            )}
+            
+            {/* 🏭 YENİ: Genel kategori seçildiğinde açıklama alanı zorunlu hale gelir */}
+            {formData.aracKategorisi === 'Genel' && (
+              <Grid item xs={12}>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <AlertTitle>Genel Kategori Seçildi</AlertTitle>
+                  Bu kategori araç spesifik olmayan maliyetler içindir (saha hurdaları, genel fire vs.). 
+                  Lütfen açıklama alanında detay belirtiniz.
+                </Alert>
               </Grid>
             )}
             
@@ -8937,17 +8962,27 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               </FormControl>
             </Grid>
 
-            {/* ✅ YENİ: Açıklama Alanı */}
+            {/* ✅ YENİ: Açıklama Alanı - Genel kategoride zorunlu */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Açıklama (İsteğe Bağlı)"
+                required={formData.aracKategorisi === 'Genel'}
+                label={formData.aracKategorisi === 'Genel' ? "Açıklama (Zorunlu)" : "Açıklama (İsteğe Bağlı)"}
                 multiline
-                rows={2}
+                rows={formData.aracKategorisi === 'Genel' ? 3 : 2}
                 value={formData.aciklama}
                 onChange={(e) => setFormData({...formData, aciklama: e.target.value})}
-                placeholder="Maliyet kaydıyla ilgili detaylı açıklama yazabilirsiniz..."
-                helperText="Problem açıklaması, öneriler veya notlarınızı buraya yazabilirsiniz"
+                placeholder={
+                  formData.aracKategorisi === 'Genel' 
+                    ? "Genel kategori için detaylı açıklama zorunludur. Hangi saha hurdaları, genel fire vs. olduğunu belirtiniz..."
+                    : "Maliyet kaydıyla ilgili detaylı açıklama yazabilirsiniz..."
+                }
+                helperText={
+                  formData.aracKategorisi === 'Genel'
+                    ? "⚠️ Genel kategori seçildi - açıklama zorunludur"
+                    : "Problem açıklaması, öneriler veya notlarınızı buraya yazabilirsiniz"
+                }
+                error={formData.aracKategorisi === 'Genel' && !formData.aciklama?.trim()}
               />
             </Grid>
           </Grid>
@@ -8961,7 +8996,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               !formData.maliyetTuru || 
               !formData.birim || 
               (!formData.aracKategorisi && !formData.arac) || // Kategori veya eski araç seçimi zorunlu
-              (formData.aracKategorisi && !formData.aracModeli) || // Kategori seçilmişse model zorunlu
+              (formData.aracKategorisi && formData.aracKategorisi !== 'Genel' && !formData.aracModeli) || // Genel hariç kategori seçilmişse model zorunlu
+              (formData.aracKategorisi === 'Genel' && !formData.aciklama?.trim()) || // Genel kategoride açıklama zorunlu
               ((formData.maliyetTuru === 'hurda' || formData.maliyetTuru === 'fire') ? 
                 formData.agirlik <= 0 : // Sadece ağırlık zorunlu, malzeme opsiyonel
                 calculateDynamicCost() <= 0
