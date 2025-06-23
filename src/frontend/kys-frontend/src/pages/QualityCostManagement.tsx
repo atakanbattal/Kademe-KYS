@@ -844,6 +844,7 @@ export default function QualityCostManagement() {
       'uretim_planlama': 'Planlama',
       'satin_alma': 'Tedarik',
       'satis': 'Satış',
+      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetleri',
       'depo': 'Lojistik'
     };
     
@@ -1854,6 +1855,8 @@ export default function QualityCostManagement() {
       'Mekanik Montaj': 'Mekanik Montaj',
       'satin_alma': 'Satın Alma',
       'Satın Alma': 'Satın Alma',
+      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetleri',
+      'Satış Sonrası Hizmetleri': 'Satış Sonrası Hizmetleri',
       'uretim': 'Üretim',
       'Üretim': 'Üretim',
       'uretim_planlama': 'Üretim Planlama',
@@ -1883,6 +1886,7 @@ export default function QualityCostManagement() {
       'kesim': 'Kesim',
       'mekanik_montaj': 'Mekanik Montaj',
       'satin_alma': 'Satın Alma',
+      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetleri',
       'uretim': 'Üretim',
       'uretim_planlama': 'Üretim Planlama',
       
@@ -6238,6 +6242,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   <MenuItem value="mekanik_montaj">Mekanik Montaj</MenuItem>
                   <MenuItem value="satin_alma">Satın Alma</MenuItem>
                   <MenuItem value="satis">Satış</MenuItem>
+                  <MenuItem value="satis_sonrasi_hizmetleri">Satış Sonrası Hizmetleri</MenuItem>
                   <MenuItem value="uretim_planlama">Üretim Planlama</MenuItem>
                 </Select>
               </FormControl>
@@ -7558,6 +7563,7 @@ const ProfessionalDataTable: React.FC<{
     { value: 'mekanik_montaj', label: 'Mekanik Montaj' },
     { value: 'satin_alma', label: 'Satın Alma' },
     { value: 'satis', label: 'Satış' },
+    { value: 'satis_sonrasi_hizmetleri', label: 'Satış Sonrası Hizmetleri' },
     { value: 'ssh', label: 'SSH' },
     { value: 'uretim_planlama', label: 'Üretim Planlama' }
   ], []);
