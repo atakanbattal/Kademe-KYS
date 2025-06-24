@@ -1932,7 +1932,7 @@ export default function QualityCostManagement() {
       'Depo': 'Depo',
       'elektrik_montaj': 'Elektrik Montaj',
       'Elektrik Montaj': 'Elektrik Montaj',
-      'elektrikhane': 'Elektrik Montaj',
+      'elektrikhane': 'Elektrikhane',
       'idari_isler': 'İdari İşler',
       'İdari İşler': 'İdari İşler',
       'kalite_kontrol': 'Kalite Kontrol',
@@ -2468,7 +2468,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       if (sortedRecords.length > 0) {
         openModal({
           title: 'En Yüksek Maliyetli Kayıtlar',
-          subtitle: `Toplam ${sortedRecords.length} yüksek maliyet kaydı`,
           data: sortedRecords,
           type: 'highest-cost',
           icon: <ScaleIcon sx={{ color: '#f44336', fontSize: 28 }} />,
@@ -2491,7 +2490,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       if (thisMonthRecords.length > 0) {
         openModal({
           title: 'Bu Ay Eklenen Kayıtlar',
-          subtitle: `${new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })} ayında eklenen veriler`,
           data: thisMonthRecords,
           type: 'monthly-records',
           icon: <CalendarTodayIcon sx={{ color: '#2196f3', fontSize: 28 }} />,
@@ -2526,7 +2524,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       if (sortedUnits.length > 0) {
         openModal({
           title: 'En Problemli Birimler Analizi',
-          subtitle: 'Maliyet bazında en kritik departmanlar',
           data: sortedUnits,
           type: 'problematic-unit',
           icon: <BusinessIcon sx={{ color: '#ff9800', fontSize: 28 }} />,
@@ -2545,7 +2542,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       if (partRecords.length > 0) {
         openModal({
           title: `Parça Analizi: ${partCode}`,
-          subtitle: `${partCode} parça koduna ait tüm maliyet kayıtları`,
           data: partRecords,
           type: 'part-analysis',
           icon: <WarningIcon sx={{ color: '#ff9800', fontSize: 28 }} />,
@@ -2563,8 +2559,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       
       if (unitRecords.length > 0) {
         openModal({
-          title: `Birim Analizi: ${unitName}`,
-          subtitle: `${unitName} birimine ait tüm maliyet kayıtları`,
+          title: `Birim Analizi: ${formatProfessionalDepartmentName(unitName)}`,
           data: unitRecords,
           type: 'unit-analysis',
           icon: <BusinessIcon sx={{ color: '#2196f3', fontSize: 28 }} />,
@@ -2593,7 +2588,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       if (costTypeData.length > 0) {
         openModal({
           title: `${typeDisplayNames[costType] || costType} Analizi`,
-          subtitle: `${costTypeData.length} kayıt bulundu`,
           data: costTypeData,
           type: 'part-analysis',
           icon: <PieChartIcon sx={{ fontSize: 28 }} />,
@@ -2612,7 +2606,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       if (vehicleData.length > 0) {
         openModal({
           title: `${vehicleName} Araç Analizi`,
-          subtitle: `${vehicleData.length} kayıt bulundu`,
           data: vehicleData,
           type: 'part-analysis',
           icon: <BarChartIcon sx={{ fontSize: 28 }} />
@@ -4390,10 +4383,14 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         <IconButton 
                           size="small" 
                           onClick={() => {
+                            console.log('🔍 Executive Dashboard Görüntüle Butonu Tıklandı:', record);
                             if ((window as any).handleViewDetails) {
+                              console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
                               (window as any).handleViewDetails(record);
                             } else {
-                              console.log('Executive dashboard detay görüntüleme:', record);
+                              console.log('❌ Global handleViewDetails bulunamadı!');
+                              console.log('📊 Kayıt detayları:', record);
+                              alert('Detay görüntüleme servisi hazırlanıyor...');
                             }
                           }}
                           sx={{ color: 'info.main' }}
@@ -6605,11 +6602,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               <Typography variant="h5" fontWeight="bold">
                 {modalData?.title}
               </Typography>
-              {modalData?.subtitle && (
-                <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-                  {modalData.subtitle}
-                </Typography>
-              )}
             </Box>
             <IconButton 
               onClick={closeModal}
@@ -7357,10 +7349,14 @@ const ProfessionalDataTable: React.FC<{
                                 kritiklikSeviyesi: index < 3 ? 'YÜKSEK' : index < 7 ? 'ORTA' : 'DÜŞÜK'
                               }
                             };
+                            console.log('🔍 Problematic Unit Görüntüle Butonu Tıklandı:', unitDetailRecord);
                             if ((window as any).handleViewDetails) {
+                              console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
                               (window as any).handleViewDetails(unitDetailRecord);
                             } else {
-                              console.log('Birim detay görüntüleme:', unitDetailRecord);
+                              console.log('❌ Global handleViewDetails bulunamadı!');
+                              console.log('📊 Birim detay kayıtları:', unitDetailRecord);
+                              alert('Detay görüntüleme servisi hazırlanıyor...');
                             }
                           }}
                           sx={{ color: 'info.main' }}
@@ -7493,10 +7489,14 @@ const ProfessionalDataTable: React.FC<{
                         size="small" 
                                                   onClick={(e) => {
                             e.stopPropagation();
+                            console.log('🔍 Default Table Görüntüle Butonu Tıklandı:', item);
                             if ((window as any).handleViewDetails) {
+                              console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
                               (window as any).handleViewDetails(item);
                             } else {
-                              console.log('Default table detay görüntüleme:', item);
+                              console.log('❌ Global handleViewDetails bulunamadı!');
+                              console.log('📊 Kayıt detayları:', item);
+                              alert('Detay görüntüleme servisi hazırlanıyor...');
                             }
                           }}
                         sx={{ color: 'info.main' }}
@@ -10243,10 +10243,14 @@ const MaterialPricingManagementComponent: React.FC = () => {
                                 guncellemeTarihi: material.guncellemeTarihi
                               }
                             };
+                            console.log('🔍 Material Table Görüntüle Butonu Tıklandı:', materialDetailRecord);
                             if ((window as any).handleViewDetails) {
+                              console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
                               (window as any).handleViewDetails(materialDetailRecord);
                             } else {
-                              console.log('Malzeme detay görüntüleme:', materialDetailRecord);
+                              console.log('❌ Global handleViewDetails bulunamadı!');
+                              console.log('📊 Malzeme detay kayıtları:', materialDetailRecord);
+                              alert('Detay görüntüleme servisi hazırlanıyor...');
                             }
                           }}
                           sx={{ color: 'info.main' }}
@@ -12844,10 +12848,14 @@ const CategoryProductionManagementComponent: React.FC<{
                               updatedDate: production.updatedDate
                             }
                           };
+                          console.log('🔍 Production Table Görüntüle Butonu Tıklandı:', productionDetailRecord);
                           if ((window as any).handleViewDetails) {
+                            console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
                             (window as any).handleViewDetails(productionDetailRecord);
                           } else {
-                            console.log('Üretim kaydı detay görüntüleme:', productionDetailRecord);
+                            console.log('❌ Global handleViewDetails bulunamadı!');
+                            console.log('📊 Üretim detay kayıtları:', productionDetailRecord);
+                            alert('Detay görüntüleme servisi hazırlanıyor...');
                           }
                         }}
                         sx={{ color: 'info.main' }}
