@@ -8066,13 +8066,16 @@ const ProfessionalDataTable: React.FC<{
           }
         }
         
-        // Fallback: Manuel fiyat girişi
+        // ✅ FIX: Doğru hurda formülü - Parça Maliyeti - (Ağırlık × Hurda Satış Fiyatı)
         if (formData.parcaMaliyeti && formData.parcaMaliyeti > 0) {
-          const hurdaSatisGeliri = formData.agirlik * (formData.hurdaSatisFiyati || 45);
-          return Math.max(0, formData.parcaMaliyeti - hurdaSatisGeliri);
-        } else {
-          return formData.agirlik * (formData.hurdaSatisFiyati || 45);
-        }
+          const hurdaSatisFiyati = formData.kgMaliyet || 45;
+          const hurdaSatisGeliri = formData.agirlik * hurdaSatisFiyati;
+          const netHurdaZarari = Math.max(0, formData.parcaMaliyeti - hurdaSatisGeliri);
+          return netHurdaZarari;
+        } 
+        
+        // Fallback: Sadece ağırlık × kg maliyet (parça maliyeti yoksa)
+        return formData.agirlik * (formData.kgMaliyet || 50);
       }
       
       return 0; // Herhangi bir miktar girilmemişse
@@ -8223,14 +8226,31 @@ const ProfessionalDataTable: React.FC<{
   }, [editingEntry, formData, costData, calculateDynamicCost]);
 
   const handleDelete = useCallback((id: number) => {
+    console.log('🗑️ Silme işlemi başlatıldı - ID:', id);
     const entry = costData.find(item => item.id === id);
+    console.log('🔍 Bulunan kayıt:', entry);
+    
+    if (!entry) {
+      console.error('❌ Kayıt bulunamadı - ID:', id);
+      alert('HATA: Silinecek kayıt bulunamadı!');
+      return;
+    }
+    
     setSelectedEntry(entry);
     setDeleteConfirmOpen(true);
+    console.log('✅ Silme onay dialog açıldı');
   }, [costData]);
 
   const confirmDelete = useCallback(() => {
+    console.log('🗑️ Silme onaylandı - Kayıt:', selectedEntry);
+    
     if (selectedEntry) {
+      const originalLength = costData.length;
       const updatedData = costData.filter(item => item.id !== selectedEntry.id);
+      const newLength = updatedData.length;
+      
+      console.log(`📊 Veri güncellendi: ${originalLength} → ${newLength} (${originalLength - newLength} kayıt silindi)`);
+      
       setCostData(updatedData);
       setDeleteConfirmOpen(false);
       setSelectedEntry(null);
@@ -8249,8 +8269,13 @@ const ProfessionalDataTable: React.FC<{
         const freshAnalytics = getAnalyticsFromData(updatedData);
         onDataChange?.(freshAnalytics);
       }, 100);
+      
+      console.log('✅ Silme işlemi başarıyla tamamlandı');
+    } else {
+      console.error('❌ selectedEntry null - silme işlemi iptal edildi');
+      alert('HATA: Seçilen kayıt bulunamadı!');
     }
-  }, [selectedEntry, costData]);
+  }, [selectedEntry, costData, onDataRefresh, onDataChange]);
 
   // ✅ PROFESYONEL: Otomatik Veri Kurtarma Fonksiyonu (Arkaplanda çalışır)
   const autoRecoverDataFromBackup = useCallback(() => {
@@ -9137,7 +9162,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                               return `${formData.agirlik} kg × (₺${selectedMaterial.alisKgFiyati} - ₺${selectedMaterial.satisKgFiyati}) = ₺${calculateDynamicCost()}`;
                             }
                           }
-                          return `Net hurda zararı hesaplanır`;
+                          if (formData.parcaMaliyeti && formData.agirlik > 0) {
+                            const hurdaSatisFiyati = formData.kgMaliyet || 45;
+                            const hurdaSatisGeliri = formData.agirlik * hurdaSatisFiyati;
+                            return `₺${formData.parcaMaliyeti} - (${formData.agirlik} kg × ₺${hurdaSatisFiyati}) = ₺${formData.parcaMaliyeti} - ₺${hurdaSatisGeliri} = ₺${calculateDynamicCost()}`;
+                          }
+                          return `Parça Maliyeti - (Ağırlık × Hurda Satış Fiyatı) = Net Hurda Zararı`;
                         })()}
                         color="error"
                       />
