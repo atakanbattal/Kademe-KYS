@@ -8415,30 +8415,30 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
   const getAnalytics = useMemo(() => {
     const byBirim = birimler.map(birim => ({
       birim: birim.label,
-      toplam: filteredData
+      toplam: costData
         .filter(item => item.birim === birim.value)
         .reduce((sum, item) => sum + item.maliyet, 0),
-      adet: filteredData.filter(item => item.birim === birim.value).length
+      adet: costData.filter(item => item.birim === birim.value).length
     })).filter(item => item.toplam > 0);
 
     const byArac = araclar.map(arac => ({
       arac: arac.label,
-      toplam: filteredData
+      toplam: costData
         .filter(item => item.arac === arac.value)
         .reduce((sum, item) => sum + item.maliyet, 0),
-      adet: filteredData.filter(item => item.arac === arac.value).length
+      adet: costData.filter(item => item.arac === arac.value).length
     })).filter(item => item.toplam > 0);
 
     const byMaliyetTuru = maliyetTurleri.map(mt => ({
       tur: mt.label,
-      toplam: filteredData
+      toplam: costData
         .filter(item => item.maliyetTuru === mt.value)
         .reduce((sum, item) => sum + item.maliyet, 0),
-      adet: filteredData.filter(item => item.maliyetTuru === mt.value).length
+      adet: costData.filter(item => item.maliyetTuru === mt.value).length
     })).filter(item => item.toplam > 0);
 
     // ✅ Context7: Real-time Pareto Analysis from actual data
-    const totalCost = filteredData.reduce((sum, item) => sum + item.maliyet, 0);
+    const totalCost = costData.reduce((sum, item) => sum + item.maliyet, 0);
     const sortedByMaliyet = [...byMaliyetTuru].sort((a, b) => b.toplam - a.toplam);
     let cumulative = 0;
     const paretoAnalysis = sortedByMaliyet.map((item, index) => {
@@ -8492,8 +8492,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     // ✅ Context7: NEW - Real Part Code Analysis from Actual Data
     const parcaKoduData = new Map();
     
-    // ✅ Context7: Aggregate real part code data from filtered entries
-    filteredData.forEach(item => {
+    // ✅ Context7: Aggregate real part code data from cost data entries
+    costData.forEach(item => {
       if (item.parcaKodu) {
         const existing = parcaKoduData.get(item.parcaKodu);
         if (existing) {
@@ -8538,8 +8538,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     const generateRealTrendData = () => {
       const monthlyData = new Map();
       
-      // Group cost data by month and COPQ category from actual filteredData
-      filteredData.forEach((item: any) => {
+      // Group cost data by month and COPQ category from actual costData
+      costData.forEach((item: any) => {
         if (item.tarih && item.maliyet && item.maliyetTuru) {
           const itemDate = new Date(item.tarih);
           const monthKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
@@ -8589,7 +8589,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         .slice(-6); // Last 6 months
       
       console.log('📈 DataManagement COPQ Trend Generated:', {
-        recordsProcessed: filteredData.length,
+        recordsProcessed: costData.length,
         monthsGenerated: sortedMonths.length,
         detailedTrendData: sortedMonths
       });
@@ -8629,7 +8629,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     }
 
     return analytics;
-  }, [filteredData, birimler, araclar, maliyetTurleri, onDataChange]);
+  }, [costData, birimler, araclar, maliyetTurleri, onDataChange]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -8639,14 +8639,14 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         <Grid item xs={12} md={3}>
           <Card sx={{ p: 2, background: 'linear-gradient(45deg, #2196f3, #21cbf3)' }}>
             <Typography variant="h6" color="white">Toplam Kayıt</Typography>
-            <Typography variant="h4" color="white">{filteredData.length}</Typography>
+            <Typography variant="h4" color="white">{costData.length}</Typography>
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
           <Card sx={{ p: 2, background: 'linear-gradient(45deg, #f44336, #ff6b6b)' }}>
             <Typography variant="h6" color="white">Toplam Maliyet</Typography>
             <Typography variant="h4" color="white">
-              ₺{filteredData.reduce((sum, item) => sum + item.maliyet, 0).toLocaleString('tr-TR')}
+              ₺{costData.reduce((sum, item) => sum + item.maliyet, 0).toLocaleString('tr-TR')}
             </Typography>
           </Card>
         </Grid>
@@ -8654,7 +8654,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           <Card sx={{ p: 2, background: 'linear-gradient(45deg, #4caf50, #66bb6a)' }}>
             <Typography variant="h6" color="white">En Yüksek Maliyet</Typography>
             <Typography variant="h4" color="white">
-              ₺{Math.max(...filteredData.map(item => item.maliyet), 0).toLocaleString('tr-TR')}
+              ₺{Math.max(...costData.map(item => item.maliyet), 0).toLocaleString('tr-TR')}
             </Typography>
           </Card>
         </Grid>
@@ -8662,7 +8662,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           <Card sx={{ p: 2, background: 'linear-gradient(45deg, #ff9800, #ffb74d)' }}>
             <Typography variant="h6" color="white">Ortalama Maliyet</Typography>
             <Typography variant="h4" color="white">
-              ₺{Math.round(filteredData.reduce((sum, item) => sum + item.maliyet, 0) / (filteredData.length || 1)).toLocaleString('tr-TR')}
+              ₺{Math.round(costData.reduce((sum, item) => sum + item.maliyet, 0) / (costData.length || 1)).toLocaleString('tr-TR')}
             </Typography>
           </Card>
         </Grid>
@@ -8720,7 +8720,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredData
+              {costData
                 .sort((a, b) => b.id - a.id) // ✅ ID'ye göre azalan sıralama (en yeni üstte)
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
                 <TableRow
@@ -8813,7 +8813,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={filteredData.length}
+          count={costData.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(_, newPage) => setPage(newPage)}
