@@ -685,6 +685,10 @@ export default function QualityCostManagement() {
   const [costEntryDialogOpen, setCostEntryDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
+  
+  // ✅ YENİ: Global detay dialog state'leri (modal için)
+  const [globalDetailDialogOpen, setGlobalDetailDialogOpen] = useState(false);
+  const [globalSelectedDetailEntry, setGlobalSelectedDetailEntry] = useState<any>(null);
   const [editingCostEntry, setEditingCostEntry] = useState<any>(null);
   const [formData, setFormData] = useState({
     category: '',
@@ -6619,7 +6623,58 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           type={modalData.type}
           openDOFForm={modalData.openDOFForm || openDOFForm}
           isDOFCreated={modalData.isDOFCreated || isDOFCreated}
-          handleViewDetails={handleViewDetails}
+          handleViewDetails={(entry: any) => {
+            console.log('🔍 Modal içinden detay görüntüleme başlatılıyor:', entry);
+            
+            // Veri yönetimi kısmındaki gibi normalizasyon yap
+            const normalizedEntry = {
+              // Temel bilgiler
+              id: entry.id || `temp_${Date.now()}`,
+              maliyetTuru: entry.maliyetTuru || 'hurda',
+              maliyet: entry.maliyet || entry.total || 0,
+              tarih: entry.tarih || entry.createdDate || new Date().toISOString(),
+              durum: entry.durum || (entry.isActive ? 'aktif' : 'pasif') || 'aktif',
+              
+              // Birim/Departman bilgileri
+              birim: entry.birim || entry.departman || entry.unit || 'kalite_kontrol',
+              
+              // Araç bilgileri
+              arac: entry.arac || entry.aracModeli || entry.vehicle || null,
+              aracModeli: entry.aracModeli || entry.arac || entry.vehicle || null,
+              
+              // Parça/Ürün bilgileri
+              parcaKodu: entry.parcaKodu || entry.partCode || entry.urunKodu || null,
+              malzemeTuru: entry.malzemeTuru || entry.materialType || null,
+              
+              // Maliyet detayları
+              agirlik: entry.agirlik || entry.weight || 0,
+              miktar: entry.miktar || entry.quantity || entry.count || 0,
+              unit: entry.unit || entry.birim || 'adet',
+              birimMaliyet: entry.birimMaliyet || entry.unitCost || 0,
+              kgMaliyet: entry.kgMaliyet || entry.kgCost || 0,
+              parcaMaliyeti: entry.parcaMaliyeti || entry.partCost || 0,
+              
+              // Açıklama ve ek bilgiler
+              aciklama: entry.aciklama || entry.description || entry.issueDescription || null,
+              
+              // Zaman damgaları
+              olusturmaTarihi: entry.olusturmaTarihi || entry.createdDate || entry.tarih || new Date().toISOString(),
+              guncellemeTarihi: entry.guncellemeTarihi || entry.updatedDate || entry.updatedAt || null,
+              
+              // Özel analiz verileri (birim analizi, üretim kaydı vs.)
+              birimAnalizi: entry.birimAnalizi || null,
+              uretimDetaylari: entry.uretimDetaylari || null,
+              
+              // Ham veriyi de koru (debug için)
+              _rawData: entry
+            };
+            
+            console.log('✅ Modal veri normalizasyonu tamamlandı:', normalizedEntry);
+            
+            // Global state'leri kullan
+            setGlobalSelectedDetailEntry(normalizedEntry);
+            setGlobalDetailDialogOpen(true);
+          }}
         />
           )}
         </DialogContent>
@@ -7201,6 +7256,495 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         </DialogContent>
       </Dialog>
 
+      {/* ✅ GLOBAL DETAIL DIALOG - Modal için */}
+      <Dialog
+        open={globalDetailDialogOpen}
+        onClose={() => setGlobalDetailDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={2}>
+            <VisibilityIcon color="info" />
+            <Box flex={1}>
+              <Typography variant="h6" fontWeight="bold">
+                {globalSelectedDetailEntry?.birimAnalizi ? 'Birim Analizi Detayları' :
+                 globalSelectedDetailEntry?.uretimDetaylari ? 'Üretim Kaydı Detayları' :
+                 'Maliyet Kaydı Detayları'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {globalSelectedDetailEntry?.parcaKodu && `Parça: ${globalSelectedDetailEntry.parcaKodu} • `}
+                {globalSelectedDetailEntry?.birim && `Birim: ${globalSelectedDetailEntry.birim} • `}
+                ID: {globalSelectedDetailEntry?.id}
+              </Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {globalSelectedDetailEntry && (
+            <Grid container spacing={3}>
+              {/* Temel Bilgiler */}
+              <Grid item xs={12}>
+                <Card sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" color="primary" gutterBottom>
+                      Temel Bilgiler
+                    </Typography>
+                                         <Grid container spacing={2}>
+                       <Grid item xs={12} md={6}>
+                         <Box sx={{ mb: 2 }}>
+                           <Typography variant="subtitle2" color="text.secondary">
+                             Maliyet Türü
+                           </Typography>
+                           <Chip
+                             label={(() => {
+                               const typeMap: { [key: string]: string } = {
+                                 'hurda': 'Hurda Maliyeti',
+                                 'yeniden_islem': 'Yeniden İşlem',
+                                 'fire': 'Fire Maliyeti',
+                                 'garanti': 'Garanti Maliyeti',
+                                 'iade': 'İade Maliyeti',
+                                 'sikayet': 'Şikayet Maliyeti',
+                                 'onleme': 'Önleme Maliyeti'
+                               };
+                               return typeMap[globalSelectedDetailEntry.maliyetTuru] || globalSelectedDetailEntry.maliyetTuru || 'Bilinmiyor';
+                             })()}
+                             color={(() => {
+                               const colorMap: { [key: string]: "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" } = {
+                                 'hurda': 'warning',
+                                 'yeniden_islem': 'error',
+                                 'fire': 'warning',
+                                 'garanti': 'error',
+                                 'iade': 'error',
+                                 'sikayet': 'error',
+                                 'onleme': 'success'
+                               };
+                               return colorMap[globalSelectedDetailEntry.maliyetTuru] || 'primary';
+                             })()}
+                             size="medium"
+                             sx={{ mt: 0.5 }}
+                           />
+                         </Box>
+                       </Grid>
+                       <Grid item xs={12} md={6}>
+                         <Box sx={{ mb: 2 }}>
+                           <Typography variant="subtitle2" color="text.secondary">
+                             Toplam Maliyet
+                           </Typography>
+                           <Typography variant="h5" color="error.main" fontWeight={600}>
+                             ₺{(globalSelectedDetailEntry.maliyet || 0).toLocaleString('tr-TR')}
+                           </Typography>
+                         </Box>
+                       </Grid>
+                       <Grid item xs={12} md={6}>
+                         <Box sx={{ mb: 2 }}>
+                           <Typography variant="subtitle2" color="text.secondary">
+                             Birim/Departman
+                           </Typography>
+                           <Typography variant="body1" fontWeight={500}>
+                             {(() => {
+                               const birimMap: { [key: string]: string } = {
+                                 'arge': 'Ar-Ge',
+                                 'boyahane': 'Boyahane',
+                                 'bukum': 'Büküm',
+                                 'depo': 'Depo',
+                                 'elektrikhane': 'Elektrikhane',
+                                 'kalite_kontrol': 'Kalite Kontrol',
+                                 'kaynakhane': 'Kaynakhane',
+                                 'kesim': 'Kesim',
+                                 'mekanik_montaj': 'Mekanik Montaj',
+                                 'satin_alma': 'Satın Alma',
+                                 'satis': 'Satış',
+                                 'uretim_planlama': 'Üretim Planlama'
+                               };
+                               return birimMap[globalSelectedDetailEntry.birim] || globalSelectedDetailEntry.birim || 'Bilinmiyor';
+                             })()}
+                           </Typography>
+                         </Box>
+                       </Grid>
+                       <Grid item xs={12} md={6}>
+                         <Box sx={{ mb: 2 }}>
+                           <Typography variant="subtitle2" color="text.secondary">
+                             Araç/Model
+                           </Typography>
+                           <Typography variant="body1" fontWeight={500}>
+                             {(() => {
+                               const aracMap: { [key: string]: string } = {
+                                 'fth240': 'FTH-240',
+                                 'celik2000': 'Çelik-2000',
+                                 'aga2100': 'Aga2100',
+                                 'aga3000': 'Aga3000',
+                                 'aga6000': 'Aga6000',
+                                 'kompost_makinesi': 'Kompost Makinesi',
+                                 'cay_toplama_makinesi': 'Çay Toplama Makinesi',
+                                 'kdm35': 'KDM 35',
+                                 'kdm70': 'KDM 70',
+                                 'kdm80': 'KDM 80',
+                                 'rusya_motor_odasi': 'Rusya Motor Odası',
+                                 'ural': 'Ural',
+                                 'hsck': 'HSCK'
+                               };
+                               const arac = globalSelectedDetailEntry.aracModeli || globalSelectedDetailEntry.arac;
+                               return aracMap[arac] || arac || 'Bilinmiyor';
+                             })()}
+                           </Typography>
+                         </Box>
+                       </Grid>
+                     </Grid>
+                  </CardContent>
+                </Card>
+                             </Grid>
+
+               {/* Teknik Detaylar */}
+               <Grid item xs={12}>
+                 <Card sx={{ mb: 2 }}>
+                   <CardContent>
+                     <Typography variant="h6" color="primary" gutterBottom>
+                       Teknik Detaylar
+                     </Typography>
+                     <Grid container spacing={2}>
+                       {globalSelectedDetailEntry.parcaKodu && (
+                         <Grid item xs={12} md={6}>
+                           <Box sx={{ mb: 2 }}>
+                             <Typography variant="subtitle2" color="text.secondary">
+                               Parça Kodu
+                             </Typography>
+                             <Typography 
+                               variant="body1" 
+                               fontWeight={600}
+                               sx={{ 
+                                 fontFamily: 'monospace',
+                                 color: 'primary.main',
+                                 bgcolor: 'grey.100',
+                                 p: 1,
+                                 borderRadius: 1,
+                                 display: 'inline-block'
+                               }}
+                             >
+                               {globalSelectedDetailEntry.parcaKodu}
+                             </Typography>
+                           </Box>
+                         </Grid>
+                       )}
+                       
+                       {globalSelectedDetailEntry.malzemeTuru && (
+                         <Grid item xs={12} md={6}>
+                           <Box sx={{ mb: 2 }}>
+                             <Typography variant="subtitle2" color="text.secondary">
+                               Malzeme Türü
+                             </Typography>
+                             <Typography variant="body1" fontWeight={500}>
+                               {globalSelectedDetailEntry.malzemeTuru}
+                             </Typography>
+                           </Box>
+                         </Grid>
+                       )}
+
+                       {globalSelectedDetailEntry.agirlik > 0 && (
+                         <Grid item xs={12} md={6}>
+                           <Box sx={{ mb: 2 }}>
+                             <Typography variant="subtitle2" color="text.secondary">
+                               Ağırlık
+                             </Typography>
+                             <Typography variant="body1" fontWeight={500}>
+                               {globalSelectedDetailEntry.agirlik} kg
+                             </Typography>
+                           </Box>
+                         </Grid>
+                       )}
+
+                       {globalSelectedDetailEntry.miktar > 0 && (
+                         <Grid item xs={12} md={6}>
+                           <Box sx={{ mb: 2 }}>
+                             <Typography variant="subtitle2" color="text.secondary">
+                               Miktar
+                             </Typography>
+                             <Typography variant="body1" fontWeight={500}>
+                               {globalSelectedDetailEntry.miktar} {globalSelectedDetailEntry.unit || 'adet'}
+                             </Typography>
+                           </Box>
+                         </Grid>
+                       )}
+
+                       {globalSelectedDetailEntry.birimMaliyet > 0 && (
+                         <Grid item xs={12} md={6}>
+                           <Box sx={{ mb: 2 }}>
+                             <Typography variant="subtitle2" color="text.secondary">
+                               Birim Maliyet
+                             </Typography>
+                             <Typography variant="body1" fontWeight={500} color="warning.main">
+                               ₺{globalSelectedDetailEntry.birimMaliyet.toLocaleString('tr-TR')}
+                             </Typography>
+                           </Box>
+                         </Grid>
+                       )}
+
+                       {globalSelectedDetailEntry.kgMaliyet > 0 && (
+                         <Grid item xs={12} md={6}>
+                           <Box sx={{ mb: 2 }}>
+                             <Typography variant="subtitle2" color="text.secondary">
+                               Kg Maliyet
+                             </Typography>
+                             <Typography variant="body1" fontWeight={500} color="warning.main">
+                               ₺{globalSelectedDetailEntry.kgMaliyet.toLocaleString('tr-TR')}/kg
+                             </Typography>
+                           </Box>
+                         </Grid>
+                       )}
+                     </Grid>
+                   </CardContent>
+                 </Card>
+               </Grid>
+
+               {/* Zaman ve Durum Bilgileri */}
+               <Grid item xs={12}>
+                 <Card sx={{ mb: 2 }}>
+                   <CardContent>
+                     <Typography variant="h6" color="primary" gutterBottom>
+                       Zaman ve Durum Bilgileri
+                     </Typography>
+                     <Grid container spacing={2}>
+                       <Grid item xs={12} md={6}>
+                         <Box sx={{ mb: 2 }}>
+                           <Typography variant="subtitle2" color="text.secondary">
+                             Kayıt Tarihi
+                           </Typography>
+                           <Typography variant="body1" fontWeight={500}>
+                             {globalSelectedDetailEntry.tarih ? 
+                               new Date(globalSelectedDetailEntry.tarih).toLocaleDateString('tr-TR') : 
+                               'Bilinmiyor'}
+                           </Typography>
+                         </Box>
+                       </Grid>
+                       <Grid item xs={12} md={6}>
+                         <Box sx={{ mb: 2 }}>
+                           <Typography variant="subtitle2" color="text.secondary">
+                             Durum
+                           </Typography>
+                           <Chip
+                             label={globalSelectedDetailEntry.durum === 'aktif' ? 'Aktif' : 'Pasif'}
+                             color={globalSelectedDetailEntry.durum === 'aktif' ? 'success' : 'default'}
+                             size="small"
+                           />
+                         </Box>
+                       </Grid>
+                       {globalSelectedDetailEntry.olusturmaTarihi && (
+                         <Grid item xs={12} md={6}>
+                           <Box sx={{ mb: 2 }}>
+                             <Typography variant="subtitle2" color="text.secondary">
+                               Oluşturma Tarihi
+                             </Typography>
+                             <Typography variant="body2" color="text.secondary">
+                               {new Date(globalSelectedDetailEntry.olusturmaTarihi).toLocaleString('tr-TR')}
+                             </Typography>
+                           </Box>
+                         </Grid>
+                       )}
+                       {globalSelectedDetailEntry.guncellemeTarihi && (
+                         <Grid item xs={12} md={6}>
+                           <Box sx={{ mb: 2 }}>
+                             <Typography variant="subtitle2" color="text.secondary">
+                               Güncelleme Tarihi
+                             </Typography>
+                             <Typography variant="body2" color="text.secondary">
+                               {new Date(globalSelectedDetailEntry.guncellemeTarihi).toLocaleString('tr-TR')}
+                             </Typography>
+                           </Box>
+                         </Grid>
+                       )}
+                     </Grid>
+                   </CardContent>
+                 </Card>
+               </Grid>
+ 
+               {/* Birim Analizi Detayları */}
+              {globalSelectedDetailEntry.birimAnalizi && (
+                <Grid item xs={12}>
+                  <Card sx={{ mb: 2, bgcolor: 'info.50' }}>
+                    <CardContent>
+                      <Typography variant="h6" color="info.main" gutterBottom>
+                        Birim Analizi Detayları
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Birim Adı
+                            </Typography>
+                            <Typography variant="h6" color="info.main" fontWeight={600}>
+                              {globalSelectedDetailEntry.birimAnalizi.birimAdi}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Kritiklik Seviyesi
+                            </Typography>
+                            <Chip
+                              label={globalSelectedDetailEntry.birimAnalizi.kritiklikSeviyesi}
+                              color={globalSelectedDetailEntry.birimAnalizi.kritiklikSeviyesi === 'YÜKSEK' ? 'error' : 
+                                     globalSelectedDetailEntry.birimAnalizi.kritiklikSeviyesi === 'ORTA' ? 'warning' : 'success'}
+                              size="medium"
+                            />
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Toplam Maliyet
+                            </Typography>
+                            <Typography variant="h6" color="info.main" fontWeight={600}>
+                              ₺{(globalSelectedDetailEntry.birimAnalizi.toplamMaliyet || 0).toLocaleString('tr-TR')}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Kayıt Sayısı
+                            </Typography>
+                            <Typography variant="h6" color="info.main" fontWeight={600}>
+                              {globalSelectedDetailEntry.birimAnalizi.kayitSayisi || 0}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Ortalama Maliyet
+                            </Typography>
+                            <Typography variant="h6" color="info.main" fontWeight={600}>
+                              ₺{(globalSelectedDetailEntry.birimAnalizi.ortalamaMaliyet || 0).toLocaleString('tr-TR')}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
+              {/* Üretim Detayları */}
+              {globalSelectedDetailEntry.uretimDetaylari && (
+                <Grid item xs={12}>
+                  <Card sx={{ mb: 2, bgcolor: 'success.50' }}>
+                    <CardContent>
+                      <Typography variant="h6" color="success.main" gutterBottom>
+                        Üretim Kaydı Detayları
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Dönem
+                            </Typography>
+                            <Typography variant="h6" color="success.main" fontWeight={600}>
+                              {globalSelectedDetailEntry.uretimDetaylari.donem}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Üretilen Araç Sayısı
+                            </Typography>
+                            <Typography variant="h6" color="success.main" fontWeight={600}>
+                              {globalSelectedDetailEntry.uretimDetaylari.uretilenAracSayisi || 0} adet
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Gerçekleşme Oranı
+                            </Typography>
+                            <Typography variant="h6" color="warning.main" fontWeight={600}>
+                              %{globalSelectedDetailEntry.uretimDetaylari.gerceklesmeOrani || 0}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
+              {/* Açıklama */}
+              {globalSelectedDetailEntry.aciklama && (
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" color="primary" gutterBottom>
+                        Açıklama/Notlar
+                      </Typography>
+                      <Typography 
+                        variant="body1"
+                        sx={{ 
+                          bgcolor: 'grey.50',
+                          p: 2,
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'grey.200'
+                        }}
+                      >
+                        {globalSelectedDetailEntry.aciklama}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
+                             {/* Ham Veri Debug (Development Only) */}
+               {false && process.env.NODE_ENV === 'development' && globalSelectedDetailEntry._rawData && (
+                <Grid item xs={12}>
+                  <Card sx={{ bgcolor: 'grey.100' }}>
+                    <CardContent>
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        Debug - Ham Veri (Development Only)
+                      </Typography>
+                      <Typography 
+                        variant="body2"
+                        component="pre"
+                        sx={{ 
+                          bgcolor: 'grey.50',
+                          p: 2,
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'grey.200',
+                          fontSize: '0.75rem',
+                          overflow: 'auto',
+                          maxHeight: '200px'
+                        }}
+                      >
+                        {JSON.stringify(globalSelectedDetailEntry._rawData, null, 2)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+            </Grid>
+          )}
+        </DialogContent>
+                 <DialogActions>
+           <Button 
+             startIcon={<EditIcon />}
+             onClick={() => {
+               setGlobalDetailDialogOpen(false);
+               // Düzenleme açmak için gereken veriyi buraya ekleyebiliriz
+               console.log('Düzenleme için kayıt:', globalSelectedDetailEntry);
+               alert('Düzenleme özelliği yakında eklenecek!');
+             }}
+             variant="outlined"
+           >
+             Düzenle
+           </Button>
+           <Button onClick={() => setGlobalDetailDialogOpen(false)} variant="contained">
+             Kapat
+           </Button>
+         </DialogActions>
+      </Dialog>
 
 
     </Box>
@@ -7351,17 +7895,28 @@ const ProfessionalDataTable: React.FC<{
                                 kritiklikSeviyesi: index < 3 ? 'YÜKSEK' : index < 7 ? 'ORTA' : 'DÜŞÜK'
                               }
                             };
-                            console.log('🔍 Problematic Unit Görüntüle Butonu Tıklandı:', unitDetailRecord);
+                            console.log('🔍 Birim Detayı Görüntüleme:', unitDetailRecord);
+                            
+                            // Önce props kontrol et, sonra global window kontrol et
                             if (handleViewDetails) {
-                              console.log('✅ Props handleViewDetails bulundu, çağırılıyor...');
-                              handleViewDetails(unitDetailRecord);
+                              console.log('✅ Props handleViewDetails kullanılıyor');
+                              try {
+                                handleViewDetails(unitDetailRecord);
+                              } catch (error) {
+                                console.error('❌ Props handleViewDetails hatası:', error);
+                                alert('Props handleViewDetails çağrısında hata oluştu: ' + error);
+                              }
                             } else if ((window as any).handleViewDetails) {
-                              console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
-                              (window as any).handleViewDetails(unitDetailRecord);
+                              console.log('✅ Global handleViewDetails kullanılıyor');
+                              try {
+                                (window as any).handleViewDetails(unitDetailRecord);
+                              } catch (error) {
+                                console.error('❌ Global handleViewDetails hatası:', error);
+                                alert('Global handleViewDetails çağrısında hata oluştu: ' + error);
+                              }
                             } else {
-                              console.log('❌ Hiçbir handleViewDetails bulunamadı!');
-                              console.log('📊 Birim detay kayıtları:', unitDetailRecord);
-                              alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
+                              console.log('❌ Hiçbir handleViewDetails bulunamadı');
+                              alert('Detay görüntüleme fonksiyonu bulunamadı. Lütfen sayfayı yenileyin.');
                             }
                           }}
                           sx={{ color: 'info.main' }}
@@ -7492,21 +8047,31 @@ const ProfessionalDataTable: React.FC<{
                     <Tooltip title="Detayları Görüntüle">
                       <IconButton 
                         size="small" 
-                                                  onClick={(e) => {
-                            e.stopPropagation();
-                            console.log('🔍 Default Table Görüntüle Butonu Tıklandı:', item);
-                            if (handleViewDetails) {
-                              console.log('✅ Props handleViewDetails bulundu, çağırılıyor...');
+                                                                          onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔍 Detay görüntüleme:', item);
+                          
+                          if (handleViewDetails) {
+                            console.log('✅ Props handleViewDetails kullanılıyor');
+                            try {
                               handleViewDetails(item);
-                            } else if ((window as any).handleViewDetails) {
-                              console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
-                              (window as any).handleViewDetails(item);
-                            } else {
-                              console.log('❌ Hiçbir handleViewDetails bulunamadı!');
-                              console.log('📊 Kayıt detayları:', item);
-                              alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
+                            } catch (error) {
+                              console.error('❌ Props handleViewDetails hatası:', error);
+                              alert('Props handleViewDetails çağrısında hata oluştu: ' + error);
                             }
-                          }}
+                          } else if ((window as any).handleViewDetails) {
+                            console.log('✅ Global handleViewDetails kullanılıyor');
+                            try {
+                              (window as any).handleViewDetails(item);
+                            } catch (error) {
+                              console.error('❌ Global handleViewDetails hatası:', error);
+                              alert('Global handleViewDetails çağrısında hata oluştu: ' + error);
+                            }
+                          } else {
+                            console.log('❌ Hiçbir handleViewDetails bulunamadı');
+                            alert('Detay görüntüleme fonksiyonu bulunamadı. Lütfen sayfayı yenileyin.');
+                          }
+                        }}
                         sx={{ color: 'info.main' }}
                       >
                         <VisibilityIcon fontSize="small" />
