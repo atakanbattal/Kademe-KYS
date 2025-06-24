@@ -4354,6 +4354,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   <TableCell><strong>Maliyet Türü</strong></TableCell>
                   <TableCell align="right"><strong>Maliyet</strong></TableCell>
                   <TableCell><strong>Açıklama</strong></TableCell>
+                  <TableCell><strong>İşlemler</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -4382,6 +4383,21 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
                         {record.aciklama || 'Açıklama yok'}
                       </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {/* ✅ YENİ: Executive Dashboard Detay Görüntüleme Butonu */}
+                      <Tooltip title="Detayları Görüntüle">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => {
+                            console.log('👁️ Executive dashboard detay görüntüleme:', record);
+                            // TODO: handleViewDetails(record);
+                          }}
+                          sx={{ color: 'info.main' }}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -7312,44 +7328,81 @@ const ProfessionalDataTable: React.FC<{
                     />
                   </TableCell>
                   <TableCell align="center">
-                    {(() => {
-                      const dofCreated = isDOFCreated ? isDOFCreated(item) : false;
-                      return (
-                        <IconButton
-                          size="small"
+                    <Stack direction="row" spacing={1} justifyContent="center">
+                      {/* ✅ YENİ: Birim Analizi Detay Görüntüleme Butonu */}
+                      <Tooltip title="Birim Detaylarını Görüntüle">
+                        <IconButton 
+                          size="small" 
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!dofCreated && openDOFForm) {
-                              // DOF/8D oluşturma parametreleri - Birim bazlı
-                              const dofParams = {
-                                sourceModule: 'qualityCost' as const,
-                                recordId: `unit_${item.unit}_${Date.now()}`,
-                                recordData: item,
-                                issueType: 'nonconformity' as const,
-                                issueDescription: `${formatProfessionalName(item.unit)} Biriminde Yüksek Kalitesizlik Maliyeti (₺${item.total.toLocaleString('tr-TR')} - ${item.count} kayıt)`,
-                                priority: (index < 3 ? 'high' : index < 7 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
-                                affectedDepartment: formatProfessionalName(item.unit),
-                                responsiblePerson: 'Birim Sorumlusu'
-                              };
-                              
-                              // DOF form'unu aç
-                              openDOFForm(item);
-                            }
+                            // Birim bazlı detay görüntüleme için özel bir kayıt oluştur
+                            const unitDetailRecord = {
+                              id: `unit_${item.unit}_${Date.now()}`,
+                              maliyetTuru: 'unit_analysis',
+                              birim: item.unit,
+                              maliyet: item.total,
+                              tarih: new Date().toISOString(),
+                              durum: 'aktif',
+                              parcaKodu: `UNIT-${item.unit.toUpperCase()}`,
+                              aciklama: `${formatProfessionalName(item.unit)} birimi analizi - ${item.count} kayıt, ortalama ₺${item.average.toLocaleString('tr-TR')}`,
+                              // Ek birim analiz verileri
+                              birimAnalizi: {
+                                birimAdi: formatProfessionalName(item.unit),
+                                toplamMaliyet: item.total,
+                                kayitSayisi: item.count,
+                                ortalamaMaliyet: item.average,
+                                kritiklikSeviyesi: index < 3 ? 'YÜKSEK' : index < 7 ? 'ORTA' : 'DÜŞÜK'
+                              }
+                            };
+                            // Şimdilik console.log ile test
+                            console.log('👁️ Birim detay görüntüleme:', unitDetailRecord);
+                            // TODO: handleViewDetails(unitDetailRecord);
                           }}
-                          sx={{ 
-                            color: dofCreated ? 'success.main' : 'error.main',
-                            '&:hover': { 
-                              backgroundColor: dofCreated ? 'success.50' : 'error.50' 
-                            },
-                            cursor: dofCreated ? 'default' : 'pointer'
-                          }}
-                          title={dofCreated ? "Bu Birim İçin DÖF Zaten Oluşturulmuş" : "Bu Birim İçin DÖF/8D Oluştur"}
-                          disabled={dofCreated}
+                          sx={{ color: 'info.main' }}
                         >
-                          {dofCreated ? <CheckCircleIcon fontSize="small" /> : <ReportProblemIcon fontSize="small" />}
+                          <VisibilityIcon fontSize="small" />
                         </IconButton>
-                      );
-                    })()}
+                      </Tooltip>
+                      
+                      {(() => {
+                        const dofCreated = isDOFCreated ? isDOFCreated(item) : false;
+                        return (
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!dofCreated && openDOFForm) {
+                                // DOF/8D oluşturma parametreleri - Birim bazlı
+                                const dofParams = {
+                                  sourceModule: 'qualityCost' as const,
+                                  recordId: `unit_${item.unit}_${Date.now()}`,
+                                  recordData: item,
+                                  issueType: 'nonconformity' as const,
+                                  issueDescription: `${formatProfessionalName(item.unit)} Biriminde Yüksek Kalitesizlik Maliyeti (₺${item.total.toLocaleString('tr-TR')} - ${item.count} kayıt)`,
+                                  priority: (index < 3 ? 'high' : index < 7 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
+                                  affectedDepartment: formatProfessionalName(item.unit),
+                                  responsiblePerson: 'Birim Sorumlusu'
+                                };
+                                
+                                // DOF form'unu aç
+                                openDOFForm(item);
+                              }
+                            }}
+                            sx={{ 
+                              color: dofCreated ? 'success.main' : 'error.main',
+                              '&:hover': { 
+                                backgroundColor: dofCreated ? 'success.50' : 'error.50' 
+                              },
+                              cursor: dofCreated ? 'default' : 'pointer'
+                            }}
+                            title={dofCreated ? "Bu Birim İçin DÖF Zaten Oluşturulmuş" : "Bu Birim İçin DÖF/8D Oluştur"}
+                            disabled={dofCreated}
+                          >
+                            {dofCreated ? <CheckCircleIcon fontSize="small" /> : <ReportProblemIcon fontSize="small" />}
+                          </IconButton>
+                        );
+                      })()}
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
@@ -7428,44 +7481,61 @@ const ProfessionalDataTable: React.FC<{
                   />
                 </TableCell>
                 <TableCell align="center">
-                  {(() => {
-                    const dofCreated = isDOFCreated ? isDOFCreated(item) : false;
-                    return (
-                      <IconButton
-                        size="small"
+                  <Stack direction="row" spacing={1} justifyContent="center">
+                    {/* ✅ YENİ: Default Table Detay Görüntüleme Butonu */}
+                    <Tooltip title="Detayları Görüntüle">
+                      <IconButton 
+                        size="small" 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (!dofCreated && openDOFForm) {
-                            // DOF/8D oluşturma parametreleri
-                            const dofParams = {
-                              sourceModule: 'qualityCost' as const,
-                              recordId: item.id || `cost_${Date.now()}`,
-                              recordData: item,
-                              issueType: 'nonconformity' as const,
-                              issueDescription: `Kalitesizlik Maliyeti Uygunsuzluğu - ${getMaliyetTuruLabel(item.maliyetTuru)} (₺${item.maliyet.toLocaleString('tr-TR')})`,
-                              priority: (item.maliyet > 10000 ? 'high' : item.maliyet > 5000 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
-                              affectedDepartment: formatProfessionalName(item.birim),
-                              responsiblePerson: 'Kalite Sorumlusu'
-                            };
-                            
-                            // DOF form'unu aç
-                            openDOFForm(item);
-                          }
+                          console.log('👁️ Default table detay görüntüleme:', item);
+                          // TODO: handleViewDetails(item);
                         }}
-                        sx={{ 
-                          color: dofCreated ? 'success.main' : 'error.main',
-                          '&:hover': { 
-                            backgroundColor: dofCreated ? 'success.50' : 'error.50' 
-                          },
-                          cursor: dofCreated ? 'default' : 'pointer'
-                        }}
-                        title={dofCreated ? "Bu Kayıt İçin DÖF Zaten Oluşturulmuş" : "Bu Kayıt İçin DÖF/8D Oluştur"}
-                        disabled={dofCreated}
+                        sx={{ color: 'info.main' }}
                       >
-                        {dofCreated ? <CheckCircleIcon fontSize="small" /> : <ReportProblemIcon fontSize="small" />}
+                        <VisibilityIcon fontSize="small" />
                       </IconButton>
-                    );
-                  })()}
+                    </Tooltip>
+                    
+                    {(() => {
+                      const dofCreated = isDOFCreated ? isDOFCreated(item) : false;
+                      return (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!dofCreated && openDOFForm) {
+                              // DOF/8D oluşturma parametreleri
+                              const dofParams = {
+                                sourceModule: 'qualityCost' as const,
+                                recordId: item.id || `cost_${Date.now()}`,
+                                recordData: item,
+                                issueType: 'nonconformity' as const,
+                                issueDescription: `Kalitesizlik Maliyeti Uygunsuzluğu - ${getMaliyetTuruLabel(item.maliyetTuru)} (₺${item.maliyet.toLocaleString('tr-TR')})`,
+                                priority: (item.maliyet > 10000 ? 'high' : item.maliyet > 5000 ? 'medium' : 'low') as 'low' | 'medium' | 'high',
+                                affectedDepartment: formatProfessionalName(item.birim),
+                                responsiblePerson: 'Kalite Sorumlusu'
+                              };
+                              
+                              // DOF form'unu aç
+                              openDOFForm(item);
+                            }
+                          }}
+                          sx={{ 
+                            color: dofCreated ? 'success.main' : 'error.main',
+                            '&:hover': { 
+                              backgroundColor: dofCreated ? 'success.50' : 'error.50' 
+                            },
+                            cursor: dofCreated ? 'default' : 'pointer'
+                          }}
+                          title={dofCreated ? "Bu Kayıt İçin DÖF Zaten Oluşturulmuş" : "Bu Kayıt İçin DÖF/8D Oluştur"}
+                          disabled={dofCreated}
+                        >
+                          {dofCreated ? <CheckCircleIcon fontSize="small" /> : <ReportProblemIcon fontSize="small" />}
+                        </IconButton>
+                      );
+                    })()}
+                  </Stack>
                 </TableCell>
               </TableRow>
             ))}
@@ -7647,6 +7717,10 @@ const ProfessionalDataTable: React.FC<{
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
+  
+  // ✅ YENİ: Detay görüntüleme dialog state'leri
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedDetailEntry, setSelectedDetailEntry] = useState<any>(null);
   
   // ✅ Context7: Enhanced Form State with Unified Vehicle Tracking
   const [formData, setFormData] = useState({
@@ -8277,6 +8351,13 @@ const ProfessionalDataTable: React.FC<{
     }
   }, [selectedEntry, costData, onDataRefresh, onDataChange]);
 
+  // ✅ YENİ: Detay görüntüleme fonksiyonu
+  const handleViewDetails = useCallback((entry: any) => {
+    console.log('👁️ Detay görüntüleme başlatıldı - Kayıt:', entry);
+    setSelectedDetailEntry(entry);
+    setDetailDialogOpen(true);
+  }, []);
+
   // ✅ PROFESYONEL: Otomatik Veri Kurtarma Fonksiyonu (Arkaplanda çalışır)
   const autoRecoverDataFromBackup = useCallback(() => {
     try {
@@ -8800,6 +8881,16 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   </TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={1}>
+                        {/* ✅ YENİ: Detay Görüntüleme Butonu */}
+                        <Tooltip title="Detayları Görüntüle">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleViewDetails(row)}
+                            sx={{ color: 'info.main' }}
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
                         <IconButton 
                           size="small" 
                         onClick={() => handleEdit(row)}
@@ -9506,6 +9597,319 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ✅ YENİ: Detay Görüntüleme Dialog */}
+      <Dialog
+        open={detailDialogOpen}
+        onClose={() => setDetailDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={2}>
+            <VisibilityIcon color="info" />
+            <Typography variant="h6">
+              Maliyet Kaydı Detayları - ID: {selectedDetailEntry?.id}
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedDetailEntry && (
+            <Grid container spacing={3}>
+              {/* Temel Bilgiler */}
+              <Grid item xs={12}>
+                <Card sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" color="primary" gutterBottom>
+                      📋 Temel Bilgiler
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Maliyet Türü
+                          </Typography>
+                          <Chip
+                            label={getDisplayName(selectedDetailEntry.maliyetTuru, maliyetTurleri)}
+                            color={getMaliyetTuruColor(selectedDetailEntry.maliyetTuru)}
+                            size="medium"
+                            sx={{ mt: 0.5 }}
+                          />
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Toplam Maliyet
+                          </Typography>
+                          <Typography variant="h5" color="error.main" fontWeight={600}>
+                            ₺{selectedDetailEntry.maliyet.toLocaleString('tr-TR')}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Birim/Departman
+                          </Typography>
+                          <Typography variant="body1" fontWeight={500}>
+                            {getDisplayName(selectedDetailEntry.birim, birimler)}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Araç/Model
+                          </Typography>
+                          <Typography variant="body1" fontWeight={500}>
+                            {selectedDetailEntry.aracModeli || getDisplayName(selectedDetailEntry.arac, araclar)}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Teknik Detaylar */}
+              <Grid item xs={12}>
+                <Card sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" color="primary" gutterBottom>
+                      🔧 Teknik Detaylar
+                    </Typography>
+                    <Grid container spacing={2}>
+                      {selectedDetailEntry.parcaKodu && (
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Parça Kodu
+                            </Typography>
+                            <Typography 
+                              variant="body1" 
+                              fontWeight={600}
+                              sx={{ 
+                                fontFamily: 'monospace',
+                                color: 'primary.main',
+                                bgcolor: 'grey.100',
+                                p: 1,
+                                borderRadius: 1,
+                                display: 'inline-block'
+                              }}
+                            >
+                              {selectedDetailEntry.parcaKodu}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+                      
+                      {selectedDetailEntry.malzemeTuru && (
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Malzeme Türü
+                            </Typography>
+                            <Typography variant="body1" fontWeight={500}>
+                              {selectedDetailEntry.malzemeTuru}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {selectedDetailEntry.agirlik > 0 && (
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Ağırlık
+                            </Typography>
+                            <Typography variant="body1" fontWeight={500}>
+                              {selectedDetailEntry.agirlik} kg
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {selectedDetailEntry.miktar > 0 && (
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Miktar
+                            </Typography>
+                            <Typography variant="body1" fontWeight={500}>
+                              {selectedDetailEntry.miktar} {selectedDetailEntry.unit || 'adet'}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {selectedDetailEntry.birimMaliyet > 0 && (
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Birim Maliyet
+                            </Typography>
+                            <Typography variant="body1" fontWeight={500}>
+                              ₺{selectedDetailEntry.birimMaliyet.toLocaleString('tr-TR')}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {selectedDetailEntry.kgMaliyet > 0 && (
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              KG Maliyeti/Satış Fiyatı
+                            </Typography>
+                            <Typography variant="body1" fontWeight={500}>
+                              ₺{selectedDetailEntry.kgMaliyet.toLocaleString('tr-TR')}/kg
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {selectedDetailEntry.parcaMaliyeti > 0 && (
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Parça Maliyeti (Orijinal)
+                            </Typography>
+                            <Typography variant="body1" fontWeight={500}>
+                              ₺{selectedDetailEntry.parcaMaliyeti.toLocaleString('tr-TR')}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Zaman ve Durum Bilgileri */}
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" color="primary" gutterBottom>
+                      📅 Zaman ve Durum Bilgileri
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Kayıt Tarihi
+                          </Typography>
+                          <Typography variant="body1" fontWeight={500}>
+                            {new Date(selectedDetailEntry.tarih).toLocaleDateString('tr-TR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Durum
+                          </Typography>
+                          <Chip
+                            label={selectedDetailEntry.durum === 'aktif' ? 'Aktif' : 'Pasif'}
+                            color={selectedDetailEntry.durum === 'aktif' ? 'success' : 'default'}
+                            size="medium"
+                            sx={{ mt: 0.5 }}
+                          />
+                        </Box>
+                      </Grid>
+                      
+                      {selectedDetailEntry.olusturmaTarihi && (
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Oluşturma Tarihi
+                            </Typography>
+                            <Typography variant="body2">
+                              {new Date(selectedDetailEntry.olusturmaTarihi).toLocaleDateString('tr-TR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {selectedDetailEntry.guncellemeTarihi && (
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Son Güncelleme
+                            </Typography>
+                            <Typography variant="body2">
+                              {new Date(selectedDetailEntry.guncellemeTarihi).toLocaleDateString('tr-TR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* Açıklama */}
+              {selectedDetailEntry.aciklama && (
+                <Grid item xs={12}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" color="primary" gutterBottom>
+                        📝 Açıklama/Notlar
+                      </Typography>
+                      <Typography 
+                        variant="body1"
+                        sx={{ 
+                          bgcolor: 'grey.50',
+                          p: 2,
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'grey.200'
+                        }}
+                      >
+                        {selectedDetailEntry.aciklama}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            startIcon={<EditIcon />}
+            onClick={() => {
+              setDetailDialogOpen(false);
+              handleEdit(selectedDetailEntry);
+            }}
+            variant="outlined"
+          >
+            Düzenle
+          </Button>
+          <Button onClick={() => setDetailDialogOpen(false)} variant="contained">
+            Kapat
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
@@ -9795,6 +10199,42 @@ const MaterialPricingManagementComponent: React.FC = () => {
                   </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                      {/* ✅ YENİ: Malzeme Detay Görüntüleme Butonu */}
+                      <Tooltip title="Malzeme Detaylarını Görüntüle">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => {
+                            // Malzeme bazlı detay görüntüleme için özel bir kayıt oluştur
+                            const materialDetailRecord = {
+                              id: `material_${material.id}`,
+                              maliyetTuru: 'material_pricing',
+                              malzemeTuru: material.malzemeTuru,
+                              maliyet: material.alisKgFiyati,
+                              tarih: material.guncellemeTarihi || new Date().toISOString(),
+                              durum: material.aktif ? 'aktif' : 'pasif',
+                              parcaKodu: `MAT-${material.malzemeTuru.toUpperCase()}`,
+                              aciklama: `${material.malzemeTuru} malzeme fiyat bilgileri - Alış: ₺${material.alisKgFiyati}/kg, Satış: ₺${material.satisKgFiyati}/kg`,
+                              // Ek malzeme verileri
+                              malzemeDetaylari: {
+                                malzemeTuru: material.malzemeTuru,
+                                alisKgFiyati: material.alisKgFiyati,
+                                satisKgFiyati: material.satisKgFiyati,
+                                fireGeriKazanimOrani: material.fireGeriKazanimOrani,
+                                hurdaGeriKazanimOrani: material.hurdaGeriKazanimOrani,
+                                aktif: material.aktif,
+                                aciklama: material.aciklama,
+                                guncellemeTarihi: material.guncellemeTarihi
+                              }
+                            };
+                            console.log('👁️ Malzeme detay görüntüleme:', materialDetailRecord);
+                            // TODO: handleViewDetails(materialDetailRecord);
+                          }}
+                          sx={{ color: 'info.main' }}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      
                       <IconButton
                         size="small"
                         onClick={() => handleEditMaterial(material)}
@@ -12355,6 +12795,44 @@ const CategoryProductionManagementComponent: React.FC<{
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
+                    {/* ✅ YENİ: Üretim Kaydı Detay Görüntüleme Butonu */}
+                    <Tooltip title="Üretim Kaydı Detaylarını Görüntüle">
+                      <IconButton 
+                        size="small" 
+                        onClick={() => {
+                          // Üretim kaydı bazlı detay görüntüleme için özel bir kayıt oluştur
+                          const productionDetailRecord = {
+                            id: `production_${production.id}`,
+                            maliyetTuru: 'production_record',
+                            aracModeli: production.displayName,
+                            aracKategorisi: production.kategori,
+                            maliyet: 0, // Üretim kaydında doğrudan maliyet yok
+                            tarih: production.createdAt || new Date().toISOString(),
+                            durum: production.isActive ? 'aktif' : 'pasif',
+                            parcaKodu: `PROD-${production.displayName.toUpperCase()}`,
+                            aciklama: `${production.displayName} üretim kaydı - ${production.donem} dönemi, ${production.uretilenAracSayisi} adet üretilen`,
+                            // Ek üretim verileri
+                            uretimDetaylari: {
+                              donem: production.donem,
+                              aracModeli: production.displayName,
+                              kategori: production.kategori,
+                              uretilenAracSayisi: production.uretilenAracSayisi,
+                              planlanmisUretim: production.planlanmisUretim,
+                              gerceklesmeOrani: production.gerceklesmeOrani,
+                              isActive: production.isActive,
+                              createdAt: production.createdAt,
+                              updatedAt: production.updatedAt
+                            }
+                          };
+                          console.log('👁️ Üretim kaydı detay görüntüleme:', productionDetailRecord);
+                          // TODO: handleViewDetails(productionDetailRecord);
+                        }}
+                        sx={{ color: 'info.main' }}
+                      >
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    
                     <IconButton 
                       size="small" 
                       color="primary"
