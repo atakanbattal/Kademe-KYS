@@ -4390,8 +4390,11 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         <IconButton 
                           size="small" 
                           onClick={() => {
-                            console.log('👁️ Executive dashboard detay görüntüleme:', record);
-                            // TODO: handleViewDetails(record);
+                            if ((window as any).handleViewDetails) {
+                              (window as any).handleViewDetails(record);
+                            } else {
+                              console.log('Executive dashboard detay görüntüleme:', record);
+                            }
                           }}
                           sx={{ color: 'info.main' }}
                         >
@@ -7354,9 +7357,11 @@ const ProfessionalDataTable: React.FC<{
                                 kritiklikSeviyesi: index < 3 ? 'YÜKSEK' : index < 7 ? 'ORTA' : 'DÜŞÜK'
                               }
                             };
-                            // Şimdilik console.log ile test
-                            console.log('👁️ Birim detay görüntüleme:', unitDetailRecord);
-                            // TODO: handleViewDetails(unitDetailRecord);
+                            if ((window as any).handleViewDetails) {
+                              (window as any).handleViewDetails(unitDetailRecord);
+                            } else {
+                              console.log('Birim detay görüntüleme:', unitDetailRecord);
+                            }
                           }}
                           sx={{ color: 'info.main' }}
                         >
@@ -7486,11 +7491,14 @@ const ProfessionalDataTable: React.FC<{
                     <Tooltip title="Detayları Görüntüle">
                       <IconButton 
                         size="small" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log('👁️ Default table detay görüntüleme:', item);
-                          // TODO: handleViewDetails(item);
-                        }}
+                                                  onClick={(e) => {
+                            e.stopPropagation();
+                            if ((window as any).handleViewDetails) {
+                              (window as any).handleViewDetails(item);
+                            } else {
+                              console.log('Default table detay görüntüleme:', item);
+                            }
+                          }}
                         sx={{ color: 'info.main' }}
                       >
                         <VisibilityIcon fontSize="small" />
@@ -8353,10 +8361,19 @@ const ProfessionalDataTable: React.FC<{
 
   // ✅ YENİ: Detay görüntüleme fonksiyonu
   const handleViewDetails = useCallback((entry: any) => {
-    console.log('👁️ Detay görüntüleme başlatıldı - Kayıt:', entry);
+    console.log('Detay görüntüleme başlatıldı - Kayıt:', entry);
     setSelectedDetailEntry(entry);
     setDetailDialogOpen(true);
   }, []);
+
+  // ✅ Global erişim için window'a ekle
+  useEffect(() => {
+    (window as any).handleViewDetails = handleViewDetails;
+    
+    return () => {
+      delete (window as any).handleViewDetails;
+    };
+  }, [handleViewDetails]);
 
   // ✅ PROFESYONEL: Otomatik Veri Kurtarma Fonksiyonu (Arkaplanda çalışır)
   const autoRecoverDataFromBackup = useCallback(() => {
@@ -9622,7 +9639,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 <Card sx={{ mb: 2 }}>
                   <CardContent>
                     <Typography variant="h6" color="primary" gutterBottom>
-                      📋 Temel Bilgiler
+                      Temel Bilgiler
                     </Typography>
                     <Grid container spacing={2}>
                       <Grid item xs={12} md={6}>
@@ -9678,7 +9695,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 <Card sx={{ mb: 2 }}>
                   <CardContent>
                     <Typography variant="h6" color="primary" gutterBottom>
-                      🔧 Teknik Detaylar
+                      Teknik Detaylar
                     </Typography>
                     <Grid container spacing={2}>
                       {selectedDetailEntry.parcaKodu && (
@@ -9792,7 +9809,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 <Card>
                   <CardContent>
                     <Typography variant="h6" color="primary" gutterBottom>
-                      📅 Zaman ve Durum Bilgileri
+                      Zaman ve Durum Bilgileri
                     </Typography>
                     <Grid container spacing={2}>
                       <Grid item xs={12} md={6}>
@@ -9873,7 +9890,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   <Card>
                     <CardContent>
                       <Typography variant="h6" color="primary" gutterBottom>
-                        📝 Açıklama/Notlar
+                        Açıklama/Notlar
                       </Typography>
                       <Typography 
                         variant="body1"
@@ -10226,8 +10243,11 @@ const MaterialPricingManagementComponent: React.FC = () => {
                                 guncellemeTarihi: material.guncellemeTarihi
                               }
                             };
-                            console.log('👁️ Malzeme detay görüntüleme:', materialDetailRecord);
-                            // TODO: handleViewDetails(materialDetailRecord);
+                            if ((window as any).handleViewDetails) {
+                              (window as any).handleViewDetails(materialDetailRecord);
+                            } else {
+                              console.log('Malzeme detay görüntüleme:', materialDetailRecord);
+                            }
                           }}
                           sx={{ color: 'info.main' }}
                         >
@@ -12824,8 +12844,11 @@ const CategoryProductionManagementComponent: React.FC<{
                               updatedDate: production.updatedDate
                             }
                           };
-                          console.log('👁️ Üretim kaydı detay görüntüleme:', productionDetailRecord);
-                          // TODO: handleViewDetails(productionDetailRecord);
+                          if ((window as any).handleViewDetails) {
+                            (window as any).handleViewDetails(productionDetailRecord);
+                          } else {
+                            console.log('Üretim kaydı detay görüntüleme:', productionDetailRecord);
+                          }
                         }}
                         sx={{ color: 'info.main' }}
                       >
