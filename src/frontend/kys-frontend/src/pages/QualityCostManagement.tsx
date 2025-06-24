@@ -4385,12 +4385,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                           onClick={() => {
                             console.log('🔍 Executive Dashboard Görüntüle Butonu Tıklandı:', record);
                             if ((window as any).handleViewDetails) {
-                              console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
+                              console.log('✅ Global handleViewDetails bulundu, dialog açılıyor...');
                               (window as any).handleViewDetails(record);
                             } else {
                               console.log('❌ Global handleViewDetails bulunamadı!');
                               console.log('📊 Kayıt detayları:', record);
-                              alert('Detay görüntüleme servisi hazırlanıyor...');
+                              alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
                             }
                           }}
                           sx={{ color: 'info.main' }}
@@ -7356,7 +7356,7 @@ const ProfessionalDataTable: React.FC<{
                             } else {
                               console.log('❌ Global handleViewDetails bulunamadı!');
                               console.log('📊 Birim detay kayıtları:', unitDetailRecord);
-                              alert('Detay görüntüleme servisi hazırlanıyor...');
+                              alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
                             }
                           }}
                           sx={{ color: 'info.main' }}
@@ -7496,7 +7496,7 @@ const ProfessionalDataTable: React.FC<{
                             } else {
                               console.log('❌ Global handleViewDetails bulunamadı!');
                               console.log('📊 Kayıt detayları:', item);
-                              alert('Detay görüntüleme servisi hazırlanıyor...');
+                              alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
                             }
                           }}
                         sx={{ color: 'info.main' }}
@@ -8361,8 +8361,63 @@ const ProfessionalDataTable: React.FC<{
 
   // ✅ YENİ: Detay görüntüleme fonksiyonu
   const handleViewDetails = useCallback((entry: any) => {
-    console.log('Detay görüntüleme başlatıldı - Kayıt:', entry);
-    setSelectedDetailEntry(entry);
+    console.log('🔍 Detay görüntüleme başlatıldı - Ham kayıt:', entry);
+    
+    // ✅ VERİ NORMALİZASYONU - Farklı kaynak türlerinden gelen verileri standart forma çevir
+    const normalizedEntry = {
+      // Temel bilgiler - her kayıtta olması gereken
+      id: entry.id || `temp_${Date.now()}`,
+      maliyetTuru: entry.maliyetTuru || 'hurda',
+      maliyet: entry.maliyet || entry.total || 0,
+      tarih: entry.tarih || entry.createdDate || new Date().toISOString(),
+      durum: entry.durum || (entry.isActive ? 'aktif' : 'pasif') || 'aktif',
+      
+      // Birim/Departman bilgileri
+      birim: entry.birim || entry.departman || entry.unit || 'kalite_kontrol',
+      
+      // Araç bilgileri
+      arac: entry.arac || entry.aracModeli || entry.vehicle || null,
+      aracModeli: entry.aracModeli || entry.arac || entry.vehicle || null,
+      
+      // Parça/Ürün bilgileri
+      parcaKodu: entry.parcaKodu || entry.partCode || entry.urunKodu || null,
+      malzemeTuru: entry.malzemeTuru || entry.materialType || null,
+      
+      // Maliyet detayları
+      agirlik: entry.agirlik || entry.weight || 0,
+      miktar: entry.miktar || entry.quantity || entry.count || 0,
+      unit: entry.unit || entry.birim || 'adet',
+      birimMaliyet: entry.birimMaliyet || entry.unitCost || 0,
+      kgMaliyet: entry.kgMaliyet || entry.kgCost || 0,
+      parcaMaliyeti: entry.parcaMaliyeti || entry.partCost || 0,
+      
+      // Açıklama ve ek bilgiler
+      aciklama: entry.aciklama || entry.description || entry.issueDescription || null,
+      
+      // Zaman damgaları
+      olusturmaTarihi: entry.olusturmaTarihi || entry.createdDate || entry.tarih || new Date().toISOString(),
+      guncellemeTarihi: entry.guncellemeTarihi || entry.updatedDate || entry.updatedAt || null,
+      
+      // Özel analiz verileri (birim analizi, üretim kaydı vs.)
+      birimAnalizi: entry.birimAnalizi || null,
+      uretimDetaylari: entry.uretimDetaylari || null,
+      
+      // Ham veriyi de koru (debug için)
+      _rawData: entry
+    };
+    
+    console.log('✅ Veri normalizasyonu tamamlandı:', {
+      original: entry,
+      normalized: normalizedEntry,
+      missingFields: {
+        hasParcaKodu: !!normalizedEntry.parcaKodu,
+        hasMaliyet: normalizedEntry.maliyet > 0,
+        hasBirim: !!normalizedEntry.birim,
+        hasAciklama: !!normalizedEntry.aciklama
+      }
+    });
+    
+    setSelectedDetailEntry(normalizedEntry);
     setDetailDialogOpen(true);
   }, []);
 
@@ -9626,9 +9681,18 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={2}>
             <VisibilityIcon color="info" />
-            <Typography variant="h6">
-              Maliyet Kaydı Detayları - ID: {selectedDetailEntry?.id}
-            </Typography>
+            <Box flex={1}>
+              <Typography variant="h6" fontWeight="bold">
+                {selectedDetailEntry?.birimAnalizi ? 'Birim Analizi Detayları' :
+                 selectedDetailEntry?.uretimDetaylari ? 'Üretim Kaydı Detayları' :
+                 'Maliyet Kaydı Detayları'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedDetailEntry?.parcaKodu && `Parça: ${selectedDetailEntry.parcaKodu} • `}
+                {selectedDetailEntry?.birim && `Birim: ${selectedDetailEntry.birim} • `}
+                ID: {selectedDetailEntry?.id}
+              </Typography>
+            </Box>
           </Box>
         </DialogTitle>
         <DialogContent dividers>
@@ -9884,6 +9948,111 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 </Card>
               </Grid>
 
+              {/* ✅ YENİ: Birim Analizi Detayları */}
+              {selectedDetailEntry.birimAnalizi && (
+                <Grid item xs={12}>
+                  <Card sx={{ mb: 2, bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
+                    <CardContent>
+                      <Typography variant="h6" color="info.main" gutterBottom>
+                        Birim Analizi Detayları
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={3}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Birim Adı
+                            </Typography>
+                            <Typography variant="h6" fontWeight={600}>
+                              {selectedDetailEntry.birimAnalizi.birimAdi}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Toplam Maliyet
+                            </Typography>
+                            <Typography variant="h6" color="error.main" fontWeight={600}>
+                              ₺{selectedDetailEntry.birimAnalizi.toplamMaliyet.toLocaleString('tr-TR')}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Kayıt Sayısı
+                            </Typography>
+                            <Typography variant="h6" color="primary.main" fontWeight={600}>
+                              {selectedDetailEntry.birimAnalizi.kayitSayisi} kayıt
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={3}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Kritiklik Seviyesi
+                            </Typography>
+                            <Chip
+                              label={selectedDetailEntry.birimAnalizi.kritiklikSeviyesi}
+                              color={
+                                selectedDetailEntry.birimAnalizi.kritiklikSeviyesi === 'YÜKSEK' ? 'error' :
+                                selectedDetailEntry.birimAnalizi.kritiklikSeviyesi === 'ORTA' ? 'warning' : 'success'
+                              }
+                              size="medium"
+                            />
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
+              {/* ✅ YENİ: Üretim Kaydı Detayları */}
+              {selectedDetailEntry.uretimDetaylari && (
+                <Grid item xs={12}>
+                  <Card sx={{ mb: 2, bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
+                    <CardContent>
+                      <Typography variant="h6" color="success.main" gutterBottom>
+                        Üretim Kaydı Detayları
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Dönem
+                            </Typography>
+                            <Typography variant="h6" fontWeight={600}>
+                              {selectedDetailEntry.uretimDetaylari.donem}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Üretilen Araç Sayısı
+                            </Typography>
+                            <Typography variant="h6" color="success.main" fontWeight={600}>
+                              {selectedDetailEntry.uretimDetaylari.uretilenAracSayisi} adet
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Gerçekleşme Oranı
+                            </Typography>
+                            <Typography variant="h6" color="warning.main" fontWeight={600}>
+                              %{selectedDetailEntry.uretimDetaylari.gerceklesmeOrani || 0}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
               {/* Açıklama */}
               {selectedDetailEntry.aciklama && (
                 <Grid item xs={12}>
@@ -9903,6 +10072,35 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         }}
                       >
                         {selectedDetailEntry.aciklama}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
+              {/* ✅ YENİ: Ham Veri Debug (Sadece development için) */}
+              {process.env.NODE_ENV === 'development' && selectedDetailEntry._rawData && (
+                <Grid item xs={12}>
+                  <Card sx={{ bgcolor: 'grey.100' }}>
+                    <CardContent>
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        Debug - Ham Veri (Development Only)
+                      </Typography>
+                      <Typography 
+                        variant="body2"
+                        component="pre"
+                        sx={{ 
+                          bgcolor: 'grey.50',
+                          p: 2,
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'grey.200',
+                          fontSize: '0.75rem',
+                          overflow: 'auto',
+                          maxHeight: '200px'
+                        }}
+                      >
+                        {JSON.stringify(selectedDetailEntry._rawData, null, 2)}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -10250,7 +10448,7 @@ const MaterialPricingManagementComponent: React.FC = () => {
                             } else {
                               console.log('❌ Global handleViewDetails bulunamadı!');
                               console.log('📊 Malzeme detay kayıtları:', materialDetailRecord);
-                              alert('Detay görüntüleme servisi hazırlanıyor...');
+                              alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
                             }
                           }}
                           sx={{ color: 'info.main' }}
@@ -12855,7 +13053,7 @@ const CategoryProductionManagementComponent: React.FC<{
                           } else {
                             console.log('❌ Global handleViewDetails bulunamadı!');
                             console.log('📊 Üretim detay kayıtları:', productionDetailRecord);
-                            alert('Detay görüntüleme servisi hazırlanıyor...');
+                            alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
                           }
                         }}
                         sx={{ color: 'info.main' }}
