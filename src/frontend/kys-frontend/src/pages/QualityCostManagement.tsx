@@ -6619,6 +6619,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           type={modalData.type}
           openDOFForm={modalData.openDOFForm || openDOFForm}
           isDOFCreated={modalData.isDOFCreated || isDOFCreated}
+          handleViewDetails={handleViewDetails}
         />
           )}
         </DialogContent>
@@ -7212,7 +7213,8 @@ const ProfessionalDataTable: React.FC<{
   type: 'highest-cost' | 'monthly-records' | 'problematic-unit' | 'part-analysis' | 'unit-analysis';
   openDOFForm?: (recordData: any) => void;
   isDOFCreated?: (recordData: any) => boolean;
-}> = ({ data, type, openDOFForm, isDOFCreated }) => {
+  handleViewDetails?: (entry: any) => void;
+}> = ({ data, type, openDOFForm, isDOFCreated, handleViewDetails }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -7350,11 +7352,14 @@ const ProfessionalDataTable: React.FC<{
                               }
                             };
                             console.log('🔍 Problematic Unit Görüntüle Butonu Tıklandı:', unitDetailRecord);
-                            if ((window as any).handleViewDetails) {
+                            if (handleViewDetails) {
+                              console.log('✅ Props handleViewDetails bulundu, çağırılıyor...');
+                              handleViewDetails(unitDetailRecord);
+                            } else if ((window as any).handleViewDetails) {
                               console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
                               (window as any).handleViewDetails(unitDetailRecord);
                             } else {
-                              console.log('❌ Global handleViewDetails bulunamadı!');
+                              console.log('❌ Hiçbir handleViewDetails bulunamadı!');
                               console.log('📊 Birim detay kayıtları:', unitDetailRecord);
                               alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
                             }
@@ -7490,11 +7495,14 @@ const ProfessionalDataTable: React.FC<{
                                                   onClick={(e) => {
                             e.stopPropagation();
                             console.log('🔍 Default Table Görüntüle Butonu Tıklandı:', item);
-                            if ((window as any).handleViewDetails) {
+                            if (handleViewDetails) {
+                              console.log('✅ Props handleViewDetails bulundu, çağırılıyor...');
+                              handleViewDetails(item);
+                            } else if ((window as any).handleViewDetails) {
                               console.log('✅ Global handleViewDetails bulundu, çağırılıyor...');
                               (window as any).handleViewDetails(item);
                             } else {
-                              console.log('❌ Global handleViewDetails bulunamadı!');
+                              console.log('❌ Hiçbir handleViewDetails bulunamadı!');
                               console.log('📊 Kayıt detayları:', item);
                               alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
                             }
