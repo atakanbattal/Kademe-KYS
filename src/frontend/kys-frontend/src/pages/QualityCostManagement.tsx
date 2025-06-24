@@ -12807,7 +12807,7 @@ const CategoryProductionManagementComponent: React.FC<{
                             aracModeli: production.displayName,
                             aracKategorisi: production.kategori,
                             maliyet: 0, // Üretim kaydında doğrudan maliyet yok
-                            tarih: production.createdAt || new Date().toISOString(),
+                            tarih: production.createdDate || new Date().toISOString(),
                             durum: production.isActive ? 'aktif' : 'pasif',
                             parcaKodu: `PROD-${production.displayName.toUpperCase()}`,
                             aciklama: `${production.displayName} üretim kaydı - ${production.donem} dönemi, ${production.uretilenAracSayisi} adet üretilen`,
@@ -12820,8 +12820,8 @@ const CategoryProductionManagementComponent: React.FC<{
                               planlanmisUretim: production.planlanmisUretim,
                               gerceklesmeOrani: production.gerceklesmeOrani,
                               isActive: production.isActive,
-                              createdAt: production.createdAt,
-                              updatedAt: production.updatedAt
+                              createdDate: production.createdDate,
+                              updatedDate: production.updatedDate
                             }
                           };
                           console.log('👁️ Üretim kaydı detay görüntüleme:', productionDetailRecord);
