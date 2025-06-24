@@ -727,6 +727,93 @@ export default function QualityCostManagement() {
   // ✅ REAL-TIME TRIGGER: localStorage değişikliklerini dinlemek için state
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0);
 
+  // ✅ PROFESYONEL: Sessiz Veri Koruma ve Otomatik Kurtarma Sistemi
+  useEffect(() => {
+    console.log('🛡️ Kalite Maliyet Yönetimi - Otomatik Veri Koruma Aktif');
+    
+    const performDataIntegrityCheck = () => {
+      try {
+        const mainData = localStorage.getItem('kys-cost-management-data');
+        const backupData = localStorage.getItem('kys-cost-management-data-backup');
+        
+        // Veri durumu analizi
+        const hasMainData = mainData && mainData !== '[]';
+        const hasBackupData = backupData;
+        
+        console.log('📊 Veri Durumu Analizi:', {
+          anaVeri: hasMainData ? `${JSON.parse(mainData).length} kayıt` : 'YOK',
+          backupVeri: hasBackupData ? 'MEVCUT' : 'YOK'
+        });
+        
+        // Otomatik backup oluşturma
+        if (hasMainData && !hasBackupData) {
+          const parsedMainData = JSON.parse(mainData);
+          if (Array.isArray(parsedMainData) && parsedMainData.length > 0) {
+            const backupObj = {
+              data: parsedMainData,
+              timestamp: new Date().toISOString(),
+              version: '2.1',
+              source: 'auto-protection-system',
+              checksum: parsedMainData.length
+            };
+            localStorage.setItem('kys-cost-management-data-backup', JSON.stringify(backupObj));
+            console.log('✅ Koruma sistemi: Otomatik backup oluşturuldu');
+          }
+        }
+        
+        // Gelişmiş sample data dedeksiyon sistemi
+        if (hasMainData) {
+          const parsedData = JSON.parse(mainData);
+          if (Array.isArray(parsedData)) {
+            // Sample data pattern analizi
+            const sampleDataPatterns = {
+              exactFifty: parsedData.length === 50,
+              allStartWith5001: parsedData.every(item => item.parcaKodu?.startsWith('5001')),
+              sameCreationDay: parsedData.filter(item => 
+                item.olusturmaTarihi && 
+                new Date(item.olusturmaTarihi).toDateString() === new Date().toDateString()
+              ).length > 40,
+              sequentialIds: parsedData.every((item, index) => item.id === (51 - index))
+            };
+            
+            const sampleDataScore = Object.values(sampleDataPatterns).filter(Boolean).length;
+            
+            if (sampleDataScore >= 3) {
+              console.log('⚠️ Yüksek olasılık sample data override tespit edildi (skor:', sampleDataScore, '/4)');
+              
+              // Otomatik kurtarma dene
+              if (hasBackupData) {
+                const backup = JSON.parse(backupData);
+                if (backup.data && Array.isArray(backup.data) && 
+                    backup.data.length > 0 && backup.data.length !== 50) {
+                  console.log('🔄 Otomatik kurtarma sistemi devreye giriyor...');
+                  localStorage.setItem('kys-cost-management-data', JSON.stringify(backup.data));
+                  console.log('✅ Kullanıcı verileri sessizce geri yüklendi');
+                  
+                  // Refresh tetikle
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 100);
+                }
+              }
+            }
+          }
+        }
+        
+      } catch (error) {
+        console.error('❌ Veri bütünlük kontrolü hatası:', error);
+      }
+    };
+    
+    // İlk kontrol
+    performDataIntegrityCheck();
+    
+    // Periyodik kontrol (5 saniyede bir)
+    const integrityInterval = setInterval(performDataIntegrityCheck, 5000);
+    
+    return () => clearInterval(integrityInterval);
+  }, []);
+
   // ✅ ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: Otomatik veri yenileme fonksiyonu
   const triggerDataRefresh = useCallback(() => {
     console.log('🔄 Veri yenileme tetiklendi...');
@@ -7490,12 +7577,68 @@ const ProfessionalDataTable: React.FC<{
   filteredData?: any[],
   onDataRefresh?: () => void
 }> = ({ onDataChange, filteredData = [], onDataRefresh }) => {
-  // ✅ Context7: Enhanced State Management with localStorage Persistence
+  // ✅ PROFESYONEL: Gelişmiş Veri Kurtarma ve Otomatik Güvenlik Sistemi
   const [costData, setCostData] = useState<any[]>(() => {
     try {
+      // Önce ana veriyi kontrol et
       const saved = localStorage.getItem('kys-cost-management-data');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
+      if (saved && saved !== '[]') {
+        const parsedData = JSON.parse(saved);
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+          // Sample data kontrol sistemi
+          const isSampleData = parsedData.length === 50 && 
+            parsedData.every(item => item.parcaKodu?.startsWith('5001'));
+          
+          if (isSampleData) {
+            console.log('⚠️ Sample data tespit edildi, backup kontrol ediliyor...');
+            
+            // Backup'tan gerçek veriyi kontrol et
+            const backup = localStorage.getItem('kys-cost-management-data-backup');
+            if (backup) {
+              try {
+                const backupData = JSON.parse(backup);
+                if (backupData.data && Array.isArray(backupData.data) && 
+                    backupData.data.length > 0 && backupData.data.length !== 50) {
+                  console.log('🔄 Gerçek kullanıcı verisi backup\'tan geri yükleniyor...');
+                  console.log('📊 Geri yüklenen kayıt sayısı:', backupData.data.length);
+                  
+                  // Backup verisini ana veriye geri yükle
+                  localStorage.setItem('kys-cost-management-data', JSON.stringify(backupData.data));
+                  return backupData.data;
+                }
+              } catch (backupError) {
+                console.error('❌ Backup kontrol hatası:', backupError);
+              }
+            }
+          }
+          
+          console.log('✅ Ana veriler yüklendi:', parsedData.length, 'kayıt');
+          return parsedData;
+        }
+      }
+      
+      // Ana veri yoksa backup'tan geri yükle
+      const backup = localStorage.getItem('kys-cost-management-data-backup');
+      if (backup) {
+        try {
+          const backupData = JSON.parse(backup);
+          if (backupData.data && Array.isArray(backupData.data) && backupData.data.length > 0) {
+            console.log('🔄 Backup\'tan otomatik geri yükleme:', backupData.data.length, 'kayıt');
+            console.log('📅 Backup tarihi:', backupData.timestamp);
+            
+            // Backup verisini ana veriye geri yükle
+            localStorage.setItem('kys-cost-management-data', JSON.stringify(backupData.data));
+            return backupData.data;
+          }
+        } catch (backupError) {
+          console.error('❌ Backup verisi yüklenemedi:', backupError);
+        }
+      }
+      
+      console.log('ℹ️ Yeni kullanıcı - veri bulunmadı');
+      return [];
+    } catch (error) {
+      console.error('❌ Veri yükleme hatası:', error);
       return [];
     }
   });
@@ -7646,27 +7789,69 @@ const ProfessionalDataTable: React.FC<{
     return sampleEntries;
   }, [maliyetTurleri, birimler, araclar]);
 
-  // ✅ Context7: Initialize Data with newest-first sorting and localStorage persistence
+  // ✅ VERİ KAYBI FİXİ: Sample data generation sadece component ilk yüklendiğinde çalışsın
   useEffect(() => {
-    // Only generate sample data if localStorage is empty
-    if (costData.length === 0) {
+    // VERİ GÜVENLİĞİ: localStorage'dan mevcut veriyi kontrol et
+    const existingData = localStorage.getItem('kys-cost-management-data');
+    
+    if (!existingData || existingData === '[]') {
+      // Sadece localStorage boş ise sample data oluştur
+      console.log('📊 localStorage boş - Sample data oluşturuluyor...');
       const data = generateSampleData();
-      // Sort by ID descending (newest first) following Context7 best practices
       const sortedData = data.sort((a, b) => b.id - a.id);
       setCostData(sortedData);
+      localStorage.setItem('kys-cost-management-data', JSON.stringify(sortedData));
     } else {
-      // If data exists, ensure it's sorted properly
-      costData.sort((a, b) => b.id - a.id);
+      // Mevcut veriyi yükle ve sırala
+      try {
+        const parsedData = JSON.parse(existingData);
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+          console.log('📂 Mevcut veriler yüklendi:', parsedData.length, 'kayıt');
+          const sortedData = parsedData.sort((a, b) => b.id - a.id);
+          setCostData(sortedData);
+        } else {
+          // Geçersiz veri varsa sample data oluştur
+          console.log('⚠️ Geçersiz veri tespit edildi - Sample data oluşturuluyor...');
+          const data = generateSampleData();
+          const sortedData = data.sort((a, b) => b.id - a.id);
+          setCostData(sortedData);
+          localStorage.setItem('kys-cost-management-data', JSON.stringify(sortedData));
+        }
+      } catch (error) {
+        console.error('❌ Veri yükleme hatası:', error);
+        // Hatalı veriyi temizle ve sample data oluştur
+        localStorage.removeItem('kys-cost-management-data');
+        const data = generateSampleData();
+        const sortedData = data.sort((a, b) => b.id - a.id);
+        setCostData(sortedData);
+        localStorage.setItem('kys-cost-management-data', JSON.stringify(sortedData));
+      }
     }
-  }, [generateSampleData]);
+  }, []); // 🔥 KRİTİK FİX: Dependencies kaldırıldı - sadece ilk render'da çalışacak
 
-  // ✅ Context7: Persist to localStorage whenever costData changes
+  // ✅ VERİ GÜVENLİĞİ: sadece kullanıcı aksiyonlarında localStorage'a kaydet
   useEffect(() => {
     if (costData.length > 0) {
       try {
-        localStorage.setItem('kys-cost-management-data', JSON.stringify(costData));
+        // VERİ KORUMA: Önce mevcut localStorage verisini kontrol et
+        const currentData = localStorage.getItem('kys-cost-management-data');
+        const newDataString = JSON.stringify(costData);
+        
+        // Sadece veri gerçekten değiştiyse kaydet (gereksiz kaydetmeleri önle)
+        if (currentData !== newDataString) {
+          console.log('💾 Veriler localStorage\'a kaydediliyor...', costData.length, 'kayıt');
+          localStorage.setItem('kys-cost-management-data', newDataString);
+          
+          // VERİ YEDEKLEME: Kritik verileri backup anahtarına da kaydet
+          const timestamp = new Date().toISOString();
+          localStorage.setItem('kys-cost-management-data-backup', JSON.stringify({
+            data: costData,
+            timestamp,
+            version: '2.0'
+          }));
+        }
       } catch (error) {
-        console.warn('localStorage save failed:', error);
+        console.error('❌ localStorage kaydetme hatası:', error);
       }
     }
   }, [costData]);
@@ -8065,7 +8250,36 @@ const ProfessionalDataTable: React.FC<{
         onDataChange?.(freshAnalytics);
       }, 100);
     }
-      }, [selectedEntry, costData]);
+  }, [selectedEntry, costData]);
+
+  // ✅ PROFESYONEL: Otomatik Veri Kurtarma Fonksiyonu (Arkaplanda çalışır)
+  const autoRecoverDataFromBackup = useCallback(() => {
+    try {
+      const backup = localStorage.getItem('kys-cost-management-data-backup');
+      if (backup) {
+        const backupData = JSON.parse(backup);
+        if (backupData.data && Array.isArray(backupData.data) && backupData.data.length > 0) {
+          console.log('🔄 Otomatik veri kurtarma başlatılıyor...');
+          console.log(`📊 Backup'ta ${backupData.data.length} kayıt bulundu`);
+          console.log(`📅 Backup tarihi: ${new Date(backupData.timestamp).toLocaleString('tr-TR')}`);
+          
+          setCostData(backupData.data);
+          localStorage.setItem('kys-cost-management-data', JSON.stringify(backupData.data));
+          
+          // Refresh işlemleri
+          onDataRefresh?.();
+          window.dispatchEvent(new CustomEvent('costDataUpdated'));
+          
+          console.log(`✅ Otomatik veri kurtarma tamamlandı: ${backupData.data.length} kayıt geri yüklendi`);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('❌ Otomatik veri kurtarma hatası:', error);
+      return false;
+    }
+  }, [onDataRefresh]);
 
   // ✅ DÖF/8D Integration Functions
   const getDOFStatusForRecord = useCallback((record: any) => {
@@ -8454,8 +8668,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         </Grid>
       </Grid>
 
-      {/* ✅ Context7: Simplified Controls - Only Add Button */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start' }}>
+      {/* ✅ PROFESYONEL: Sadece Ana İşlev Butonu */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-start', gap: 2 }}>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -8473,6 +8687,19 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         >
           Yeni Maliyet Kaydı Ekle
         </Button>
+        
+        {/* ✅ PROFESYONEL: Sadece Bilgi Göstergesi */}
+        <Chip
+          icon={<InfoIcon />}
+          label={`${costData.length} kayıt aktif`}
+          color="primary"
+          variant="outlined"
+          sx={{ 
+            ml: 1,
+            fontSize: '0.85rem',
+            fontWeight: 500
+          }}
+        />
       </Box>
 
       {/* Data Table */}
