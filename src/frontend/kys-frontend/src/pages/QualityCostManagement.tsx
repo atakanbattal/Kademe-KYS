@@ -162,32 +162,6 @@ type VehicleModel =
   | 'Özel Proje'
   | 'Protip';
 
-// ✅ DÜZELTME: Executive Dashboard için birim isimlerini düzeltiyorum
-interface DepartmentNameMapping {
-  [key: string]: string;
-}
-
-const DEPARTMENT_NAMES: DepartmentNameMapping = {
-  'mekanik_montaj': 'Mekanik Montaj',
-  'elektrikhane': 'Elektrikhane',
-  'boyahane': 'Boyahane',
-  'bukum': 'Büküm',
-  'kesim': 'Kesim',
-  'kalite_kontrol': 'Kalite Kontrol',
-  'arge': 'Ar-Ge',
-  'idari_isler': 'İdari İşler',  // ✅ DÜZELTME: Düzgün yazım
-  'uretim_planlama': 'Üretim Planlama',
-  'satin_alma': 'Satın Alma',
-  'satis': 'Satış',
-  'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetler',  // ✅ DÜZELTME: Düzgün yazım
-  'depo': 'Depo',
-  'kaynakhane': 'Kaynakhane'
-};
-
-// ✅ YENİ: Sıralama türü tanımı
-type SortType = 'date' | 'cost' | 'department' | 'material' | 'none';
-type SortDirection = 'asc' | 'desc';
-
 // Kategori ve model eşleştirmesi
 const VEHICLE_CATEGORIES: Record<VehicleCategory, VehicleModel[]> = {
   'Kompakt Araçlar': ['Aga2100', 'Aga3000', 'Aga6000'],
@@ -732,8 +706,6 @@ export default function QualityCostManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [sortBy, setSortBy] = useState<SortType>('none');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filteredCostData, setFilteredCostData] = useState([]);
   const [costData, setCostData] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -966,7 +938,7 @@ export default function QualityCostManagement() {
       'uretim_planlama': 'Planlama',
       'satin_alma': 'Tedarik',
       'satis': 'Satış',
-      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetler',
+      'satis_sonrasi_hizmetler': 'Satış Sonrası Hizmetler',
       'depo': 'Lojistik'
     };
     
@@ -1979,8 +1951,8 @@ export default function QualityCostManagement() {
       'Mekanik Montaj': 'Mekanik Montaj',
       'satin_alma': 'Satın Alma',
       'Satın Alma': 'Satın Alma',
-      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetleri',
-      'Satış Sonrası Hizmetleri': 'Satış Sonrası Hizmetleri',
+      'satis_sonrasi_hizmetler': 'Satış Sonrası Hizmetler',
+      'Satış Sonrası Hizmetler': 'Satış Sonrası Hizmetler',
       'uretim': 'Üretim',
       'Üretim': 'Üretim',
       'uretim_planlama': 'Üretim Planlama',
@@ -2011,7 +1983,7 @@ export default function QualityCostManagement() {
       'kesim': 'Kesim',
       'mekanik_montaj': 'Mekanik Montaj',
       'satin_alma': 'Satın Alma',
-      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetleri',
+      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetler',
       'uretim': 'Üretim',
       'uretim_planlama': 'Üretim Planlama',
       
@@ -6384,7 +6356,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   <MenuItem value="mekanik_montaj">Mekanik Montaj</MenuItem>
                   <MenuItem value="satin_alma">Satın Alma</MenuItem>
                   <MenuItem value="satis">Satış</MenuItem>
-                  <MenuItem value="satis_sonrasi_hizmetleri">Satış Sonrası Hizmetleri</MenuItem>
+                  <MenuItem value="satis_sonrasi_hizmetler">Satış Sonrası Hizmetler</MenuItem>
                   <MenuItem value="uretim_planlama">Üretim Planlama</MenuItem>
                 </Select>
               </FormControl>
@@ -7761,45 +7733,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
            <Button 
              startIcon={<EditIcon />}
              onClick={() => {
-               // ✅ DÜZELTME: Gerçek düzenleme fonksiyonalitesi
-               console.log('🔧 Düzenleme için kayıt:', globalSelectedDetailEntry);
-               
-               if (globalSelectedDetailEntry) {
-                 // Global dialog'u kapat
-                 setGlobalDetailDialogOpen(false);
-                 
-                 // Düzenleme formunu aç ve verileri yükle  
-                 setEditingEntry(globalSelectedDetailEntry);
-                 setFormData({
-                   maliyetTuru: globalSelectedDetailEntry.maliyetTuru || '',
-                   birim: globalSelectedDetailEntry.birim || '',
-                   arac: globalSelectedDetailEntry.arac || '',
-                   parcaKodu: globalSelectedDetailEntry.parcaKodu || '',
-                   maliyet: globalSelectedDetailEntry.maliyet || 0,
-                   sure: globalSelectedDetailEntry.sure || 0,
-                   birimMaliyet: globalSelectedDetailEntry.birimMaliyet || 0,
-                   agirlik: globalSelectedDetailEntry.agirlik || 0,
-                   kgMaliyet: globalSelectedDetailEntry.kgMaliyet || 0,
-                   parcaMaliyeti: globalSelectedDetailEntry.parcaMaliyeti || 0,
-                   tarih: globalSelectedDetailEntry.tarih ? globalSelectedDetailEntry.tarih.split('T')[0] : new Date().toISOString().split('T')[0],
-                   durum: globalSelectedDetailEntry.durum || 'aktif',
-                   aracKategorisi: globalSelectedDetailEntry.aracKategorisi || '',
-                   aracModeli: globalSelectedDetailEntry.aracModeli || '',
-                   atikTuru: globalSelectedDetailEntry.atikTuru || '',
-                   miktar: globalSelectedDetailEntry.miktar || 0,
-                   unit: globalSelectedDetailEntry.unit || 'adet',
-                   category: globalSelectedDetailEntry.category || '',
-                   aciklama: globalSelectedDetailEntry.aciklama || '',
-                   hurdaSatisFiyati: globalSelectedDetailEntry.hurdaSatisFiyati || 0,
-                   fireGeriKazanim: globalSelectedDetailEntry.fireGeriKazanim || 0,
-                   malzemeTuru: globalSelectedDetailEntry.malzemeTuru || '',
-                   includeLabor: globalSelectedDetailEntry.includeLabor || false
-                 });
-                 setDialogOpen(true);
-                 console.log('✅ Düzenleme formu açıldı');
-               } else {
-                 alert('Düzenlenecek kayıt bulunamadı!');
-               }
+               setGlobalDetailDialogOpen(false);
+               // Düzenleme açmak için gereken veriyi buraya ekleyebiliriz
+               console.log('Düzenleme için kayıt:', globalSelectedDetailEntry);
+               alert('Düzenleme özelliği yakında eklenecek!');
              }}
              variant="outlined"
            >
@@ -7826,8 +7763,6 @@ const ProfessionalDataTable: React.FC<{
 }> = ({ data, type, openDOFForm, isDOFCreated, handleViewDetails }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [sortBy, setSortBy] = useState<SortType>('none');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -7870,38 +7805,12 @@ const ProfessionalDataTable: React.FC<{
     return typeMap[type] || type;
   };
 
-  const handleSort = (sortType: SortType) => {
-    if (sortBy === sortType) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(sortType);
-      setSortDirection('desc');
-    }
-  };
 
-  const sortedData = useMemo(() => {
-    if (sortBy === 'none') return data;
-
-    const sorted = [...data].sort((a, b) => {
-      const aValue = a[sortBy];
-      const bValue = b[sortBy];
-
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      } else if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
-      } else {
-        return 0;
-      }
-    });
-
-    return sorted;
-  }, [data, sortBy, sortDirection]);
 
   const renderTableContent = () => {
     const startIndex = page * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
-    const paginatedData = sortedData.slice(startIndex, endIndex);
+    const paginatedData = data.slice(startIndex, endIndex);
 
     if (type === 'problematic-unit') {
       return (
@@ -8437,10 +8346,6 @@ const ProfessionalDataTable: React.FC<{
   // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  
-  // ✅ YENİ: Sıralama state'leri
-  const [sortBy, setSortBy] = useState<SortType>('none');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // ✅ Context7: Memoized Arrays to prevent infinite loops
   const maliyetTurleri = useMemo(() => [
@@ -8467,7 +8372,7 @@ const ProfessionalDataTable: React.FC<{
     { value: 'mekanik_montaj', label: 'Mekanik Montaj' },
     { value: 'satin_alma', label: 'Satın Alma' },
     { value: 'satis', label: 'Satış' },
-    { value: 'satis_sonrasi_hizmetleri', label: 'Satış Sonrası Hizmetleri' },
+    { value: 'satis_sonrasi_hizmetler', label: 'Satış Sonrası Hizmetler' },
     { value: 'ssh', label: 'SSH' },
     { value: 'uretim_planlama', label: 'Üretim Planlama' }
   ], []);
@@ -11503,39 +11408,12 @@ const MaterialPricingManagementComponent: React.FC = () => {
       aciklama: materialFormData.aciklama || ''
     };
 
-    // ✅ DÜZELTME: Birim maliyetleri kaydetme - localStorage'a kaydet
-    let updatedMaterials: MaterialPricing[];
-    
     if (editingMaterial) {
-      setMaterialPricings(prev => {
-        updatedMaterials = prev.map(mat => mat.id === editingMaterial.id ? materialData : mat);
-        // localStorage'a kaydet
-        localStorage.setItem('kys-material-pricings', JSON.stringify(updatedMaterials));
-        console.log('✅ Malzeme güncellemeleri localStorage\'a kaydedildi:', updatedMaterials.length);
-        return updatedMaterials;
-      });
+      setMaterialPricings(prev => 
+        prev.map(mat => mat.id === editingMaterial.id ? materialData : mat)
+      );
     } else {
-      setMaterialPricings(prev => {
-        updatedMaterials = [...prev, materialData];
-        // localStorage'a kaydet
-        localStorage.setItem('kys-material-pricings', JSON.stringify(updatedMaterials));
-        console.log('✅ Yeni malzeme localStorage\'a kaydedildi:', updatedMaterials.length);
-        return updatedMaterials;
-      });
-    }
-
-    // ✅ YENİ: Backup da oluştur
-    try {
-      const backupData = {
-        data: updatedMaterials,
-        timestamp: new Date().toISOString(),
-        operation: editingMaterial ? 'update' : 'create',
-        materialId: materialData.id
-      };
-      localStorage.setItem('kys-material-pricings-backup', JSON.stringify(backupData));
-      console.log('💾 Malzeme backup\'ı oluşturuldu');
-    } catch (error) {
-      console.error('❌ Malzeme backup hatası:', error);
+      setMaterialPricings(prev => [...prev, materialData]);
     }
 
     setMaterialFormOpen(false);
@@ -11544,7 +11422,7 @@ const MaterialPricingManagementComponent: React.FC = () => {
     
     // Başarı mesajı
     const action = editingMaterial ? 'güncellendi' : 'eklendi';
-    alert(`${materialFormData.malzemeTuru} malzeme fiyatı başarıyla ${action} ve kaydedildi!`);
+    alert(`${materialFormData.malzemeTuru} malzeme fiyatı başarıyla ${action}!`);
   };
 
   // Malzeme silme
@@ -13017,24 +12895,64 @@ const CostSettingsComponent: React.FC = () => {
     }));
   }, [maliyetTurleriConfig, departmanlar, agirlikMaliyetleri]);
 
-  // ✅ Context7: Initialize Cost Settings with Dependencies
+  // ✅ Context7: Initialize Cost Settings with Dependencies - ONLY ONCE
   useEffect(() => {
-    const configData = generateCostConfigurations();
-    if (costSettings.length === 0) {
-      setCostSettings(configData);
+    // İlk önce localStorage'dan kontrol et
+    try {
+      const savedSettings = localStorage.getItem('kys-cost-settings');
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        if (Array.isArray(parsedSettings) && parsedSettings.length > 0) {
+          console.log('📂 Kayıtlı birim maliyet ayarları yüklendi:', parsedSettings.length, 'ayar');
+          setCostSettings(parsedSettings);
+          return; // Kayıtlı ayarlar varsa çık
+        }
+      }
+    } catch (error) {
+      console.warn('Cost settings yükleme hatası:', error);
     }
-  }, [generateCostConfigurations, costSettings.length]);
 
-  // ✅ Context7: Persist Cost Settings to localStorage
+    // Sadece localStorage'da ayar yoksa yeni config oluştur
+    if (costSettings.length === 0) {
+      const configData = generateCostConfigurations();
+      setCostSettings(configData);
+      console.log('🔧 Varsayılan birim maliyet ayarları oluşturuldu:', configData.length, 'ayar');
+    }
+  }, []); // SADECE İLK RENDER'DA ÇALIŞ
+
+  // ✅ Context7: Persist Cost Settings to localStorage - GÜÇLÜ KAYDETME
   useEffect(() => {
     if (costSettings.length > 0) {
       try {
         localStorage.setItem('kys-cost-settings', JSON.stringify(costSettings));
+        console.log('💾 Birim maliyet ayarları localStorage\'a kaydedildi:', costSettings.length, 'ayar');
       } catch (error) {
         console.warn('localStorage save failed:', error);
       }
     }
   }, [costSettings]);
+
+  // ✅ KALICI VERİ KORUMA: Component mount olduğunda localStorage'dan cost settings'i yükle
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('kys-cost-settings');
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        if (Array.isArray(parsedSettings) && parsedSettings.length > 0) {
+          setCostSettings(parsedSettings);
+          console.log('📂 Kayıtlı birim maliyet ayarları yüklendi:', parsedSettings.length, 'ayar');
+          return; // Eğer kayıtlı ayarlar varsa, yeni config oluşturma
+        }
+      }
+    } catch (error) {
+      console.warn('Cost settings yükleme hatası:', error);
+    }
+    
+    // Sadece localStorage'da ayar yoksa yeni config oluştur
+    const configData = generateCostConfigurations();
+    setCostSettings(configData);
+    console.log('🔧 Varsayılan birim maliyet ayarları oluşturuldu:', configData.length, 'ayar');
+  }, []); // Sadece component mount'da çalış
 
   // ✅ Context7: Core CRUD Operations with useCallback Dependencies
   const handleAddConfiguration = useCallback(() => {
@@ -13124,14 +13042,15 @@ const CostSettingsComponent: React.FC = () => {
   }, []);
 
   const handleSaveConfiguration = useCallback(() => {
+    let updatedSettings;
+    
     if (editingConfig) {
       // Update existing
-      const updatedData = costSettings.map(item => 
+      updatedSettings = costSettings.map(item => 
         item.id === editingConfig.id 
           ? { ...item, ...configFormData, guncellemeTarihi: new Date().toISOString() }
           : item
       );
-      setCostSettings(updatedData);
     } else {
       // Add new
       const newConfig = {
@@ -13139,8 +13058,18 @@ const CostSettingsComponent: React.FC = () => {
         ...configFormData,
         olusturmaTarihi: new Date().toISOString()
       };
-      setCostSettings([...costSettings, newConfig]);
+      updatedSettings = [...costSettings, newConfig];
     }
+    
+    // ✅ IMMEDIATE localStorage SAVE: Anında kaydet
+    try {
+      localStorage.setItem('kys-cost-settings', JSON.stringify(updatedSettings));
+      console.log('💾 Birim maliyet ayarları anında localStorage\'a kaydedildi:', updatedSettings.length, 'ayar');
+    } catch (error) {
+      console.error('❌ localStorage immediate save failed:', error);
+    }
+    
+    setCostSettings(updatedSettings);
     setDialogOpen(false);
   }, [editingConfig, configFormData, costSettings]);
 
@@ -13152,7 +13081,17 @@ const CostSettingsComponent: React.FC = () => {
 
   const confirmDeleteConfiguration = useCallback(() => {
     if (selectedConfig) {
-      setCostSettings(costSettings.filter(item => item.id !== selectedConfig.id));
+      const updatedSettings = costSettings.filter(item => item.id !== selectedConfig.id);
+      
+      // ✅ IMMEDIATE localStorage SAVE
+      try {
+        localStorage.setItem('kys-cost-settings', JSON.stringify(updatedSettings));
+        console.log('💾 Maliyet ayarı silindi ve localStorage\'a kaydedildi:', selectedConfig.id);
+      } catch (error) {
+        console.error('❌ Maliyet ayarı silme kaydetme hatası:', error);
+      }
+      
+      setCostSettings(updatedSettings);
       setDeleteConfirmOpen(false);
       setSelectedConfig(null);
     }
@@ -13188,11 +13127,23 @@ const CostSettingsComponent: React.FC = () => {
     }
     
     // Update existing cost settings if any
-    setCostSettings(prev => prev.map(cs => 
-      cs.departman === departmanValue
-        ? { ...cs, birimMaliyet: saatMaliyet, guncellemeTarihi: new Date().toISOString() }
-        : cs
-    ));
+    setCostSettings(prev => {
+      const updatedSettings = prev.map(cs => 
+        cs.departman === departmanValue
+          ? { ...cs, birimMaliyet: saatMaliyet, guncellemeTarihi: new Date().toISOString() }
+          : cs
+      );
+      
+      // ✅ IMMEDIATE localStorage SAVE
+      try {
+        localStorage.setItem('kys-cost-settings', JSON.stringify(updatedSettings));
+        console.log('💾 Departman maliyet güncellemesi localStorage\'a kaydedildi:', departmanValue, saatMaliyet);
+      } catch (error) {
+        console.error('❌ Departman maliyet kaydetme hatası:', error);
+      }
+      
+      return updatedSettings;
+    });
     
     // Force re-render to show updated values
     setPage(prev => prev);
