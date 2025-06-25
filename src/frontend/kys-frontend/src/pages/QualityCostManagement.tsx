@@ -8401,7 +8401,6 @@ const ProfessionalDataTable: React.FC<{
   const maliyetTurleri = useMemo(() => [
     { value: 'hurda', label: 'Hurda Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: true },
     { value: 'yeniden_islem', label: 'Yeniden İşlem Maliyeti', requiresTime: true, timeUnit: 'dakika', requiresWeight: false, requiresMaterial: false },
-    { value: 'yeniden_islem_maliyeti', label: 'Yeniden İşlem Maliyeti (Adet Bazlı)', requiresTime: false, requiresWeight: false, requiresMaterial: false, supportsQuantity: true },
     { value: 'fire', label: 'Fire Maliyeti', requiresTime: false, requiresWeight: true, weightUnit: 'kg', requiresMaterial: true }, // NEW: Weight-based
     { value: 'garanti', label: 'Garanti Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: false },
     { value: 'iade', label: 'İade Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: false },
@@ -9924,24 +9923,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               </>
             ) : formData.maliyetTuru === 'hurda' ? (
               <>
-                {/* ✅ YENİ: Hurda için birim seçimi eklendi */}
-                <Grid item xs={12} md={3}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Hurda Birimi</InputLabel>
-                    <Select
-                      value={formData.unit || 'adet'}
-                      onChange={(e) => setFormData({...formData, unit: e.target.value as 'kg' | 'adet', agirlik: 0, miktar: 0})}
-                      label="Hurda Birimi"
-                    >
-                      
-                      <MenuItem value="adet">Adet</MenuItem>
-                    </Select>
-                    <FormHelperText>
-                      Sadece adet bazlı hurda maliyeti
-                    </FormHelperText>
-                  </FormControl>
-                </Grid>
-
                 {formData.unit === 'kg' ? (
                   <>
                     {/* ✅ YENİ: İşçilik ve Genel Gider Toggle - KG bazlı hurda için */}
