@@ -11545,10 +11545,10 @@ const CostSettingsComponent: React.FC<{
                 <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 180 }}>
                   Departman/Birim
                 </TableCell>
-                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>
+                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 200 }}>
                   Saatlik Maliyet (₺/saat)
                 </TableCell>
-                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>
+                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 200 }}>
                   Dakikalık Maliyet (₺/dk)
                 </TableCell>
                 <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 120 }}>
@@ -11578,22 +11578,29 @@ const CostSettingsComponent: React.FC<{
                     <TextField
                       type="number"
                       size="small"
-                      value={unitCostSettings[birim.value]?.saatlik || 0}
+                      value={Number(unitCostSettings[birim.value]?.saatlik || 0).toFixed(2)}
                       onChange={(e) => handleSaatlikChange(birim.value, parseFloat(e.target.value) || 0)}
                       InputProps={{
                         startAdornment: <InputAdornment position="start">₺</InputAdornment>,
-                        endAdornment: <InputAdornment position="end">/saat</InputAdornment>
+                        endAdornment: <InputAdornment position="end">/s</InputAdornment>
                       }}
                       sx={{ 
-                        width: 130,
+                        minWidth: 180,
+                        maxWidth: 200,
                         '& .MuiOutlinedInput-root': {
                           bgcolor: 'background.paper'
+                        },
+                        '& .MuiInputAdornment-root': {
+                          fontSize: '0.875rem'
                         }
                       }}
                       inputProps={{
                         step: 0.25,
                         min: 0,
-                        style: { textAlign: 'center' }
+                        style: { 
+                          textAlign: 'center',
+                          padding: '8px 4px'
+                        }
                       }}
                     />
                   </TableCell>
@@ -11602,22 +11609,29 @@ const CostSettingsComponent: React.FC<{
                     <TextField
                       type="number"
                       size="small"
-                      value={unitCostSettings[birim.value]?.dakikalik || 0}
+                      value={Number(unitCostSettings[birim.value]?.dakikalik || 0).toFixed(3)}
                       onChange={(e) => handleDakikalikChange(birim.value, parseFloat(e.target.value) || 0)}
                       InputProps={{
                         startAdornment: <InputAdornment position="start">₺</InputAdornment>,
                         endAdornment: <InputAdornment position="end">/dk</InputAdornment>
                       }}
                       sx={{ 
-                        width: 130,
+                        minWidth: 180,
+                        maxWidth: 200,
                         '& .MuiOutlinedInput-root': {
                           bgcolor: 'background.paper'
+                        },
+                        '& .MuiInputAdornment-root': {
+                          fontSize: '0.875rem'
                         }
                       }}
                       inputProps={{
                         step: 0.001,
                         min: 0,
-                        style: { textAlign: 'center' }
+                        style: { 
+                          textAlign: 'center',
+                          padding: '8px 4px'
+                        }
                       }}
                     />
                   </TableCell>
