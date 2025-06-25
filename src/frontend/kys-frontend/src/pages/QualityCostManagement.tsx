@@ -101,6 +101,9 @@ import {
   Science as ScienceIcon,
   LocalFireDepartment as LocalFireDepartmentIcon,
   SettingsBackupRestore as SettingsBackupRestoreIcon,
+  AccessTime as AccessTimeIcon,
+  Schedule as ScheduleIcon,
+  Update as UpdateIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -11537,22 +11540,70 @@ const CostSettingsComponent: React.FC<{
           </Button>
         </Box>
 
-        {/* Birim Maliyet Tablosu */}
-        <TableContainer component={Paper} sx={{ border: '1px solid', borderColor: 'divider' }}>
-          <Table size="small">
+        {/* Profesyonel Birim Maliyet Tablosu */}
+        <TableContainer 
+          component={Paper} 
+          sx={{ 
+            border: '2px solid', 
+            borderColor: 'primary.main',
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: 3
+          }}
+        >
+          <Table>
             <TableHead>
-              <TableRow sx={{ bgcolor: 'primary.main' }}>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 180 }}>
-                  Departman/Birim
+              <TableRow sx={{ 
+                background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                height: 60
+              }}>
+                <TableCell sx={{ 
+                  color: 'white', 
+                  fontWeight: 'bold', 
+                  fontSize: '1rem',
+                  minWidth: 200,
+                  py: 2
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <BusinessIcon />
+                    Departman/Birim
+                  </Box>
                 </TableCell>
-                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 200 }}>
-                  Saatlik Maliyet (₺/saat)
+                <TableCell align="center" sx={{ 
+                  color: 'white', 
+                  fontWeight: 'bold', 
+                  fontSize: '1rem',
+                  minWidth: 250,
+                  py: 2
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <AccessTimeIcon />
+                    Saatlik Maliyet
+                  </Box>
                 </TableCell>
-                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 200 }}>
-                  Dakikalık Maliyet (₺/dk)
+                <TableCell align="center" sx={{ 
+                  color: 'white', 
+                  fontWeight: 'bold', 
+                  fontSize: '1rem',
+                  minWidth: 250,
+                  py: 2
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <ScheduleIcon />
+                    Dakikalık Maliyet
+                  </Box>
                 </TableCell>
-                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 120 }}>
-                  Son Güncelleme
+                <TableCell align="center" sx={{ 
+                  color: 'white', 
+                  fontWeight: 'bold', 
+                  fontSize: '1rem',
+                  minWidth: 150,
+                  py: 2
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <UpdateIcon />
+                    Son Güncelleme
+                  </Box>
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -11561,85 +11612,135 @@ const CostSettingsComponent: React.FC<{
                 <TableRow 
                   key={birim.value}
                   sx={{ 
-                    '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
-                    '&:hover': { bgcolor: 'action.selected' }
+                    '&:nth-of-type(odd)': { bgcolor: 'grey.50' },
+                    '&:hover': { 
+                      bgcolor: 'primary.50',
+                      transform: 'scale(1.01)',
+                      transition: 'all 0.2s ease-in-out',
+                      boxShadow: 1
+                    },
+                    height: 70
                   }}
                 >
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <BusinessIcon color="primary" />
-                      <Typography variant="body2" fontWeight="500">
+                  <TableCell sx={{ py: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{
+                        p: 1,
+                        borderRadius: 2,
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <BusinessIcon fontSize="small" />
+                      </Box>
+                      <Typography variant="body1" fontWeight="600" color="text.primary">
                         {birim.label}
                       </Typography>
                     </Box>
                   </TableCell>
                   
                   <TableCell align="center">
-                    <TextField
-                      type="number"
-                      size="small"
-                      value={Number(unitCostSettings[birim.value]?.saatlik || 0).toFixed(2)}
-                      onChange={(e) => handleSaatlikChange(birim.value, parseFloat(e.target.value) || 0)}
-                      InputProps={{
-                        startAdornment: <InputAdornment position="start">₺</InputAdornment>,
-                        endAdornment: <InputAdornment position="end">/s</InputAdornment>
-                      }}
-                      sx={{ 
-                        minWidth: 180,
-                        maxWidth: 200,
-                        '& .MuiOutlinedInput-root': {
-                          bgcolor: 'background.paper'
-                        },
-                        '& .MuiInputAdornment-root': {
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                      inputProps={{
-                        step: 0.25,
-                        min: 0,
-                        style: { 
-                          textAlign: 'center',
-                          padding: '8px 4px'
-                        }
-                      }}
-                    />
+                    <Box sx={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      justifyContent: 'center',
+                      bgcolor: 'grey.50',
+                      p: 1,
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'divider'
+                    }}>
+                      <Typography variant="body2" color="primary" fontWeight="bold">
+                        ₺
+                      </Typography>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={Number(unitCostSettings[birim.value]?.saatlik || 0).toFixed(2)}
+                        onChange={(e) => handleSaatlikChange(birim.value, parseFloat(e.target.value) || 0)}
+                        variant="standard"
+                        sx={{ 
+                          width: 80,
+                          '& .MuiInput-root': {
+                            fontSize: '0.95rem',
+                            fontWeight: 'bold'
+                          },
+                          '& .MuiInput-input': {
+                            textAlign: 'center',
+                            padding: '4px 0'
+                          }
+                        }}
+                        inputProps={{
+                          step: 0.25,
+                          min: 0
+                        }}
+                      />
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 25 }}>
+                        /saat
+                      </Typography>
+                    </Box>
                   </TableCell>
                   
                   <TableCell align="center">
-                    <TextField
-                      type="number"
-                      size="small"
-                      value={Number(unitCostSettings[birim.value]?.dakikalik || 0).toFixed(3)}
-                      onChange={(e) => handleDakikalikChange(birim.value, parseFloat(e.target.value) || 0)}
-                      InputProps={{
-                        startAdornment: <InputAdornment position="start">₺</InputAdornment>,
-                        endAdornment: <InputAdornment position="end">/dk</InputAdornment>
-                      }}
-                      sx={{ 
-                        minWidth: 180,
-                        maxWidth: 200,
-                        '& .MuiOutlinedInput-root': {
-                          bgcolor: 'background.paper'
-                        },
-                        '& .MuiInputAdornment-root': {
-                          fontSize: '0.875rem'
-                        }
-                      }}
-                      inputProps={{
-                        step: 0.001,
-                        min: 0,
-                        style: { 
-                          textAlign: 'center',
-                          padding: '8px 4px'
-                        }
-                      }}
-                    />
+                    <Box sx={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      justifyContent: 'center',
+                      bgcolor: 'grey.50',
+                      p: 1,
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'divider'
+                    }}>
+                      <Typography variant="body2" color="primary" fontWeight="bold">
+                        ₺
+                      </Typography>
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={Number(unitCostSettings[birim.value]?.dakikalik || 0).toFixed(3)}
+                        onChange={(e) => handleDakikalikChange(birim.value, parseFloat(e.target.value) || 0)}
+                        variant="standard"
+                        sx={{ 
+                          width: 80,
+                          '& .MuiInput-root': {
+                            fontSize: '0.95rem',
+                            fontWeight: 'bold'
+                          },
+                          '& .MuiInput-input': {
+                            textAlign: 'center',
+                            padding: '4px 0'
+                          }
+                        }}
+                        inputProps={{
+                          step: 0.001,
+                          min: 0
+                        }}
+                      />
+                      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 25 }}>
+                        /dk
+                      </Typography>
+                    </Box>
                   </TableCell>
                   
-                  <TableCell align="center">
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date().toLocaleDateString('tr-TR')}
-                    </Typography>
+                  <TableCell align="center" sx={{ py: 2 }}>
+                    <Box sx={{ 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 0.5
+                    }}>
+                      <Typography variant="body2" fontWeight="500" color="text.primary">
+                        {new Date().toLocaleDateString('tr-TR')}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Bugün
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
