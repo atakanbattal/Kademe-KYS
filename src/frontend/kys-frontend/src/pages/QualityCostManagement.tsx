@@ -62,6 +62,7 @@ import {
   Timeline as TimelineIcon,
   Psychology as PsychologyIcon,
   Add as AddIcon,
+  Person as PersonIcon,
 
   Upload as UploadIcon,
   Search as SearchIcon,
@@ -104,6 +105,7 @@ import {
   AccessTime as AccessTimeIcon,
   Schedule as ScheduleIcon,
   Update as UpdateIcon,
+  Work as WorkIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -9934,15 +9936,42 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   />
                 </Grid>
 
-                {/* ⭐ YENİ: ETKİLENEN DİĞER BİRİMLER - YENİDEN İŞLEM MALİYETİ İÇİN */}
+                {/* ✅ ETKİLENEN BİRİMLER BÖLÜMÜ - YENİ PROFESYONELLEŞTİRİLMİŞ TASARIM */}
                 {formData.maliyetTuru === 'yeniden_islem' && (
                   <>
+                    <Grid item xs={12}>
+                      <Typography variant="h6" sx={{ 
+                        mb: 2, 
+                        color: 'orange.main',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}>
+                        <WorkIcon />
+                        Etkilenen Diğer Birimler
+                      </Typography>
+                    </Grid>
+
                     {/* Etkilenen birimler listesi */}
                     {(formData.ekBirimMaliyetleri || []).map((ekBirim: any, index: number) => (
                       <React.Fragment key={index}>
                         <Grid item xs={12}>
-                          <Paper sx={{ p: 2, bgcolor: 'orange.50', border: '1px solid', borderColor: 'orange.200' }}>
-                            <Grid container spacing={2} alignItems="center">
+                          <Paper 
+                            elevation={2}
+                            sx={{ 
+                              p: 3,
+                              bgcolor: 'orange.50',
+                              border: '2px solid',
+                              borderColor: 'orange.200',
+                              borderRadius: 2,
+                              '&:hover': {
+                                borderColor: 'orange.400',
+                                boxShadow: '0 4px 12px rgba(255,152,0,0.15)'
+                              }
+                            }}
+                          >
+                            <Grid container spacing={3} alignItems="center">
                               <Grid item xs={12} md={3}>
                                 <FormControl fullWidth required>
                                   <InputLabel>Etkilenen Birim</InputLabel>
@@ -9950,7 +9979,46 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                                     value={ekBirim.birimAdi || ''}
                                     onChange={(e) => {
                                       const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
-                                      updatedEkBirimler[index] = { ...ekBirim, birimAdi: e.target.value };
+                                      const selectedBirim = e.target.value;
+                                      
+                                      // ✅ Birim değiştiğinde otomatik birim maliyeti yükle (ana birimde olduğu gibi)
+                                      const departmanSettings = [
+                                        { departman: 'arge', saatlikMaliyet: 35.00 },
+                                        { departman: 'boyahane', saatlikMaliyet: 18.00 },
+                                        { departman: 'bukum', saatlikMaliyet: 22.00 },
+                                        { departman: 'depo', saatlikMaliyet: 16.00 },
+                                        { departman: 'elektrikhane', saatlikMaliyet: 28.00 },
+                                        { departman: 'idari_isler', saatlikMaliyet: 24.00 },
+                                        { departman: 'kalite_kontrol', saatlikMaliyet: 27.00 },
+                                        { departman: 'kaynakhane', saatlikMaliyet: 30.00 },
+                                        { departman: 'kesim', saatlikMaliyet: 20.00 },
+                                        { departman: 'mekanik_montaj', saatlikMaliyet: 25.00 },
+                                        { departman: 'satin_alma', saatlikMaliyet: 22.00 },
+                                        { departman: 'satis', saatlikMaliyet: 26.00 },
+                                        { departman: 'ssh', saatlikMaliyet: 24.00 },
+                                        { departman: 'uretim_planlama', saatlikMaliyet: 28.00 }
+                                      ];
+                                      
+                                      const setting = departmanSettings.find(d => d.departman === selectedBirim);
+                                      const maliyetTuruInfo = getSelectedMaliyetTuruInfo();
+                                      let birimMaliyeti = 0; // Başlangıç değeri
+                                      
+                                      if (setting && maliyetTuruInfo) {
+                                        // Ana birimde olduğu gibi zaman birimini dönüştür
+                                        birimMaliyeti = setting.saatlikMaliyet;
+                                        if (maliyetTuruInfo.timeUnit === 'dakika') {
+                                          birimMaliyeti = Math.round((setting.saatlikMaliyet / 60) * 1000) / 1000;
+                                        }
+                                      }
+                                      
+                                      updatedEkBirimler[index] = { 
+                                        ...ekBirim, 
+                                        birimAdi: selectedBirim,
+                                        birimMaliyet: birimMaliyeti,
+                                        sure: ekBirim.sure || 0,
+                                        // Süre varsa otomatik hesapla
+                                        maliyet: (ekBirim.sure || 0) * birimMaliyeti
+                                      };
                                       setFormData({...formData, ekBirimMaliyetleri: updatedEkBirimler});
                                     }}
                                     label="Etkilenen Birim"
@@ -9961,47 +10029,85 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                                   </Select>
                                 </FormControl>
                               </Grid>
-                              <Grid item xs={12} md={3}>
+
+                              {/* ✅ Süre alanı */}
+                              <Grid item xs={12} md={2.5}>
                                 <TextField
                                   fullWidth
                                   required
-                                  label="Ek Maliyet (₺)"
+                                  label={`Süre (${getSelectedMaliyetTuruInfo()?.timeUnit || 'dk'})`}
                                   type="number"
-                                  value={ekBirim.maliyet || 0}
+                                  value={ekBirim.sure || 0}
                                   onChange={(e) => {
                                     const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
-                                    updatedEkBirimler[index] = { ...ekBirim, maliyet: parseFloat(e.target.value) || 0 };
+                                    const sure = parseFloat(e.target.value) || 0;
+                                    const birimMaliyet = ekBirim.birimMaliyet || 0;
+                                    updatedEkBirimler[index] = { 
+                                      ...ekBirim, 
+                                      sure: sure,
+                                      maliyet: sure * birimMaliyet
+                                    };
                                     setFormData({...formData, ekBirimMaliyetleri: updatedEkBirimler});
                                   }}
+
+                                />
+                              </Grid>
+
+                              {/* ✅ Birim Maliyet (Otomatik) */}
+                              <Grid item xs={12} md={2.5}>
+                                <TextField
+                                  fullWidth
+                                  label={`Birim Maliyet (₺/${getSelectedMaliyetTuruInfo()?.timeUnit || 'dk'})`}
+                                  type="number"
+                                  value={ekBirim.birimMaliyet || 0}
                                   InputProps={{
                                     startAdornment: <InputAdornment position="start">₺</InputAdornment>
                                   }}
+
+                                  disabled
+                                  color="success"
                                 />
                               </Grid>
-                              <Grid item xs={12} md={4}>
+
+                              {/* ✅ Toplam Maliyet (Hesaplanan) */}
+                              <Grid item xs={12} md={3}>
                                 <TextField
                                   fullWidth
-                                  label="Açıklama"
-                                  value={ekBirim.aciklama || ''}
-                                  onChange={(e) => {
-                                    const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
-                                    updatedEkBirimler[index] = { ...ekBirim, aciklama: e.target.value };
-                                    setFormData({...formData, ekBirimMaliyetleri: updatedEkBirimler});
+                                  label="Toplam Maliyet (₺)"
+                                  type="number"
+                                  value={ekBirim.maliyet || 0}
+                                  InputProps={{
+                                    startAdornment: <InputAdornment position="start">₺</InputAdornment>
                                   }}
-                                  placeholder="Ek işlem açıklaması"
+
+                                  disabled
+                                  color="info"
                                 />
                               </Grid>
-                              <Grid item xs={12} md={2}>
-                                <IconButton 
-                                  color="error" 
-                                  onClick={() => {
-                                    const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
-                                    updatedEkBirimler.splice(index, 1);
-                                    setFormData({...formData, ekBirimMaliyetleri: updatedEkBirimler});
-                                  }}
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
+                              
+                              {/* ✅ Silme Butonu */}
+                              <Grid item xs={12} md={1}>
+                                <Box display="flex" justifyContent="center">
+                                  <IconButton 
+                                    color="error" 
+                                    onClick={() => {
+                                      const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
+                                      updatedEkBirimler.splice(index, 1);
+                                      setFormData({...formData, ekBirimMaliyetleri: updatedEkBirimler});
+                                    }}
+                                    size="large"
+                                    sx={{ 
+                                      bgcolor: 'error.50',
+                                      '&:hover': { 
+                                        bgcolor: 'error.100',
+                                        transform: 'scale(1.1)'
+                                      },
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Box>
                               </Grid>
                             </Grid>
                           </Paper>
@@ -10018,44 +10124,119 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                           const yeniEkBirim = {
                             id: Date.now().toString(),
                             birimAdi: '',
-                            maliyet: 0,
-                            aciklama: ''
+                            sure: 0,
+                            birimMaliyet: 0,
+                            maliyet: 0
                           };
                           setFormData({
                             ...formData, 
                             ekBirimMaliyetleri: [...(formData.ekBirimMaliyetleri || []), yeniEkBirim]
                           });
                         }}
-                        sx={{ width: '100%' }}
+                        size="large"
+                        sx={{ 
+                          width: '100%',
+                          py: 2,
+                          borderColor: 'orange.main',
+                          color: 'orange.main',
+                          '&:hover': {
+                            borderColor: 'orange.dark',
+                            bgcolor: 'orange.50',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 8px rgba(255,152,0,0.2)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
                       >
                         Etkilenen Birim Ekle
                       </Button>
                     </Grid>
 
-                    {/* Toplam maliyet özeti */}
+                    {/* Toplam maliyet özeti - YENİ PROFESYONELLEŞTİRİLMİŞ TASARIM */}
                     {(formData.ekBirimMaliyetleri || []).length > 0 && (
                       <Grid item xs={12}>
-                        <Card sx={{ bgcolor: 'success.50', borderLeft: '4px solid', borderLeftColor: 'success.main' }}>
-                          <CardContent sx={{ py: 2 }}>
-                            <Typography variant="h6" color="success.main" gutterBottom>
+                        <Card 
+                          elevation={4}
+                          sx={{ 
+                            bgcolor: 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)',
+                            borderLeft: '6px solid',
+                            borderLeftColor: 'success.main',
+                            borderRadius: 3,
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <CardContent sx={{ p: 3 }}>
+                            <Typography variant="h5" sx={{ 
+                              color: 'success.dark',
+                              fontWeight: 700,
+                              mb: 3,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1
+                            }}>
+                              <MoneyIcon />
                               Toplam Maliyet Özeti
                             </Typography>
-                            <Grid container spacing={2}>
-                              <Grid item xs={6}>
-                                <Typography variant="body2">Ana Birim Maliyeti:</Typography>
-                                <Typography variant="h6">₺{calculateDynamicCost().toLocaleString('tr-TR')}</Typography>
+                            
+                            <Grid container spacing={3}>
+                              <Grid item xs={12} md={4}>
+                                <Paper 
+                                  elevation={2}
+                                  sx={{ 
+                                    p: 2, 
+                                    textAlign: 'center',
+                                    bgcolor: 'primary.50',
+                                    border: '1px solid',
+                                    borderColor: 'primary.200'
+                                  }}
+                                >
+                                  <Typography variant="body2" color="primary.dark" fontWeight={500}>
+                                    Ana Birim Maliyeti
+                                  </Typography>
+                                  <Typography variant="h4" color="primary.main" fontWeight={700}>
+                                    ₺{calculateDynamicCost().toLocaleString('tr-TR')}
+                                  </Typography>
+                                </Paper>
                               </Grid>
-                              <Grid item xs={6}>
-                                <Typography variant="body2">Etkilenen Birimler:</Typography>
-                                <Typography variant="h6">
-                                  ₺{(formData.ekBirimMaliyetleri || []).reduce((sum: number, eb: any) => sum + (eb.maliyet || 0), 0).toLocaleString('tr-TR')}
-                                </Typography>
+                              
+                              <Grid item xs={12} md={4}>
+                                <Paper 
+                                  elevation={2}
+                                  sx={{ 
+                                    p: 2, 
+                                    textAlign: 'center',
+                                    bgcolor: 'orange.50',
+                                    border: '1px solid',
+                                    borderColor: 'orange.200'
+                                  }}
+                                >
+                                  <Typography variant="body2" color="orange.dark" fontWeight={500}>
+                                    Etkilenen Birimler
+                                  </Typography>
+                                  <Typography variant="h4" color="orange.main" fontWeight={700}>
+                                    ₺{(formData.ekBirimMaliyetleri || []).reduce((sum: number, eb: any) => sum + (eb.maliyet || 0), 0).toLocaleString('tr-TR')}
+                                  </Typography>
+                                </Paper>
                               </Grid>
-                              <Grid item xs={12}>
-                                <Divider sx={{ my: 1 }} />
-                                <Typography variant="body1" fontWeight="bold" color="success.main">
-                                  Genel Toplam: ₺{(calculateDynamicCost() + (formData.ekBirimMaliyetleri || []).reduce((sum: number, eb: any) => sum + (eb.maliyet || 0), 0)).toLocaleString('tr-TR')}
-                                </Typography>
+                              
+                              <Grid item xs={12} md={4}>
+                                <Paper 
+                                  elevation={3}
+                                  sx={{ 
+                                    p: 2, 
+                                    textAlign: 'center',
+                                    bgcolor: 'success.50',
+                                    border: '2px solid',
+                                    borderColor: 'success.main'
+                                  }}
+                                >
+                                  <Typography variant="body2" color="success.dark" fontWeight={600}>
+                                    GENEL TOPLAM
+                                  </Typography>
+                                  <Typography variant="h3" color="success.main" fontWeight={800}>
+                                    ₺{(calculateDynamicCost() + (formData.ekBirimMaliyetleri || []).reduce((sum: number, eb: any) => sum + (eb.maliyet || 0), 0)).toLocaleString('tr-TR')}
+                                  </Typography>
+                                </Paper>
                               </Grid>
                             </Grid>
                           </CardContent>
