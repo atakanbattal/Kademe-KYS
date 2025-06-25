@@ -100,6 +100,7 @@ import {
   Tune as TuneIcon,
   Science as ScienceIcon,
   LocalFireDepartment as LocalFireDepartmentIcon,
+  SettingsBackupRestore as SettingsBackupRestoreIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -8768,36 +8769,48 @@ const ProfessionalDataTable: React.FC<{
   useEffect(() => {
     const maliyetTuruInfo = getSelectedMaliyetTuruInfo();
     
-    // Auto-fetch departmental cost with proper unit conversion
+    // ✅ YENİ: Birim Maliyet Ayarları Entegrasyonu
     if (maliyetTuruInfo?.requiresTime && formData.birim) {
-      const departmanSettings = [
-        { departman: 'arge', saatlikMaliyet: 600 },
-        { departman: 'boyahane', saatlikMaliyet: 380 },
-        { departman: 'bukum', saatlikMaliyet: 350 },
-        { departman: 'depo', saatlikMaliyet: 250 },
-        { departman: 'elektrikhane', saatlikMaliyet: 450 },
-        { departman: 'kalite_kontrol', saatlikMaliyet: 420 },
-        { departman: 'kaynakhane', saatlikMaliyet: 500 },
-        { departman: 'kesim', saatlikMaliyet: 360 },
-        { departman: 'mekanik_montaj', saatlikMaliyet: 320 },
-        { departman: 'satin_alma', saatlikMaliyet: 280 },
-        { departman: 'satis', saatlikMaliyet: 300 },
-        { departman: 'ssh', saatlikMaliyet: 400 },
-        { departman: 'uretim_planlama', saatlikMaliyet: 350 }
-      ];
-      
-      const setting = departmanSettings.find(d => d.departman === formData.birim);
-      if (setting) {
-        // ✅ Context7: Proper Unit Conversion Logic
-        let convertedRate = setting.saatlikMaliyet;
+      // Önce yeni birim maliyet ayarlarından al
+      if (typeof window !== 'undefined' && (window as any).getUnitCost) {
+        const timeUnit = maliyetTuruInfo.timeUnit || 'dakika';
+        const unitCost = (window as any).getUnitCost(formData.birim, timeUnit);
         
-        // Convert hourly rate to required time unit
-        if (maliyetTuruInfo.timeUnit === 'dakika') {
-          convertedRate = Math.round((setting.saatlikMaliyet / 60) * 100) / 100; // Convert hour to minute with precision
+        if (unitCost > 0 && Math.abs(unitCost - formData.birimMaliyet) > 0.01) {
+          setFormData(prev => ({ ...prev, birimMaliyet: unitCost }));
         }
+      } else {
+        // ✅ Fallback: Eski departman ayarları sistemi
+        const departmanSettings = [
+          { departman: 'arge', saatlikMaliyet: 35.00 },
+          { departman: 'boyahane', saatlikMaliyet: 18.00 },
+          { departman: 'bukum', saatlikMaliyet: 22.00 },
+          { departman: 'depo', saatlikMaliyet: 16.00 },
+          { departman: 'elektrikhane', saatlikMaliyet: 28.00 },
+          { departman: 'idari_isler', saatlikMaliyet: 24.00 },
+          { departman: 'kalite_kontrol', saatlikMaliyet: 27.00 },
+          { departman: 'kaynakhane', saatlikMaliyet: 30.00 },
+          { departman: 'kesim', saatlikMaliyet: 20.00 },
+          { departman: 'mekanik_montaj', saatlikMaliyet: 25.00 },
+          { departman: 'satin_alma', saatlikMaliyet: 22.00 },
+          { departman: 'satis', saatlikMaliyet: 26.00 },
+          { departman: 'ssh', saatlikMaliyet: 24.00 },
+          { departman: 'uretim_planlama', saatlikMaliyet: 28.00 }
+        ];
         
-        if (Math.abs(convertedRate - formData.birimMaliyet) > 0.01) {
-          setFormData(prev => ({ ...prev, birimMaliyet: convertedRate }));
+        const setting = departmanSettings.find(d => d.departman === formData.birim);
+        if (setting) {
+          // ✅ Context7: Proper Unit Conversion Logic
+          let convertedRate = setting.saatlikMaliyet;
+          
+          // Convert hourly rate to required time unit
+          if (maliyetTuruInfo.timeUnit === 'dakika') {
+            convertedRate = Math.round((setting.saatlikMaliyet / 60) * 1000) / 1000; // Convert hour to minute with precision
+          }
+          
+          if (Math.abs(convertedRate - formData.birimMaliyet) > 0.01) {
+            setFormData(prev => ({ ...prev, birimMaliyet: convertedRate }));
+          }
         }
       }
     }
@@ -11333,23 +11346,38 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
   );
 };
 
-// ✅ YENİ: Birim Maliyet Ayarları Komponenti
+// ✅ YENİ: Birim Maliyet Ayarları Komponenti - TABLO FORMATINDA
 const CostSettingsComponent: React.FC<{
   filteredData?: any[],
   onDataRefresh?: () => void
 }> = ({ filteredData = [], onDataRefresh }) => {
-  const [costSettings, setCostSettings] = useState<any[]>([]);
-  const [settingFormOpen, setSettingFormOpen] = useState(false);
-  const [editingSetting, setEditingSetting] = useState<any>(null);
-  const [settingFormData, setSettingFormData] = useState<any>({});
+  const [unitCostSettings, setUnitCostSettings] = useState<{ [key: string]: { saatlik: number, dakikalik: number } }>({});
+
+  // Birimler listesi - görseldeki gibi
+  const birimler = useMemo(() => [
+    { value: 'arge', label: 'Ar-Ge' },
+    { value: 'boyahane', label: 'Boyahane' },
+    { value: 'bukum', label: 'Büküm' },
+    { value: 'depo', label: 'Depo' },
+    { value: 'elektrikhane', label: 'Elektrikhane' },
+    { value: 'idari_isler', label: 'İdari İşler' },
+    { value: 'kalite_kontrol', label: 'Kalite Kontrol' },
+    { value: 'kaynakhane', label: 'Kaynakhane' },
+    { value: 'kesim', label: 'Kesim' },
+    { value: 'mekanik_montaj', label: 'Mekanik Montaj' },
+    { value: 'satin_alma', label: 'Satın Alma' },
+    { value: 'satis', label: 'Satış' },
+    { value: 'ssh', label: 'SSH' },
+    { value: 'uretim_planlama', label: 'Üretim Planlama' }
+  ], []);
 
   // localStorage'dan ayarları yükle
   useEffect(() => {
-    const savedSettings = localStorage.getItem('unit-cost-settings');
+    const savedSettings = localStorage.getItem('unit-cost-settings-v2');
     if (savedSettings) {
       try {
         const parsedSettings = JSON.parse(savedSettings);
-        setCostSettings(parsedSettings);
+        setUnitCostSettings(parsedSettings);
       } catch (error) {
         console.error('Birim maliyet ayarları yüklenirken hata:', error);
         initializeDefaultSettings();
@@ -11361,123 +11389,114 @@ const CostSettingsComponent: React.FC<{
 
   // Varsayılan ayarları oluştur
   const initializeDefaultSettings = () => {
-    const defaultSettings = [
-      {
-        id: 'setting-1',
-        birimTuru: 'saat',
-        kategori: 'İşçilik',
-        label: 'Kaynakçı Saatlik Maliyet',
-        birimMaliyet: 25.50,
-        aciklama: 'Kaynakçı saatlik işçilik maliyeti',
-        aktif: true,
-        guncellemeTarihi: new Date().toISOString()
-      },
-      {
-        id: 'setting-2',
-        birimTuru: 'saat',
-        kategori: 'İşçilik',
-        label: 'Mekanik Montaj Saatlik Maliyet',
-        birimMaliyet: 22.75,
-        aciklama: 'Mekanik montaj saatlik işçilik maliyeti',
-        aktif: true,
-        guncellemeTarihi: new Date().toISOString()
-      },
-      {
-        id: 'setting-3',
-        birimTuru: 'adet',
-        kategori: 'Kalite',
-        label: 'Hatalı Ürün İşlem Maliyeti',
-        birimMaliyet: 45.00,
-        aciklama: 'Hatalı ürün işlem ve düzeltme maliyeti',
-        aktif: true,
-        guncellemeTarihi: new Date().toISOString()
-      }
-    ];
+    const defaultSettings: { [key: string]: { saatlik: number, dakikalik: number } } = {};
     
-    setCostSettings(defaultSettings);
-    localStorage.setItem('unit-cost-settings', JSON.stringify(defaultSettings));
+    birimler.forEach(birim => {
+      // Birim türüne göre varsayılan saatlik maliyetler
+      let defaultSaatlik = 25.00; // Genel varsayılan
+      
+      switch (birim.value) {
+        case 'kaynakhane':
+          defaultSaatlik = 30.00;
+          break;
+        case 'mekanik_montaj':
+          defaultSaatlik = 25.00;
+          break;
+        case 'elektrikhane':
+          defaultSaatlik = 28.00;
+          break;
+        case 'bukum':
+          defaultSaatlik = 22.00;
+          break;
+        case 'kesim':
+          defaultSaatlik = 20.00;
+          break;
+        case 'boyahane':
+          defaultSaatlik = 18.00;
+          break;
+        case 'kalite_kontrol':
+          defaultSaatlik = 27.00;
+          break;
+        case 'arge':
+          defaultSaatlik = 35.00;
+          break;
+        case 'idari_isler':
+          defaultSaatlik = 24.00;
+          break;
+        case 'satin_alma':
+          defaultSaatlik = 22.00;
+          break;
+        case 'satis':
+          defaultSaatlik = 26.00;
+          break;
+        case 'ssh':
+          defaultSaatlik = 24.00;
+          break;
+        case 'uretim_planlama':
+          defaultSaatlik = 28.00;
+          break;
+        case 'depo':
+          defaultSaatlik = 16.00;
+          break;
+        default:
+          defaultSaatlik = 25.00;
+      }
+      
+      defaultSettings[birim.value] = {
+        saatlik: defaultSaatlik,
+        dakikalik: parseFloat((defaultSaatlik / 60).toFixed(3))
+      };
+    });
+    
+    setUnitCostSettings(defaultSettings);
+    localStorage.setItem('unit-cost-settings-v2', JSON.stringify(defaultSettings));
   };
 
   // Ayarları localStorage'a kaydet
   useEffect(() => {
-    if (costSettings.length > 0) {
-      localStorage.setItem('unit-cost-settings', JSON.stringify(costSettings));
+    if (Object.keys(unitCostSettings).length > 0) {
+      localStorage.setItem('unit-cost-settings-v2', JSON.stringify(unitCostSettings));
+      
+      // Veri yenilenme olayını tetikle (maliyet kayıtları entegrasyonu için)
+      onDataRefresh?.();
     }
-  }, [costSettings]);
+  }, [unitCostSettings, onDataRefresh]);
 
-  // FAB Event Listener
-  useEffect(() => {
-    const handleAddNewSetting = () => {
-      handleAddSetting();
-    };
-
-    window.addEventListener('addNewCostSetting', handleAddNewSetting);
-    return () => {
-      window.removeEventListener('addNewCostSetting', handleAddNewSetting);
-    };
-  }, []);
-
-  // Yeni ayar ekleme
-  const handleAddSetting = () => {
-    setEditingSetting(null);
-    setSettingFormData({
-      birimTuru: 'saat',
-      kategori: 'İşçilik',
-      label: '',
-      birimMaliyet: 0,
-      aciklama: '',
-      aktif: true
-    });
-    setSettingFormOpen(true);
-  };
-
-  // Ayar düzenleme
-  const handleEditSetting = (setting: any) => {
-    setEditingSetting(setting);
-    setSettingFormData(setting);
-    setSettingFormOpen(true);
-  };
-
-  // Ayar kaydetme
-  const handleSaveSetting = () => {
-    if (!settingFormData.label || !settingFormData.birimMaliyet) {
-      alert('Lütfen ayar adı ve birim maliyet alanlarını doldurun');
-      return;
-    }
-
-    const settingData = {
-      id: editingSetting?.id || `setting-${Date.now()}`,
-      birimTuru: settingFormData.birimTuru,
-      kategori: settingFormData.kategori,
-      label: settingFormData.label,
-      birimMaliyet: settingFormData.birimMaliyet,
-      aciklama: settingFormData.aciklama || '',
-      aktif: settingFormData.aktif !== false,
-      guncellemeTarihi: new Date().toISOString()
-    };
-
-    if (editingSetting) {
-      setCostSettings(prev => 
-        prev.map(setting => setting.id === editingSetting.id ? settingData : setting)
-      );
-    } else {
-      setCostSettings(prev => [...prev, settingData]);
-    }
-
-    setSettingFormOpen(false);
-    setEditingSetting(null);
-    setSettingFormData({});
+  // Saatlik maliyet değiştirme
+  const handleSaatlikChange = (birimValue: string, saatlikMaliyet: number) => {
+    const dakikalikMaliyet = parseFloat((saatlikMaliyet / 60).toFixed(3));
     
-    const action = editingSetting ? 'güncellendi' : 'eklendi';
-    alert(`Birim maliyet ayarı başarıyla ${action}!`);
+    setUnitCostSettings(prev => ({
+      ...prev,
+      [birimValue]: {
+        saatlik: saatlikMaliyet,
+        dakikalik: dakikalikMaliyet
+      }
+    }));
   };
 
-  // Ayar silme
-  const handleDeleteSetting = (settingId: string) => {
-    if (window.confirm('Bu birim maliyet ayarını silmek istediğinizden emin misiniz?')) {
-      setCostSettings(prev => prev.filter(setting => setting.id !== settingId));
-    }
+  // Dakikalık maliyet değiştirme
+  const handleDakikalikChange = (birimValue: string, dakikalikMaliyet: number) => {
+    const saatlikMaliyet = parseFloat((dakikalikMaliyet * 60).toFixed(2));
+    
+    setUnitCostSettings(prev => ({
+      ...prev,
+      [birimValue]: {
+        saatlik: saatlikMaliyet,
+        dakikalik: dakikalikMaliyet
+      }
+    }));
   };
+
+  // Global fonksiyon - maliyet kayıtlarında kullanım için
+  useEffect(() => {
+    (window as any).getUnitCostSettings = () => unitCostSettings;
+    (window as any).getUnitCost = (birim: string, timeUnit: 'saat' | 'dakika') => {
+      const settings = unitCostSettings[birim];
+      if (!settings) return 0;
+      return timeUnit === 'saat' ? settings.saatlik : settings.dakikalik;
+    };
+  }, [unitCostSettings]);
 
   return (
     <Box>
@@ -11487,186 +11506,168 @@ const CostSettingsComponent: React.FC<{
           Birim Maliyet Ayarları
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          İşçilik, kalite kontrol ve diğer operasyonlar için birim maliyetleri ayarlayın
+          Her departman/birim için saatlik ve dakikalık maliyetleri ayarlayın. Bir değeri değiştirdiğinizde diğeri otomatik hesaplanacaktır.
         </Typography>
 
-        <Grid container spacing={3}>
-          {costSettings.map((setting) => (
-            <Grid item xs={12} md={6} lg={4} key={setting.id}>
-              <Card sx={{ 
-                height: '100%',
-                border: setting.aktif ? '2px solid' : '1px solid',
-                borderColor: setting.aktif ? 'success.main' : 'divider',
-                '&:hover': { 
-                  transform: 'translateY(-2px)',
-                  boxShadow: 4 
-                },
-                transition: 'all 0.2s'
-              }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Chip 
-                      label={setting.kategori}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                    />
-                    <Box>
-                      <IconButton size="small" onClick={() => handleEditSetting(setting)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => handleDeleteSetting(setting.id)}>
-                        <DeleteIcon />
-                      </IconButton>
+        {/* Maliyetleri Sıfırlama Butonu */}
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={() => {
+              if (window.confirm('Tüm birim maliyetlerini varsayılan değerlere sıfırlamak istediğinizden emin misiniz?')) {
+                initializeDefaultSettings();
+              }
+            }}
+            startIcon={<SettingsBackupRestoreIcon />}
+          >
+            Varsayılan Değerlere Sıfırla
+          </Button>
+        </Box>
+
+        {/* Birim Maliyet Tablosu */}
+        <TableContainer component={Paper} sx={{ border: '1px solid', borderColor: 'divider' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'primary.main' }}>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold', minWidth: 180 }}>
+                  Departman/Birim
+                </TableCell>
+                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>
+                  Saatlik Maliyet (₺/saat)
+                </TableCell>
+                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 150 }}>
+                  Dakikalık Maliyet (₺/dk)
+                </TableCell>
+                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold', minWidth: 120 }}>
+                  Son Güncelleme
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {birimler.map((birim, index) => (
+                <TableRow 
+                  key={birim.value}
+                  sx={{ 
+                    '&:nth-of-type(odd)': { bgcolor: 'action.hover' },
+                    '&:hover': { bgcolor: 'action.selected' }
+                  }}
+                >
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <BusinessIcon color="primary" />
+                      <Typography variant="body2" fontWeight="500">
+                        {birim.label}
+                      </Typography>
                     </Box>
-                  </Box>
-
-                  <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>
-                    {setting.label}
-                  </Typography>
-
-                  <Typography variant="h4" color="primary" fontWeight="bold" sx={{ mb: 1 }}>
-                    ₺{setting.birimMaliyet.toLocaleString('tr-TR')}
-                    <Typography component="span" variant="body2" color="text.secondary">
-                      /{setting.birimTuru}
-                    </Typography>
-                  </Typography>
-
-                  {setting.aciklama && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {setting.aciklama}
-                    </Typography>
-                  )}
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Chip 
-                      label={setting.aktif ? 'Aktif' : 'Pasif'}
-                      color={setting.aktif ? 'success' : 'default'}
+                  </TableCell>
+                  
+                  <TableCell align="center">
+                    <TextField
+                      type="number"
                       size="small"
+                      value={unitCostSettings[birim.value]?.saatlik || 0}
+                      onChange={(e) => handleSaatlikChange(birim.value, parseFloat(e.target.value) || 0)}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+                        endAdornment: <InputAdornment position="end">/saat</InputAdornment>
+                      }}
+                      sx={{ 
+                        width: 130,
+                        '& .MuiOutlinedInput-root': {
+                          bgcolor: 'background.paper'
+                        }
+                      }}
+                      inputProps={{
+                        step: 0.25,
+                        min: 0,
+                        style: { textAlign: 'center' }
+                      }}
                     />
+                  </TableCell>
+                  
+                  <TableCell align="center">
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={unitCostSettings[birim.value]?.dakikalik || 0}
+                      onChange={(e) => handleDakikalikChange(birim.value, parseFloat(e.target.value) || 0)}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+                        endAdornment: <InputAdornment position="end">/dk</InputAdornment>
+                      }}
+                      sx={{ 
+                        width: 130,
+                        '& .MuiOutlinedInput-root': {
+                          bgcolor: 'background.paper'
+                        }
+                      }}
+                      inputProps={{
+                        step: 0.001,
+                        min: 0,
+                        style: { textAlign: 'center' }
+                      }}
+                    />
+                  </TableCell>
+                  
+                  <TableCell align="center">
                     <Typography variant="caption" color="text.secondary">
-                      {new Date(setting.guncellemeTarihi).toLocaleDateString('tr-TR')}
+                      {new Date().toLocaleDateString('tr-TR')}
                     </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-        {costSettings.length === 0 && (
-          <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'grey.50' }}>
-            <TuneIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
-              Henüz birim maliyet ayarı eklenmemiş
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Sağ alttaki + butonuna tıklayarak ilk ayarınızı ekleyin
-            </Typography>
-          </Paper>
-        )}
-      </Paper>
+        {/* Bilgilendirme Kartı */}
+        <Alert severity="info" sx={{ mt: 3 }}>
+          <Typography variant="body2">
+            <strong>Kullanım Bilgisi:</strong> Bu ayarlar, "Yeniden İşlem" maliyet türünde kayıt eklerken seçtiğiniz birime göre otomatik olarak uygulanacaktır. 
+            Saatlik veya dakikalık maliyet girdiğinizde, diğer değer otomatik hesaplanır (1 saat = 60 dakika).
+          </Typography>
+        </Alert>
 
-      {/* Ayar Ekleme/Düzenleme Dialog */}
-      <Dialog
-        open={settingFormOpen}
-        onClose={() => setSettingFormOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingSetting ? 'Birim Maliyet Ayarını Düzenle' : 'Yeni Birim Maliyet Ayarı'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Kategori</InputLabel>
-                <Select
-                  value={settingFormData.kategori || ''}
-                  onChange={(e) => setSettingFormData(prev => ({ ...prev, kategori: e.target.value }))}
-                  label="Kategori"
-                >
-                  <MenuItem value="İşçilik">İşçilik</MenuItem>
-                  <MenuItem value="Kalite">Kalite</MenuItem>
-                  <MenuItem value="Makine">Makine</MenuItem>
-                  <MenuItem value="Genel">Genel</MenuItem>
-                </Select>
-              </FormControl>
+        {/* Özet Bilgileri */}
+        <Paper sx={{ p: 2, mt: 3, bgcolor: 'grey.50' }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            Maliyet Özeti
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ textAlign: 'center', p: 2 }}>
+                <Typography variant="h4" color="success.main" fontWeight="bold">
+                  ₺{Object.values(unitCostSettings).reduce((sum, settings) => sum + settings.saatlik, 0).toFixed(2)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Toplam Saatlik Maliyet
+                </Typography>
+              </Box>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Birim Türü</InputLabel>
-                <Select
-                  value={settingFormData.birimTuru || ''}
-                  onChange={(e) => setSettingFormData(prev => ({ ...prev, birimTuru: e.target.value }))}
-                  label="Birim Türü"
-                >
-                  <MenuItem value="saat">Saat</MenuItem>
-                  <MenuItem value="adet">Adet</MenuItem>
-                  <MenuItem value="kg">KG</MenuItem>
-                  <MenuItem value="dakika">Dakika</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ textAlign: 'center', p: 2 }}>
+                <Typography variant="h4" color="warning.main" fontWeight="bold">
+                  ₺{(Object.values(unitCostSettings).reduce((sum, settings) => sum + settings.saatlik, 0) / birimler.length).toFixed(2)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Ortalama Saatlik Maliyet
+                </Typography>
+              </Box>
             </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Ayar Adı"
-                value={settingFormData.label || ''}
-                onChange={(e) => setSettingFormData(prev => ({ ...prev, label: e.target.value }))}
-                placeholder="Örn: Kaynakçı Saatlik Maliyet"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Birim Maliyet"
-                type="number"
-                value={settingFormData.birimMaliyet || ''}
-                onChange={(e) => setSettingFormData(prev => ({ ...prev, birimMaliyet: parseFloat(e.target.value) || 0 }))}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">₺</InputAdornment>,
-                  endAdornment: <InputAdornment position="end">/{settingFormData.birimTuru || 'birim'}</InputAdornment>
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Açıklama (Opsiyonel)"
-                value={settingFormData.aciklama || ''}
-                onChange={(e) => setSettingFormData(prev => ({ ...prev, aciklama: e.target.value }))}
-                placeholder="Bu ayar ne için kullanılıyor?"
-                multiline
-                rows={2}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={settingFormData.aktif !== false}
-                    onChange={(e) => setSettingFormData(prev => ({ ...prev, aktif: e.target.checked }))}
-                  />
-                }
-                label="Bu ayarı aktif olarak kullan"
-              />
+            <Grid item xs={12} md={4}>
+              <Box sx={{ textAlign: 'center', p: 2 }}>
+                <Typography variant="h4" color="info.main" fontWeight="bold">
+                  {birimler.length}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Toplam Birim Sayısı
+                </Typography>
+              </Box>
             </Grid>
           </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSettingFormOpen(false)}>
-            İptal
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleSaveSetting}
-          >
-            {editingSetting ? 'Güncelle' : 'Kaydet'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        </Paper>
+      </Paper>
     </Box>
   );
 };
