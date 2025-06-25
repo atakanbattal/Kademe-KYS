@@ -723,7 +723,11 @@ export default function QualityCostManagement() {
     date: new Date().toISOString().split('T')[0],
     status: 'active',
     includeLabor: false,
+    
+    // ✅ YENİ: Yeniden işlem maliyeti için etkilenen diğer birimler
+    ekBirimMaliyetleri: []
   });
+
   const [categoryFilter, setCategoryFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -8388,7 +8392,10 @@ const ProfessionalDataTable: React.FC<{
     malzemeTuru: '' as MaterialType | '',
     
     // ✅ YENİ: İşçilik ve genel gider toggle sistemi
-    includeLabor: false
+    includeLabor: false,
+    
+    // ✅ YENİ: Yeniden işlem maliyeti için etkilenen diğer birimler
+    ekBirimMaliyetleri: []
   });
 
   // ✅ Context7: filters now comes from global props (no local filter state needed)
@@ -8706,7 +8713,11 @@ const ProfessionalDataTable: React.FC<{
       
       // ✅ YENİ: İşçilik ve genel gider toggle sistemi
       includeLabor: false,
-    });
+    
+    // ✅ YENİ: Yeniden işlem maliyeti için etkilenen diğer birimler
+    ekBirimMaliyetleri: []
+  });
+
     setDialogOpen(true);
   }, []);
 
@@ -9056,7 +9067,9 @@ const ProfessionalDataTable: React.FC<{
       
       // ✅ YENİ: İşçilik ve genel gider toggle sistemi
       includeLabor: entry.includeLabor || false,
-    });
+      
+      // ✅ YENİ: Etkilenen diğer birimler
+      ekBirimMaliyetleri: entry.ekBirimMaliyetleri || [],    });
     setDialogOpen(true);
   }, []);
 
@@ -9920,6 +9933,144 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     helperText={`${formData.sure} × ₺${formData.birimMaliyet} = ₺${calculateDynamicCost()}`}
                   />
                 </Grid>
+
+                {/* ⭐ YENİ: ETKİLENEN DİĞER BİRİMLER - YENİDEN İŞLEM MALİYETİ İÇİN */}
+                {formData.maliyetTuru === 'yeniden_islem' && (
+                  <>
+                    <Grid item xs={12}>
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        <AlertTitle>Etkilenen Diğer Birimler</AlertTitle>
+                        Bir birimin hatası diğer birimlerin ek işlem yapmasına sebep oluyorsa buradan ekleyebilirsiniz.
+                      </Alert>
+                    </Grid>
+
+                    {/* Etkilenen birimler listesi */}
+                    {(formData.ekBirimMaliyetleri || []).map((ekBirim: any, index: number) => (
+                      <React.Fragment key={index}>
+                        <Grid item xs={12}>
+                          <Paper sx={{ p: 2, bgcolor: 'orange.50', border: '1px solid', borderColor: 'orange.200' }}>
+                            <Grid container spacing={2} alignItems="center">
+                              <Grid item xs={12} md={3}>
+                                <FormControl fullWidth required>
+                                  <InputLabel>Etkilenen Birim</InputLabel>
+                                  <Select
+                                    value={ekBirim.birimAdi || ''}
+                                    onChange={(e) => {
+                                      const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
+                                      updatedEkBirimler[index] = { ...ekBirim, birimAdi: e.target.value };
+                                      setFormData({...formData, ekBirimMaliyetleri: updatedEkBirimler});
+                                    }}
+                                    label="Etkilenen Birim"
+                                  >
+                                    {birimler.map(b => (
+                                      <MenuItem key={b.value} value={b.value}>{b.label}</MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
+                              </Grid>
+                              <Grid item xs={12} md={3}>
+                                <TextField
+                                  fullWidth
+                                  required
+                                  label="Ek Maliyet (₺)"
+                                  type="number"
+                                  value={ekBirim.maliyet || 0}
+                                  onChange={(e) => {
+                                    const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
+                                    updatedEkBirimler[index] = { ...ekBirim, maliyet: parseFloat(e.target.value) || 0 };
+                                    setFormData({...formData, ekBirimMaliyetleri: updatedEkBirimler});
+                                  }}
+                                  InputProps={{
+                                    startAdornment: <InputAdornment position="start">₺</InputAdornment>
+                                  }}
+                                />
+                              </Grid>
+                              <Grid item xs={12} md={4}>
+                                <TextField
+                                  fullWidth
+                                  label="Açıklama"
+                                  value={ekBirim.aciklama || ''}
+                                  onChange={(e) => {
+                                    const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
+                                    updatedEkBirimler[index] = { ...ekBirim, aciklama: e.target.value };
+                                    setFormData({...formData, ekBirimMaliyetleri: updatedEkBirimler});
+                                  }}
+                                  placeholder="Ek işlem açıklaması"
+                                />
+                              </Grid>
+                              <Grid item xs={12} md={2}>
+                                <IconButton 
+                                  color="error" 
+                                  onClick={() => {
+                                    const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
+                                    updatedEkBirimler.splice(index, 1);
+                                    setFormData({...formData, ekBirimMaliyetleri: updatedEkBirimler});
+                                  }}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Grid>
+                            </Grid>
+                          </Paper>
+                        </Grid>
+                      </React.Fragment>
+                    ))}
+
+                    {/* Yeni birim ekleme butonu */}
+                    <Grid item xs={12}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<AddIcon />}
+                        onClick={() => {
+                          const yeniEkBirim = {
+                            id: Date.now().toString(),
+                            birimAdi: '',
+                            maliyet: 0,
+                            aciklama: ''
+                          };
+                          setFormData({
+                            ...formData, 
+                            ekBirimMaliyetleri: [...(formData.ekBirimMaliyetleri || []), yeniEkBirim]
+                          });
+                        }}
+                        sx={{ width: '100%' }}
+                      >
+                        Etkilenen Birim Ekle
+                      </Button>
+                    </Grid>
+
+                    {/* Toplam maliyet özeti */}
+                    {(formData.ekBirimMaliyetleri || []).length > 0 && (
+                      <Grid item xs={12}>
+                        <Card sx={{ bgcolor: 'success.50', borderLeft: '4px solid', borderLeftColor: 'success.main' }}>
+                          <CardContent sx={{ py: 2 }}>
+                            <Typography variant="h6" color="success.main" gutterBottom>
+                              Toplam Maliyet Özeti
+                            </Typography>
+                            <Grid container spacing={2}>
+                              <Grid item xs={6}>
+                                <Typography variant="body2">Ana Birim Maliyeti:</Typography>
+                                <Typography variant="h6">₺{calculateDynamicCost().toLocaleString('tr-TR')}</Typography>
+                              </Grid>
+                              <Grid item xs={6}>
+                                <Typography variant="body2">Etkilenen Birimler:</Typography>
+                                <Typography variant="h6">
+                                  ₺{(formData.ekBirimMaliyetleri || []).reduce((sum: number, eb: any) => sum + (eb.maliyet || 0), 0).toLocaleString('tr-TR')}
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={12}>
+                                <Divider sx={{ my: 1 }} />
+                                <Typography variant="body1" fontWeight="bold" color="success.main">
+                                  Genel Toplam: ₺{(calculateDynamicCost() + (formData.ekBirimMaliyetleri || []).reduce((sum: number, eb: any) => sum + (eb.maliyet || 0), 0)).toLocaleString('tr-TR')}
+                                </Typography>
+                              </Grid>
+                            </Grid>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    )}
+                  </>
+                )}
               </>
             ) : formData.maliyetTuru === 'hurda' ? (
               <>
