@@ -8895,10 +8895,12 @@ const ProfessionalDataTable: React.FC<{
   }, []);
 
   const handleSave = useCallback(() => {
-    const finalCost = calculateDynamicCost();
+    const calculatedCost = calculateDynamicCost();
+    // 🔧 GÜVENLİ MALİYET HESAPLAMA: Eğer hesaplanamıyorsa manuel girişi kullan
+    const finalCost = calculatedCost > 0 ? calculatedCost : formData.maliyet || 0;
     const finalFormData = {
       ...formData,
-      maliyet: finalCost, // Use calculated cost for time-based entries
+      maliyet: finalCost, // Use calculated cost or manual entry
     };
 
     if (editingEntry) {
@@ -10728,18 +10730,13 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             variant="contained" 
             onClick={handleSave}
             disabled={
+              // 🔧 BASİTLEŞTİRİLMİŞ VALİDASYON: Sadece temel alanlar zorunlu
               !formData.maliyetTuru || 
               !formData.birim || 
               (!formData.aracKategorisi && !formData.arac) || // Kategori veya eski araç seçimi zorunlu
               (formData.aracKategorisi && formData.aracKategorisi !== 'Genel' && !formData.aracModeli) || // Genel hariç kategori seçilmişse model zorunlu
-              (formData.aracKategorisi === 'Genel' && !formData.aciklama?.trim()) || // Genel kategoride açıklama zorunlu
-              // Hurda ve fire için özel validasyon
-              (formData.maliyetTuru === 'hurda' ? 
-                (formData.unit === 'adet' ? (formData.miktar <= 0 || formData.birimMaliyet <= 0 || formData.agirlik <= 0) : formData.agirlik <= 0) :
-                formData.maliyetTuru === 'fire' ? 
-                  formData.agirlik <= 0 : 
-                  calculateDynamicCost() <= 0
-              )
+              (formData.aracKategorisi === 'Genel' && !formData.aciklama?.trim()) // Genel kategoride açıklama zorunlu
+              // 🚀 AĞIR VALİDASYON KALDIRILDI: calculateDynamicCost kontrolü kaldırıldı
             }
           >
             {editingEntry ? 'Güncelle' : 'Kaydet'}
