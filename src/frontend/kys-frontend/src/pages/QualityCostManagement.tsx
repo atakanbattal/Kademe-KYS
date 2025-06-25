@@ -244,7 +244,7 @@ interface MaterialPricing {
   aciklama?: string;
 }
 
-// Unified Quality Record - Hem kalitesizlik maliyeti hem araç takibi için
+// ✅ Context7: Enhanced Quality Cost Record with Batch Operations
 interface UnifiedQualityRecord {
   // Temel kayıt bilgileri
   id: string;
@@ -260,7 +260,26 @@ interface UnifiedQualityRecord {
   arac?: string;
   aciklama: string;
   
-  // YENİ: Araç bazlı tracking alanları
+  // ⭐ YENİ: ADET BAZLI YENİDEN İŞLEM MALİYETİ
+  adetBilgisi?: {
+    hataliAdet: number;        // Hatalı adet sayısı (1-15 arası)
+    birimMaliyet: number;      // Her bir adet için maliyet
+    toplamMaliyet: number;     // hataliAdet * birimMaliyet
+    islemTuru: 'yeniden_islem' | 'hurda' | 'ret' | 'fire';
+  };
+  
+  // ⭐ YENİ: FAZLADAN BİRİM MALİYETLERİ
+  ekBirimMaliyetleri?: {
+    id: string;
+    birimAdi: string;         // Kalite Kontrol, Montaj, vs.
+    hataSebebi: string;       // Kaynakhane hatası, vs.
+    olusmaSebebi: string;     // Ana birim hatası yüzünden ek iş
+    maliyet: number;
+    islemDetayi: string;
+    sorumluBirim: string;
+  }[];
+  
+  // Araç bazlı tracking alanları
   aracModeli?: VehicleModel;
   atikTuru?: WasteType;
   miktar?: number;          // adet cinsinden
@@ -268,7 +287,7 @@ interface UnifiedQualityRecord {
   unit?: 'adet' | 'kg' | 'lt' | 'ton';
   category?: string;        // Motor Parçaları, Şase Elemanları, vs.
   
-  // YENİ: Malzeme bazlı maliyet hesaplama
+  // Malzeme bazlı maliyet hesaplama
   malzemeTuru?: MaterialType;  // Malzeme cinsi
   malzemeAlisFiyati?: number;  // Otomatik doldurulur
   malzemeSatisFiyati?: number; // Otomatik doldurulur
@@ -6553,7 +6572,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           filteredData={globalFilteredData}
         />}
         {currentTab === 6 && <MaterialPricingManagementComponent />}
-                    {/* currentTab === 7 {currentTab === 7 && <CategoryProductionManagementComponent onTabChange={setCurrentTab} />}{currentTab === 7 && <CategoryProductionManagementComponent onTabChange={setCurrentTab} />} <CategoryProductionManagementComponent onTabChange={setCurrentTab} /> */}
+                    {currentTab === 7 && <CategoryProductionManagementComponent onTabChange={setCurrentTab} />}
         </Box>
 
       {/* Floating Action Button */}
@@ -8382,6 +8401,7 @@ const ProfessionalDataTable: React.FC<{
   const maliyetTurleri = useMemo(() => [
     { value: 'hurda', label: 'Hurda Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: true },
     { value: 'yeniden_islem', label: 'Yeniden İşlem Maliyeti', requiresTime: true, timeUnit: 'dakika', requiresWeight: false, requiresMaterial: false },
+    { value: 'yeniden_islem_maliyeti', label: 'Yeniden İşlem Maliyeti (Adet Bazlı)', requiresTime: false, requiresWeight: false, requiresMaterial: false, supportsQuantity: true },
     { value: 'fire', label: 'Fire Maliyeti', requiresTime: false, requiresWeight: true, weightUnit: 'kg', requiresMaterial: true }, // NEW: Weight-based
     { value: 'garanti', label: 'Garanti Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: false },
     { value: 'iade', label: 'İade Maliyeti', requiresTime: false, requiresWeight: false, requiresMaterial: false },
@@ -8781,7 +8801,7 @@ const ProfessionalDataTable: React.FC<{
         }
       } else {
         // ✅ Fallback: Eski departman ayarları sistemi
-        const departmanSettings = [
+      const departmanSettings = [
           { departman: 'arge', saatlikMaliyet: 35.00 },
           { departman: 'boyahane', saatlikMaliyet: 18.00 },
           { departman: 'bukum', saatlikMaliyet: 22.00 },
@@ -8796,20 +8816,20 @@ const ProfessionalDataTable: React.FC<{
           { departman: 'satis', saatlikMaliyet: 26.00 },
           { departman: 'ssh', saatlikMaliyet: 24.00 },
           { departman: 'uretim_planlama', saatlikMaliyet: 28.00 }
-        ];
+      ];
+      
+      const setting = departmanSettings.find(d => d.departman === formData.birim);
+      if (setting) {
+        // ✅ Context7: Proper Unit Conversion Logic
+        let convertedRate = setting.saatlikMaliyet;
         
-        const setting = departmanSettings.find(d => d.departman === formData.birim);
-        if (setting) {
-          // ✅ Context7: Proper Unit Conversion Logic
-          let convertedRate = setting.saatlikMaliyet;
-          
-          // Convert hourly rate to required time unit
-          if (maliyetTuruInfo.timeUnit === 'dakika') {
+        // Convert hourly rate to required time unit
+        if (maliyetTuruInfo.timeUnit === 'dakika') {
             convertedRate = Math.round((setting.saatlikMaliyet / 60) * 1000) / 1000; // Convert hour to minute with precision
-          }
-          
-          if (Math.abs(convertedRate - formData.birimMaliyet) > 0.01) {
-            setFormData(prev => ({ ...prev, birimMaliyet: convertedRate }));
+        }
+        
+        if (Math.abs(convertedRate - formData.birimMaliyet) > 0.01) {
+          setFormData(prev => ({ ...prev, birimMaliyet: convertedRate }));
           }
         }
       }
@@ -9808,62 +9828,64 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   {birimler.map(b => (
                     <MenuItem key={b.value} value={b.value}>{b.label}</MenuItem>
                   ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            {/* 🚗 YENİ: Kategori Bazlı Araç Seçimi */}
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Araç Kategorisi</InputLabel>
-                <Select
-                  value={formData.aracKategorisi}
-                  onChange={(e) => {
-                    const selectedCategory = e.target.value as VehicleCategory;
-                    setFormData({
-                      ...formData, 
-                      aracKategorisi: selectedCategory,
-                      aracModeli: '', // Reset model when category changes
-                      arac: '' // Clear old arac field
-                    });
-                  }}
-                  label="Araç Kategorisi"
-                >
-                  {aracKategorileri.map(kat => (
-                    <MenuItem key={kat.value} value={kat.value}>
-                      {kat.label}
-                    </MenuItem>
-                  ))}
+            {/* ⭐ ADET BAZLI YENİDEN İŞLEM MALİYETİ - BASIT */}
+            {formData.maliyetTuru === 'yeniden_islem_maliyeti' && (
+              <>
+                <Grid item xs={12}>
+                  <Alert severity="info">
+                    <strong>Adet Bazlı Maliyet:</strong> Aynı hatayı alan çoklu ürünler için
+                  </Alert>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Hatalı Adet Sayısı"
+                    type="number"
+                    value={formData.miktar || 1}
+                    onChange={(e) => {
+                      const adet = parseInt(e.target.value) || 1;
+                      const birimMaliyet = formData.birimMaliyet || 0;
+                      setFormData({...formData, miktar: adet, maliyet: adet * birimMaliyet});
+                    }}
+                    inputProps={{ min: 1, max: 100 }}
+                    helperText="Kaç adet ürün hata aldı?"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Birim Maliyet (₺/adet)"
+                    type="number"
+                    value={formData.birimMaliyet || 0}
+                    onChange={(e) => {
+                      const birimMaliyet = parseFloat(e.target.value) || 0;
+                      const adet = formData.miktar || 1;
+                      setFormData({...formData, birimMaliyet, maliyet: adet * birimMaliyet});
+                    }}
+                    inputProps={{ min: 0, step: 0.01 }}
+                    helperText="Her adet için yeniden işlem maliyeti"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 2, bgcolor: 'success.50' }}>
+                    <Typography variant="h6" color="success.main">
+                      Toplam: ₺{((formData.miktar || 1) * (formData.birimMaliyet || 0)).toLocaleString('tr-TR')}
+                    </Typography>
+                    <Typography variant="body2">
+                      {formData.miktar || 1} adet × ₺{(formData.birimMaliyet || 0)} = ₺{((formData.miktar || 1) * (formData.birimMaliyet || 0)).toLocaleString('tr-TR')}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </>
+            )}
+
                 </Select>
               </FormControl>
             </Grid>
 
-            {/* 🚗 YENİ: Kategori Seçilirse Alt Model Seçimi (Genel kategori hariç) */}
-            {formData.aracKategorisi && formData.aracKategorisi !== 'Genel' && (
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Araç Modeli</InputLabel>
-                  <Select
-                    value={formData.aracModeli}
-                    onChange={(e) => {
-                      const selectedModel = e.target.value as VehicleModel;
-                      const selectedArac = araclar.find(a => a.label === selectedModel);
-                      setFormData({
-                        ...formData, 
-                        aracModeli: selectedModel,
-                        arac: selectedArac?.value || '' // Backward compatibility
-                      });
-                    }}
-                    label="Araç Modeli"
-                  >
-                    {getModelsForCategory(formData.aracKategorisi).map(model => (
-                      <MenuItem key={model.value} value={model.label}>
-                        {model.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            )}
+            {/* ⭐ YENİ: ADET BAZLI YENİDEN İŞLEM MALİYETİ */}
             
             {/* 🏭 YENİ: Genel kategori seçildiğinde açıklama alanı zorunlu hale gelir */}
             {formData.aracKategorisi === 'Genel' && (
@@ -13236,6 +13258,618 @@ const SmartTargetManagementComponent: React.FC<{
             disabled={!targetFormData.hedefler}
           >
             Kaydet
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+// CategoryProductionManagementComponent ekleniyor...
+const CategoryProductionManagementComponent: React.FC<{ 
+  onTabChange?: (tabIndex: number) => void 
+}> = ({ onTabChange }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // ✅ YENİ: Kategori bazlı state'ler
+  const [categoryProductions, setCategoryProductions] = useState<MonthlyCategoryProduction[]>([]);
+  const [filteredProductions, setFilteredProductions] = useState<MonthlyCategoryProduction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<VehicleCategory | ''>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProduction, setEditingProduction] = useState<MonthlyCategoryProduction | null>(null);
+
+
+  // ✅ YENİ: Kategori bazlı form data
+  const [formData, setFormData] = useState<Partial<MonthlyCategoryProduction>>({
+    kategori: 'Araç Üstü Vakumlu',
+    displayName: 'Araç Üstü Vakumlu',
+    donem: new Date().toISOString().substring(0, 7), // YYYY-MM format
+    donemTuru: 'ay',
+    uretilenAracSayisi: 0,
+    planlanmisUretim: 0,
+    gerceklesmeOrani: 0,
+    categoryModels: VEHICLE_CATEGORIES['Araç Üstü Vakumlu'],
+    isActive: true,
+    aciklama: ''
+  });
+
+  // ✅ YENİ: Kategori bazlı storage key
+  const STORAGE_KEY = 'monthly_category_productions';
+
+  // Veri yükleme
+  useEffect(() => {
+    loadProductionData();
+  }, []);
+
+  // Filtreleme
+  useEffect(() => {
+    applyFilters();
+  }, [categoryProductions, searchTerm, selectedCategory, selectedMonth]);
+
+  // Event listeners
+  useEffect(() => {
+    const handleAddNewRecord = () => {
+      setEditingProduction(null);
+      setFormData({
+        kategori: 'Araç Üstü Vakumlu',
+        displayName: 'Araç Üstü Vakumlu',
+        donem: new Date().toISOString().substring(0, 7),
+        donemTuru: 'ay',
+        uretilenAracSayisi: 0,
+        planlanmisUretim: 0,
+        gerceklesmeOrani: 0,
+        categoryModels: VEHICLE_CATEGORIES['Araç Üstü Vakumlu'],
+        isActive: true,
+        aciklama: ''
+      });
+      setDialogOpen(true);
+    };
+
+    window.addEventListener('addNewProductionRecord', handleAddNewRecord);
+    
+    // Üretim sekmesine yönlendirme event listener'ı
+    const handleGoToProductionTab = () => {
+      if (onTabChange) {
+        onTabChange(7); // Aylık Üretim Sayıları sekmesi
+      }
+    };
+    
+    window.addEventListener('goToProductionTab', handleGoToProductionTab);
+    
+    return () => {
+      window.removeEventListener('addNewProductionRecord', handleAddNewRecord);
+      window.removeEventListener('goToProductionTab', handleGoToProductionTab);
+    };
+  }, []);
+
+  const loadProductionData = () => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        setCategoryProductions(data);
+      } else {
+        // Boş veri ile başla - kullanıcı manuel olarak ekleyecek
+        setCategoryProductions([]);
+      }
+    } catch (error) {
+      console.error('Kategori üretim verisi yüklenemedi:', error);
+      setCategoryProductions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateSampleCategoryProductionData = (): MonthlyCategoryProduction[] => {
+    const currentDate = new Date();
+    const sampleData: MonthlyCategoryProduction[] = [];
+    
+    // Son 6 ay için örnek veri
+    for (let i = 0; i < 6; i++) {
+      const month = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthString = month.toISOString().substring(0, 7);
+      
+      // Her kategori için veri oluştur
+      Object.entries(VEHICLE_CATEGORIES).forEach(([categoryName, models]) => {
+        const kategori = categoryName as VehicleCategory;
+        const baseProduction = Math.floor(Math.random() * 30) + 5; // 5-35 arası (kategori toplamı)
+        const planlanmis = baseProduction + Math.floor(Math.random() * 10);
+        const gerceklesme = planlanmis > 0 ? Math.round((baseProduction / planlanmis) * 100) : 0;
+        
+        sampleData.push({
+          id: `${monthString}-${kategori}-category`,
+          kategori,
+          displayName: kategori,
+          donem: monthString,
+          donemTuru: 'ay',
+          uretilenAracSayisi: baseProduction,
+          planlanmisUretim: planlanmis,
+          gerceklesmeOrani: gerceklesme,
+          categoryModels: models,
+          createdDate: new Date().toISOString(),
+          updatedDate: new Date().toISOString(),
+          createdBy: 'system',
+          isActive: true,
+          aciklama: `${monthString} dönemi ${kategori} kategorisi üretim verisi`
+        });
+      });
+    }
+    
+    return sampleData;
+  };
+
+  const applyFilters = () => {
+    let filtered = [...categoryProductions];
+
+    // Arama terimi
+    if (searchTerm) {
+      filtered = filtered.filter(prod => 
+        prod.kategori.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prod.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        prod.donem.includes(searchTerm) ||
+        (prod.aciklama && prod.aciklama.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Kategori filtresi
+    if (selectedCategory) {
+      filtered = filtered.filter(prod => prod.kategori === selectedCategory);
+    }
+
+    // Ay filtresi
+    if (selectedMonth) {
+      filtered = filtered.filter(prod => prod.donem === selectedMonth);
+    }
+
+    // Aktif olanlar önce
+    filtered.sort((a, b) => {
+      if (a.isActive && !b.isActive) return -1;
+      if (!a.isActive && b.isActive) return 1;
+      return new Date(b.donem).getTime() - new Date(a.donem).getTime();
+    });
+
+    setFilteredProductions(filtered);
+  };
+
+  const handleSaveProduction = () => {
+    if (!formData.kategori || !formData.donem || !formData.uretilenAracSayisi || !formData.planlanmisUretim) {
+      alert('Lütfen tüm zorunlu alanları doldurun!');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const gerceklesmeOrani = formData.planlanmisUretim && formData.planlanmisUretim > 0 
+      ? (formData.uretilenAracSayisi! / formData.planlanmisUretim) * 100 
+      : 100;
+
+    if (editingProduction) {
+      // Güncelleme
+      const updatedProductions = categoryProductions.map(prod => 
+        prod.id === editingProduction.id 
+          ? {
+              ...prod,
+              ...formData,
+              categoryModels: VEHICLE_CATEGORIES[formData.kategori!], // Kategori modelleri güncelle
+              gerceklesmeOrani,
+              updatedDate: now
+            } as MonthlyCategoryProduction
+          : prod
+      );
+      setCategoryProductions(updatedProductions);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProductions));
+    } else {
+      // Yeni kayıt
+      const newProduction: MonthlyCategoryProduction = {
+        id: `${formData.donem}-${formData.kategori}-${Date.now()}`,
+        kategori: formData.kategori!,
+        displayName: formData.kategori!,
+        donem: formData.donem!,
+        donemTuru: 'ay',
+        uretilenAracSayisi: formData.uretilenAracSayisi!,
+        planlanmisUretim: formData.planlanmisUretim!,
+        gerceklesmeOrani,
+        categoryModels: VEHICLE_CATEGORIES[formData.kategori!],
+        createdDate: now,
+        updatedDate: now,
+        createdBy: 'user',
+        isActive: formData.isActive ?? true,
+        aciklama: formData.aciklama
+      };
+      
+      const newProductions = [...categoryProductions, newProduction];
+      setCategoryProductions(newProductions);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newProductions));
+    }
+
+    setDialogOpen(false);
+    setEditingProduction(null);
+  };
+
+  const handleEditProduction = (production: MonthlyCategoryProduction) => {
+    setEditingProduction(production);
+    setFormData({
+      kategori: production.kategori,
+      displayName: production.displayName,
+      donem: production.donem,
+      donemTuru: production.donemTuru,
+      uretilenAracSayisi: production.uretilenAracSayisi,
+      planlanmisUretim: production.planlanmisUretim,
+      gerceklesmeOrani: production.gerceklesmeOrani,
+      categoryModels: production.categoryModels,
+      isActive: production.isActive,
+      aciklama: production.aciklama
+    });
+    setDialogOpen(true);
+  };
+
+  const handleDeleteProduction = (production: MonthlyCategoryProduction) => {
+    // Direkt sil - onay mesajı yok
+    const updatedProductions = categoryProductions.filter(prod => prod.id !== production.id);
+    setCategoryProductions(updatedProductions);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProductions));
+  };
+
+  const getStatusColor = (production: MonthlyCategoryProduction) => {
+    if (!production.isActive) return 'default';
+    if (!production.gerceklesmeOrani) return 'primary';
+    if (production.gerceklesmeOrani >= 100) return 'success';
+    if (production.gerceklesmeOrani >= 90) return 'warning';
+    return 'error';
+  };
+
+  const getStatusText = (production: MonthlyCategoryProduction) => {
+    if (!production.isActive) return 'Pasif';
+    if (!production.gerceklesmeOrani) return 'Veri Yok';
+    return `%${production.gerceklesmeOrani.toFixed(1)} Gerçekleşme`;
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <LinearProgress />
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>
+          Aylık üretim verileri yükleniyor...
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 3 }}>
+
+
+      {/* Filters */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Grid container spacing={3} alignItems="center">
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              placeholder="Araç modeli, kategori veya ay ile ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>Kategori</InputLabel>
+              <Select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value as VehicleCategory | '')}
+                label="Kategori"
+              >
+                <MenuItem value="">Tümü</MenuItem>
+                {Object.keys(VEHICLE_CATEGORIES).map(category => (
+                  <MenuItem key={category} value={category}>{category}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              type="month"
+              label="Ay Seçin"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('');
+                setSelectedMonth('');
+              }}
+            >
+              Temizle
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <FactoryIcon sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="h6">Toplam Kayıt</Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                {filteredProductions.length}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <DirectionsCarIcon sx={{ mr: 1, color: 'success.main' }} />
+                <Typography variant="h6">Bu Ay Üretilen</Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                {filteredProductions
+                  .filter(p => p.donem === new Date().toISOString().substring(0, 7))
+                  .reduce((sum, p) => sum + p.uretilenAracSayisi, 0)}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <TrendingUpIcon sx={{ mr: 1, color: 'warning.main' }} />
+                <Typography variant="h6">Ortalama Üretim</Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                {filteredProductions.length > 0 
+                  ? Math.round(filteredProductions.reduce((sum, p) => sum + p.uretilenAracSayisi, 0) / filteredProductions.length)
+                  : 0}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <TargetIcon sx={{ mr: 1, color: 'error.main' }} />
+                <Typography variant="h6">Hedef Tutma Oranı</Typography>
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                %{filteredProductions.length > 0 
+                  ? Math.round(filteredProductions
+                      .filter(p => p.gerceklesmeOrani && p.gerceklesmeOrani >= 90)
+                      .length / filteredProductions.length * 100)
+                  : 0}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Data Table */}
+      <TableContainer component={Paper} sx={{ mb: 3 }}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
+              <TableCell sx={{ fontWeight: 'bold' }}>Dönem</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Araç Modeli</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Üretilen</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Planlanan</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Gerçekleşme</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Birim Hedefler</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Durum</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>İşlemler</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredProductions.map((production) => (
+              <TableRow key={production.id}>
+                <TableCell>
+                  <Chip 
+                    label={production.donem} 
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {production.displayName}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {production.kategori}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    {production.uretilenAracSayisi} adet
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {production.planlanmisUretim || '-'} adet
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={getStatusText(production)}
+                    color={getStatusColor(production)}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    Hedefler sekmesinden çekilir
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={production.isActive}
+                    onChange={(e) => {
+                      const updatedProductions = categoryProductions.map(p =>
+                        p.id === production.id ? { ...p, isActive: e.target.checked } : p
+                      );
+                      setCategoryProductions(updatedProductions);
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProductions));
+                    }}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    {/* ✅ YENİ: Üretim Kaydı Detay Görüntüleme Butonu */}
+                    <Tooltip title="Üretim Kaydı Detaylarını Görüntüle">
+                      <IconButton 
+                        size="small" 
+                        onClick={() => {
+                          // Üretim kaydı bazlı detay görüntüleme için özel bir kayıt oluştur
+                          const productionDetailRecord = {
+                            id: `production_${production.id}`,
+                            maliyetTuru: 'production_record',
+                            aracModeli: production.displayName,
+                            aracKategorisi: production.kategori,
+                            maliyet: 0, // Üretim kaydında doğrudan maliyet yok
+                            tarih: production.createdDate || new Date().toISOString(),
+                            durum: production.isActive ? 'aktif' : 'pasif',
+                            parcaKodu: `PROD-${production.displayName.toUpperCase()}`,
+                            aciklama: `${production.displayName} üretim kaydı - ${production.donem} dönemi, ${production.uretilenAracSayisi} adet üretilen`,
+                            // Ek üretim verileri
+                            uretimDetaylari: {
+                              donem: production.donem,
+                              aracModeli: production.displayName,
+                              kategori: production.kategori,
+                              uretilenAracSayisi: production.uretilenAracSayisi,
+                              planlanmisUretim: production.planlanmisUretim,
+                              gerceklesmeOrani: production.gerceklesmeOrani,
+                              isActive: production.isActive,
+                              createdDate: production.createdDate,
+                              updatedDate: production.updatedDate
+                            }
+                          };
+                          console.log('🔍 Production Table Görüntüle Butonu Tıklandı:', productionDetailRecord);
+                          if ((window as any).handleViewDetails) {
+                            (window as any).handleViewDetails(productionDetailRecord);
+                          }
+                        }}
+                        color="info"
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleEditProduction(production)}
+                      color="primary"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleDeleteProduction(production)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {editingProduction ? 'Üretim Kaydını Düzenle' : 'Yeni Üretim Kaydı'}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Kategori</InputLabel>
+                <Select
+                  value={formData.kategori || ''}
+                  onChange={(e) => {
+                    const kategori = e.target.value as VehicleCategory;
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      kategori,
+                      displayName: kategori,
+                      categoryModels: VEHICLE_CATEGORIES[kategori]
+                    }));
+                  }}
+                  label="Kategori"
+                >
+                  {Object.keys(VEHICLE_CATEGORIES).map(category => (
+                    <MenuItem key={category} value={category}>
+                      {category}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="month"
+                label="Dönem"
+                value={formData.donem || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, donem: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Üretilen Araç Sayısı"
+                value={formData.uretilenAracSayisi || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, uretilenAracSayisi: parseInt(e.target.value) || 0 }))}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Planlanan Üretim"
+                value={formData.planlanmisUretim || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, planlanmisUretim: parseInt(e.target.value) || 0 }))}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Açıklama"
+                value={formData.aciklama || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, aciklama: e.target.value }))}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>İptal</Button>
+          <Button variant="contained" onClick={handleSaveProduction}>
+            {editingProduction ? 'Güncelle' : 'Kaydet'}
           </Button>
         </DialogActions>
       </Dialog>
