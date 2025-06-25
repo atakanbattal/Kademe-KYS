@@ -9937,13 +9937,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 {/* ⭐ YENİ: ETKİLENEN DİĞER BİRİMLER - YENİDEN İŞLEM MALİYETİ İÇİN */}
                 {formData.maliyetTuru === 'yeniden_islem' && (
                   <>
-                    <Grid item xs={12}>
-                      <Alert severity="warning" sx={{ mb: 2 }}>
-                        <AlertTitle>Etkilenen Diğer Birimler</AlertTitle>
-                        Bir birimin hatası diğer birimlerin ek işlem yapmasına sebep oluyorsa buradan ekleyebilirsiniz.
-                      </Alert>
-                    </Grid>
-
                     {/* Etkilenen birimler listesi */}
                     {(formData.ekBirimMaliyetleri || []).map((ekBirim: any, index: number) => (
                       <React.Fragment key={index}>
