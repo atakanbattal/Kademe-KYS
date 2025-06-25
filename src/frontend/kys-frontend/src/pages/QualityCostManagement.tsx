@@ -162,6 +162,32 @@ type VehicleModel =
   | 'Özel Proje'
   | 'Protip';
 
+// ✅ DÜZELTME: Executive Dashboard için birim isimlerini düzeltiyorum
+interface DepartmentNameMapping {
+  [key: string]: string;
+}
+
+const DEPARTMENT_NAMES: DepartmentNameMapping = {
+  'mekanik_montaj': 'Mekanik Montaj',
+  'elektrikhane': 'Elektrikhane',
+  'boyahane': 'Boyahane',
+  'bukum': 'Büküm',
+  'kesim': 'Kesim',
+  'kalite_kontrol': 'Kalite Kontrol',
+  'arge': 'Ar-Ge',
+  'idari_isler': 'İdari İşler',  // ✅ DÜZELTME: Düzgün yazım
+  'uretim_planlama': 'Üretim Planlama',
+  'satin_alma': 'Satın Alma',
+  'satis': 'Satış',
+  'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetler',  // ✅ DÜZELTME: Düzgün yazım
+  'depo': 'Depo',
+  'kaynakhane': 'Kaynakhane'
+};
+
+// ✅ YENİ: Sıralama türü tanımı
+type SortType = 'date' | 'cost' | 'department' | 'material' | 'none';
+type SortDirection = 'asc' | 'desc';
+
 // Kategori ve model eşleştirmesi
 const VEHICLE_CATEGORIES: Record<VehicleCategory, VehicleModel[]> = {
   'Kompakt Araçlar': ['Aga2100', 'Aga3000', 'Aga6000'],
@@ -706,6 +732,8 @@ export default function QualityCostManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortBy, setSortBy] = useState<SortType>('none');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filteredCostData, setFilteredCostData] = useState([]);
   const [costData, setCostData] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -938,7 +966,7 @@ export default function QualityCostManagement() {
       'uretim_planlama': 'Planlama',
       'satin_alma': 'Tedarik',
       'satis': 'Satış',
-      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetleri',
+      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetler',
       'depo': 'Lojistik'
     };
     
@@ -7733,10 +7761,45 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
            <Button 
              startIcon={<EditIcon />}
              onClick={() => {
-               setGlobalDetailDialogOpen(false);
-               // Düzenleme açmak için gereken veriyi buraya ekleyebiliriz
-               console.log('Düzenleme için kayıt:', globalSelectedDetailEntry);
-               alert('Düzenleme özelliği yakında eklenecek!');
+               // ✅ DÜZELTME: Gerçek düzenleme fonksiyonalitesi
+               console.log('🔧 Düzenleme için kayıt:', globalSelectedDetailEntry);
+               
+               if (globalSelectedDetailEntry) {
+                 // Global dialog'u kapat
+                 setGlobalDetailDialogOpen(false);
+                 
+                 // Düzenleme formunu aç ve verileri yükle  
+                 setEditingEntry(globalSelectedDetailEntry);
+                 setFormData({
+                   maliyetTuru: globalSelectedDetailEntry.maliyetTuru || '',
+                   birim: globalSelectedDetailEntry.birim || '',
+                   arac: globalSelectedDetailEntry.arac || '',
+                   parcaKodu: globalSelectedDetailEntry.parcaKodu || '',
+                   maliyet: globalSelectedDetailEntry.maliyet || 0,
+                   sure: globalSelectedDetailEntry.sure || 0,
+                   birimMaliyet: globalSelectedDetailEntry.birimMaliyet || 0,
+                   agirlik: globalSelectedDetailEntry.agirlik || 0,
+                   kgMaliyet: globalSelectedDetailEntry.kgMaliyet || 0,
+                   parcaMaliyeti: globalSelectedDetailEntry.parcaMaliyeti || 0,
+                   tarih: globalSelectedDetailEntry.tarih ? globalSelectedDetailEntry.tarih.split('T')[0] : new Date().toISOString().split('T')[0],
+                   durum: globalSelectedDetailEntry.durum || 'aktif',
+                   aracKategorisi: globalSelectedDetailEntry.aracKategorisi || '',
+                   aracModeli: globalSelectedDetailEntry.aracModeli || '',
+                   atikTuru: globalSelectedDetailEntry.atikTuru || '',
+                   miktar: globalSelectedDetailEntry.miktar || 0,
+                   unit: globalSelectedDetailEntry.unit || 'adet',
+                   category: globalSelectedDetailEntry.category || '',
+                   aciklama: globalSelectedDetailEntry.aciklama || '',
+                   hurdaSatisFiyati: globalSelectedDetailEntry.hurdaSatisFiyati || 0,
+                   fireGeriKazanim: globalSelectedDetailEntry.fireGeriKazanim || 0,
+                   malzemeTuru: globalSelectedDetailEntry.malzemeTuru || '',
+                   includeLabor: globalSelectedDetailEntry.includeLabor || false
+                 });
+                 setDialogOpen(true);
+                 console.log('✅ Düzenleme formu açıldı');
+               } else {
+                 alert('Düzenlenecek kayıt bulunamadı!');
+               }
              }}
              variant="outlined"
            >
@@ -7763,6 +7826,8 @@ const ProfessionalDataTable: React.FC<{
 }> = ({ data, type, openDOFForm, isDOFCreated, handleViewDetails }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortBy, setSortBy] = useState<SortType>('none');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage);
@@ -7805,12 +7870,38 @@ const ProfessionalDataTable: React.FC<{
     return typeMap[type] || type;
   };
 
+  const handleSort = (sortType: SortType) => {
+    if (sortBy === sortType) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(sortType);
+      setSortDirection('desc');
+    }
+  };
 
+  const sortedData = useMemo(() => {
+    if (sortBy === 'none') return data;
+
+    const sorted = [...data].sort((a, b) => {
+      const aValue = a[sortBy];
+      const bValue = b[sortBy];
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      } else if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      } else {
+        return 0;
+      }
+    });
+
+    return sorted;
+  }, [data, sortBy, sortDirection]);
 
   const renderTableContent = () => {
     const startIndex = page * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
-    const paginatedData = data.slice(startIndex, endIndex);
+    const paginatedData = sortedData.slice(startIndex, endIndex);
 
     if (type === 'problematic-unit') {
       return (
@@ -8346,6 +8437,10 @@ const ProfessionalDataTable: React.FC<{
   // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  
+  // ✅ YENİ: Sıralama state'leri
+  const [sortBy, setSortBy] = useState<SortType>('none');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // ✅ Context7: Memoized Arrays to prevent infinite loops
   const maliyetTurleri = useMemo(() => [
@@ -11408,12 +11503,39 @@ const MaterialPricingManagementComponent: React.FC = () => {
       aciklama: materialFormData.aciklama || ''
     };
 
+    // ✅ DÜZELTME: Birim maliyetleri kaydetme - localStorage'a kaydet
+    let updatedMaterials: MaterialPricing[];
+    
     if (editingMaterial) {
-      setMaterialPricings(prev => 
-        prev.map(mat => mat.id === editingMaterial.id ? materialData : mat)
-      );
+      setMaterialPricings(prev => {
+        updatedMaterials = prev.map(mat => mat.id === editingMaterial.id ? materialData : mat);
+        // localStorage'a kaydet
+        localStorage.setItem('kys-material-pricings', JSON.stringify(updatedMaterials));
+        console.log('✅ Malzeme güncellemeleri localStorage\'a kaydedildi:', updatedMaterials.length);
+        return updatedMaterials;
+      });
     } else {
-      setMaterialPricings(prev => [...prev, materialData]);
+      setMaterialPricings(prev => {
+        updatedMaterials = [...prev, materialData];
+        // localStorage'a kaydet
+        localStorage.setItem('kys-material-pricings', JSON.stringify(updatedMaterials));
+        console.log('✅ Yeni malzeme localStorage\'a kaydedildi:', updatedMaterials.length);
+        return updatedMaterials;
+      });
+    }
+
+    // ✅ YENİ: Backup da oluştur
+    try {
+      const backupData = {
+        data: updatedMaterials,
+        timestamp: new Date().toISOString(),
+        operation: editingMaterial ? 'update' : 'create',
+        materialId: materialData.id
+      };
+      localStorage.setItem('kys-material-pricings-backup', JSON.stringify(backupData));
+      console.log('💾 Malzeme backup\'ı oluşturuldu');
+    } catch (error) {
+      console.error('❌ Malzeme backup hatası:', error);
     }
 
     setMaterialFormOpen(false);
@@ -11422,7 +11544,7 @@ const MaterialPricingManagementComponent: React.FC = () => {
     
     // Başarı mesajı
     const action = editingMaterial ? 'güncellendi' : 'eklendi';
-    alert(`${materialFormData.malzemeTuru} malzeme fiyatı başarıyla ${action}!`);
+    alert(`${materialFormData.malzemeTuru} malzeme fiyatı başarıyla ${action} ve kaydedildi!`);
   };
 
   // Malzeme silme
