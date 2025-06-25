@@ -7734,9 +7734,30 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
              startIcon={<EditIcon />}
              onClick={() => {
                setGlobalDetailDialogOpen(false);
-               // Düzenleme açmak için gereken veriyi buraya ekleyebiliriz
-               console.log('Düzenleme için kayıt:', globalSelectedDetailEntry);
-               alert('Düzenleme özelliği yakında eklenecek!');
+               console.log('🔧 Executive Dashboard Düzenleme başlatıldı:', globalSelectedDetailEntry);
+               
+               // Veri yönetimi kısmındaki düzenleme fonksiyonunu kullan
+               if (globalSelectedDetailEntry) {
+                 // DataManagementComponent'e ref oluşturalım ve handleEdit'i çağıralım
+                 if ((window as any).globalHandleEdit) {
+                   console.log('✅ Global handleEdit kullanılıyor');
+                   (window as any).globalHandleEdit(globalSelectedDetailEntry);
+                 } else {
+                   // Fallback: currentTab'ı veri yönetimi sekmesine değiştir ve düzenlemeyi başlat
+                   console.log('📋 Veri yönetimi sekmesine yönlendiriliyor');
+                   setCurrentTab(1); // Veri yönetimi sekmesi
+                   
+                   // DataManagementComponent'in yüklenmesi için kısa bir gecikme
+                   setTimeout(() => {
+                     // Global state'e düzenlenecek kayıtı set et
+                     (window as any).editingEntryFromExecutiveDashboard = globalSelectedDetailEntry;
+                     console.log('✅ Düzenleme kaydı global state\'e eklendi');
+                   }, 100);
+                 }
+               } else {
+                 console.error('❌ Düzenlenecek kayıt bulunamadı');
+                 alert('Düzenlenecek kayıt bulunamadı!');
+               }
              }}
              variant="outlined"
            >
@@ -8567,6 +8588,33 @@ const ProfessionalDataTable: React.FC<{
       window.removeEventListener('addNewCostEntry', handleAddNewEntry);
     };
   }, [handleAdd]);
+
+  // ✅ EXECUTIVE DASHBOARD INTEGRATION: Global handleEdit fonksiyonu
+  useEffect(() => {
+    // Global handleEdit fonksiyonunu window objesine ata
+    (window as any).globalHandleEdit = handleEdit;
+    
+    // Executive Dashboard'tan gelen düzenleme isteklerini dinle
+    const checkForEditRequest = () => {
+      const editingEntry = (window as any).editingEntryFromExecutiveDashboard;
+      if (editingEntry) {
+        console.log('🔧 Executive Dashboard\'tan düzenleme isteği geldi:', editingEntry);
+        handleEdit(editingEntry);
+        // İsteği temizle
+        delete (window as any).editingEntryFromExecutiveDashboard;
+      }
+    };
+    
+    // Düzenli olarak kontrol et
+    const interval = setInterval(checkForEditRequest, 100);
+    
+    return () => {
+      clearInterval(interval);
+      // Cleanup: Global fonksiyonu temizle
+      delete (window as any).globalHandleEdit;
+      delete (window as any).editingEntryFromExecutiveDashboard;
+    };
+  }, [handleEdit]);
 
   // ✅ Context7: Local filtering removed - using global filteredData prop instead
 
