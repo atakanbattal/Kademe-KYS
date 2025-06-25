@@ -1,0 +1,105 @@
+            ) : formData.maliyetTuru === 'hurda' ? (
+              <>
+                {/* Adet Bazlı Hurda Maliyeti - Basitleştirilmiş */}
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ mb: 1 }}>
+                    <strong>Hurda Maliyeti:</strong> Hurdaya çıkan parçalar için adet bazlı maliyet hesaplaması
+                  </Alert>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.includeLabor || false}
+                        onChange={(e) => setFormData({...formData, includeLabor: e.target.checked})}
+                        color="primary"
+                      />
+                    }
+                    label="İşçilik ve genel gider maliyetlerini dahil et (%30)"
+                    sx={{ 
+                      bgcolor: 'grey.50', 
+                      p: 1, 
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'grey.200'
+                    }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} md={3}>
+                  <FormControl fullWidth>
+                    <InputLabel>Malzeme Türü (Opsiyonel)</InputLabel>
+                    <Select
+                      value={formData.malzemeTuru || ''}
+                      onChange={(e) => setFormData({...formData, malzemeTuru: e.target.value as MaterialType || ''})}
+                      label="Malzeme Türü (Opsiyonel)"
+                    >
+                      <MenuItem value="">
+                        <em>Manuel Maliyet Girişi</em>
+                      </MenuItem>
+                      {materialPricings
+                        .filter(material => material.aktif)
+                        .map((material) => (
+                          <MenuItem key={material.id} value={material.malzemeTuru}>
+                            {material.malzemeTuru} (₺{material.alisKgFiyati}/kg alış)
+                          </MenuItem>
+                        ))}
+                    </Select>
+                    <FormHelperText>
+                      Seçerseniz otomatik maliyet hesaplaması yapılır
+                    </FormHelperText>
+                  </FormControl>
+                </Grid>
+                
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Hurda Adet"
+                    type="number"
+                    value={formData.miktar || 1}
+                    onChange={(e) => setFormData({...formData, miktar: parseInt(e.target.value) || 1})}
+                    inputProps={{ min: 1 }}
+                    helperText="Hurdaya çıkan parça sayısı"
+                  />
+                </Grid>
+                
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    required
+                    label="Parça Ağırlığı"
+                    type="number"
+                    value={formData.agirlik || 0}
+                    onChange={(e) => setFormData({...formData, agirlik: parseFloat(e.target.value) || 0})}
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">kg</InputAdornment>
+                    }}
+                    inputProps={{ min: 0, step: 0.1 }}
+                    helperText="Parça başına ağırlık"
+                  />
+                </Grid>
+                
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    label="Toplam Ağırlık"
+                    value={`${((formData.miktar || 1) * (formData.agirlik || 0)).toFixed(1)} kg`}
+                    disabled
+                    color="info"
+                    helperText="Otomatik hesaplanan"
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 2, bgcolor: 'error.50' }}>
+                    <Typography variant="h6" color="error.main">
+                      Toplam Hurda Maliyeti: ₺{((formData.miktar || 1) * (formData.birimMaliyet || 0)).toLocaleString('tr-TR')}
+                    </Typography>
+                    <Typography variant="body2">
+                      {formData.miktar || 1} adet × ₺{(formData.birimMaliyet || 0)} = ₺{((formData.miktar || 1) * (formData.birimMaliyet || 0)).toLocaleString('tr-TR')}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </>

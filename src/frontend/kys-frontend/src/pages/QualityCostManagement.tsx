@@ -9828,59 +9828,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   {birimler.map(b => (
                     <MenuItem key={b.value} value={b.value}>{b.label}</MenuItem>
                   ))}
-            {/* ⭐ ADET BAZLI YENİDEN İŞLEM MALİYETİ - BASIT */}
-            {formData.maliyetTuru === 'yeniden_islem_maliyeti' && (
-              <>
-                <Grid item xs={12}>
-                  <Alert severity="info">
-                    <strong>Adet Bazlı Maliyet:</strong> Aynı hatayı alan çoklu ürünler için
-                  </Alert>
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    required
-                    label="Hatalı Adet Sayısı"
-                    type="number"
-                    value={formData.miktar || 1}
-                    onChange={(e) => {
-                      const adet = parseInt(e.target.value) || 1;
-                      const birimMaliyet = formData.birimMaliyet || 0;
-                      setFormData({...formData, miktar: adet, maliyet: adet * birimMaliyet});
-                    }}
-                    inputProps={{ min: 1, max: 100 }}
-                    helperText="Kaç adet ürün hata aldı?"
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    required
-                    label="Birim Maliyet (₺/adet)"
-                    type="number"
-                    value={formData.birimMaliyet || 0}
-                    onChange={(e) => {
-                      const birimMaliyet = parseFloat(e.target.value) || 0;
-                      const adet = formData.miktar || 1;
-                      setFormData({...formData, birimMaliyet, maliyet: adet * birimMaliyet});
-                    }}
-                    inputProps={{ min: 0, step: 0.01 }}
-                    helperText="Her adet için yeniden işlem maliyeti"
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Paper sx={{ p: 2, bgcolor: 'success.50' }}>
-                    <Typography variant="h6" color="success.main">
-                      Toplam: ₺{((formData.miktar || 1) * (formData.birimMaliyet || 0)).toLocaleString('tr-TR')}
-                    </Typography>
-                    <Typography variant="body2">
-                      {formData.miktar || 1} adet × ₺{(formData.birimMaliyet || 0)} = ₺{((formData.miktar || 1) * (formData.birimMaliyet || 0)).toLocaleString('tr-TR')}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              </>
-            )}
-
                 </Select>
               </FormControl>
             </Grid>
@@ -9982,15 +9929,15 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   <FormControl fullWidth required>
                     <InputLabel>Hurda Birimi</InputLabel>
                     <Select
-                      value={formData.unit || 'kg'}
+                      value={formData.unit || 'adet'}
                       onChange={(e) => setFormData({...formData, unit: e.target.value as 'kg' | 'adet', agirlik: 0, miktar: 0})}
                       label="Hurda Birimi"
                     >
-                      <MenuItem value="kg">Kilogram (kg)</MenuItem>
+                      
                       <MenuItem value="adet">Adet</MenuItem>
                     </Select>
                     <FormHelperText>
-                      Hurda türüne göre birim seçin
+                      Sadece adet bazlı hurda maliyeti
                     </FormHelperText>
                   </FormControl>
                 </Grid>
