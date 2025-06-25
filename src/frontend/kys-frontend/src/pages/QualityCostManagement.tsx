@@ -9981,33 +9981,41 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                                       const updatedEkBirimler = [...(formData.ekBirimMaliyetleri || [])];
                                       const selectedBirim = e.target.value;
                                       
-                                      // ✅ Birim değiştiğinde otomatik birim maliyeti yükle (ana birimde olduğu gibi)
-                                      const departmanSettings = [
-                                        { departman: 'arge', saatlikMaliyet: 35.00 },
-                                        { departman: 'boyahane', saatlikMaliyet: 18.00 },
-                                        { departman: 'bukum', saatlikMaliyet: 22.00 },
-                                        { departman: 'depo', saatlikMaliyet: 16.00 },
-                                        { departman: 'elektrikhane', saatlikMaliyet: 28.00 },
-                                        { departman: 'idari_isler', saatlikMaliyet: 24.00 },
-                                        { departman: 'kalite_kontrol', saatlikMaliyet: 27.00 },
-                                        { departman: 'kaynakhane', saatlikMaliyet: 30.00 },
-                                        { departman: 'kesim', saatlikMaliyet: 20.00 },
-                                        { departman: 'mekanik_montaj', saatlikMaliyet: 25.00 },
-                                        { departman: 'satin_alma', saatlikMaliyet: 22.00 },
-                                        { departman: 'satis', saatlikMaliyet: 26.00 },
-                                        { departman: 'ssh', saatlikMaliyet: 24.00 },
-                                        { departman: 'uretim_planlama', saatlikMaliyet: 28.00 }
-                                      ];
-                                      
-                                      const setting = departmanSettings.find(d => d.departman === selectedBirim);
+                                      // ✅ ANA SİSTEMLE TAMAMEN AYNI LOJİĞİ KULLAN
                                       const maliyetTuruInfo = getSelectedMaliyetTuruInfo();
                                       let birimMaliyeti = 0; // Başlangıç değeri
                                       
-                                      if (setting && maliyetTuruInfo) {
-                                        // Ana birimde olduğu gibi zaman birimini dönüştür
-                                        birimMaliyeti = setting.saatlikMaliyet;
-                                        if (maliyetTuruInfo.timeUnit === 'dakika') {
-                                          birimMaliyeti = Math.round((setting.saatlikMaliyet / 60) * 1000) / 1000;
+                                      // Önce yeni birim maliyet ayarlarından al (Ana sistemle aynı)
+                                      if (typeof window !== 'undefined' && (window as any).getUnitCost) {
+                                        const timeUnit = maliyetTuruInfo?.timeUnit || 'dakika';
+                                        birimMaliyeti = (window as any).getUnitCost(selectedBirim, timeUnit);
+                                        console.log(`🔧 ETKİLENEN BİRİM: ${selectedBirim} - ${timeUnit} = ₺${birimMaliyeti}`);
+                                      } else {
+                                        // ✅ Fallback: Eski departman ayarları sistemi (Ana sistemle aynı)
+                                        const departmanSettings = [
+                                          { departman: 'arge', saatlikMaliyet: 35.00 },
+                                          { departman: 'boyahane', saatlikMaliyet: 18.00 },
+                                          { departman: 'bukum', saatlikMaliyet: 22.00 },
+                                          { departman: 'depo', saatlikMaliyet: 16.00 },
+                                          { departman: 'elektrikhane', saatlikMaliyet: 28.00 },
+                                          { departman: 'idari_isler', saatlikMaliyet: 24.00 },
+                                          { departman: 'kalite_kontrol', saatlikMaliyet: 27.00 },
+                                          { departman: 'kaynakhane', saatlikMaliyet: 30.00 },
+                                          { departman: 'kesim', saatlikMaliyet: 20.00 },
+                                          { departman: 'mekanik_montaj', saatlikMaliyet: 25.00 },
+                                          { departman: 'satin_alma', saatlikMaliyet: 22.00 },
+                                          { departman: 'satis', saatlikMaliyet: 26.00 },
+                                          { departman: 'ssh', saatlikMaliyet: 24.00 },
+                                          { departman: 'uretim_planlama', saatlikMaliyet: 28.00 }
+                                        ];
+                                        
+                                        const setting = departmanSettings.find(d => d.departman === selectedBirim);
+                                        if (setting && maliyetTuruInfo) {
+                                          // Ana birimde olduğu gibi zaman birimini dönüştür
+                                          birimMaliyeti = setting.saatlikMaliyet;
+                                          if (maliyetTuruInfo.timeUnit === 'dakika') {
+                                            birimMaliyeti = Math.round((setting.saatlikMaliyet / 60) * 1000) / 1000;
+                                          }
                                         }
                                       }
                                       
