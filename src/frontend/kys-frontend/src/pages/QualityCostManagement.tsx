@@ -1983,7 +1983,8 @@ export default function QualityCostManagement() {
       'kesim': 'Kesim',
       'mekanik_montaj': 'Mekanik Montaj',
       'satin_alma': 'Satın Alma',
-      'satis_sonrasi_hizmetleri': 'Satış Sonrası Hizmetler',
+      'ssh': 'SSH',
+      'satis_sonrasi_hizmetleri': 'SSH',
       'uretim': 'Üretim',
       'uretim_planlama': 'Üretim Planlama',
       
@@ -1995,6 +1996,7 @@ export default function QualityCostManagement() {
       'kalite kontrol': 'Kalite Kontrol',
       'mekanik montaj': 'Mekanik Montaj',
       'satin alma': 'Satın Alma',
+      'satis sonrasi': 'SSH',
       'uretim planlama': 'Üretim Planlama',
       
       // Diğer formatlar
@@ -3422,7 +3424,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                                   whiteSpace: 'nowrap'
                                 }}
                               >
-                                {formatProfessionalName(department.birim || department.department || `Birim-${index + 1}`)}
+                                {formatProfessionalDepartmentName(department.birim || department.department || `Birim-${index + 1}`)}
                               </Typography>
                               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                                 Kritik: {index === 0 ? 'YÜKSEK' : index < 3 ? 'ORTA' : 'DÜŞÜK'}
@@ -7352,12 +7354,14 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                                  'bukum': 'Büküm',
                                  'depo': 'Depo',
                                  'elektrikhane': 'Elektrikhane',
+                                 'idari_isler': 'İdari İşler',
                                  'kalite_kontrol': 'Kalite Kontrol',
                                  'kaynakhane': 'Kaynakhane',
                                  'kesim': 'Kesim',
                                  'mekanik_montaj': 'Mekanik Montaj',
                                  'satin_alma': 'Satın Alma',
                                  'satis': 'Satış',
+                                 'ssh': 'SSH',
                                  'uretim_planlama': 'Üretim Planlama'
                                };
                                return birimMap[globalSelectedDetailEntry.birim] || globalSelectedDetailEntry.birim || 'Bilinmiyor';
