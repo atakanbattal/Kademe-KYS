@@ -6560,10 +6560,17 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           onCostTypeAnalysisClick={interactiveFunctions.handleCostTypeAnalysisClick}
           onVehicleAnalysisClick={interactiveFunctions.handleVehicleAnalysisClick}
         />}
-        {currentTab === 1 && <DataManagementComponent onDataChange={setRealTimeAnalytics} filteredData={globalFilteredData} onDataRefresh={() => {
-              setDataRefreshTrigger(prev => prev + 1);
-              triggerDataRefresh();
-            }} />}
+        {currentTab === 1 && <DataManagementComponent 
+          onDataChange={setRealTimeAnalytics} 
+          filteredData={globalFilteredData} 
+          onDataRefresh={() => {
+            setDataRefreshTrigger(prev => prev + 1);
+            triggerDataRefresh();
+          }}
+          // ✅ YENİ: Global state setter'ları geç
+          setGlobalDetailDialogOpen={setGlobalDetailDialogOpen}
+          setGlobalSelectedDetailEntry={setGlobalSelectedDetailEntry}
+        />}
         {currentTab === 2 && <VehicleTrackingDashboard 
           realTimeData={realTimeAnalytics} 
           filteredData={globalFilteredData}
@@ -8053,20 +8060,442 @@ const ProfessionalDataTable: React.FC<{
 // Export the main component
 
 
-// ✅ PLACEHOLDER COMPONENTS - Geliştirilecek
+// ✅ MAIN COST MANAGEMENT TABLE - Tam İşlevsel Ana Tablo Implementation
 const DataManagementComponent: React.FC<{
   onDataChange?: (analytics: any) => void,
   filteredData?: any[],
-  onDataRefresh?: () => void
-}> = ({ onDataChange, filteredData, onDataRefresh }) => {
+  onDataRefresh?: () => void,
+  // ✅ YENİ: Global state setter'ları props olarak al
+  setGlobalDetailDialogOpen?: (open: boolean) => void,
+  setGlobalSelectedDetailEntry?: (entry: any) => void
+}> = ({ 
+  onDataChange, 
+  filteredData, 
+  onDataRefresh,
+  setGlobalDetailDialogOpen,
+  setGlobalSelectedDetailEntry
+}) => {
+  const theme = useTheme();
+  
+  // ✅ Ana tablo state'leri
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortBy, setSortBy] = useState<'tarih' | 'maliyet' | 'birim'>('tarih');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
+  
+  // ✅ Pagination handlers
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+  
+  // ✅ Sorting handler
+  const handleSort = (field: 'tarih' | 'maliyet' | 'birim') => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
+  
+  // ✅ DÜZELTME: Global handleViewDetails function tanımla - güvenli versiyonu
+  const handleViewDetails = useCallback((entry: any) => {
+    console.log('🔍 Ana Tablo - Detay Görüntüleme:', entry);
+    
+    try {
+      // Entry'yi normalize et
+      const normalizedEntry = {
+        id: entry.id || `temp_${Date.now()}`,
+        maliyetTuru: entry.maliyetTuru || entry.type || 'Bilinmiyor',
+        birim: entry.birim || entry.department || entry.unit || 'Bilinmiyor',
+        maliyet: entry.maliyet || entry.cost || entry.amount || 0,
+        tarih: entry.tarih || entry.date || entry.createdDate || new Date().toISOString(),
+        durum: entry.durum || entry.status || 'aktif',
+        parcaKodu: entry.parcaKodu || entry.partCode || entry.code || `AUTO-${entry.id || Date.now()}`,
+        aciklama: entry.aciklama || entry.description || entry.desc || 'Ana tablo kayıt detayı',
+        aracModeli: entry.aracModeli || entry.arac || entry.vehicle,
+        malzemeTuru: entry.malzemeTuru || entry.material,
+        agirlik: entry.agirlik || entry.weight || 0,
+        miktar: entry.miktar || entry.quantity || 1,
+        // Ham veriyi de koru
+        _rawData: entry
+      };
+      
+      console.log('✅ Normalize edilmiş entry:', normalizedEntry);
+      
+      // ✅ DÜZELTME: Güvenli state setter kullanımı
+      if (setGlobalSelectedDetailEntry && typeof setGlobalSelectedDetailEntry === 'function') {
+        setGlobalSelectedDetailEntry(normalizedEntry);
+      } else {
+        console.warn('⚠️ setGlobalSelectedDetailEntry prop eksik');
+      }
+      
+      if (setGlobalDetailDialogOpen && typeof setGlobalDetailDialogOpen === 'function') {
+        setGlobalDetailDialogOpen(true);
+      } else {
+        console.warn('⚠️ setGlobalDetailDialogOpen prop eksik');
+        // Fallback: Alert ile göster
+        alert(`Detay Bilgisi:\n\nParça Kodu: ${normalizedEntry.parcaKodu}\nMaliyet: ₺${normalizedEntry.maliyet.toLocaleString('tr-TR')}\nTür: ${normalizedEntry.maliyetTuru}\nBirim: ${normalizedEntry.birim}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ HandleViewDetails hatası:', error);
+      alert('Detay görüntüleme sırasında hata oluştu: ' + error.message);
+    }
+  }, [setGlobalSelectedDetailEntry, setGlobalDetailDialogOpen]);
+  
+  // ✅ Global handleViewDetails'i window'a ata
+  useEffect(() => {
+    (window as any).handleViewDetails = handleViewDetails;
+    console.log('✅ Global handleViewDetails window\'a atandı');
+    
+    return () => {
+      delete (window as any).handleViewDetails;
+    };
+  }, [handleViewDetails]);
+  
+  // ✅ Veri filtreleme ve sıralama
+  const processedData = useMemo(() => {
+    if (!filteredData || filteredData.length === 0) {
+      return [];
+    }
+    
+    // Arama filtresi
+    let filtered = filteredData.filter(item => {
+      if (!localSearchTerm) return true;
+      const searchLower = localSearchTerm.toLowerCase();
+      return (
+        (item.parcaKodu || '').toLowerCase().includes(searchLower) ||
+        (item.maliyetTuru || '').toLowerCase().includes(searchLower) ||
+        (item.birim || '').toLowerCase().includes(searchLower) ||
+        (item.aciklama || '').toLowerCase().includes(searchLower) ||
+        (item.arac || '').toLowerCase().includes(searchLower)
+      );
+    });
+    
+    // Sıralama
+    filtered = filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case 'maliyet':
+          aValue = a.maliyet || 0;
+          bValue = b.maliyet || 0;
+          break;
+        case 'tarih':
+          aValue = new Date(a.tarih || a.createdDate || '1970-01-01');
+          bValue = new Date(b.tarih || b.createdDate || '1970-01-01');
+          break;
+        case 'birim':
+          aValue = (a.birim || '').toLowerCase();
+          bValue = (b.birim || '').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return filtered;
+  }, [filteredData, localSearchTerm, sortBy, sortOrder]);
+  
+  // ✅ Paginated data
+  const paginatedData = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return processedData.slice(startIndex, startIndex + rowsPerPage);
+  }, [processedData, page, rowsPerPage]);
+  
+  // ✅ Utility functions
+  const formatMaliyetTuru = (type: string) => {
+    const typeMap: { [key: string]: string } = {
+      'hurda': 'Hurda Maliyeti',
+      'yeniden_islem': 'Yeniden İşlem',
+      'fire': 'Fire Maliyeti',
+      'garanti': 'Garanti Maliyeti',
+      'iade': 'İade Maliyeti',
+      'sikayet': 'Şikayet Maliyeti',
+      'onleme': 'Önleme Maliyeti'
+    };
+    return typeMap[type] || type || 'Bilinmiyor';
+  };
+  
+  const formatBirim = (birim: string) => {
+    const birimMap: { [key: string]: string } = {
+      'arge': 'Ar-Ge',
+      'boyahane': 'Boyahane',
+      'bukum': 'Büküm',
+      'depo': 'Depo',
+      'elektrikhane': 'Elektrikhane',
+      'kalite_kontrol': 'Kalite Kontrol',
+      'kaynakhane': 'Kaynakhane',
+      'kesim': 'Kesim',
+      'mekanik_montaj': 'Mekanik Montaj',
+      'satin_alma': 'Satın Alma',
+      'satis': 'Satış',
+      'uretim_planlama': 'Üretim Planlama'
+    };
+    return birimMap[birim] || birim || 'Bilinmiyor';
+  };
+  
+  const getMaliyetTuruColor = (type: string) => {
+    const colorMap: { [key: string]: "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" } = {
+      'hurda': 'warning',
+      'yeniden_islem': 'error',
+      'fire': 'warning', 
+      'garanti': 'error',
+      'iade': 'error',
+      'sikayet': 'error',
+      'onleme': 'success'
+    };
+    return colorMap[type] || 'primary';
+  };
+
   return (
-    <Box p={3}>
-      <Typography variant="h5" gutterBottom>
-        Veri Yönetimi
-      </Typography>
-      <Typography>
-        Bu bölüm henüz geliştirilmekte. Filtrelenmiş veri sayısı: {filteredData?.length || 0}
-      </Typography>
+    <Box sx={{ p: 3 }}>
+      {/* ✅ Header */}
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box>
+          <Typography variant="h5" fontWeight="bold" color="primary.main">
+            📊 Ana Maliyet Yönetimi Tablosu
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Toplam {processedData.length} kayıt • Sayfa: {page + 1}
+          </Typography>
+        </Box>
+        
+        {/* ✅ Search */}
+        <TextField
+          size="small"
+          placeholder="Arama yapın..."
+          value={localSearchTerm}
+          onChange={(e) => setLocalSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+          }}
+          sx={{ minWidth: 250 }}
+        />
+      </Box>
+      
+      {processedData.length > 0 ? (
+        <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 2 }}>
+          <TableContainer sx={{ maxHeight: 600 }}>
+            <Table stickyHeader>
+              {/* ✅ Table Header */}
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: 'primary.50' }}>
+                    <ButtonBase
+                      onClick={() => handleSort('tarih')}
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: sortBy === 'tarih' ? 'primary.main' : 'text.primary'
+                      }}
+                    >
+                      Tarih
+                      {sortBy === 'tarih' && (
+                        sortOrder === 'asc' ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />
+                      )}
+                    </ButtonBase>
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: 'primary.50' }}>Parça Kodu</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: 'primary.50' }}>Maliyet Türü</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: 'primary.50' }}>
+                    <ButtonBase
+                      onClick={() => handleSort('birim')}
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: sortBy === 'birim' ? 'primary.main' : 'text.primary'
+                      }}
+                    >
+                      Birim
+                      {sortBy === 'birim' && (
+                        sortOrder === 'asc' ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />
+                      )}
+                    </ButtonBase>
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: 'primary.50' }}>
+                    <ButtonBase
+                      onClick={() => handleSort('maliyet')}
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1, 
+                        ml: 'auto',
+                        color: sortBy === 'maliyet' ? 'primary.main' : 'text.primary'
+                      }}
+                    >
+                      Maliyet
+                      {sortBy === 'maliyet' && (
+                        sortOrder === 'asc' ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />
+                      )}
+                    </ButtonBase>
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', bgcolor: 'primary.50' }}>Araç</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: 'primary.50' }}>İşlemler</TableCell>
+                </TableRow>
+              </TableHead>
+              
+              {/* ✅ Table Body */}
+              <TableBody>
+                {paginatedData.map((item, index) => (
+                  <TableRow 
+                    key={item.id || index}
+                    sx={{ 
+                      '&:hover': { bgcolor: 'action.hover' },
+                      '&:nth-of-type(odd)': { bgcolor: 'grey.50' }
+                    }}
+                  >
+                    {/* Tarih */}
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={500}>
+                        {new Date(item.tarih || item.createdDate || new Date()).toLocaleDateString('tr-TR')}
+                      </Typography>
+                    </TableCell>
+                    
+                    {/* Parça Kodu */}
+                    <TableCell>
+                      <Typography 
+                        variant="body2" 
+                        fontFamily="monospace"
+                        sx={{ 
+                          bgcolor: 'grey.100',
+                          p: 0.5,
+                          borderRadius: 1,
+                          color: 'primary.main',
+                          fontWeight: 600
+                        }}
+                      >
+                        {item.parcaKodu || 'N/A'}
+                      </Typography>
+                    </TableCell>
+                    
+                    {/* Maliyet Türü */}
+                    <TableCell>
+                      <Chip
+                        label={formatMaliyetTuru(item.maliyetTuru)}
+                        color={getMaliyetTuruColor(item.maliyetTuru)}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    
+                    {/* Birim */}
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={500}>
+                        {formatBirim(item.birim)}
+                      </Typography>
+                    </TableCell>
+                    
+                    {/* Maliyet */}
+                    <TableCell align="right">
+                      <Typography variant="h6" color="error.main" fontWeight="bold">
+                        ₺{(item.maliyet || 0).toLocaleString('tr-TR')}
+                      </Typography>
+                    </TableCell>
+                    
+                    {/* Araç */}
+                    <TableCell>
+                      <Typography variant="body2">
+                        {item.arac || item.aracModeli || 'Genel'}
+                      </Typography>
+                    </TableCell>
+                    
+                    {/* ✅ İşlemler - VIEW DETAILS BUTTON */}
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={1} justifyContent="center">
+                        {/* 🎯 YENİ: Detayları Görüntüle Butonu */}
+                        <Tooltip title="Detayları Görüntüle">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => {
+                              console.log('🔍 Ana Tablo View Details clicked:', item);
+                              handleViewDetails(item);
+                            }}
+                            sx={{ 
+                              color: 'info.main',
+                              '&:hover': { bgcolor: 'info.50' }
+                            }}
+                          >
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        
+                        {/* Edit Butonu */}
+                        <Tooltip title="Düzenle">
+                          <IconButton 
+                            size="small"
+                            sx={{ 
+                              color: 'warning.main',
+                              '&:hover': { bgcolor: 'warning.50' }
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        
+                        {/* Delete Butonu */}
+                        <Tooltip title="Sil">
+                          <IconButton 
+                            size="small"
+                            sx={{ 
+                              color: 'error.main',
+                              '&:hover': { bgcolor: 'error.50' }
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          
+          {/* ✅ Pagination */}
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={processedData.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage="Sayfa başına:"
+            labelDisplayedRows={({ from, to, count }) => 
+              `${from}-${to} / ${count !== -1 ? count : `${to}'dan fazla`}`
+            }
+            sx={{
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'grey.50'
+            }}
+          />
+        </Paper>
+      ) : (
+        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 2 }}>
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            📊 Henüz Kayıt Bulunmuyor
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Maliyet kayıtları eklemek için yeni kayıt oluşturun.
+          </Typography>
+        </Paper>
+      )}
     </Box>
   );
 };
