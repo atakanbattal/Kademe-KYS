@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import {
   Typography,
   Box,
@@ -130,6 +130,96 @@ import {
 
 // DÖF/8D Integration Import
 import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
+
+// ✅ Ultra Stable Search Input Component - Focus kaybı tamamen önlenmiş
+const UltraStableSearchInput = memo<{
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+}>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [internalValue, setInternalValue] = useState(value);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastParentValueRef = useRef(value);
+  
+  // İlk initialization
+  useEffect(() => {
+    if (!isInitialized) {
+      setInternalValue(value);
+      lastParentValueRef.current = value;
+      setIsInitialized(true);
+    }
+  }, [value, isInitialized]);
+  
+  // Parent value değişikliklerini sadece gerçekten farklıysa ve user typing yapmıyorsa kabul et
+  useEffect(() => {
+    if (isInitialized && value !== lastParentValueRef.current) {
+      // User typing yapmıyorsa (debounce timer yoksa) parent'tan gelen değeri kabul et
+      if (!debounceTimerRef.current) {
+        setInternalValue(value);
+        lastParentValueRef.current = value;
+      }
+    }
+  }, [value, isInitialized]);
+  
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInternalValue(newValue);
+    
+    // Önceki timer'ı temizle
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Yeni timer başlat
+    debounceTimerRef.current = setTimeout(() => {
+      onChange(newValue);
+      lastParentValueRef.current = newValue;
+      debounceTimerRef.current = null;
+    }, 500); // Daha uzun debounce - 500ms
+    
+  }, [onChange]);
+  
+  // Component unmount olduğunda timer'ı temizle
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+  
+  return (
+    <TextField
+      ref={inputRef}
+      fullWidth={fullWidth}
+      size={size}
+      label={label}
+      value={internalValue}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon />
+          </InputAdornment>
+        ),
+      }}
+      // Input focus'u korumak için ek props
+      onFocus={(e) => {
+        e.target.selectionStart = e.target.value.length;
+        e.target.selectionEnd = e.target.value.length;
+      }}
+    />
+  );
+}, (prevProps, nextProps) => {
+  // Çok strict comparison - neredeyse hiç re-render olmasın
+  return JSON.stringify(prevProps) === JSON.stringify(nextProps);
+});
 
 // ============================================
 // 🚗 YENİ: UNIFIED QUALITY & VEHICLE INTERFACES
@@ -753,6 +843,14 @@ export default function QualityCostManagement() {
     selectedYear: new Date().getFullYear().toString()
   });
 
+  // ✅ Optimize edilmiş search handler fonksiyonu
+  const handleSearchTermChange = useCallback((newSearchTerm: string) => {
+    setGlobalFilters(prev => ({
+      ...prev,
+      searchTerm: newSearchTerm
+    }));
+  }, []);
+
   // ✅ Context7: Global Filtered Data for All Tabs
   const [globalFilteredData, setGlobalFilteredData] = useState<any[]>([]);
   
@@ -967,7 +1065,7 @@ export default function QualityCostManagement() {
       'uretim_planlama': 'Planlama',
       'satin_alma': 'Tedarik',
       'satis': 'Satış',
-      'satis_sonrasi_hizmetler': 'Satış Sonrası Hizmetler',
+      'ssh': 'SSH',
       'depo': 'Lojistik'
     };
     
@@ -1139,77 +1237,103 @@ export default function QualityCostManagement() {
     }
   }, [globalFilteredData, vehicleTargets, generateUnifiedRecords, generateVehiclePerformanceAnalysis, compareWithTargets]);
 
-  // ✅ Context7: Global Filtering Function
-  useEffect(() => {
-    const applyGlobalFilters = () => {
-      try {
-        // Load data from localStorage (check multiple possible keys)
-        let rawData = localStorage.getItem('kys-cost-management-data') || 
-                     localStorage.getItem('kalitesizlikMaliyetleri') ||
-                     localStorage.getItem('context7_qualityCosts');
-        let costData = rawData ? JSON.parse(rawData) : [];
+  // ✅ Context7: Global Filtering Function (Memoized)
+  const applyGlobalFilters = useCallback(() => {
+    console.log('🔍 applyGlobalFilters çalışıyor:', {
+      globalFilters,
+      searchTerm: globalFilters.searchTerm,
+      hasSearchTerm: !!globalFilters.searchTerm,
+      timestamp: new Date().toISOString()
+    });
+    
+    try {
+      // Load data from localStorage (check multiple possible keys)
+      let rawData = localStorage.getItem('kys-cost-management-data') || 
+                   localStorage.getItem('kalitesizlikMaliyetleri') ||
+                   localStorage.getItem('context7_qualityCosts');
+      let costData = rawData ? JSON.parse(rawData) : [];
+      
+      console.log('📁 Raw data yüklendi:', {
+        rawDataLength: costData.length,
+        hasRawData: costData.length > 0
+      });
+      
+      // Apply filters
+      let filtered = costData;
+
+      // Maliyet türü filtresi
+      if (globalFilters.maliyetTuru) {
+        filtered = filtered.filter((item: any) => item.maliyetTuru === globalFilters.maliyetTuru);
+      }
+
+      // Birim filtresi
+      if (globalFilters.birim) {
+        filtered = filtered.filter((item: any) => item.birim === globalFilters.birim);
+      }
+
+      // Yıl filtresi
+      if (globalFilters.selectedYear) {
+        filtered = filtered.filter((item: any) => {
+          const itemDate = new Date(item.tarih);
+          return itemDate.getFullYear() === parseInt(globalFilters.selectedYear);
+        });
+      }
+
+      // Ay filtresi
+      if (globalFilters.selectedMonth) {
+        filtered = filtered.filter((item: any) => {
+          const itemDate = new Date(item.tarih);
+          const itemYearMonth = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
+          return itemYearMonth === globalFilters.selectedMonth;
+        });
+      }
+
+      // Arama filtresi
+      if (globalFilters.searchTerm) {
+        const searchLower = globalFilters.searchTerm.toLowerCase();
+        console.log('🔍 Arama filtresi uygulanıyor:', {
+          searchTerm: globalFilters.searchTerm,
+          searchLower,
+          beforeFilterCount: filtered.length
+        });
         
-        // Apply filters
-        let filtered = costData;
+        filtered = filtered.filter((item: any) =>
+          (item.parcaKodu?.toLowerCase().includes(searchLower)) ||
+          (item.maliyetTuru?.toLowerCase().includes(searchLower)) ||
+          (item.birim?.toLowerCase().includes(searchLower)) ||
+          (item.arac?.toLowerCase().includes(searchLower)) ||
+          (item.maliyet?.toString().includes(searchLower))
+        );
+        
+        console.log('✅ Arama filtresi uygulandı:', {
+          afterFilterCount: filtered.length,
+          sampleFilteredData: filtered.slice(0, 2)
+        });
+      }
 
-        // Maliyet türü filtresi
-        if (globalFilters.maliyetTuru) {
-          filtered = filtered.filter((item: any) => item.maliyetTuru === globalFilters.maliyetTuru);
-        }
+      // Sort by newest first
+      filtered = filtered.sort((a: any, b: any) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
 
-        // Birim filtresi
-        if (globalFilters.birim) {
-          filtered = filtered.filter((item: any) => item.birim === globalFilters.birim);
-        }
+      setGlobalFilteredData(filtered);
 
-        // Yıl filtresi
-        if (globalFilters.selectedYear) {
-          filtered = filtered.filter((item: any) => {
-            const itemDate = new Date(item.tarih);
-            return itemDate.getFullYear() === parseInt(globalFilters.selectedYear);
-          });
-        }
+      console.log('🔍 Global filters applied - FINAL RESULT:', {
+        originalCount: costData.length,
+        filteredCount: filtered.length,
+        filters: globalFilters,
+        finalFilteredData: filtered.slice(0, 3),
+        willPropagate: true
+      });
 
-        // Ay filtresi
-        if (globalFilters.selectedMonth) {
-          filtered = filtered.filter((item: any) => {
-            const itemDate = new Date(item.tarih);
-            const itemYearMonth = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
-            return itemYearMonth === globalFilters.selectedMonth;
-          });
-        }
+    } catch (error) {
+      console.error('Global filtering error:', error);
+      setGlobalFilteredData([]);
+    }
+  }, [globalFilters, dataRefreshTrigger]);
 
-        // Arama filtresi
-        if (globalFilters.searchTerm) {
-          const searchLower = globalFilters.searchTerm.toLowerCase();
-          filtered = filtered.filter((item: any) =>
-            (item.parcaKodu?.toLowerCase().includes(searchLower)) ||
-            (item.maliyetTuru?.toLowerCase().includes(searchLower)) ||
-            (item.birim?.toLowerCase().includes(searchLower)) ||
-            (item.arac?.toLowerCase().includes(searchLower)) ||
-            (item.maliyet?.toString().includes(searchLower))
-          );
-        }
-
-        // Sort by newest first
-        filtered = filtered.sort((a: any, b: any) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
-
-        setGlobalFilteredData(filtered);
-
-                 console.log('🔍 Global filters applied:', {
-           originalCount: costData.length,
-           filteredCount: filtered.length,
-           filters: globalFilters
-         });
-
-       } catch (error) {
-         console.error('Global filtering error:', error);
-         setGlobalFilteredData([]);
-       }
-     };
-
-     applyGlobalFilters();
-   }, [globalFilters, dataRefreshTrigger]); // ✅ REAL-TIME: dataRefreshTrigger değiştiğinde de yeniden hesapla
+  // ✅ Filtreleme effect'i
+  useEffect(() => {
+    applyGlobalFilters();
+  }, [applyGlobalFilters]);
 
   // ✅ Context7: Update Analytics Based on Global Filtered Data
   useEffect(() => {
@@ -1980,8 +2104,8 @@ export default function QualityCostManagement() {
       'Mekanik Montaj': 'Mekanik Montaj',
       'satin_alma': 'Satın Alma',
       'Satın Alma': 'Satın Alma',
-      'satis_sonrasi_hizmetler': 'Satış Sonrası Hizmetler',
-      'Satış Sonrası Hizmetler': 'Satış Sonrası Hizmetler',
+      'ssh': 'SSH',
+      'SSH': 'SSH',
       'uretim': 'Üretim',
       'Üretim': 'Üretim',
       'uretim_planlama': 'Üretim Planlama',
@@ -3045,25 +3169,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       const topUnit = Object.entries(unitAnalysis)
                         .sort(([,a]: any, [,b]: any) => b.total - a.total)[0];
                       
-                      const formatProfessionalName = (name: string) => {
-                        const specialNames: { [key: string]: string } = {
-                          'arge': 'Ar-Ge',
-                          'boyahane': 'Boyahane',
-                          'bukum': 'Büküm',
-                          'depo': 'Depo',
-                          'elektrikhane': 'Elektrikhane',
-                          'kalite_kontrol': 'Kalite Kontrol',
-                          'kaynakhane': 'Kaynakhane',
-                          'kesim': 'Kesim',
-                          'mekanik_montaj': 'Mekanik Montaj',
-                          'satin_alma': 'Satın Alma',
-                          'satis': 'Satış',
-                          'uretim_planlama': 'Üretim Planlama'
-                        };
-                        return specialNames[name.toLowerCase()] || name;
-                      };
-                      
-                      return topUnit ? formatProfessionalName(topUnit[0]) : 'Veri Yok';
+                      return topUnit ? formatProfessionalDepartmentName(topUnit[0]) : 'Veri Yok';
                     })()}
                   </Typography>
                   <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
@@ -3348,40 +3454,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               {/* Content */}
               <Box sx={{ p: 2, maxHeight: '630px', overflowY: 'auto' }}>
                 {(() => {
-                  // ✅ Profesyonel kapitalizasyon fonksiyonu
-                  const formatProfessionalName = (name: string) => {
-                    if (!name) return 'Bilinmeyen';
-                    
-                    // Özel birim isimleri mapping
-                    const specialNames: { [key: string]: string } = {
-                      'arge': 'Ar-Ge',
-                      'boyahane': 'Boyahane',
-                      'bukum': 'Büküm',
-                      'depo': 'Depo',
-                      'elektrikhane': 'Elektrikhane',
-                      'kalite_kontrol': 'Kalite Kontrol',
-                      'kalite kontrol': 'Kalite Kontrol',
-                      'kaynakhane': 'Kaynakhane',
-                      'kesim': 'Kesim',
-                      'mekanik_montaj': 'Mekanik Montaj',
-                      'mekanik montaj': 'Mekanik Montaj',
-                      'satin_alma': 'Satın Alma',
-                      'satin alma': 'Satın Alma',
-                      'satis': 'Satış',
-                      'uretim_planlama': 'Üretim Planlama',
-                      'uretim planlama': 'Üretim Planlama'
-                    };
-                    
-                    const lowerName = name.toLowerCase();
-                    if (specialNames[lowerName]) {
-                      return specialNames[lowerName];
-                    }
-                    
-                    // Genel kapitalizasyon (her kelimenin ilk harfi büyük)
-                    return name.split(' ')
-                      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                      .join(' ');
-                  };
                   
                   // ✅ Generate real department analysis from filtered data
                   const departmentAnalysis = globalFilteredData
@@ -6387,7 +6459,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   <MenuItem value="mekanik_montaj">Mekanik Montaj</MenuItem>
                   <MenuItem value="satin_alma">Satın Alma</MenuItem>
                   <MenuItem value="satis">Satış</MenuItem>
-                  <MenuItem value="satis_sonrasi_hizmetler">Satış Sonrası Hizmetler</MenuItem>
+                  <MenuItem value="ssh">SSH</MenuItem>
                   <MenuItem value="uretim_planlama">Üretim Planlama</MenuItem>
                 </Select>
               </FormControl>
@@ -6442,20 +6514,13 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             </Grid>
             
             <Grid item xs={12} sm={6} md={4} lg={2.4}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Gelişmiş Arama"
+              <UltraStableSearchInput
                 value={globalFilters.searchTerm}
-                onChange={(e) => setGlobalFilters({...globalFilters, searchTerm: e.target.value})}
+                onChange={handleSearchTermChange}
+                label="Gelişmiş Arama"
                 placeholder="Parça kodu, açıklama..."
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
+                size="small"
+                fullWidth
               />
             </Grid>
 
@@ -6465,14 +6530,16 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 variant="outlined"
                 size="small"
                 fullWidth
-                onClick={() => setGlobalFilters({
-                  maliyetTuru: '',
-                  birim: '',
-                  arac: '',
-                  searchTerm: '',
-                  selectedMonth: '',
-                  selectedYear: new Date().getFullYear().toString()
-                })}
+                onClick={() => {
+                  setGlobalFilters({
+                    maliyetTuru: '',
+                    birim: '',
+                    arac: '',
+                    searchTerm: '',
+                    selectedMonth: '',
+                    selectedYear: new Date().getFullYear().toString()
+                  });
+                }}
                 sx={{ height: 40, minWidth: 'auto' }}
               >
                 Temizle
@@ -7378,25 +7445,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                              Birim/Departman
                            </Typography>
                            <Typography variant="body1" fontWeight={500}>
-                             {(() => {
-                               const birimMap: { [key: string]: string } = {
-                                 'arge': 'Ar-Ge',
-                                 'boyahane': 'Boyahane',
-                                 'bukum': 'Büküm',
-                                 'depo': 'Depo',
-                                 'elektrikhane': 'Elektrikhane',
-                                 'idari_isler': 'İdari İşler',
-                                 'kalite_kontrol': 'Kalite Kontrol',
-                                 'kaynakhane': 'Kaynakhane',
-                                 'kesim': 'Kesim',
-                                 'mekanik_montaj': 'Mekanik Montaj',
-                                 'satin_alma': 'Satın Alma',
-                                 'satis': 'Satış',
-                                 'ssh': 'SSH',
-                                 'uretim_planlama': 'Üretim Planlama'
-                               };
-                               return birimMap[globalSelectedDetailEntry.birim] || globalSelectedDetailEntry.birim || 'Bilinmiyor';
-                             })()}
+                             {formatProfessionalDepartmentName(globalSelectedDetailEntry.birim)}
                            </Typography>
                          </Box>
                        </Grid>
@@ -7407,6 +7456,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                            </Typography>
                            <Typography variant="body1" fontWeight={500}>
                              {(() => {
+                               const arac = globalSelectedDetailEntry.aracModeli || globalSelectedDetailEntry.arac;
+                               // Araç isimlerini formatla
                                const aracMap: { [key: string]: string } = {
                                  'fth240': 'FTH-240',
                                  'celik2000': 'Çelik-2000',
@@ -7422,7 +7473,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                                  'ural': 'Ural',
                                  'hsck': 'HSCK'
                                };
-                               const arac = globalSelectedDetailEntry.aracModeli || globalSelectedDetailEntry.arac;
                                return aracMap[arac] || arac || 'Bilinmiyor';
                              })()}
                            </Typography>
@@ -7837,12 +7887,14 @@ const ProfessionalDataTable: React.FC<{
       'bukum': 'Büküm',
       'depo': 'Depo',
       'elektrikhane': 'Elektrikhane',
+      'idari_isler': 'İdari İşler',
       'kalite_kontrol': 'Kalite Kontrol',
       'kaynakhane': 'Kaynakhane',
       'kesim': 'Kesim',
       'mekanik_montaj': 'Mekanik Montaj',
       'satin_alma': 'Satın Alma',
       'satis': 'Satış',
+      'ssh': 'SSH',
       'uretim_planlama': 'Üretim Planlama'
     };
     return specialNames[name.toLowerCase()] || name;
@@ -8286,6 +8338,7 @@ const ProfessionalDataTable: React.FC<{
   filteredData?: any[],
   onDataRefresh?: () => void
 }> = ({ onDataChange, filteredData = [], onDataRefresh }) => {
+  
   // ✅ PROFESYONEL: Gelişmiş Veri Kurtarma ve Otomatik Güvenlik Sistemi
   const [costData, setCostData] = useState<any[]>(() => {
     try {
@@ -8462,6 +8515,18 @@ const ProfessionalDataTable: React.FC<{
     { value: 'ural', label: 'Ural' },
     { value: 'hsck', label: 'HSCK' }
   ], []);
+
+  // ✅ DEBUG: Filtrelenmiş veri debug'u
+  useEffect(() => {
+    console.log('🔍 DataManagementComponent - filteredData prop güncellemesi:', {
+      filteredDataLength: filteredData.length,
+      costDataLength: costData.length,
+      filteredDataSample: filteredData.slice(0, 3),
+      costDataSample: costData.slice(0, 3),
+      usingFilteredData: filteredData.length > 0,
+      timestamp: new Date().toISOString()
+    });
+  }, [filteredData, costData]);
 
   // ✅ YENİ: Kategoriye göre araç modelleri filtreleme
   const getModelsForCategory = useCallback((category: VehicleCategory) => {
@@ -9376,34 +9441,43 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     window.location.href = '/dof-8d-management';
   }, [getDisplayName, maliyetTurleri, birimler, araclar, getDOFStatusForRecord]);
 
-  // ✅ Context7: Enhanced Analytics with Pareto & COPQ Analysis  
+  // ✅ BASIT: Sadece filtrelenmiş veriyi kullan - başka filtre YOK!
   const getAnalytics = useMemo(() => {
+    // ✅ Global filtrelenmiş veriyi doğrudan kullan
+    const activeData = filteredData;
+    
+    console.log('🔍 BASIT DataManagement Analytics:', {
+      globalFilteredDataLength: filteredData.length,
+      usingOnlyGlobalFilters: true,
+      activeDataSample: activeData.slice(0, 2)
+    });
+    
     const byBirim = birimler.map(birim => ({
       birim: birim.label,
-      toplam: costData
+      toplam: activeData
         .filter(item => item.birim === birim.value)
         .reduce((sum, item) => sum + item.maliyet, 0),
-      adet: costData.filter(item => item.birim === birim.value).length
+      adet: activeData.filter(item => item.birim === birim.value).length
     })).filter(item => item.toplam > 0);
 
     const byArac = araclar.map(arac => ({
       arac: arac.label,
-      toplam: costData
+      toplam: activeData
         .filter(item => item.arac === arac.value)
         .reduce((sum, item) => sum + item.maliyet, 0),
-      adet: costData.filter(item => item.arac === arac.value).length
+      adet: activeData.filter(item => item.arac === arac.value).length
     })).filter(item => item.toplam > 0);
 
     const byMaliyetTuru = maliyetTurleri.map(mt => ({
       tur: mt.label,
-      toplam: costData
+      toplam: activeData
         .filter(item => item.maliyetTuru === mt.value)
         .reduce((sum, item) => sum + item.maliyet, 0),
-      adet: costData.filter(item => item.maliyetTuru === mt.value).length
+      adet: activeData.filter(item => item.maliyetTuru === mt.value).length
     })).filter(item => item.toplam > 0);
 
     // ✅ Context7: Real-time Pareto Analysis from actual data
-    const totalCost = costData.reduce((sum, item) => sum + item.maliyet, 0);
+    const totalCost = activeData.reduce((sum, item) => sum + item.maliyet, 0);
     const sortedByMaliyet = [...byMaliyetTuru].sort((a, b) => b.toplam - a.toplam);
     let cumulative = 0;
     const paretoAnalysis = sortedByMaliyet.map((item, index) => {
@@ -9458,7 +9532,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     const parcaKoduData = new Map();
     
     // ✅ Context7: Aggregate real part code data from cost data entries
-    costData.forEach(item => {
+    activeData.forEach(item => {
       if (item.parcaKodu) {
         const existing = parcaKoduData.get(item.parcaKodu);
         if (existing) {
@@ -9503,8 +9577,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     const generateRealTrendData = () => {
       const monthlyData = new Map();
       
-      // Group cost data by month and COPQ category from actual costData
-      costData.forEach((item: any) => {
+      // Group cost data by month and COPQ category from actual activeData
+      activeData.forEach((item: any) => {
         if (item.tarih && item.maliyet && item.maliyetTuru) {
           const itemDate = new Date(item.tarih);
           const monthKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
@@ -9554,9 +9628,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         .slice(-6); // Last 6 months
       
       console.log('📈 DataManagement COPQ Trend Generated:', {
-        recordsProcessed: costData.length,
+        recordsProcessed: activeData.length,
         monthsGenerated: sortedMonths.length,
-        detailedTrendData: sortedMonths
+        detailedTrendData: sortedMonths,
+        filteredMode: filteredData.length > 0 ? 'FILTERED' : 'ALL_DATA'
       });
       
       return sortedMonths;
@@ -9572,8 +9647,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       trendData: generateRealTrendData(), // ✅ NEW: Real trend data
       totalSummary: {
         totalCost,
-        totalItems: filteredData.length,
-        avgCost: totalCost / (filteredData.length || 1)
+        totalItems: activeData.length,
+        avgCost: totalCost / (activeData.length || 1)
       }
     };
     
@@ -9594,24 +9669,26 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     }
 
     return analytics;
-  }, [costData, birimler, araclar, maliyetTurleri, onDataChange]);
+  }, [filteredData, birimler, araclar, maliyetTurleri, onDataChange]);
 
   return (
     <Box sx={{ p: 3 }}>
       
-      {/* Analytics Cards */}
+      {/* BASIT Analytics Cards - SADECE global filtrelenmiş veri */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} md={3}>
           <Card sx={{ p: 2, background: 'linear-gradient(45deg, #2196f3, #21cbf3)' }}>
             <Typography variant="h6" color="white">Toplam Kayıt</Typography>
-            <Typography variant="h4" color="white">{costData.length}</Typography>
+            <Typography variant="h4" color="white">
+              {filteredData.length}
+            </Typography>
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
           <Card sx={{ p: 2, background: 'linear-gradient(45deg, #f44336, #ff6b6b)' }}>
             <Typography variant="h6" color="white">Toplam Maliyet</Typography>
             <Typography variant="h4" color="white">
-              ₺{costData.reduce((sum, item) => sum + item.maliyet, 0).toLocaleString('tr-TR')}
+              ₺{filteredData.reduce((sum, item) => sum + item.maliyet, 0).toLocaleString('tr-TR')}
             </Typography>
           </Card>
         </Grid>
@@ -9619,7 +9696,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           <Card sx={{ p: 2, background: 'linear-gradient(45deg, #4caf50, #66bb6a)' }}>
             <Typography variant="h6" color="white">En Yüksek Maliyet</Typography>
             <Typography variant="h4" color="white">
-              ₺{Math.max(...costData.map(item => item.maliyet), 0).toLocaleString('tr-TR')}
+              ₺{Math.max(...filteredData.map(item => item.maliyet), 0).toLocaleString('tr-TR')}
             </Typography>
           </Card>
         </Grid>
@@ -9627,7 +9704,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           <Card sx={{ p: 2, background: 'linear-gradient(45deg, #ff9800, #ffb74d)' }}>
             <Typography variant="h6" color="white">Ortalama Maliyet</Typography>
             <Typography variant="h4" color="white">
-              ₺{Math.round(costData.reduce((sum, item) => sum + item.maliyet, 0) / (costData.length || 1)).toLocaleString('tr-TR')}
+              ₺{filteredData.length > 0 ? Math.round(filteredData.reduce((sum, item) => sum + item.maliyet, 0) / filteredData.length).toLocaleString('tr-TR') : '0'}
             </Typography>
           </Card>
         </Grid>
@@ -9653,10 +9730,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           Yeni Maliyet Kaydı Ekle
         </Button>
         
-        {/* ✅ PROFESYONEL: Sadece Bilgi Göstergesi */}
+        {/* ✅ BASIT: Sadece global filtrelenmiş veri sayısı */}
         <Chip
           icon={<InfoIcon />}
-          label={`${costData.length} kayıt aktif`}
+          label={`${filteredData.length} kayıt görüntüleniyor`}
           color="primary"
           variant="outlined"
           sx={{ 
@@ -9685,7 +9762,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               </TableRow>
             </TableHead>
             <TableBody>
-              {costData
+              {filteredData
                 .sort((a, b) => b.id - a.id) // ✅ ID'ye göre azalan sıralama (en yeni üstte)
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
                 <TableRow
@@ -9788,7 +9865,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={costData.length}
+          count={filteredData.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(_, newPage) => setPage(newPage)}
@@ -13539,6 +13616,11 @@ const CategoryProductionManagementComponent: React.FC<{
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<VehicleCategory | ''>('');
   const [selectedMonth, setSelectedMonth] = useState<string>('');
+
+  // ✅ Optimize edilmiş search handler fonksiyonu
+  const handleSearchChange = useCallback((newSearchTerm: string) => {
+    setSearchTerm(newSearchTerm);
+  }, []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduction, setEditingProduction] = useState<MonthlyCategoryProduction | null>(null);
 
@@ -13662,7 +13744,7 @@ const CategoryProductionManagementComponent: React.FC<{
     return sampleData;
   };
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...categoryProductions];
 
     // Arama terimi
@@ -13693,7 +13775,7 @@ const CategoryProductionManagementComponent: React.FC<{
     });
 
     setFilteredProductions(filtered);
-  };
+  }, [categoryProductions, searchTerm, selectedCategory, selectedMonth]);
 
   const handleSaveProduction = () => {
     if (!formData.kategori || !formData.donem || !formData.uretilenAracSayisi || !formData.planlanmisUretim) {
@@ -13806,14 +13888,11 @@ const CategoryProductionManagementComponent: React.FC<{
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              placeholder="Araç modeli, kategori veya ay ile ara..."
+            <UltraStableSearchInput
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-              }}
+              onChange={handleSearchChange}
+              placeholder="Araç modeli, kategori veya ay ile ara..."
+              fullWidth
             />
           </Grid>
           <Grid item xs={12} md={3}>
