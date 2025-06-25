@@ -9872,6 +9872,27 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
                 {formData.unit === 'kg' ? (
                   <>
+                    {/* ✅ YENİ: İşçilik ve Genel Gider Toggle - KG bazlı hurda için */}
+                    <Grid item xs={12}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={formData.includeLabor || false}
+                            onChange={(e) => setFormData({...formData, includeLabor: e.target.checked})}
+                            color="primary"
+                          />
+                        }
+                        label="İşçilik ve genel gider maliyetlerini dahil et (%30)"
+                        sx={{ 
+                          bgcolor: 'grey.50', 
+                          p: 1, 
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'grey.200'
+                        }}
+                      />
+                    </Grid>
+
                     {/* KG bazlı hurda formu */}
                     {/* ✅ PROFESYONEL: Malzeme Türü Seçimi - Hurda için gelişmiş */}
                     <Grid item xs={12} md={4}>
