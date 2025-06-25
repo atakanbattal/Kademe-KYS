@@ -11500,45 +11500,10 @@ const CostSettingsComponent: React.FC<{
     }));
   }, []);
 
-  // Özet hesaplamaları optimize et
-  const summary = useMemo(() => {
-    const values = Object.values(unitCostSettings);
-    const totalSaatlik = values.reduce((sum, settings) => sum + settings.saatlik, 0);
-    const averageSaatlik = values.length > 0 ? totalSaatlik / values.length : 0;
-    
-    return {
-      total: totalSaatlik,
-      average: averageSaatlik,
-      count: birimler.length
-    };
-  }, [unitCostSettings, birimler.length]);
+
 
   return (
     <Box>
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <TuneIcon color="primary" />
-          Birim Maliyet Ayarları
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Her departman/birim için saatlik ve dakikalık maliyetleri ayarlayın. Bir değeri değiştirdiğinizde diğeri otomatik hesaplanacaktır.
-        </Typography>
-
-        {/* Maliyetleri Sıfırlama Butonu */}
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            variant="outlined"
-            color="warning"
-            onClick={() => {
-              if (window.confirm('Tüm birim maliyetlerini varsayılan değerlere sıfırlamak istediğinizden emin misiniz?')) {
-                initializeDefaultSettings();
-              }
-            }}
-            startIcon={<SettingsBackupRestoreIcon />}
-          >
-            Varsayılan Değerlere Sıfırla
-          </Button>
-        </Box>
 
         {/* Profesyonel Birim Maliyet Tablosu */}
         <TableContainer 
@@ -11747,54 +11712,6 @@ const CostSettingsComponent: React.FC<{
             </TableBody>
           </Table>
         </TableContainer>
-
-        {/* Bilgilendirme Kartı */}
-        <Alert severity="info" sx={{ mt: 3 }}>
-          <Typography variant="body2">
-            <strong>Kullanım Bilgisi:</strong> Bu ayarlar, "Yeniden İşlem" maliyet türünde kayıt eklerken seçtiğiniz birime göre otomatik olarak uygulanacaktır. 
-            Saatlik veya dakikalık maliyet girdiğinizde, diğer değer otomatik hesaplanır (1 saat = 60 dakika).
-          </Typography>
-        </Alert>
-
-        {/* Özet Bilgileri */}
-        <Paper sx={{ p: 2, mt: 3, bgcolor: 'grey.50' }}>
-          <Typography variant="h6" gutterBottom color="primary">
-            Maliyet Özeti
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <Typography variant="h4" color="success.main" fontWeight="bold">
-                  ₺{summary.total.toFixed(2)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Toplam Saatlik Maliyet
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <Typography variant="h4" color="warning.main" fontWeight="bold">
-                  ₺{summary.average.toFixed(2)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Ortalama Saatlik Maliyet
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <Typography variant="h4" color="info.main" fontWeight="bold">
-                  {summary.count}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Toplam Birim Sayısı
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
-      </Paper>
     </Box>
   );
 };
