@@ -11388,7 +11388,7 @@ const CostSettingsComponent: React.FC<{
   }, []);
 
   // Varsayılan ayarları oluştur
-  const initializeDefaultSettings = () => {
+  const initializeDefaultSettings = useCallback(() => {
     const defaultSettings: { [key: string]: { saatlik: number, dakikalik: number } } = {};
     
     birimler.forEach(birim => {
@@ -11450,17 +11450,26 @@ const CostSettingsComponent: React.FC<{
     
     setUnitCostSettings(defaultSettings);
     localStorage.setItem('unit-cost-settings-v2', JSON.stringify(defaultSettings));
-  };
+  }, [birimler]);
 
   // Ayarları localStorage'a kaydet
   useEffect(() => {
     if (Object.keys(unitCostSettings).length > 0) {
       localStorage.setItem('unit-cost-settings-v2', JSON.stringify(unitCostSettings));
-      
-      // Veri yenilenme olayını tetikle (maliyet kayıtları entegrasyonu için)
-      onDataRefresh?.();
     }
-  }, [unitCostSettings, onDataRefresh]);
+  }, [unitCostSettings]);
+
+  // onDataRefresh'i stabil hale getir
+  const stableOnDataRefresh = useCallback(() => {
+    onDataRefresh?.();
+  }, [onDataRefresh]);
+
+  // onDataRefresh'i ayrı useEffect'te çağır
+  useEffect(() => {
+    if (Object.keys(unitCostSettings).length > 0) {
+      stableOnDataRefresh();
+    }
+  }, [unitCostSettings, stableOnDataRefresh]);
 
   // Saatlik maliyet değiştirme
   const handleSaatlikChange = (birimValue: string, saatlikMaliyet: number) => {
@@ -11497,6 +11506,19 @@ const CostSettingsComponent: React.FC<{
       return timeUnit === 'saat' ? settings.saatlik : settings.dakikalik;
     };
   }, [unitCostSettings]);
+
+  // Özet hesaplamaları optimize et
+  const summary = useMemo(() => {
+    const values = Object.values(unitCostSettings);
+    const totalSaatlik = values.reduce((sum, settings) => sum + settings.saatlik, 0);
+    const averageSaatlik = values.length > 0 ? totalSaatlik / values.length : 0;
+    
+    return {
+      total: totalSaatlik,
+      average: averageSaatlik,
+      count: birimler.length
+    };
+  }, [unitCostSettings, birimler.length]);
 
   return (
     <Box>
@@ -11638,7 +11660,7 @@ const CostSettingsComponent: React.FC<{
             <Grid item xs={12} md={4}>
               <Box sx={{ textAlign: 'center', p: 2 }}>
                 <Typography variant="h4" color="success.main" fontWeight="bold">
-                  ₺{Object.values(unitCostSettings).reduce((sum, settings) => sum + settings.saatlik, 0).toFixed(2)}
+                  ₺{summary.total.toFixed(2)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Toplam Saatlik Maliyet
@@ -11648,7 +11670,7 @@ const CostSettingsComponent: React.FC<{
             <Grid item xs={12} md={4}>
               <Box sx={{ textAlign: 'center', p: 2 }}>
                 <Typography variant="h4" color="warning.main" fontWeight="bold">
-                  ₺{(Object.values(unitCostSettings).reduce((sum, settings) => sum + settings.saatlik, 0) / birimler.length).toFixed(2)}
+                  ₺{summary.average.toFixed(2)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Ortalama Saatlik Maliyet
@@ -11658,7 +11680,7 @@ const CostSettingsComponent: React.FC<{
             <Grid item xs={12} md={4}>
               <Box sx={{ textAlign: 'center', p: 2 }}>
                 <Typography variant="h4" color="info.main" fontWeight="bold">
-                  {birimler.length}
+                  {summary.count}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Toplam Birim Sayısı
