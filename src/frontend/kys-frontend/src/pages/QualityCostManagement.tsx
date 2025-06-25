@@ -6548,9 +6548,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             />}
         {currentTab === 5 && <CostSettingsComponent 
           filteredData={globalFilteredData}
-          onDataRefresh={() => {
-            setDataRefreshTrigger(prev => prev + 1);
-          }}
         />}
         {currentTab === 6 && <MaterialPricingManagementComponent />}
                     {/* currentTab === 7 {currentTab === 7 && <CategoryProductionManagementComponent onTabChange={setCurrentTab} />}{currentTab === 7 && <CategoryProductionManagementComponent onTabChange={setCurrentTab} />} <CategoryProductionManagementComponent onTabChange={setCurrentTab} /> */}
@@ -11348,10 +11345,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
 // ✅ YENİ: Birim Maliyet Ayarları Komponenti - TABLO FORMATINDA
 const CostSettingsComponent: React.FC<{
-  filteredData?: any[],
-  onDataRefresh?: () => void
-}> = ({ filteredData = [], onDataRefresh }) => {
+  filteredData?: any[]
+}> = ({ filteredData = [] }) => {
   const [unitCostSettings, setUnitCostSettings] = useState<{ [key: string]: { saatlik: number, dakikalik: number } }>({});
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Birimler listesi - görseldeki gibi
   const birimler = useMemo(() => [
@@ -11370,22 +11367,6 @@ const CostSettingsComponent: React.FC<{
     { value: 'ssh', label: 'SSH' },
     { value: 'uretim_planlama', label: 'Üretim Planlama' }
   ], []);
-
-  // localStorage'dan ayarları yükle
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('unit-cost-settings-v2');
-    if (savedSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedSettings);
-        setUnitCostSettings(parsedSettings);
-      } catch (error) {
-        console.error('Birim maliyet ayarları yüklenirken hata:', error);
-        initializeDefaultSettings();
-      }
-    } else {
-      initializeDefaultSettings();
-    }
-  }, []);
 
   // Varsayılan ayarları oluştur
   const initializeDefaultSettings = useCallback(() => {
@@ -11452,27 +11433,46 @@ const CostSettingsComponent: React.FC<{
     localStorage.setItem('unit-cost-settings-v2', JSON.stringify(defaultSettings));
   }, [birimler]);
 
-  // Ayarları localStorage'a kaydet
+  // localStorage'dan ayarları yükle - SADECE BİR KEZ
   useEffect(() => {
-    if (Object.keys(unitCostSettings).length > 0) {
+    if (!isInitialized) {
+      const savedSettings = localStorage.getItem('unit-cost-settings-v2');
+      if (savedSettings) {
+        try {
+          const parsedSettings = JSON.parse(savedSettings);
+          setUnitCostSettings(parsedSettings);
+        } catch (error) {
+          console.error('Birim maliyet ayarları yüklenirken hata:', error);
+          initializeDefaultSettings();
+        }
+      } else {
+        initializeDefaultSettings();
+      }
+      setIsInitialized(true);
+    }
+  }, [isInitialized, initializeDefaultSettings]);
+
+  // Ayarları localStorage'a kaydet - SADECE değişiklik olduğunda
+  useEffect(() => {
+    if (isInitialized && Object.keys(unitCostSettings).length > 0) {
       localStorage.setItem('unit-cost-settings-v2', JSON.stringify(unitCostSettings));
     }
-  }, [unitCostSettings]);
+  }, [unitCostSettings, isInitialized]);
 
-  // onDataRefresh'i stabil hale getir
-  const stableOnDataRefresh = useCallback(() => {
-    onDataRefresh?.();
-  }, [onDataRefresh]);
-
-  // onDataRefresh'i ayrı useEffect'te çağır
+  // Global fonksiyon - maliyet kayıtlarında kullanım için
   useEffect(() => {
-    if (Object.keys(unitCostSettings).length > 0) {
-      stableOnDataRefresh();
+    if (isInitialized) {
+      (window as any).getUnitCostSettings = () => unitCostSettings;
+      (window as any).getUnitCost = (birim: string, timeUnit: 'saat' | 'dakika') => {
+        const settings = unitCostSettings[birim];
+        if (!settings) return 0;
+        return timeUnit === 'saat' ? settings.saatlik : settings.dakikalik;
+      };
     }
-  }, [unitCostSettings, stableOnDataRefresh]);
+  }, [unitCostSettings, isInitialized]);
 
   // Saatlik maliyet değiştirme
-  const handleSaatlikChange = (birimValue: string, saatlikMaliyet: number) => {
+  const handleSaatlikChange = useCallback((birimValue: string, saatlikMaliyet: number) => {
     const dakikalikMaliyet = parseFloat((saatlikMaliyet / 60).toFixed(3));
     
     setUnitCostSettings(prev => ({
@@ -11482,10 +11482,10 @@ const CostSettingsComponent: React.FC<{
         dakikalik: dakikalikMaliyet
       }
     }));
-  };
+  }, []);
 
   // Dakikalık maliyet değiştirme
-  const handleDakikalikChange = (birimValue: string, dakikalikMaliyet: number) => {
+  const handleDakikalikChange = useCallback((birimValue: string, dakikalikMaliyet: number) => {
     const saatlikMaliyet = parseFloat((dakikalikMaliyet * 60).toFixed(2));
     
     setUnitCostSettings(prev => ({
@@ -11495,17 +11495,7 @@ const CostSettingsComponent: React.FC<{
         dakikalik: dakikalikMaliyet
       }
     }));
-  };
-
-  // Global fonksiyon - maliyet kayıtlarında kullanım için
-  useEffect(() => {
-    (window as any).getUnitCostSettings = () => unitCostSettings;
-    (window as any).getUnitCost = (birim: string, timeUnit: 'saat' | 'dakika') => {
-      const settings = unitCostSettings[birim];
-      if (!settings) return 0;
-      return timeUnit === 'saat' ? settings.saatlik : settings.dakikalik;
-    };
-  }, [unitCostSettings]);
+  }, []);
 
   // Özet hesaplamaları optimize et
   const summary = useMemo(() => {
