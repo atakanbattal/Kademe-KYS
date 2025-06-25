@@ -8470,6 +8470,91 @@ const ProfessionalDataTable: React.FC<{
     return sampleEntries;
   }, [maliyetTurleri, birimler, araclar]);
 
+  // ✅ YENİ: Departman İsimleri Migration Fonksiyonu
+  const migrateDepartmentNames = useCallback((data: any[]) => {
+    console.log('🔄 Departman isimleri migration başlatılıyor...');
+    
+    const departmentMigrationMap: { [key: string]: string } = {
+      'Idari_isler': 'idari_isler',
+      'İdari_isler': 'idari_isler', 
+      'Idari isler': 'idari_isler',
+      'İdari isler': 'idari_isler',
+      'Satis_sonrasi': 'satis_sonrasi_hizmetler',
+      'satis_sonrasi': 'satis_sonrasi_hizmetler',
+      'Satis sonrasi': 'satis_sonrasi_hizmetler',
+      'satış_sonrası': 'satis_sonrasi_hizmetler',
+      'elektrikhane': 'elektrikhane',
+      'Elektrikhane': 'elektrikhane',
+      'bukum': 'bukum',
+      'Bukum': 'bukum',
+      'Büküm': 'bukum'
+    };
+
+    let migrationCount = 0;
+    
+    const migratedData = data.map(item => {
+      if (item.birim && departmentMigrationMap[item.birim]) {
+        console.log(`📝 Migration: "${item.birim}" → "${departmentMigrationMap[item.birim]}"`);
+        migrationCount++;
+        return {
+          ...item,
+          birim: departmentMigrationMap[item.birim]
+        };
+      }
+      return item;
+    });
+
+    if (migrationCount > 0) {
+      console.log(`✅ Departman isimleri migration tamamlandı: ${migrationCount} kayıt güncellendi`);
+      // Migration sonrasında verileri localStorage'a kaydet
+      localStorage.setItem('kys-cost-management-data', JSON.stringify(migratedData));
+    } else {
+      console.log('ℹ️ Migration gerekmedi - tüm departman isimleri zaten doğru');
+    }
+
+    return migratedData;
+  }, []);
+
+  // ✅ YENİ: Manual Migration Tetikleyici
+  const fixDepartmentNamesNow = useCallback(() => {
+    console.log('🔧 Manual departman isimleri düzeltme başlatılıyor...');
+    
+    try {
+      const existingData = localStorage.getItem('kys-cost-management-data');
+      if (existingData) {
+        const parsedData = JSON.parse(existingData);
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+          const migratedData = migrateDepartmentNames(parsedData);
+          setCostData(migratedData);
+          
+          // Executive Dashboard verilerini de temizle ve yenile
+          window.dispatchEvent(new CustomEvent('costDataUpdated'));
+          onDataRefresh?.();
+          
+          console.log('✅ Manuel departman isimleri düzeltme tamamlandı!');
+          
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('❌ Manuel migration hatası:', error);
+      return false;
+    }
+  }, [migrateDepartmentNames, onDataRefresh]);
+
+  // ✅ Başlangıçta otomatik migration çalıştır
+  useEffect(() => {
+    const shouldAutoFix = localStorage.getItem('department-names-migration-applied');
+    if (!shouldAutoFix) {
+      console.log('🔄 İlk kez yükleniyor - departman isimleri migration otomatik uygulanıyor...');
+      const success = fixDepartmentNamesNow();
+      if (success) {
+        localStorage.setItem('department-names-migration-applied', 'true');
+      }
+    }
+  }, [fixDepartmentNamesNow]);
+
   // ✅ VERİ KAYBI FİXİ: Sample data generation sadece component ilk yüklendiğinde çalışsın
   useEffect(() => {
     // VERİ GÜVENLİĞİ: localStorage'dan mevcut veriyi kontrol et
@@ -8488,7 +8573,10 @@ const ProfessionalDataTable: React.FC<{
         const parsedData = JSON.parse(existingData);
         if (Array.isArray(parsedData) && parsedData.length > 0) {
           console.log('📂 Mevcut veriler yüklendi:', parsedData.length, 'kayıt');
-          const sortedData = parsedData.sort((a, b) => b.id - a.id);
+          
+          // ✅ YENİ: Migration uygula
+          const migratedData = migrateDepartmentNames(parsedData);
+          const sortedData = migratedData.sort((a, b) => b.id - a.id);
           setCostData(sortedData);
         } else {
           // Geçersiz veri varsa sample data oluştur
@@ -8508,7 +8596,7 @@ const ProfessionalDataTable: React.FC<{
         localStorage.setItem('kys-cost-management-data', JSON.stringify(sortedData));
       }
     }
-  }, []); // 🔥 KRİTİK FİX: Dependencies kaldırıldı - sadece ilk render'da çalışacak
+  }, [generateSampleData, migrateDepartmentNames]); // ✅ Migration dependency eklendi
 
   // ✅ VERİ GÜVENLİĞİ: sadece kullanıcı aksiyonlarında localStorage'a kaydet
   useEffect(() => {
