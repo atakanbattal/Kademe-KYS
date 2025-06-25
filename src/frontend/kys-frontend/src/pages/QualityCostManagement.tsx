@@ -8393,7 +8393,6 @@ const ProfessionalDataTable: React.FC<{
     { value: 'mekanik_montaj', label: 'Mekanik Montaj' },
     { value: 'satin_alma', label: 'Satın Alma' },
     { value: 'satis', label: 'Satış' },
-    { value: 'satis_sonrasi_hizmetler', label: 'Satış Sonrası Hizmetler' },
     { value: 'ssh', label: 'SSH' },
     { value: 'uretim_planlama', label: 'Üretim Planlama' }
   ], []);
@@ -8479,10 +8478,11 @@ const ProfessionalDataTable: React.FC<{
       'İdari_isler': 'idari_isler', 
       'Idari isler': 'idari_isler',
       'İdari isler': 'idari_isler',
-      'Satis_sonrasi': 'satis_sonrasi_hizmetler',
-      'satis_sonrasi': 'satis_sonrasi_hizmetler',
-      'Satis sonrasi': 'satis_sonrasi_hizmetler',
-      'satış_sonrası': 'satis_sonrasi_hizmetler',
+      'Satis_sonrasi': 'ssh',
+      'satis_sonrasi': 'ssh',
+      'Satis sonrasi': 'ssh',
+      'satış_sonrası': 'ssh',
+      'satis_sonrasi_hizmetler': 'ssh',
       'elektrikhane': 'elektrikhane',
       'Elektrikhane': 'elektrikhane',
       'bukum': 'bukum',
@@ -8543,17 +8543,33 @@ const ProfessionalDataTable: React.FC<{
     }
   }, [migrateDepartmentNames, onDataRefresh]);
 
-  // ✅ Başlangıçta otomatik migration çalıştır
-  useEffect(() => {
-    const shouldAutoFix = localStorage.getItem('department-names-migration-applied');
-    if (!shouldAutoFix) {
-      console.log('🔄 İlk kez yükleniyor - departman isimleri migration otomatik uygulanıyor...');
-      const success = fixDepartmentNamesNow();
-      if (success) {
-        localStorage.setItem('department-names-migration-applied', 'true');
-      }
+  // ✅ YENİ: LocalStorage Temizleme ve Migration
+  const forceCleanupAndMigration = useCallback(() => {
+    console.log('🧹 Force cleanup ve migration başlatılıyor...');
+    
+    // Tüm migration flag'lerini temizle
+    localStorage.removeItem('department-names-migration-applied');
+    localStorage.removeItem('department-names-migration-applied-v2');
+    
+    // Migration'ı zorla çalıştır
+    const success = fixDepartmentNamesNow();
+    
+    if (success) {
+      localStorage.setItem('department-names-migration-applied-v2', 'true');
+      console.log('✅ Force cleanup ve migration tamamlandı!');
     }
+    
+    return success;
   }, [fixDepartmentNamesNow]);
+
+  // ✅ Başlangıçta otomatik migration çalıştır (V2)
+  useEffect(() => {
+    const shouldAutoFix = localStorage.getItem('department-names-migration-applied-v2');
+    if (!shouldAutoFix) {
+      console.log('🔄 V2 Migration: Departman isimleri migration otomatik uygulanıyor...');
+      forceCleanupAndMigration();
+    }
+  }, [forceCleanupAndMigration]);
 
   // ✅ VERİ KAYBI FİXİ: Sample data generation sadece component ilk yüklendiğinde çalışsın
   useEffect(() => {
