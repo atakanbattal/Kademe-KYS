@@ -7279,7 +7279,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {globalSelectedDetailEntry?.parcaKodu && `Parça: ${globalSelectedDetailEntry.parcaKodu} • `}
-                {globalSelectedDetailEntry?.birim && `Birim: ${globalSelectedDetailEntry.birim} • `}
+                {globalSelectedDetailEntry?.birim && `Birim: ${formatProfessionalDepartmentName(globalSelectedDetailEntry.birim)} • `}
                 ID: {globalSelectedDetailEntry?.id}
               </Typography>
             </Box>
@@ -10888,7 +10888,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {selectedDetailEntry?.parcaKodu && `Parça: ${selectedDetailEntry.parcaKodu} • `}
-                {selectedDetailEntry?.birim && `Birim: ${selectedDetailEntry.birim} • `}
+                {selectedDetailEntry?.birim && `Birim: ${getDisplayName(selectedDetailEntry.birim, birimler)} • `}
                 ID: {selectedDetailEntry?.id}
               </Typography>
             </Box>
