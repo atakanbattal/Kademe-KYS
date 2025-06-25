@@ -6545,7 +6545,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 setVehicleTargets(updatedTargets);
               }}
             />}
-        {/* currentTab === 5 {currentTab === 5 && <CostSettingsComponent />}{currentTab === 5 && <CostSettingsComponent />} <CostSettingsComponent /> */}
+        {currentTab === 5 && <CostSettingsComponent 
+          filteredData={globalFilteredData}
+          onDataRefresh={() => {
+            setDataRefreshTrigger(prev => prev + 1);
+          }}
+        />}
         {currentTab === 6 && <MaterialPricingManagementComponent />}
                     {/* currentTab === 7 {currentTab === 7 && <CategoryProductionManagementComponent onTabChange={setCurrentTab} />}{currentTab === 7 && <CategoryProductionManagementComponent onTabChange={setCurrentTab} />} <CategoryProductionManagementComponent onTabChange={setCurrentTab} /> */}
         </Box>
@@ -11321,6 +11326,344 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           </Button>
           <Button onClick={() => setDetailDialogOpen(false)} variant="contained">
             Kapat
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+// ✅ YENİ: Birim Maliyet Ayarları Komponenti
+const CostSettingsComponent: React.FC<{
+  filteredData?: any[],
+  onDataRefresh?: () => void
+}> = ({ filteredData = [], onDataRefresh }) => {
+  const [costSettings, setCostSettings] = useState<any[]>([]);
+  const [settingFormOpen, setSettingFormOpen] = useState(false);
+  const [editingSetting, setEditingSetting] = useState<any>(null);
+  const [settingFormData, setSettingFormData] = useState<any>({});
+
+  // localStorage'dan ayarları yükle
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('unit-cost-settings');
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        setCostSettings(parsedSettings);
+      } catch (error) {
+        console.error('Birim maliyet ayarları yüklenirken hata:', error);
+        initializeDefaultSettings();
+      }
+    } else {
+      initializeDefaultSettings();
+    }
+  }, []);
+
+  // Varsayılan ayarları oluştur
+  const initializeDefaultSettings = () => {
+    const defaultSettings = [
+      {
+        id: 'setting-1',
+        birimTuru: 'saat',
+        kategori: 'İşçilik',
+        label: 'Kaynakçı Saatlik Maliyet',
+        birimMaliyet: 25.50,
+        aciklama: 'Kaynakçı saatlik işçilik maliyeti',
+        aktif: true,
+        guncellemeTarihi: new Date().toISOString()
+      },
+      {
+        id: 'setting-2',
+        birimTuru: 'saat',
+        kategori: 'İşçilik',
+        label: 'Mekanik Montaj Saatlik Maliyet',
+        birimMaliyet: 22.75,
+        aciklama: 'Mekanik montaj saatlik işçilik maliyeti',
+        aktif: true,
+        guncellemeTarihi: new Date().toISOString()
+      },
+      {
+        id: 'setting-3',
+        birimTuru: 'adet',
+        kategori: 'Kalite',
+        label: 'Hatalı Ürün İşlem Maliyeti',
+        birimMaliyet: 45.00,
+        aciklama: 'Hatalı ürün işlem ve düzeltme maliyeti',
+        aktif: true,
+        guncellemeTarihi: new Date().toISOString()
+      }
+    ];
+    
+    setCostSettings(defaultSettings);
+    localStorage.setItem('unit-cost-settings', JSON.stringify(defaultSettings));
+  };
+
+  // Ayarları localStorage'a kaydet
+  useEffect(() => {
+    if (costSettings.length > 0) {
+      localStorage.setItem('unit-cost-settings', JSON.stringify(costSettings));
+    }
+  }, [costSettings]);
+
+  // FAB Event Listener
+  useEffect(() => {
+    const handleAddNewSetting = () => {
+      handleAddSetting();
+    };
+
+    window.addEventListener('addNewCostSetting', handleAddNewSetting);
+    return () => {
+      window.removeEventListener('addNewCostSetting', handleAddNewSetting);
+    };
+  }, []);
+
+  // Yeni ayar ekleme
+  const handleAddSetting = () => {
+    setEditingSetting(null);
+    setSettingFormData({
+      birimTuru: 'saat',
+      kategori: 'İşçilik',
+      label: '',
+      birimMaliyet: 0,
+      aciklama: '',
+      aktif: true
+    });
+    setSettingFormOpen(true);
+  };
+
+  // Ayar düzenleme
+  const handleEditSetting = (setting: any) => {
+    setEditingSetting(setting);
+    setSettingFormData(setting);
+    setSettingFormOpen(true);
+  };
+
+  // Ayar kaydetme
+  const handleSaveSetting = () => {
+    if (!settingFormData.label || !settingFormData.birimMaliyet) {
+      alert('Lütfen ayar adı ve birim maliyet alanlarını doldurun');
+      return;
+    }
+
+    const settingData = {
+      id: editingSetting?.id || `setting-${Date.now()}`,
+      birimTuru: settingFormData.birimTuru,
+      kategori: settingFormData.kategori,
+      label: settingFormData.label,
+      birimMaliyet: settingFormData.birimMaliyet,
+      aciklama: settingFormData.aciklama || '',
+      aktif: settingFormData.aktif !== false,
+      guncellemeTarihi: new Date().toISOString()
+    };
+
+    if (editingSetting) {
+      setCostSettings(prev => 
+        prev.map(setting => setting.id === editingSetting.id ? settingData : setting)
+      );
+    } else {
+      setCostSettings(prev => [...prev, settingData]);
+    }
+
+    setSettingFormOpen(false);
+    setEditingSetting(null);
+    setSettingFormData({});
+    
+    const action = editingSetting ? 'güncellendi' : 'eklendi';
+    alert(`Birim maliyet ayarı başarıyla ${action}!`);
+  };
+
+  // Ayar silme
+  const handleDeleteSetting = (settingId: string) => {
+    if (window.confirm('Bu birim maliyet ayarını silmek istediğinizden emin misiniz?')) {
+      setCostSettings(prev => prev.filter(setting => setting.id !== settingId));
+    }
+  };
+
+  return (
+    <Box>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <TuneIcon color="primary" />
+          Birim Maliyet Ayarları
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          İşçilik, kalite kontrol ve diğer operasyonlar için birim maliyetleri ayarlayın
+        </Typography>
+
+        <Grid container spacing={3}>
+          {costSettings.map((setting) => (
+            <Grid item xs={12} md={6} lg={4} key={setting.id}>
+              <Card sx={{ 
+                height: '100%',
+                border: setting.aktif ? '2px solid' : '1px solid',
+                borderColor: setting.aktif ? 'success.main' : 'divider',
+                '&:hover': { 
+                  transform: 'translateY(-2px)',
+                  boxShadow: 4 
+                },
+                transition: 'all 0.2s'
+              }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Chip 
+                      label={setting.kategori}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                    <Box>
+                      <IconButton size="small" onClick={() => handleEditSetting(setting)}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton size="small" onClick={() => handleDeleteSetting(setting.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
+
+                  <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>
+                    {setting.label}
+                  </Typography>
+
+                  <Typography variant="h4" color="primary" fontWeight="bold" sx={{ mb: 1 }}>
+                    ₺{setting.birimMaliyet.toLocaleString('tr-TR')}
+                    <Typography component="span" variant="body2" color="text.secondary">
+                      /{setting.birimTuru}
+                    </Typography>
+                  </Typography>
+
+                  {setting.aciklama && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {setting.aciklama}
+                    </Typography>
+                  )}
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Chip 
+                      label={setting.aktif ? 'Aktif' : 'Pasif'}
+                      color={setting.aktif ? 'success' : 'default'}
+                      size="small"
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(setting.guncellemeTarihi).toLocaleDateString('tr-TR')}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        {costSettings.length === 0 && (
+          <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'grey.50' }}>
+            <TuneIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Henüz birim maliyet ayarı eklenmemiş
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Sağ alttaki + butonuna tıklayarak ilk ayarınızı ekleyin
+            </Typography>
+          </Paper>
+        )}
+      </Paper>
+
+      {/* Ayar Ekleme/Düzenleme Dialog */}
+      <Dialog
+        open={settingFormOpen}
+        onClose={() => setSettingFormOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingSetting ? 'Birim Maliyet Ayarını Düzenle' : 'Yeni Birim Maliyet Ayarı'}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Kategori</InputLabel>
+                <Select
+                  value={settingFormData.kategori || ''}
+                  onChange={(e) => setSettingFormData(prev => ({ ...prev, kategori: e.target.value }))}
+                  label="Kategori"
+                >
+                  <MenuItem value="İşçilik">İşçilik</MenuItem>
+                  <MenuItem value="Kalite">Kalite</MenuItem>
+                  <MenuItem value="Makine">Makine</MenuItem>
+                  <MenuItem value="Genel">Genel</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Birim Türü</InputLabel>
+                <Select
+                  value={settingFormData.birimTuru || ''}
+                  onChange={(e) => setSettingFormData(prev => ({ ...prev, birimTuru: e.target.value }))}
+                  label="Birim Türü"
+                >
+                  <MenuItem value="saat">Saat</MenuItem>
+                  <MenuItem value="adet">Adet</MenuItem>
+                  <MenuItem value="kg">KG</MenuItem>
+                  <MenuItem value="dakika">Dakika</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Ayar Adı"
+                value={settingFormData.label || ''}
+                onChange={(e) => setSettingFormData(prev => ({ ...prev, label: e.target.value }))}
+                placeholder="Örn: Kaynakçı Saatlik Maliyet"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Birim Maliyet"
+                type="number"
+                value={settingFormData.birimMaliyet || ''}
+                onChange={(e) => setSettingFormData(prev => ({ ...prev, birimMaliyet: parseFloat(e.target.value) || 0 }))}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+                  endAdornment: <InputAdornment position="end">/{settingFormData.birimTuru || 'birim'}</InputAdornment>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Açıklama (Opsiyonel)"
+                value={settingFormData.aciklama || ''}
+                onChange={(e) => setSettingFormData(prev => ({ ...prev, aciklama: e.target.value }))}
+                placeholder="Bu ayar ne için kullanılıyor?"
+                multiline
+                rows={2}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settingFormData.aktif !== false}
+                    onChange={(e) => setSettingFormData(prev => ({ ...prev, aktif: e.target.checked }))}
+                  />
+                }
+                label="Bu ayarı aktif olarak kullan"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSettingFormOpen(false)}>
+            İptal
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveSetting}
+          >
+            {editingSetting ? 'Güncelle' : 'Kaydet'}
           </Button>
         </DialogActions>
       </Dialog>
