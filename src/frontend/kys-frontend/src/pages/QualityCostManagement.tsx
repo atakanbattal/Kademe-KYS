@@ -8994,6 +8994,42 @@ const ProfessionalDataTable: React.FC<{
     console.log('✅ Silme onay dialog açıldı');
   }, [costData]);
 
+  const confirmDelete = useCallback(() => {
+    console.log('🗑️ Silme onaylandı - Kayıt:', selectedEntry);
+    
+    if (selectedEntry) {
+      const originalLength = costData.length;
+      const updatedData = costData.filter(item => item.id !== selectedEntry.id);
+      const newLength = updatedData.length;
+      
+      console.log(`📊 Veri güncellendi: ${originalLength} → ${newLength} (${originalLength - newLength} kayıt silindi)`);
+      
+      setCostData(updatedData);
+      setDeleteConfirmOpen(false);
+      setSelectedEntry(null);
+      
+      // ✅ IMMEDIATE localStorage UPDATE: Anında localStorage'a kaydet
+      localStorage.setItem('kys-cost-management-data', JSON.stringify(updatedData));
+      
+      // ✅ REAL-TIME TRIGGER: Ana component'te globalFilteredData yeniden hesaplansın
+      onDataRefresh?.();
+      
+      // ✅ ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: Araç kartlarını güncelle
+      window.dispatchEvent(new CustomEvent('costDataUpdated'));
+      
+      // ✅ REAL-TIME ANALYTICS UPDATE: Analytics yeniden hesaplanacak (useEffect ile)  
+      setTimeout(() => {
+        const freshAnalytics = getAnalyticsFromData(updatedData);
+        onDataChange?.(freshAnalytics);
+      }, 100);
+      
+      console.log('✅ Silme işlemi başarıyla tamamlandı');
+    } else {
+      console.error('❌ selectedEntry null - silme işlemi iptal edildi');
+      alert('HATA: Seçilen kayıt bulunamadı!');
+    }
+  }, [selectedEntry, costData, onDataRefresh, onDataChange]);
+
   // ✅ EXECUTIVE DASHBOARD INTEGRATION: Global handleEdit fonksiyonu (handleEdit tanımlandıktan sonra)
   useEffect(() => {
     // Global handleEdit fonksiyonunu window objesine ata
