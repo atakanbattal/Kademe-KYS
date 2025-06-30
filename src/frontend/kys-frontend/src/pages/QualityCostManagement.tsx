@@ -305,6 +305,7 @@ type VehicleCategory =
   | 'Araç Üstü Vakumlu'
   | 'Çekilir Tip Mekanik Süpürgeler'
   | 'Kompost Makinesi'
+  | 'Çay Toplama Makinesi'
   | 'Rusya Motor Odası'
   | 'HSCK'
   | 'Genel';
