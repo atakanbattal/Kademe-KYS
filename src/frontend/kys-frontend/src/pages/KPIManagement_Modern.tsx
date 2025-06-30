@@ -630,7 +630,17 @@ const generateIntegratedKPIs = (): KPI[] => {
 
   const getProductionQualityKPIs = (): KPI[] => {
     try {
-      const productionData = JSON.parse(localStorage.getItem('productionQualityData') || '[]');
+      // Önce her iki anahtar ismini de kontrol et
+      let productionData = JSON.parse(localStorage.getItem('productionQualityData') || '[]');
+      if (productionData.length === 0) {
+        productionData = JSON.parse(localStorage.getItem('productionQualityTracking') || '[]');
+      }
+      
+      console.log('📊 KPI Integration - Production Data Sources:', {
+        'productionQualityData': JSON.parse(localStorage.getItem('productionQualityData') || '[]').length,
+        'productionQualityTracking': JSON.parse(localStorage.getItem('productionQualityTracking') || '[]').length,
+        'selectedData': productionData.length
+      });
       
       const totalDefects = productionData.reduce((sum: number, record: any) => 
         sum + (record.defects ? record.defects.length : 0), 0
@@ -717,7 +727,17 @@ const generateIntegratedKPIs = (): KPI[] => {
 
   const getEquipmentCalibrationKPIs = (): KPI[] => {
     try {
-      const equipmentData = JSON.parse(localStorage.getItem('equipment_calibration_data') || '[]');
+      // Önce her iki anahtar ismini de kontrol et
+      let equipmentData = JSON.parse(localStorage.getItem('equipment_calibration_data') || '[]');
+      if (equipmentData.length === 0) {
+        equipmentData = JSON.parse(localStorage.getItem('equipmentCalibration') || '[]');
+      }
+      
+      console.log('📊 KPI Integration - Equipment Data Sources:', {
+        'equipment_calibration_data': JSON.parse(localStorage.getItem('equipment_calibration_data') || '[]').length,
+        'equipmentCalibration': JSON.parse(localStorage.getItem('equipmentCalibration') || '[]').length,
+        'selectedData': equipmentData.length
+      });
       
       const totalEquipment = equipmentData.length;
       const overdueCalibrations = equipmentData.filter((eq: any) => {
@@ -1164,8 +1184,20 @@ const generateIntegratedKPIs = (): KPI[] => {
 
   const getDocumentRenewalKPIs = (): KPI[] => {
     try {
-      const equipmentData = JSON.parse(localStorage.getItem('equipment_calibration_data') || '[]');
+      // Ekipman verisi için her iki anahtarı kontrol et
+      let equipmentData = JSON.parse(localStorage.getItem('equipment_calibration_data') || '[]');
+      if (equipmentData.length === 0) {
+        equipmentData = JSON.parse(localStorage.getItem('equipmentCalibration') || '[]');
+      }
+      
       const materialData = JSON.parse(localStorage.getItem('materialCertificateTracking') || '[]');
+      
+      console.log('📊 KPI Integration - Document Renewal Data Sources:', {
+        'equipment_calibration_data': JSON.parse(localStorage.getItem('equipment_calibration_data') || '[]').length,
+        'equipmentCalibration': JSON.parse(localStorage.getItem('equipmentCalibration') || '[]').length,
+        'materialCertificateTracking': materialData.length,
+        'selectedEquipmentData': equipmentData.length
+      });
       
       // Kalibrasyon sertifikaları
       const totalCalibrationDocs = equipmentData.length;
@@ -1228,8 +1260,17 @@ const generateIntegratedKPIs = (): KPI[] => {
 
   const getAuditNonconformityKPIs = (): KPI[] => {
     try {
-      // İç denetim verilerini kontrol edelim (InternalAuditManagement modülünden)
-      const auditData = JSON.parse(localStorage.getItem('audit-findings') || '[]');
+      // İç denetim verilerini her iki anahtardan kontrol et
+      let auditData = JSON.parse(localStorage.getItem('audit-findings') || '[]');
+      if (auditData.length === 0) {
+        auditData = JSON.parse(localStorage.getItem('auditManagementData') || '[]');
+      }
+      
+      console.log('📊 KPI Integration - Audit Data Sources:', {
+        'audit-findings': JSON.parse(localStorage.getItem('audit-findings') || '[]').length,
+        'auditManagementData': JSON.parse(localStorage.getItem('auditManagementData') || '[]').length,
+        'selectedData': auditData.length
+      });
       
       const totalFindings = auditData.length;
       const openFindings = auditData.filter((finding: any) => 
@@ -1337,7 +1378,12 @@ const generateIntegratedKPIs = (): KPI[] => {
 
   const getRecurringDefectKPIs = (): KPI[] => {
     try {
-      const productionData = JSON.parse(localStorage.getItem('productionQualityData') || '[]');
+      // Üretim verisi için her iki anahtarı kontrol et
+      let productionData = JSON.parse(localStorage.getItem('productionQualityData') || '[]');
+      if (productionData.length === 0) {
+        productionData = JSON.parse(localStorage.getItem('productionQualityTracking') || '[]');
+      }
+      
       const dofRecords = JSON.parse(localStorage.getItem('dofRecords') || '[]');
       
       // Üretim hatalarından tekrar edenler
@@ -1404,7 +1450,11 @@ const generateIntegratedKPIs = (): KPI[] => {
 
   const getFirstPassYieldKPIs = (): KPI[] => {
     try {
-      const productionData = JSON.parse(localStorage.getItem('productionQualityData') || '[]');
+      // Üretim verisi için her iki anahtarı kontrol et
+      let productionData = JSON.parse(localStorage.getItem('productionQualityData') || '[]');
+      if (productionData.length === 0) {
+        productionData = JSON.parse(localStorage.getItem('productionQualityTracking') || '[]');
+      }
       
       const totalProduction = productionData.length;
       const firstPassProducts = productionData.filter((record: any) => 
