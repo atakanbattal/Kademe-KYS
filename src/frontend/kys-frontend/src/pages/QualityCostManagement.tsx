@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   CardActions,
+  CardHeader,
   Button,
   Grid,
   IconButton,
@@ -106,6 +107,7 @@ import {
   Schedule as ScheduleIcon,
   Update as UpdateIcon,
   Work as WorkIcon,
+  Save as SaveIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -13938,6 +13940,12 @@ const CategoryProductionManagementComponent: React.FC<{
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduction, setEditingProduction] = useState<MonthlyCategoryProduction | null>(null);
 
+  // ✅ YENİ: Gelişmiş Araç Bazlı Yıllık Üretim Yönetimi Modal
+  const [advancedDialogOpen, setAdvancedDialogOpen] = useState(false);
+  const [selectedVehicleCategory, setSelectedVehicleCategory] = useState<VehicleCategory | ''>('');
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [yearlyProductionData, setYearlyProductionData] = useState<MonthlyCategoryProduction[]>([]);
+
 
   // ✅ YENİ: Kategori bazlı form data
   const [formData, setFormData] = useState<Partial<MonthlyCategoryProduction>>({
@@ -14090,6 +14098,148 @@ const CategoryProductionManagementComponent: React.FC<{
 
     setFilteredProductions(filtered);
   }, [categoryProductions, searchTerm, selectedCategory, selectedMonth]);
+
+  // ✅ YENİ: Gelişmiş Araç Bazlı Yıllık Üretim Yönetimi Fonksiyonları
+  
+  // 12 aylık template oluştur
+  const createYearlyTemplate = useCallback((category: VehicleCategory, year: string) => {
+    const template: MonthlyCategoryProduction[] = [];
+    
+    for (let month = 1; month <= 12; month++) {
+      const monthStr = month.toString().padStart(2, '0');
+      const donem = `${year}-${monthStr}`;
+      
+      template.push({
+        id: `${donem}-${category}-template`,
+        kategori: category,
+        displayName: category,
+        donem,
+        donemTuru: 'ay',
+        uretilenAracSayisi: 0,
+        planlanmisUretim: 0,
+        gerceklesmeOrani: 0,
+        categoryModels: VEHICLE_CATEGORIES[category],
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+        createdBy: 'system',
+        isActive: true,
+        aciklama: `${category} - ${donem} dönemi template`
+      });
+    }
+    
+    return template;
+  }, []);
+
+  // Seçilen araç kategorisi için mevcut verileri yükle
+  const loadYearlyProductionData = useCallback((category: VehicleCategory, year: string) => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const allData: MonthlyCategoryProduction[] = stored ? JSON.parse(stored) : [];
+      
+      // Seçilen kategori ve yıl için verileri filtrele
+      const categoryYearData = allData.filter(p => 
+        p.kategori === category && p.donem.startsWith(year)
+      );
+      
+      // 12 aylık template oluştur
+      const template = createYearlyTemplate(category, year);
+      
+      // Mevcut verilerle template'i merge et
+      const mergedData = template.map(templateItem => {
+        const existingData = categoryYearData.find(d => d.donem === templateItem.donem);
+        return existingData || templateItem;
+      });
+      
+      console.log('📊 Yıllık üretim verisi yüklendi:', {
+        category,
+        year,
+        existingCount: categoryYearData.length,
+        templateCount: template.length,
+        mergedCount: mergedData.length,
+        mergedData
+      });
+      
+      setYearlyProductionData(mergedData);
+    } catch (error) {
+      console.error('Yıllık üretim verisi yüklenemedi:', error);
+      setYearlyProductionData(createYearlyTemplate(category, year));
+    }
+  }, [createYearlyTemplate]);
+
+  // Gelişmiş modal'ı aç
+  const handleOpenAdvancedDialog = useCallback((category?: VehicleCategory) => {
+    const selectedCategory = category || selectedVehicleCategory || 'Araç Üstü Vakumlu';
+    setSelectedVehicleCategory(selectedCategory);
+    loadYearlyProductionData(selectedCategory, selectedYear);
+    setAdvancedDialogOpen(true);
+  }, [selectedVehicleCategory, selectedYear, loadYearlyProductionData]);
+
+  // Yıllık veriyi toplu kaydet
+  const handleSaveYearlyData = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      let allData: MonthlyCategoryProduction[] = stored ? JSON.parse(stored) : [];
+      
+      // Mevcut yıllık veriyi sistemden kaldır
+      allData = allData.filter(p => 
+        !(p.kategori === selectedVehicleCategory && p.donem.startsWith(selectedYear))
+      );
+      
+      // Yeni veriyi ekle (sadece değişen veriler)
+      const validData = yearlyProductionData.filter(item => 
+        item.uretilenAracSayisi > 0 || item.planlanmisUretim > 0
+      );
+      
+      // ID'leri güncelle
+      const finalData = validData.map(item => ({
+        ...item,
+        id: `${item.donem}-${item.kategori}-yearly`,
+        updatedDate: new Date().toISOString(),
+        gerceklesmeOrani: item.planlanmisUretim > 0 
+          ? Math.round((item.uretilenAracSayisi / item.planlanmisUretim) * 100) 
+          : 0
+      }));
+      
+      allData.push(...finalData);
+      
+      // Kaydet
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+      
+      // Ana listeyi güncelle
+      setCategoryProductions(allData);
+      
+      console.log('✅ Yıllık üretim verisi toplu kaydedildi:', {
+        category: selectedVehicleCategory,
+        year: selectedYear,
+        savedCount: finalData.length,
+        totalCount: allData.length
+      });
+      
+      setAdvancedDialogOpen(false);
+      
+    } catch (error) {
+      console.error('❌ Yıllık veri kaydetme hatası:', error);
+      alert('Veriler kaydedilemedi! Lütfen tekrar deneyin.');
+    }
+  }, [selectedVehicleCategory, selectedYear, yearlyProductionData]);
+
+  // Yıllık veri güncelleme
+  const handleUpdateYearlyData = useCallback((index: number, field: keyof MonthlyCategoryProduction, value: any) => {
+    setYearlyProductionData(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      
+      // Gerçekleşme oranını otomatik hesapla
+      if (field === 'uretilenAracSayisi' || field === 'planlanmisUretim') {
+        const item = updated[index];
+        item.gerceklesmeOrani = item.planlanmisUretim > 0 
+          ? Math.round((item.uretilenAracSayisi / item.planlanmisUretim) * 100) 
+          : 0;
+      }
+      
+      return updated;
+    });
+  }, []);
 
   const handleSaveProduction = () => {
     if (!formData.kategori || !formData.donem || formData.uretilenAracSayisi === undefined || formData.planlanmisUretim === undefined) {
@@ -14314,6 +14464,43 @@ const CategoryProductionManagementComponent: React.FC<{
         </Grid>
       </Grid>
 
+      {/* ✅ YENİ: Gelişmiş Buton Alanı */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            Aylık Üretim Kayıtları
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              onClick={() => setDialogOpen(true)}
+              size="small"
+            >
+              Yeni Kayıt
+            </Button>
+            
+            {/* ✅ YENİ: Gelişmiş Araç Bazlı Yıllık Üretim Yönetimi Butonu */}
+            <Button
+              startIcon={<CalendarTodayIcon />}
+              variant="outlined"
+              onClick={() => handleOpenAdvancedDialog()}
+              size="small"
+              color="secondary"
+              sx={{ 
+                borderColor: 'secondary.main',
+                '&:hover': {
+                  borderColor: 'secondary.dark',
+                  backgroundColor: 'secondary.light'
+                }
+              }}
+            >
+              Araç Bazlı Yıllık Yönetim
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
+
       {/* Data Table */}
       <TableContainer component={Paper} sx={{ mb: 3 }}>
         <Table>
@@ -14534,6 +14721,259 @@ const CategoryProductionManagementComponent: React.FC<{
           <Button onClick={() => setDialogOpen(false)}>İptal</Button>
           <Button variant="contained" onClick={handleSaveProduction}>
             {editingProduction ? 'Güncelle' : 'Kaydet'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ✅ YENİ: Gelişmiş Araç Bazlı Yıllık Üretim Yönetimi Modal */}
+      <Dialog 
+        open={advancedDialogOpen} 
+        onClose={() => setAdvancedDialogOpen(false)} 
+        maxWidth="xl" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            minHeight: '80vh',
+            maxHeight: '90vh'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)',
+          color: 'white',
+          p: 3
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CalendarTodayIcon />
+            <Box>
+              <Typography variant="h5" fontWeight="bold">
+                Araç Bazlı Yıllık Üretim Yönetimi
+              </Typography>
+              <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+                Seçilen araç kategorisi için 12 aylık üretim verilerini tek ekranda yönetin
+              </Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 3 }}>
+          {/* Araç ve Yıl Seçimi */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Araç Kategorisi</InputLabel>
+                <Select
+                  value={selectedVehicleCategory}
+                  onChange={(e) => {
+                    const category = e.target.value as VehicleCategory;
+                    setSelectedVehicleCategory(category);
+                    loadYearlyProductionData(category, selectedYear);
+                  }}
+                  label="Araç Kategorisi"
+                >
+                  {Object.keys(VEHICLE_CATEGORIES).map(category => (
+                    <MenuItem key={category} value={category}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <DirectionsCarIcon fontSize="small" />
+                        {category}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Yıl</InputLabel>
+                <Select
+                  value={selectedYear}
+                  onChange={(e) => {
+                    const year = e.target.value;
+                    setSelectedYear(year);
+                    if (selectedVehicleCategory) {
+                      loadYearlyProductionData(selectedVehicleCategory, year);
+                    }
+                  }}
+                  label="Yıl"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                    <MenuItem key={year} value={year.toString()}>
+                      {year}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          {/* 12 Aylık Grid Tablosu */}
+          {selectedVehicleCategory && (
+            <Card sx={{ mb: 3 }}>
+              <CardHeader
+                title={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FactoryIcon color="primary" />
+                    <Typography variant="h6">
+                      {selectedVehicleCategory} - {selectedYear} Yıllık Üretim Planı
+                    </Typography>
+                  </Box>
+                }
+                subheader={
+                  <Typography variant="body2" color="text.secondary">
+                    12 aylık üretim verilerini aşağıdaki tabloda düzenleyebilirsiniz
+                  </Typography>
+                }
+              />
+              <CardContent>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: theme.palette.grey[50] }}>
+                        <TableCell sx={{ fontWeight: 'bold', minWidth: 120 }}>Ay</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', minWidth: 150 }}>Üretilen Miktar</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', minWidth: 150 }}>Planlanan Miktar</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', minWidth: 120 }}>Gerçekleşme %</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', minWidth: 200 }}>Açıklama</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {yearlyProductionData.map((monthData, index) => {
+                        const monthName = new Date(`${monthData.donem}-01`).toLocaleDateString('tr-TR', { 
+                          month: 'long', 
+                          year: 'numeric' 
+                        });
+                        
+                        return (
+                          <TableRow key={monthData.donem}>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <CalendarTodayIcon fontSize="small" color="primary" />
+                                <Typography variant="body2" fontWeight="bold">
+                                  {monthName}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                type="number"
+                                value={monthData.uretilenAracSayisi}
+                                onChange={(e) => handleUpdateYearlyData(index, 'uretilenAracSayisi', parseInt(e.target.value) || 0)}
+                                inputProps={{ min: 0 }}
+                                size="small"
+                                fullWidth
+                                InputProps={{
+                                  endAdornment: <Typography variant="caption">adet</Typography>
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                type="number"
+                                value={monthData.planlanmisUretim}
+                                onChange={(e) => handleUpdateYearlyData(index, 'planlanmisUretim', parseInt(e.target.value) || 0)}
+                                inputProps={{ min: 0 }}
+                                size="small"
+                                fullWidth
+                                InputProps={{
+                                  endAdornment: <Typography variant="caption">adet</Typography>
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Chip
+                                  label={`%${monthData.gerceklesmeOrani}`}
+                                  color={
+                                    monthData.gerceklesmeOrani >= 100 ? 'success' :
+                                    monthData.gerceklesmeOrani >= 90 ? 'warning' :
+                                    monthData.gerceklesmeOrani > 0 ? 'error' : 'default'
+                                  }
+                                  size="small"
+                                />
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <TextField
+                                value={monthData.aciklama || ''}
+                                onChange={(e) => handleUpdateYearlyData(index, 'aciklama', e.target.value)}
+                                placeholder="Açıklama ekle..."
+                                size="small"
+                                fullWidth
+                                multiline
+                                maxRows={2}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                {/* Özet İstatistikler */}
+                <Box sx={{ mt: 3, p: 2, backgroundColor: theme.palette.grey[50], borderRadius: 2 }}>
+                  <Typography variant="h6" gutterBottom>Yıllık Özet</Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h4" color="primary" fontWeight="bold">
+                          {yearlyProductionData.reduce((sum, item) => sum + item.uretilenAracSayisi, 0)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Toplam Üretilen
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h4" color="success.main" fontWeight="bold">
+                          {yearlyProductionData.reduce((sum, item) => sum + item.planlanmisUretim, 0)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Toplam Planlanan
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h4" color="warning.main" fontWeight="bold">
+                          %{yearlyProductionData.length > 0 
+                            ? Math.round(yearlyProductionData.reduce((sum, item) => sum + item.gerceklesmeOrani, 0) / yearlyProductionData.length)
+                            : 0}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Ortalama Gerçekleşme
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h4" color="info.main" fontWeight="bold">
+                          {yearlyProductionData.filter(item => item.uretilenAracSayisi > 0 || item.planlanmisUretim > 0).length}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Veri Bulunan Ay
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
+          <Button onClick={() => setAdvancedDialogOpen(false)} color="inherit">
+            İptal
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveYearlyData}
+            startIcon={<SaveIcon />}
+            disabled={!selectedVehicleCategory}
+          >
+            Yıllık Veriyi Kaydet
           </Button>
         </DialogActions>
       </Dialog>
