@@ -5541,80 +5541,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               </Grid>
             </Grid>
 
-            {/* Atık Türü Dağılımı ve Araç Başına Değerler */}
-            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
-              Atık Türü Dağılımı ve Araç Başına Değerler
-            </Typography>
-            <Box sx={{ mb: 3 }}>
-              {/* Ret */}
-              <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'error.50', borderRadius: 1, border: '1px solid', borderColor: 'error.200' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={{ width: 12, height: 12, bgcolor: 'error.main', borderRadius: '50%', mr: 1.5 }} />
-                    <Typography variant="body2" fontWeight={600} color="error.main">
-                      Ret: {vehicle.atikTuruDagilim.ret.adet} adet
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight={700} color="error.main">
-                    ₺{vehicle.atikTuruDagilim.ret.maliyet.toLocaleString()}
-                  </Typography>
-                </Box>
-                {productionData.uretilenAdet > 0 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
-                    Araç başına: {perVehicleCosts.retPerVehicle.toFixed(2)} adet/araç
-                  </Typography>
-                )}
-              </Box>
-
-              {/* Hurda */}
-              <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'warning.50', borderRadius: 1, border: '1px solid', borderColor: 'warning.200' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={{ width: 12, height: 12, bgcolor: 'warning.main', borderRadius: '50%', mr: 1.5 }} />
-                    <Typography variant="body2" fontWeight={600} color="warning.main">
-                      Hurda: {vehicle.atikTuruDagilim.hurda.kg.toFixed(1)} kg
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight={700} color="warning.main">
-                    {vehicle.atikTuruDagilim.hurda.kg > 0 ? `₺${vehicle.atikTuruDagilim.hurda.maliyet.toLocaleString()}` : '-'}
-                  </Typography>
-                </Box>
-                {productionData.uretilenAdet > 0 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
-                    Araç başına: {perVehicleCosts.hurdaPerVehicle.toFixed(2)} kg/araç
-                  </Typography>
-                )}
-              </Box>
-
-              {/* Fire */}
-              <Box sx={{ mb: 1.5, p: 1.5, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box sx={{ width: 12, height: 12, bgcolor: 'info.main', borderRadius: '50%', mr: 1.5 }} />
-                    <Typography variant="body2" fontWeight={600} color="info.main">
-                      Fire: {vehicle.atikTuruDagilim.fire.kg.toFixed(1)} kg
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight={700} color="info.main">
-                    {vehicle.atikTuruDagilim.fire.maliyet > 0 ? `₺${vehicle.atikTuruDagilim.fire.maliyet.toLocaleString()}` : '-'}
-                  </Typography>
-                </Box>
-                {productionData.uretilenAdet > 0 && (
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
-                    Araç başına: {perVehicleCosts.firePerVehicle.toFixed(2)} kg/araç
-                  </Typography>
-                )}
-              </Box>
-
-              {/* Toplam Araç Başına Maliyet */}
-              {productionData.uretilenAdet > 0 && (
-                <Box sx={{ p: 1.5, bgcolor: 'grey.100', borderRadius: 1, border: '2px solid', borderColor: 'grey.300' }}>
-                  <Typography variant="body2" fontWeight={700} color="text.primary" textAlign="center">
-                    Araç Başına Toplam Maliyet: ₺{perVehicleCosts.totalPerVehicle.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+            {/* Basit format kaldırıldı - Sadece gelişmiş performans kartları kullanılacak */}
 
 
 
@@ -5745,33 +5672,23 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                  }
               });
               
+              // Hedef yoksa varsayılan hedefler kullan (genel performans standartları)
               if (!categoryTarget) {
-                return (
-                  <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px dashed', borderColor: 'grey.300' }}>
-                    <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-                      Hedef Performansı
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: 2 }}>
-                      Bu kategori ({displayName}) için henüz hedef belirlenmemiş.
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Akıllı Hedef Yönetimi sekmesine geç
-                        window.dispatchEvent(new CustomEvent('switchToTargetManagement', { detail: { kategori: vehicle.kategori } }));
-                      }}
-                      sx={{ mb: 1 }}
-                    >
-                      Hedef Belirle
-                    </Button>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      Mevcut hedefler: {vehicleTargets.map(t => `${t.kategori || t.aracModeli} (${t.donem})`).join(', ') || 'Hiç hedef yok'}
-                    </Typography>
-                  </Box>
-                );
+                categoryTarget = {
+                  id: `default-${vehicle.kategori}`,
+                  kategori: vehicle.kategori || 'Genel',
+                  aracModeli: vehicle.aracModeli || 'Genel',
+                  donem: '2025',
+                  isActive: true,
+                  hedefler: {
+                    maksRetAdet: 2.0,      // Varsayılan: 2 adet ret/araç
+                    maksHurdaKg: 1.5,      // Varsayılan: 1.5 kg hurda/araç
+                    maksFireKg: 0.5        // Varsayılan: 0.5 kg fire/araç
+                  },
+                  createdDate: new Date().toISOString(),
+                  updatedDate: new Date().toISOString(),
+                  createdBy: 'system-default'
+                };
               }
 
               // ⚡ ARAÇ BAŞINA PERFORMANS HESAPLAMA - Hedefler araç başına olduğu için üretim sayısıyla çarpılır
@@ -5815,9 +5732,22 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
               return (
                 <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
-                    Hedef Performansı ({categoryTarget.donem})
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle2" fontWeight={600}>
+                      Hedef Performansı
+                    </Typography>
+                    <Chip
+                      label={categoryTarget.createdBy === 'system-default' ? 'Varsayılan Hedefler' : `Dönem: ${categoryTarget.donem}`}
+                      size="small"
+                      variant="outlined"
+                      color={categoryTarget.createdBy === 'system-default' ? 'warning' : 'primary'}
+                      sx={{ 
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        height: '24px'
+                      }}
+                    />
+                  </Box>
                   
                   {/* Ret Hedef Karşılaştırması */}
                   <Card sx={{ 
