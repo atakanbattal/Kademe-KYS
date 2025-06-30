@@ -242,6 +242,7 @@ const getModuleTitle = (pathname) => {
     // Tedarik Zinciri ve Malzeme Yönetimi
     if (pathname.startsWith('/supplier-quality')) return 'Tedarikçi Kalite Yönetimi';
     if (pathname.startsWith('/material-certificate-tracking')) return 'Malzeme Sertifika Takibi';
+    if (pathname.startsWith('/quarantine-management')) return 'Karantina Yönetimi';
     
     // Üretim ve Kalite Kontrol
     if (pathname.startsWith('/dimensional-control')) return 'Kontrol Planları';
@@ -278,8 +279,9 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
   // Kategori açılma durumları
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     core: true,
-    management: true,
+    quality: true,
     production: true,
+    technical: true,
     docSupply: true,
     system: true,
   });
@@ -317,35 +319,40 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/', color: theme.palette.primary.main },
   ];
 
-  // Yönetim ve Planlama Modülleri
-  const managementModules = [
+  // Kalite Yönetimi Modülleri
+  const qualityModules = [
     { text: 'KPI Takip ve Yönetim', icon: <SpeedIcon />, path: '/quality-management', color: '#2196f3' },
     { text: 'Kalite ve Araç Performans Yönetimi', icon: <MonetizationOnIcon />, path: '/quality-cost-management', color: '#4caf50' },
     { text: 'Üretim Kaynaklı Kalite Hata Takip', icon: <FactoryIcon />, path: '/production-quality-tracking', color: '#f44336' },
+    { text: 'Karantina Yönetimi', icon: <SecurityIcon />, path: '/quarantine-management', color: '#e91e63' },
     { text: 'DÖF ve 8D Yönetimi', icon: <BugReportIcon />, path: '/dof-8d-management', color: '#f44336' },
-    { text: 'Risk Yönetimi', icon: <SecurityIcon />, path: '/risk-management', color: '#e91e63' },
     { text: 'İç Tetkik Yönetimi', icon: <AssignmentTurnedInIcon />, path: '/internal-audit-management', color: '#1976d2' },
+    { text: 'Risk Yönetimi', icon: <SecurityIcon />, path: '/risk-management', color: '#e91e63' },
   ];
 
-  // Üretim ve Kalite Kontrol Modülleri
+  // Üretim ve Test Modülleri
   const productionModules = [
     { text: 'ISO 5817 Kaynak Kalite Limitleri', icon: <EngineeringIcon />, path: '/iso-5817', color: '#795548' },
-    { text: 'Kaynak Maliyet Hesaplama', icon: <CalculateIcon />, path: '/cost-calculation', color: '#ff5722' },
-    { text: 'WPS Oluşturucu', icon: <WpsIcon />, path: '/wps-generator', color: '#607d8b' },
     { text: 'Tank Sızdırmazlık Testi', icon: <ScienceIcon />, path: '/tank-leak-test', color: '#2196f3' },
     { text: 'Fan Balans ve Kaynak Analizi', icon: <EngineeringIcon />, path: '/fan-test-analysis', color: '#9c27b0' },
     { text: 'Kontrol Planları', icon: <StraightenIcon />, path: '/dimensional-control', color: '#ff6b35' },
   ];
 
+  // Teknik Araçlar ve Hesaplama Modülleri
+  const technicalModules = [
+    { text: 'Kaynak Maliyet Hesaplama', icon: <CalculateIcon />, path: '/cost-calculation', color: '#ff5722' },
+    { text: 'WPS Oluşturucu', icon: <WpsIcon />, path: '/wps-generator', color: '#607d8b' },
+  ];
+
   // Doküman ve Tedarik Yönetimi Modülleri
   const documentSupplyModules = [
+    { text: 'Doküman Yönetimi', icon: <DescriptionIcon />, path: '/document-management', color: '#009688' },
     { text: 'Tedarikçi Kalite Yönetimi', icon: <BusinessIcon />, path: '/supplier-quality', color: '#3f51b5' },
     { text: 'Malzeme Sertifika Takibi', icon: <AssignmentTurnedInIcon />, path: '/material-certificate-tracking', color: '#4caf50' },
   ];
 
   // Sistem ve Ekipman Modülleri
   const systemModules = [
-    { text: 'Doküman Yönetimi', icon: <DescriptionIcon />, path: '/document-management', color: '#009688' },
     { text: 'Ekipman ve Kalibrasyon Yönetimi', icon: <EngineeringIcon />, path: '/equipment-calibration', color: '#2196f3' },
     { text: 'Ayarlar', icon: <SettingsIcon />, path: '/settings', color: theme.palette.text.secondary },
   ];
@@ -530,10 +537,11 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
         scrollBehavior: 'smooth'
       }}>
         {renderMenuSection('core', 'ANA PANEL', coreModules)}
-        {renderMenuSection('management', 'YÖNETİM VE PLANLAMA', managementModules)}
-        {renderMenuSection('production', 'ÜRETİM VE KALİTE KONTROL', productionModules)}
-        {renderMenuSection('docSupply', 'DOKÜMAN VE TEDARİK YÖNETİMİ', documentSupplyModules)}
-        {renderMenuSection('system', 'SİSTEM VE EKİPMAN', systemModules)}
+        {renderMenuSection('quality', 'KALİTE YÖNETİMİ', qualityModules)}
+        {renderMenuSection('production', 'ÜRETİM VE TEST', productionModules)}
+        {renderMenuSection('technical', 'TEKNİK ARAÇLAR', technicalModules)}
+        {renderMenuSection('docSupply', 'DOKÜMAN VE TEDARİK', documentSupplyModules)}
+        {renderMenuSection('system', 'SİSTEM', systemModules)}
       </Box>
       
       {/* Footer */}

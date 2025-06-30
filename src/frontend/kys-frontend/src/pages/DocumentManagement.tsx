@@ -49,6 +49,7 @@ import {
   ListItemButton,
   Snackbar,
   ListSubheader,
+  InputAdornment,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -81,6 +82,96 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
+
+// ✅ Ultra Stable Search Input Component - Focus kaybı tamamen önlenmiş
+const UltraStableSearchInput = React.memo<{
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+}>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [internalValue, setInternalValue] = React.useState(value);
+  const [isInitialized, setIsInitialized] = React.useState(false);
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastParentValueRef = React.useRef(value);
+  
+  // İlk initialization
+  React.useEffect(() => {
+    if (!isInitialized) {
+      setInternalValue(value);
+      lastParentValueRef.current = value;
+      setIsInitialized(true);
+    }
+  }, [value, isInitialized]);
+  
+  // Parent value değişikliklerini sadece gerçekten farklıysa ve user typing yapmıyorsa kabul et
+  React.useEffect(() => {
+    if (isInitialized && value !== lastParentValueRef.current) {
+      // User typing yapmıyorsa (debounce timer yoksa) parent'tan gelen değeri kabul et
+      if (!debounceTimerRef.current) {
+        setInternalValue(value);
+        lastParentValueRef.current = value;
+      }
+    }
+  }, [value, isInitialized]);
+  
+  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInternalValue(newValue);
+    
+    // Önceki timer'ı temizle
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Yeni timer başlat
+    debounceTimerRef.current = setTimeout(() => {
+      onChange(newValue);
+      lastParentValueRef.current = newValue;
+      debounceTimerRef.current = null;
+    }, 350); // Doküman yönetimi için orta hızlı - 350ms
+    
+  }, [onChange]);
+  
+  // Component unmount olduğunda timer'ı temizle
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+  
+  return (
+    <TextField
+      ref={inputRef}
+      fullWidth={fullWidth}
+      size={size}
+      label={label}
+      value={internalValue}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon />
+          </InputAdornment>
+        ),
+      }}
+      // Input focus'u korumak için ek props
+      onFocus={(e) => {
+        e.target.selectionStart = e.target.value.length;
+        e.target.selectionEnd = e.target.value.length;
+      }}
+    />
+  );
+}, (prevProps, nextProps) => {
+  // Çok strict comparison - neredeyse hiç re-render olmasın
+  return JSON.stringify(prevProps) === JSON.stringify(nextProps);
+});
 
 // Types & Interfaces
 interface Document {
@@ -1648,23 +1739,13 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   gap: 3,
                   mb: 3
                 }}>
-                  <TextField
-                    fullWidth
-                    variant="outlined"
+                  <UltraStableSearchInput
+                    value={filters.searchTerm}
+                    onChange={(value) => handleFilterChange('searchTerm', value)}
                     label="Arama"
                     placeholder="Doküman adı, numarası veya açıklama..."
-                    value={filters.searchTerm}
-                    onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                    InputProps={{
-                      startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        '&:hover fieldset': {
-                          borderColor: 'primary.main',
-                        },
-                      },
-                    }}
+                    size="medium"
+                    fullWidth={true}
                   />
                   <FormControl fullWidth variant="outlined">
                     <InputLabel>Doküman Tipi</InputLabel>

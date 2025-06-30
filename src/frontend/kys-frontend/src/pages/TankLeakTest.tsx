@@ -577,6 +577,96 @@ const INSPECTORS_LIST: PersonnelItem[] = [
   { id: '5', name: 'Meryem Koç', employeeId: 'I005' }
 ];
 
+// ✅ Ultra Stable Search Input Component - Focus kaybı tamamen önlenmiş
+const UltraStableSearchInput = React.memo<{
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+}>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [internalValue, setInternalValue] = React.useState(value);
+  const [isInitialized, setIsInitialized] = React.useState(false);
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastParentValueRef = React.useRef(value);
+  
+  // İlk initialization
+  React.useEffect(() => {
+    if (!isInitialized) {
+      setInternalValue(value);
+      lastParentValueRef.current = value;
+      setIsInitialized(true);
+    }
+  }, [value, isInitialized]);
+  
+  // Parent value değişikliklerini sadece gerçekten farklıysa ve user typing yapmıyorsa kabul et
+  React.useEffect(() => {
+    if (isInitialized && value !== lastParentValueRef.current) {
+      // User typing yapmıyorsa (debounce timer yoksa) parent'tan gelen değeri kabul et
+      if (!debounceTimerRef.current) {
+        setInternalValue(value);
+        lastParentValueRef.current = value;
+      }
+    }
+  }, [value, isInitialized]);
+  
+  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInternalValue(newValue);
+    
+    // Önceki timer'ı temizle
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Yeni timer başlat
+    debounceTimerRef.current = setTimeout(() => {
+      onChange(newValue);
+      lastParentValueRef.current = newValue;
+      debounceTimerRef.current = null;
+    }, 400); // Tank test için orta hızlı - 400ms
+    
+  }, [onChange]);
+  
+  // Component unmount olduğunda timer'ı temizle
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+  
+  return (
+    <TextField
+      ref={inputRef}
+      fullWidth={fullWidth}
+      size={size}
+      label={label}
+      value={internalValue}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon />
+          </InputAdornment>
+        ),
+      }}
+      // Input focus'u korumak için ek props
+      onFocus={(e) => {
+        e.target.selectionStart = e.target.value.length;
+        e.target.selectionEnd = e.target.value.length;
+      }}
+    />
+  );
+}, (prevProps, nextProps) => {
+  // Çok strict comparison - neredeyse hiç re-render olmasın
+  return JSON.stringify(prevProps) === JSON.stringify(nextProps);
+});
+
 const TankLeakTest: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
 
@@ -765,8 +855,8 @@ const TankLeakTest: React.FC = () => {
     { value: 'Q4', label: '4. Çeyrek (Ekim-Aralık)' }
   ];
 
-  // Filtrelenmiş veri döndüren fonksiyon
-  const getFilteredData = () => {
+  // ✅ OPTIMIZED: Filtrelenmiş veri döndüren fonksiyon - useCallback ile performance artışı
+  const getFilteredData = React.useCallback(() => {
     return savedTests.filter(test => {
       // Seri numarası filtresi
       if (filters.serialNumber && !test.tankInfo.serialNumber.toLowerCase().includes(filters.serialNumber.toLowerCase())) {
@@ -838,7 +928,7 @@ const TankLeakTest: React.FC = () => {
 
       return true;
     });
-  };
+  }, [filters, savedTests, repairRecords]);
 
   // Load saved tests from localStorage on component mount
   useEffect(() => {
@@ -2171,19 +2261,13 @@ const TankLeakTest: React.FC = () => {
           <Grid container spacing={3}>
             {/* Genel Arama */}
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
+              <UltraStableSearchInput
+                value={filters.searchTerm}
+                onChange={(value) => setFilters({...filters, searchTerm: value})}
                 label="Genel Arama"
                 placeholder="Seri no, tank türü, model, personel..."
-                value={filters.searchTerm}
-                onChange={(e) => setFilters({...filters, searchTerm: e.target.value})}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  )
-                }}
+                size="medium"
+                fullWidth={true}
               />
             </Grid>
 

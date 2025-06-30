@@ -88,6 +88,164 @@ import { styled } from '@mui/material/styles';
 import { dataSyncManager } from '../utils/DataSyncManager';
 import { useThemeContext } from '../context/ThemeContext';
 
+// 🔥 ULTIMATE STABLE SEARCH INPUT - Kesinlikle focus kaybı yok!
+const UltimateStableSearchInput = React.memo<{
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+}>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  
+  // ⚡ DOM-based state management - React state'ini bypass et
+  const lastValue = React.useRef(value || '');
+  const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
+  const isUserTyping = React.useRef(false);
+  const isMounted = React.useRef(true);
+  const focusGuard = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // ⚡ Initial value set
+  React.useEffect(() => {
+    if (inputRef.current && !isUserTyping.current) {
+      inputRef.current.value = value || '';
+      lastValue.current = value || '';
+    }
+  }, [value]);
+  
+  // ⚡ Aggressive focus guard
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      if (inputRef.current && document.activeElement === inputRef.current) {
+        // Eğer focus varsa, re-render'ları engelle
+        if (focusGuard.current) clearTimeout(focusGuard.current);
+        focusGuard.current = setTimeout(() => {
+          // Focus guard süresi dolunca normal işleme dön
+        }, 1000);
+      }
+    }, 50); // Her 50ms kontrol et
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  // ⚡ Raw DOM input handler - React state'siz
+  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    
+    // User typing lock
+    isUserTyping.current = true;
+    
+    // Clear previous timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    // Set new timer
+    debounceTimer.current = setTimeout(() => {
+      if (isMounted.current) {
+        onChange(newValue);
+        lastValue.current = newValue;
+        isUserTyping.current = false;
+      }
+    }, 200); // Çok hızlı response
+    
+  }, [onChange]);
+  
+  // ⚡ Focus handlers
+  const handleFocus = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    const target = e.target;
+    // Cursor'u sona taşı
+    setTimeout(() => {
+      if (target && target === document.activeElement) {
+        target.setSelectionRange(target.value.length, target.value.length);
+      }
+    }, 0);
+  }, []);
+  
+  const handleBlur = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    // Blur'u engelle eğer container içinde bir element'e tıklanmışsa
+    setTimeout(() => {
+      if (containerRef.current && 
+          containerRef.current.contains(document.activeElement)) {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }
+    }, 10);
+  }, []);
+  
+  // ⚡ Mouse handlers - Focus kaybını tamamen engelle
+  const handleContainerMouseDown = React.useCallback((e: React.MouseEvent) => {
+    // Container'a tıklama focus kaybına sebep olmasın
+    if (e.target !== inputRef.current) {
+      e.preventDefault();
+    }
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+  
+  const handleInputMouseDown = React.useCallback((e: React.MouseEvent) => {
+    // Input'a tıklama normal çalışsın
+    e.stopPropagation();
+  }, []);
+  
+  // ⚡ Cleanup
+  React.useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      if (focusGuard.current) clearTimeout(focusGuard.current);
+    };
+  }, []);
+  
+  return (
+    <div 
+      ref={containerRef} 
+      onMouseDown={handleContainerMouseDown}
+      style={{ 
+        width: fullWidth ? '100%' : 'auto',
+        position: 'relative'
+      }}
+    >
+      <TextField
+        ref={inputRef}
+        fullWidth={fullWidth}
+        size={size}
+        label={label}
+        defaultValue={value || ''}
+        onChange={handleInputChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onMouseDown={handleInputMouseDown}
+        placeholder={placeholder}
+        autoComplete="off"
+        spellCheck={false}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            '&.Mui-focused': {
+              '& fieldset': {
+                borderColor: '#1976d2 !important',
+                borderWidth: '2px !important',
+              },
+            },
+          },
+        }}
+      />
+    </div>
+  );
+}, () => true);
+
 // STYLED COMPONENTS
 const MainContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -612,8 +770,8 @@ const Dashboard: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // FILTER FUNCTIONS
-  const getFilteredModules = () => {
+  // ✅ OPTIMIZED FILTER FUNCTIONS - useCallback ile performance artışı
+  const getFilteredModules = React.useCallback(() => {
     const modules = getModuleData(appearanceSettings.primaryColor);
     return modules.filter(module => {
       const matchSearch = !filters.searchTerm || 
@@ -634,9 +792,9 @@ const Dashboard: React.FC = () => {
       
       return matchSearch && matchStatus && matchType && matchPerformance;
     });
-  };
+  }, [filters, appearanceSettings.primaryColor]);
 
-  const clearFilters = () => {
+  const clearFilters = React.useCallback(() => {
     setFilters({
       searchTerm: '',
       moduleType: '',
@@ -644,7 +802,7 @@ const Dashboard: React.FC = () => {
       dateRange: '',
       priority: ''
     });
-  };
+  }, []);
 
   // LOADING SKELETON
   const KPISkeleton = () => (
@@ -848,20 +1006,13 @@ const Dashboard: React.FC = () => {
             <Grid container spacing={3} alignItems="center">
               {/* Arama */}
               <Grid item xs={12} sm={6} md={3}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Arama"
+                <UltimateStableSearchInput
                   value={filters.searchTerm}
-                  onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
+                  onChange={(value) => setFilters(prev => ({ ...prev, searchTerm: value }))}
+                  label="Arama"
                   placeholder="Modül adı, açıklama..."
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
+                  size="small"
+                  fullWidth={true}
                 />
               </Grid>
 

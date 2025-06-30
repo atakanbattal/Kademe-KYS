@@ -38,6 +38,7 @@ import RiskManagement from './pages/RiskManagement';
 import CustomerFeedbackManagement from './pages/CustomerFeedbackManagement';
 import TrainingManagement from './pages/TrainingManagement';
 import ProductionQualityTracking from './pages/ProductionQualityTracking';
+import QuarantineManagement from './pages/QuarantineManagement';
 
 // Main app content
 const AppContent = () => {
@@ -167,6 +168,11 @@ const AppContent = () => {
           <Route path="/production-quality-tracking" element={
             <Layout>
               <ProductionQualityTracking />
+            </Layout>
+          } />
+          <Route path="/quarantine-management" element={
+            <Layout>
+              <QuarantineManagement />
             </Layout>
           } />
           {/* Catch all route */}

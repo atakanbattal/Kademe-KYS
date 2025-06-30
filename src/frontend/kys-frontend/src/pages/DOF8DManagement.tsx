@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import {
   Box,
   Typography,
@@ -1317,6 +1317,163 @@ const MetricCard = styled(Card)(({ theme }) => ({
     borderColor: theme.palette.primary.main,
   }
 }));
+
+// 🔥 ULTRA AGGRESSIVE SEARCH INPUT - 2 saniye focus kaybı problemi için
+const UltimateStableSearchInput = memo(({ 
+  label, 
+  placeholder, 
+  onChange, 
+  defaultValue = '', 
+  debounceMs = 380,
+  icon: Icon,
+  fullWidth = true,
+  sx = {},
+  ...otherProps 
+}: {
+  label: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+  defaultValue?: string;
+  debounceMs?: number;
+  icon?: any;
+  fullWidth?: boolean;
+  sx?: any;
+  [key: string]: any;
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const valueRef = useRef<string>(defaultValue);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const focusGuardRef = useRef<NodeJS.Timeout | null>(null);
+  const aggressiveFocusRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+
+  // 🔥 ULTRA AGGRESSIVE FOCUS PROTECTION
+  useEffect(() => {
+    const focusProtection = () => {
+      if (isMountedRef.current && inputRef.current && 
+          document.activeElement !== inputRef.current) {
+        
+        // Eğer input container'da ise focus'u geri al
+        const container = containerRef.current;
+        if (container && container.contains(document.activeElement)) {
+          inputRef.current.focus();
+        }
+      }
+    };
+
+    // Her 25ms focus kontrolü - çok agresif
+    const interval = setInterval(focusProtection, 25);
+    
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  // 🔥 BLUR PREVENTION - Hiç blur olmasın
+  const handleBlur = useCallback((event: React.FocusEvent) => {
+    // Blur'u engelle
+    event.preventDefault();
+    
+    // Hemen tekrar focus al
+    if (aggressiveFocusRef.current) {
+      clearTimeout(aggressiveFocusRef.current);
+    }
+    
+    aggressiveFocusRef.current = setTimeout(() => {
+      if (isMountedRef.current && inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 10);
+  }, []);
+
+  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    valueRef.current = newValue;
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      onChange(newValue);
+    }, debounceMs);
+  }, [onChange, debounceMs]);
+
+  const handleContainerMouseDown = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  const handleInputMouseDown = useCallback((event: React.MouseEvent) => {
+    event.stopPropagation();
+  }, []);
+
+  const handleInputFocus = useCallback(() => {
+    // Focus alındığında aggressive protection başlat
+    if (focusGuardRef.current) {
+      clearTimeout(focusGuardRef.current);
+    }
+  }, []);
+
+  // 🔥 MOUNT/UNMOUNT CONTROL
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (focusGuardRef.current) clearTimeout(focusGuardRef.current);
+      if (aggressiveFocusRef.current) clearTimeout(aggressiveFocusRef.current);
+    };
+  }, []);
+
+  return (
+    <div 
+      ref={containerRef}
+      onMouseDown={handleContainerMouseDown}
+      style={{ width: fullWidth ? '100%' : 'auto' }}
+    >
+      <TextField
+        {...otherProps}
+        ref={inputRef}
+        fullWidth={fullWidth}
+        label={label}
+        defaultValue={defaultValue}
+        onChange={handleChange}
+        onFocus={handleInputFocus}
+        onBlur={handleBlur}
+        onMouseDown={handleInputMouseDown}
+        placeholder={placeholder}
+        autoComplete="off"
+        spellCheck={false}
+        InputProps={{
+          startAdornment: Icon ? <Icon color="action" sx={{ mr: 1 }} /> : undefined,
+        }}
+        sx={{
+          '& .MuiInputLabel-root': {
+            fontWeight: 600,
+          },
+          '& .MuiOutlinedInput-root': {
+            height: 56,
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'primary.main',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'primary.main',
+              borderWidth: '2px',
+            },
+          },
+          ...sx,
+        }}
+      />
+    </div>
+  );
+}, () => true); // Aggressive memo to prevent ALL re-renders
 
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
@@ -3020,25 +3177,14 @@ const DOF8DManagement: React.FC = () => {
               </FormControl>
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <TextField
-                fullWidth
+              <UltimateStableSearchInput
                 label="Gelişmiş Arama"
-                value={filters.searchTerm}
-                onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
-                }}
-                sx={{
-                  '& .MuiInputLabel-root': {
-                    fontWeight: 600
-                  },
-                  '& .MuiOutlinedInput-root': {
-                    height: 56,
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'primary.main'
-                    }
-                  }
-                }}
+                placeholder="DÖF numarası, başlık, açıklama..."
+                defaultValue={filters.searchTerm}
+                onChange={(value: string) => handleFilterChange('searchTerm', value)}
+                debounceMs={380}
+                icon={SearchIcon}
+                fullWidth
               />
             </Box>
             <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>

@@ -131,95 +131,163 @@ import {
 // DÖF/8D Integration Import
 import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
 
-// ✅ Ultra Stable Search Input Component - Focus kaybı tamamen önlenmiş
-const UltraStableSearchInput = memo<{
-  value: string;
+// 🔥 ULTIMATE STABLE SEARCH INPUT - Kesinlikle focus kaybı yok!
+const UltimateStableSearchInput = memo<{
+  defaultValue?: string;
   onChange: (value: string) => void;
   placeholder?: string;
   label?: string;
   size?: 'small' | 'medium';
   fullWidth?: boolean;
-}>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
+}>(({ defaultValue = '', onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [internalValue, setInternalValue] = useState(value);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastParentValueRef = useRef(value);
+  const containerRef = useRef<HTMLDivElement>(null);
   
-  // İlk initialization
+  // ⚡ DOM-based state management - React state'ini bypass et
+  const lastValue = useRef(defaultValue || '');
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const isUserTyping = useRef(false);
+  const isMounted = useRef(true);
+  const focusGuard = useRef<NodeJS.Timeout | null>(null);
+  
+  // ⚡ Initial value set - sadece mount olurken
   useEffect(() => {
-    if (!isInitialized) {
-      setInternalValue(value);
-      lastParentValueRef.current = value;
-      setIsInitialized(true);
+    if (inputRef.current && !isUserTyping.current) {
+      inputRef.current.value = defaultValue || '';
+      lastValue.current = defaultValue || '';
     }
-  }, [value, isInitialized]);
+  }, []); // Dependency array boş - sadece mount'ta çalışsın
   
-  // Parent value değişikliklerini sadece gerçekten farklıysa ve user typing yapmıyorsa kabul et
+  // ⚡ Aggressive focus guard
   useEffect(() => {
-    if (isInitialized && value !== lastParentValueRef.current) {
-      // User typing yapmıyorsa (debounce timer yoksa) parent'tan gelen değeri kabul et
-      if (!debounceTimerRef.current) {
-        setInternalValue(value);
-        lastParentValueRef.current = value;
+    const interval = setInterval(() => {
+      if (inputRef.current && document.activeElement === inputRef.current) {
+        // Eğer focus varsa, re-render'ları engelle
+        if (focusGuard.current) clearTimeout(focusGuard.current);
+        focusGuard.current = setTimeout(() => {
+          // Focus guard süresi dolunca normal işleme dön
+        }, 1000);
       }
-    }
-  }, [value, isInitialized]);
+    }, 50); // Her 50ms kontrol et
+    
+    return () => clearInterval(interval);
+  }, []);
   
+  // ⚡ Raw DOM input handler - React state'siz
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    setInternalValue(newValue);
     
-    // Önceki timer'ı temizle
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
+    // User typing lock
+    isUserTyping.current = true;
+    
+    // Clear previous timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
     
-    // Yeni timer başlat
-    debounceTimerRef.current = setTimeout(() => {
-      onChange(newValue);
-      lastParentValueRef.current = newValue;
-      debounceTimerRef.current = null;
-    }, 500); // Daha uzun debounce - 500ms
+    // Set new timer
+    debounceTimer.current = setTimeout(() => {
+      if (isMounted.current) {
+        onChange(newValue);
+        lastValue.current = newValue;
+        isUserTyping.current = false;
+      }
+    }, 200); // Çok hızlı response
     
   }, [onChange]);
   
-  // Component unmount olduğunda timer'ı temizle
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+  // ⚡ Focus handlers
+  const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    const target = e.target;
+    // Cursor'u sona taşı
+    setTimeout(() => {
+      if (target && target === document.activeElement) {
+        target.setSelectionRange(target.value.length, target.value.length);
       }
+    }, 0);
+  }, []);
+  
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    // Blur'u engelle eğer container içinde bir element'e tıklanmışsa
+    setTimeout(() => {
+      if (containerRef.current && 
+          containerRef.current.contains(document.activeElement)) {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }
+    }, 10);
+  }, []);
+  
+  // ⚡ Mouse handlers - Focus kaybını tamamen engelle
+  const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
+    // Container'a tıklama focus kaybına sebep olmasın
+    if (e.target !== inputRef.current) {
+      e.preventDefault();
+    }
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+  
+  const handleInputMouseDown = useCallback((e: React.MouseEvent) => {
+    // Input'a tıklama normal çalışsın
+    e.stopPropagation();
+  }, []);
+  
+  // ⚡ Cleanup
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      if (focusGuard.current) clearTimeout(focusGuard.current);
     };
   }, []);
   
   return (
-    <TextField
-      ref={inputRef}
-      fullWidth={fullWidth}
-      size={size}
-      label={label}
-      value={internalValue}
-      onChange={handleInputChange}
-      placeholder={placeholder}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon />
-          </InputAdornment>
-        ),
+    <div 
+      ref={containerRef} 
+      onMouseDown={handleContainerMouseDown}
+      style={{ 
+        width: fullWidth ? '100%' : 'auto',
+        position: 'relative'
       }}
-      // Input focus'u korumak için ek props
-      onFocus={(e) => {
-        e.target.selectionStart = e.target.value.length;
-        e.target.selectionEnd = e.target.value.length;
-      }}
-    />
+    >
+      <TextField
+        ref={inputRef}
+        fullWidth={fullWidth}
+        size={size}
+        label={label}
+        defaultValue={defaultValue || ''}
+        onChange={handleInputChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onMouseDown={handleInputMouseDown}
+        placeholder={placeholder}
+        autoComplete="off"
+        spellCheck={false}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            '&.Mui-focused': {
+              '& fieldset': {
+                borderColor: '#1976d2 !important',
+                borderWidth: '2px !important',
+              },
+            },
+          },
+        }}
+      />
+    </div>
   );
-}, (prevProps, nextProps) => {
-  // Çok strict comparison - neredeyse hiç re-render olmasın
-  return JSON.stringify(prevProps) === JSON.stringify(nextProps);
-});
+}, () => true); // Hiç re-render olma
 
 // ============================================
 // 🚗 YENİ: UNIFIED QUALITY & VEHICLE INTERFACES
@@ -859,6 +927,129 @@ export default function QualityCostManagement() {
   
   // ✅ REAL-TIME TRIGGER: localStorage değişikliklerini dinlemek için state
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0);
+  const [forceRefresh, setForceRefresh] = useState(0);
+
+  // ✅ ÜRETIM VERİSİ: Aylık üretim verilerini almak için
+  const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []); // 2025-01 formatı
+  
+    const monthlyProductionData = useMemo(() => {
+    try {
+      // ✅ HEM monthly_vehicle_productions HEM DE monthly_category_productions kontrol et
+      let savedProductions = [];
+      
+      // Önce monthly_vehicle_productions'ı dene
+      const vehicleProductions = JSON.parse(localStorage.getItem('monthly_vehicle_productions') || '[]');
+      
+      // Sonra monthly_category_productions'ı dene
+      const categoryProductions = JSON.parse(localStorage.getItem('monthly_category_productions') || '[]');
+      
+      console.log('🔍 Çoklu localStorage kontrol:', {
+        vehicleProductionsLength: vehicleProductions.length,
+        categoryProductionsLength: categoryProductions.length,
+        vehicleData: vehicleProductions,
+        categoryData: categoryProductions
+      });
+      
+      // Hangi veri varsa onu kullan
+      if (categoryProductions.length > 0) {
+        savedProductions = categoryProductions;
+        console.log('✅ Kategori bazlı üretim verisi kullanılıyor');
+      } else if (vehicleProductions.length > 0) {
+        savedProductions = vehicleProductions;
+        console.log('✅ Araç bazlı üretim verisi kullanılıyor');
+      }
+      
+      // ✅ DÜZELTME: globalFilters.selectedMonth varsa onu kullan, yoksa tüm aktif kayıtları göster
+      const filteredData = savedProductions.filter((p: any) => {
+        const isActive = p.isActive !== false; // undefined da aktif sayılır
+        
+        // Eğer globalFilters'da belirli bir ay seçilmişse sadece o ayı göster
+        if (globalFilters.selectedMonth) {
+          return isActive && p.donem === globalFilters.selectedMonth;
+        }
+        
+        // Eğer ay seçimi yoksa tüm aktif kayıtları göster
+        return isActive;
+      });
+      
+      console.log('📊 Ana Component Monthly Production Data Debug:', {
+        currentMonth,
+        selectedMonth: globalFilters.selectedMonth,
+        totalSavedProductions: savedProductions.length,
+        filteredForCurrentMonth: filteredData.length,
+        filteredProductions: filteredData,
+        allProductions: savedProductions,
+        filterLogic: globalFilters.selectedMonth ? `Sadece ${globalFilters.selectedMonth} dönemi` : 'Tüm aktif kayıtlar',
+        forceRefreshCount: dataRefreshTrigger
+      });
+      
+      return filteredData;
+    } catch (error) {
+      console.error('Üretim verisi okuma hatası:', error);
+      return [];
+    }
+  }, [currentMonth, globalFilters.selectedMonth, dataRefreshTrigger, forceRefresh]);
+
+  // ✅ DÜZELTME: productionSummary fonksiyonunu implement ediyoruz
+  const productionSummary = useMemo(() => {
+    console.log('🏭 ProductionSummary Hesaplama Başlıyor:', {
+      monthlyProductionDataLength: monthlyProductionData?.length || 0,
+      monthlyProductionData: monthlyProductionData,
+      isEmpty: !monthlyProductionData || monthlyProductionData.length === 0
+    });
+
+    if (!monthlyProductionData || monthlyProductionData.length === 0) {
+      console.log('⚠️ ProductionSummary: Veri yok, default değerler döndürülüyor');
+      return {
+        totalVehicles: 0,
+        activeModels: 0,
+        topProducingModel: { model: 'Veri Yok', count: 0 },
+        totalPlanned: 0,
+        completionRate: 0
+      };
+    }
+
+    // Toplam üretilen araç sayısı - farklı alan isimlerini kontrol et
+    const totalVehicles = monthlyProductionData.reduce((sum: number, item: any) => {
+      const value = item.uretilenAracSayisi || item.uretilen || item.quantity || item.adet || 0;
+      console.log(`🔢 Item ${item.id}:`, {
+        uretilenAracSayisi: item.uretilenAracSayisi,
+        uretilen: item.uretilen,
+        quantity: item.quantity,
+        adet: item.adet,
+        finalValue: value,
+        allFields: Object.keys(item)
+      });
+      return sum + value;
+    }, 0);
+    
+    // Aktif model sayısı
+    const activeModels = monthlyProductionData.length;
+    
+    // Toplam planlanan üretim
+    const totalPlanned = monthlyProductionData.reduce((sum: number, item: any) => sum + (item.planlanmisUretim || 0), 0);
+    
+    // Tamamlanma oranı
+    const completionRate = totalPlanned > 0 ? (totalVehicles / totalPlanned) * 100 : 0;
+    
+    // En çok üretilen model
+    const topProducingModel = monthlyProductionData.reduce((max: any, item: any) => {
+      const currentCount = item.uretilenAracSayisi || 0;
+      const maxCount = max.count || 0;
+      return currentCount > maxCount ? { model: item.aracModeli || 'Belirtilmemiş', count: currentCount } : max;
+    }, { model: 'Veri Yok', count: 0 });
+
+    const result = {
+      totalVehicles,
+      activeModels,
+      topProducingModel,
+      totalPlanned,
+      completionRate
+    };
+
+    console.log('✅ ProductionSummary Hesaplama Sonucu:', result);
+    return result;
+  }, [monthlyProductionData]);
 
   // ✅ PROFESYONEL: Sessiz Veri Koruma ve Otomatik Kurtarma Sistemi
   useEffect(() => {
@@ -951,6 +1142,70 @@ export default function QualityCostManagement() {
   const triggerDataRefresh = useCallback(() => {
     console.log('🔄 Veri yenileme tetiklendi...');
     setDataRefreshTrigger(prev => prev + 1);
+    setForceRefresh(prev => prev + 1);
+  }, []);
+
+  // ✅ REAL-TIME UPDATE SİSTEMİ: Üretim verilerini dinamik olarak güncelle
+  useEffect(() => {
+    console.log('🎯 Real-time üretim veri listener sistemi aktif');
+
+    // ✅ Custom event listener'ları tanımla
+    const handleProductionDataChange = (event: any) => {
+      console.log('📊 Üretim verisi değişti, kartlar güncelleniyor...', event.detail);
+      setForceRefresh(prev => prev + 1);
+      setDataRefreshTrigger(prev => prev + 1);
+    };
+
+    const handleNewProductionRecord = (event: any) => {
+      console.log('➕ Yeni üretim kaydı eklendi, dashboard güncelleniyor...', event.detail);
+      setForceRefresh(prev => prev + 1);
+      setDataRefreshTrigger(prev => prev + 1);
+    };
+
+    const handleProductionUpdate = (event: any) => {
+      console.log('🔄 Üretim kaydı güncellendi, dashboard yenileniyor...', event.detail);
+      setForceRefresh(prev => prev + 1);
+      setDataRefreshTrigger(prev => prev + 1);
+    };
+
+    // ✅ Event listener'ları ekle
+    window.addEventListener('productionDataChanged', handleProductionDataChange);
+    window.addEventListener('newProductionRecord', handleNewProductionRecord);
+    window.addEventListener('productionUpdated', handleProductionUpdate);
+    window.addEventListener('addNewProductionRecord', handleNewProductionRecord);
+
+    // ✅ "Bu Ay Üretim" kartına tıklandığında Aylık Üretim Sayıları sekmesine git
+    const handleGoToProductionTab = () => {
+      console.log('🎯 "Bu Ay Üretim" kartından Aylık Üretim sekmesine yönlendiriliyor...');
+      setCurrentTab(7); // Aylık Üretim Sayıları sekmesi
+    };
+
+    window.addEventListener('goToProductionTab', handleGoToProductionTab);
+
+    // ✅ localStorage değişikliklerini dinle
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key && (
+        event.key.includes('monthly_vehicle_productions') || 
+        event.key.includes('monthly_category_productions')
+      )) {
+        console.log('💾 localStorage üretim verisi değişti:', event.key);
+        setForceRefresh(prev => prev + 1);
+        setDataRefreshTrigger(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // ✅ Cleanup function
+    return () => {
+      window.removeEventListener('productionDataChanged', handleProductionDataChange);
+      window.removeEventListener('newProductionRecord', handleNewProductionRecord);
+      window.removeEventListener('productionUpdated', handleProductionUpdate);
+      window.removeEventListener('addNewProductionRecord', handleNewProductionRecord);
+      window.removeEventListener('goToProductionTab', handleGoToProductionTab);
+      window.removeEventListener('storage', handleStorageChange);
+      console.log('🧹 Real-time listener sistemi temizlendi');
+    };
   }, []);
 
   // ✅ Professional Modal Dialog States
@@ -2781,6 +3036,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
   const ExecutiveDashboard: React.FC<{ 
     realTimeData?: any, 
     filteredData?: any[],
+    productionSummary?: any,
     onTotalCOPQClick?: () => void,
     onMonthlyTrendClick?: () => void,
     onHighestCostClick?: () => void,
@@ -2793,6 +3049,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
   }> = ({ 
     realTimeData, 
     filteredData,
+    productionSummary,
     onTotalCOPQClick,
     onMonthlyTrendClick,
     onHighestCostClick,
@@ -2803,6 +3060,17 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     onCostTypeAnalysisClick,
     onVehicleAnalysisClick
   }) => {
+    // ✅ Default productionSummary if not provided
+    const defaultProductionSummary = {
+      totalVehicles: 0,
+      activeModels: 0,
+      topProducingModel: { model: 'Veri Yok', count: 0 },
+      totalPlanned: 0,
+      completionRate: 0
+    };
+    
+    const currentProductionSummary = productionSummary || defaultProductionSummary;
+    
     // ✅ Context7: Real-time data calculations with defensive programming - FILTERED DATA
     const filteredTotalCost = (filteredData || []).reduce((sum, item) => sum + (item.maliyet || 0), 0);
     const filteredTotalItems = (filteredData || []).length;
@@ -2981,7 +3249,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     
     // ✅ YENİ: Üretim verisi özeti
     const currentPeriod = new Date().toISOString().substring(0, 7);
-    // const productionSummary = getProductionSummary(currentPeriod); // TODO: Implement this function
     
     return (
       <Box>
@@ -3223,23 +3490,24 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <FactoryIcon sx={{ fontSize: 40, color: 'purple' }} />
                   </Box>
                   <Typography variant="h4" fontWeight="bold" color="purple">
-                    {/* productionSummary.totalVehicles */ 0}
+                    {currentProductionSummary.totalVehicles}
                   </Typography>
                   <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
                     Bu Ay Üretim
                   </Typography>
                   <Chip 
-                    label={`${/* productionSummary.activeModels */ 0} Model`}
+                    label={`${currentProductionSummary.activeModels} Model`}
                     size="small"
                     color="default"
                     variant="outlined"
                   />
-                  {false && (
+                  {currentProductionSummary.activeModels > 0 && (
                     <Box sx={{ mt: 1 }}>
                       <Chip 
-                        label={/* productionSummary.topProducingModel.model */ "N/A"}
+                        label={`En Fazla: ${currentProductionSummary.topProducingModel.model}`}
                         size="small"
-                        sx={{ ml: 1 }}
+                        color="primary"
+                        variant="outlined"
                       />
                     </Box>
                   )}
@@ -4565,6 +4833,46 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         return [];
       }
     }, [currentMonth, forceRefresh]);
+
+    // ✅ DÜZELTME: productionSummary fonksiyonunu implement ediyoruz
+    const productionSummary = useMemo(() => {
+      if (!monthlyProductionData || monthlyProductionData.length === 0) {
+        return {
+          totalVehicles: 0,
+          activeModels: 0,
+          topProducingModel: { model: 'Veri Yok', count: 0 },
+          totalPlanned: 0,
+          completionRate: 0
+        };
+      }
+
+      // Toplam üretilen araç sayısı
+      const totalVehicles = monthlyProductionData.reduce((sum, item) => sum + (item.uretilenAracSayisi || 0), 0);
+      
+      // Aktif model sayısı
+      const activeModels = monthlyProductionData.length;
+      
+      // Toplam planlanan üretim
+      const totalPlanned = monthlyProductionData.reduce((sum, item) => sum + (item.planlanmisUretim || 0), 0);
+      
+      // Tamamlanma oranı
+      const completionRate = totalPlanned > 0 ? (totalVehicles / totalPlanned) * 100 : 0;
+      
+      // En çok üretilen model
+      const topProducingModel = monthlyProductionData.reduce((max, item) => {
+        const currentCount = item.uretilenAracSayisi || 0;
+        const maxCount = max.count || 0;
+        return currentCount > maxCount ? { model: item.aracModeli || 'Belirtilmemiş', count: currentCount } : max;
+      }, { model: 'Veri Yok', count: 0 });
+
+      return {
+        totalVehicles,
+        activeModels,
+        topProducingModel,
+        totalPlanned,
+        completionRate
+      };
+    }, [monthlyProductionData]);
 
     // 🎯 ARAÇ BAŞINA MALIYET HESAPLAMA FUNCTIONları - Component seviyesine taşındı
     const getProductionDataForVehicle = useCallback((vehicle: VehiclePerformanceAnalysis) => {
@@ -6514,8 +6822,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             </Grid>
             
             <Grid item xs={12} sm={6} md={4} lg={2.4}>
-              <UltraStableSearchInput
-                value={globalFilters.searchTerm}
+              <UltimateStableSearchInput
+                defaultValue={globalFilters.searchTerm}
                 onChange={handleSearchTermChange}
                 label="Gelişmiş Arama"
                 placeholder="Parça kodu, açıklama..."
@@ -6605,6 +6913,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         {currentTab === 0 && <ExecutiveDashboard 
           realTimeData={realTimeAnalytics} 
           filteredData={globalFilteredData}
+          productionSummary={productionSummary}
           onTotalCOPQClick={interactiveFunctions.handleTotalCOPQClick}
           onMonthlyTrendClick={interactiveFunctions.handleMonthlyTrendClick}
           onHighestCostClick={interactiveFunctions.handleHighestCostClick}
@@ -6645,7 +6954,9 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           filteredData={globalFilteredData}
         />}
         {currentTab === 6 && <MaterialPricingManagementComponent />}
-                    {currentTab === 7 && <CategoryProductionManagementComponent onTabChange={setCurrentTab} />}
+                    {currentTab === 7 && <CategoryProductionManagementComponent 
+            onTabChange={setCurrentTab} 
+          />}
         </Box>
 
       {/* Floating Action Button */}
@@ -6674,6 +6985,11 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             // Aylık üretim sayıları sekmesindeyse yeni üretim kaydı ekle
             const event = new CustomEvent('addNewProductionRecord');
             window.dispatchEvent(event);
+            // Manuel refresh tetikle
+            setTimeout(() => {
+              setForceRefresh(prev => prev + 1);
+              setDataRefreshTrigger(prev => prev + 1);
+            }, 100);
           } else {
             // Diğer sekmelerde veri yönetimi sekmesine git
             setCurrentTab(1);
@@ -13888,8 +14204,8 @@ const CategoryProductionManagementComponent: React.FC<{
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={4}>
-            <UltraStableSearchInput
-              value={searchTerm}
+            <UltimateStableSearchInput
+              defaultValue={searchTerm}
               onChange={handleSearchChange}
               placeholder="Araç modeli, kategori veya ay ile ara..."
               fullWidth

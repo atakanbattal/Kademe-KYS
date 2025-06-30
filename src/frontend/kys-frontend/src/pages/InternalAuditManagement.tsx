@@ -125,6 +125,96 @@ import {
 
 import { styled } from '@mui/material/styles';
 
+// ✅ Ultra Stable Search Input Component - Focus kaybı tamamen önlenmiş
+const UltraStableSearchInput = React.memo<{
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+}>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [internalValue, setInternalValue] = React.useState(value);
+  const [isInitialized, setIsInitialized] = React.useState(false);
+  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastParentValueRef = React.useRef(value);
+  
+  // İlk initialization
+  React.useEffect(() => {
+    if (!isInitialized) {
+      setInternalValue(value);
+      lastParentValueRef.current = value;
+      setIsInitialized(true);
+    }
+  }, [value, isInitialized]);
+  
+  // Parent value değişikliklerini sadece gerçekten farklıysa ve user typing yapmıyorsa kabul et
+  React.useEffect(() => {
+    if (isInitialized && value !== lastParentValueRef.current) {
+      // User typing yapmıyorsa (debounce timer yoksa) parent'tan gelen değeri kabul et
+      if (!debounceTimerRef.current) {
+        setInternalValue(value);
+        lastParentValueRef.current = value;
+      }
+    }
+  }, [value, isInitialized]);
+  
+  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInternalValue(newValue);
+    
+    // Önceki timer'ı temizle
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Yeni timer başlat
+    debounceTimerRef.current = setTimeout(() => {
+      onChange(newValue);
+      lastParentValueRef.current = newValue;
+      debounceTimerRef.current = null;
+    }, 380); // İç tetkik için orta hızlı - 380ms
+    
+  }, [onChange]);
+  
+  // Component unmount olduğunda timer'ı temizle
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+  
+  return (
+    <TextField
+      ref={inputRef}
+      fullWidth={fullWidth}
+      size={size}
+      label={label}
+      value={internalValue}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon />
+          </InputAdornment>
+        ),
+      }}
+      // Input focus'u korumak için ek props
+      onFocus={(e) => {
+        e.target.selectionStart = e.target.value.length;
+        e.target.selectionEnd = e.target.value.length;
+      }}
+    />
+  );
+}, (prevProps, nextProps) => {
+  // Çok strict comparison - neredeyse hiç re-render olmasın
+  return JSON.stringify(prevProps) === JSON.stringify(nextProps);
+});
+
 // Styled Components
 const StyledCard = styled(Card)(({ theme }) => ({
   height: '100%',
@@ -2441,15 +2531,13 @@ const InternalAuditManagement: React.FC = () => {
         <Paper sx={{ p: 2, mb: 3 }}>
           <Box display="flex" flexWrap="wrap" gap={2} alignItems="center">
             <Box flex="1 1 300px" minWidth="200px">
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Tetkik ara..."
+              <UltraStableSearchInput
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
-                }}
+                onChange={(value) => setSearchTerm(value)}
+                placeholder="Tetkik ara..."
+                label=""
+                size="small"
+                fullWidth={true}
               />
             </Box>
             <Box flex="1 1 150px" minWidth="120px">

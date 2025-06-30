@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, memo, useCallback, useEffect } from 'react';
 import {
   Typography,
   Box,
@@ -400,6 +400,178 @@ const StatusChip = styled(Chip)<{ statustype: string }>(({ theme, statustype }) 
   };
 });
 
+// 🎯 BALANCED STABLE SEARCH INPUT - Tıklanabilir ve focus korumalı
+const UltimateStableSearchInput = memo<{
+  defaultValue?: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+}>(({ defaultValue = '', onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const isAliveRef = useRef(true);
+  const lastUserActionRef = useRef(Date.now());
+  const focusProtectionRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // 🎯 BALANCED FOCUS PROTECTION - Hem tıklanabilir hem korumalı
+  useEffect(() => {
+    let focusInterval: NodeJS.Timeout;
+    
+    const balancedFocusProtection = () => {
+      if (!isAliveRef.current || !inputRef.current) return;
+      
+      const input = inputRef.current;
+      
+      // Focus kaybolmuşsa geri al - ZAman sınırı olmadan
+      if (document.activeElement !== input) {
+        // Sadece başka bir input'a focus olunmamışsa
+        const activeElement = document.activeElement;
+        if (!activeElement || activeElement.tagName !== 'INPUT') {
+          try {
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+          } catch (e) {
+            // Silent fail
+          }
+        }
+      }
+    };
+    
+    // Her 100ms kontrol et - daha yumuşak
+    focusInterval = setInterval(balancedFocusProtection, 100);
+    
+    return () => {
+      clearInterval(focusInterval);
+    };
+  }, []);
+  
+  // 🎯 SMART DOM EVENT HANDLING 
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    
+    const handleInput = (event: Event) => {
+      const target = event.target as HTMLInputElement;
+      const value = target.value;
+      
+      lastUserActionRef.current = Date.now();
+      
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      
+      debounceRef.current = setTimeout(() => {
+        if (isAliveRef.current) {
+          onChange(value);
+        }
+      }, 200);
+    };
+    
+    const handleFocus = () => {
+      lastUserActionRef.current = Date.now();
+    };
+    
+    const handleClick = (event: Event) => {
+      lastUserActionRef.current = Date.now();
+      // Normal click behavior'ı koru
+    };
+    
+    const handleKeyDown = () => {
+      lastUserActionRef.current = Date.now();
+    };
+    
+    const handleBlur = (event: FocusEvent) => {
+      // Sadece container dışına blur oluyorsa engelle
+      const relatedTarget = event.relatedTarget as Element;
+      if (!containerRef.current?.contains(relatedTarget)) {
+        // 50ms bekle, zaman sınırı olmadan focus'u geri al
+        setTimeout(() => {
+          if (isAliveRef.current && input) {
+            input.focus();
+          }
+        }, 50);
+      }
+    };
+    
+    // Event listener'ları ekle
+    input.addEventListener('input', handleInput);
+    input.addEventListener('focus', handleFocus);
+    input.addEventListener('click', handleClick);
+    input.addEventListener('keydown', handleKeyDown);
+    input.addEventListener('blur', handleBlur);
+    
+    return () => {
+      input.removeEventListener('input', handleInput);
+      input.removeEventListener('focus', handleFocus);
+      input.removeEventListener('click', handleClick);
+      input.removeEventListener('keydown', handleKeyDown);
+      input.removeEventListener('blur', handleBlur);
+    };
+  }, [onChange]);
+  
+  // 🎯 CONTAINER INTERACTION
+  const handleContainerClick = useCallback((event: React.MouseEvent) => {
+    // Sadece container'a tıklanırsa input'a focus ver
+    if (event.target === containerRef.current && inputRef.current) {
+      lastUserActionRef.current = Date.now();
+      inputRef.current.focus();
+    }
+  }, []);
+  
+  // 🎯 CLEANUP
+  useEffect(() => {
+    isAliveRef.current = true;
+    
+    return () => {
+      isAliveRef.current = false;
+      if (focusProtectionRef.current) clearTimeout(focusProtectionRef.current);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+  
+  return (
+    <div 
+      ref={containerRef}
+      onClick={handleContainerClick}
+      style={{ 
+        width: fullWidth ? '100%' : 'auto',
+        position: 'relative'
+      }}
+    >
+      <TextField
+        ref={inputRef}
+        fullWidth={fullWidth}
+        size={size}
+        label={label}
+        defaultValue={defaultValue || ''}
+        placeholder={placeholder}
+        autoComplete="off"
+        spellCheck={false}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            '&.Mui-focused': {
+              '& fieldset': {
+                borderColor: '#1976d2 !important',
+                borderWidth: '2px !important',
+              },
+            },
+          },
+        }}
+      />
+    </div>
+  );
+}, () => true); // Memo lock
+
 const EquipmentCalibrationManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
 
@@ -773,6 +945,138 @@ const EquipmentCalibrationManagement: React.FC = () => {
         </Button>
       </Box>
 
+      {/* TÜM MODÜL İÇİN GLOBAL FİLTRELER */}
+      <StyledAccordion
+        expanded={expanded === 'filters'}
+        onChange={handleAccordionChange('filters')}
+        sx={{ mb: 3 }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FilterListIcon sx={{ color: '#ffffff' }} />
+            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>Filtreler ve Arama (Tüm Modül)</Typography>
+            {Object.values(filters).some(v => v !== '' && !(typeof v === 'object' && !v.start && !v.end) && v !== false) && (
+              <Badge color="primary" variant="dot" />
+            )}
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <UltimateStableSearchInput
+                label="Ekipman Arama"
+                placeholder="Ekipman adı veya kodu ile arayın..."
+                defaultValue={filters.searchTerm}
+                onChange={(value: string) => handleFilterChange('searchTerm', value)}
+                fullWidth
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <FormControl fullWidth>
+                <InputLabel>Kategori</InputLabel>
+                <Select
+                  value={filters.category}
+                  onChange={(e) => handleFilterChange('category', e.target.value)}
+                >
+                  <MenuItem value="">Tüm Kategoriler</MenuItem>
+                  {EQUIPMENT_CATEGORIES.map((category) => (
+                    <MenuItem key={category} value={category}>{category}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <FormControl fullWidth>
+                <InputLabel>Lokasyon</InputLabel>
+                <Select
+                  value={filters.location}
+                  onChange={(e) => handleFilterChange('location', e.target.value)}
+                >
+                  <MenuItem value="">Tüm Lokasyonlar</MenuItem>
+                  {LOCATIONS.map((location) => (
+                    <MenuItem key={location} value={location}>{location}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <FormControl fullWidth>
+                <InputLabel>Departman</InputLabel>
+                <Select
+                  value={filters.department}
+                  onChange={(e) => handleFilterChange('department', e.target.value)}
+                >
+                  <MenuItem value="">Tüm Departmanlar</MenuItem>
+                  {DEPARTMENTS.map((dept) => (
+                    <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <FormControl fullWidth>
+                <InputLabel>Kalibrasyon Durumu</InputLabel>
+                <Select
+                  value={filters.calibrationStatus}
+                  onChange={(e) => handleFilterChange('calibrationStatus', e.target.value)}
+                >
+                  <MenuItem value="">Tüm Durumlar</MenuItem>
+                  <MenuItem value="valid">Geçerli</MenuItem>
+                  <MenuItem value="due">Vadesi Yaklaşan</MenuItem>
+                  <MenuItem value="overdue">Vadesi Geçen</MenuItem>
+                  <MenuItem value="invalid">Geçersiz</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={filters.criticalOnly}
+                    onChange={(e) => handleFilterChange('criticalOnly', e.target.checked)}
+                  />
+                }
+                label="Sadece Kritik Ekipmanlar"
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={filters.overdueOnly}
+                    onChange={(e) => handleFilterChange('overdueOnly', e.target.checked)}
+                  />
+                }
+                label="Sadece Vadesi Geçenler"
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={() => setFilters({
+                  searchTerm: '',
+                  category: '',
+                  location: '',
+                  department: '',
+                  status: '',
+                  calibrationStatus: '',
+                  maintenanceStatus: '',
+                  responsiblePerson: '',
+                  dateRange: { start: '', end: '' },
+                  criticalOnly: false,
+                  overdueOnly: false
+                })}
+                sx={{ height: 56 }}
+              >
+                Filtreleri Temizle
+              </Button>
+            </Box>
+          </Box>
+        </AccordionDetails>
+      </StyledAccordion>
+
       <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
         <Tab label="Dashboard" icon={<DashboardIcon />} />
         <Tab label="Ekipman Listesi" icon={<EngineeringIcon />} />
@@ -785,139 +1089,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
       {/* Dashboard Tab */}
       {activeTab === 0 && (
         <Box>
-          {/* Filtreler */}
-          <StyledAccordion
-            expanded={expanded === 'filters'}
-            onChange={handleAccordionChange('filters')}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <FilterListIcon sx={{ color: '#ffffff' }} />
-                <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>Filtreler ve Arama</Typography>
-                {Object.values(filters).some(v => v !== '' && !(typeof v === 'object' && !v.start && !v.end) && v !== false) && (
-                  <Badge color="primary" variant="dot" />
-                )}
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-                  <TextField
-                    fullWidth
-                    label="Ekipman Arama"
-                    value={filters.searchTerm}
-                    onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                    InputProps={{
-                      startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
-                    }}
-                    placeholder="Ekipman adı veya kodu ile arayın..."
-                  />
-                </Box>
-                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Kategori</InputLabel>
-                    <Select
-                      value={filters.category}
-                      onChange={(e) => handleFilterChange('category', e.target.value)}
-                    >
-                      <MenuItem value="">Tüm Kategoriler</MenuItem>
-                      {EQUIPMENT_CATEGORIES.map((category) => (
-                        <MenuItem key={category} value={category}>{category}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Lokasyon</InputLabel>
-                    <Select
-                      value={filters.location}
-                      onChange={(e) => handleFilterChange('location', e.target.value)}
-                    >
-                      <MenuItem value="">Tüm Lokasyonlar</MenuItem>
-                      {LOCATIONS.map((location) => (
-                        <MenuItem key={location} value={location}>{location}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Departman</InputLabel>
-                    <Select
-                      value={filters.department}
-                      onChange={(e) => handleFilterChange('department', e.target.value)}
-                    >
-                      <MenuItem value="">Tüm Departmanlar</MenuItem>
-                      {DEPARTMENTS.map((dept) => (
-                        <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Kalibrasyon Durumu</InputLabel>
-                    <Select
-                      value={filters.calibrationStatus}
-                      onChange={(e) => handleFilterChange('calibrationStatus', e.target.value)}
-                    >
-                      <MenuItem value="">Tüm Durumlar</MenuItem>
-                      <MenuItem value="valid">Geçerli</MenuItem>
-                      <MenuItem value="due">Vadesi Yaklaşan</MenuItem>
-                      <MenuItem value="overdue">Vadesi Geçen</MenuItem>
-                      <MenuItem value="invalid">Geçersiz</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={filters.criticalOnly}
-                        onChange={(e) => handleFilterChange('criticalOnly', e.target.checked)}
-                      />
-                    }
-                    label="Sadece Kritik Ekipmanlar"
-                  />
-                </Box>
-                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={filters.overdueOnly}
-                        onChange={(e) => handleFilterChange('overdueOnly', e.target.checked)}
-                      />
-                    }
-                    label="Sadece Vadesi Geçenler"
-                  />
-                </Box>
-                <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    startIcon={<ClearIcon />}
-                    onClick={() => setFilters({
-                      searchTerm: '',
-                      category: '',
-                      location: '',
-                      department: '',
-                      status: '',
-                      calibrationStatus: '',
-                      maintenanceStatus: '',
-                      responsiblePerson: '',
-                      dateRange: { start: '', end: '' },
-                      criticalOnly: false,
-                      overdueOnly: false
-                    })}
-                    sx={{ height: 56 }}
-                  >
-                    Filtreleri Temizle
-                  </Button>
-                </Box>
-              </Box>
-            </AccordionDetails>
-          </StyledAccordion>
 
           {/* Özet Kartları */}
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
@@ -1514,7 +1685,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   Yaklaşan Kalibrasyonlar
                 </Typography>
                 <List>
-                  {equipmentList
+                  {metrics.filteredEquipment
                     .filter(eq => eq.calibrationStatus === 'due')
                     .map((equipment) => (
                     <ListItem key={equipment.id} sx={{ px: 0 }}>
@@ -1552,7 +1723,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   Vadesi Geçen Kalibrasyonlar
                 </Typography>
                 <List>
-                  {equipmentList
+                  {metrics.filteredEquipment
                     .filter(eq => eq.calibrationStatus === 'overdue')
                     .map((equipment) => (
                     <ListItem key={equipment.id} sx={{ px: 0 }}>
@@ -1601,7 +1772,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   Yaklaşan Bakımlar
                 </Typography>
                 <List>
-                  {equipmentList
+                  {metrics.filteredEquipment
                     .filter(eq => eq.maintenanceStatus === 'due')
                     .map((equipment) => (
                     <ListItem key={equipment.id} sx={{ px: 0 }}>
@@ -1639,7 +1810,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   Vadesi Geçen Bakımlar
                 </Typography>
                 <List>
-                  {equipmentList
+                  {metrics.filteredEquipment
                     .filter(eq => eq.maintenanceStatus === 'overdue')
                     .map((equipment) => (
                     <ListItem key={equipment.id} sx={{ px: 0 }}>
@@ -1700,10 +1871,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </Typography>
                   </Alert>
                 )}
-                {equipmentList.filter(eq => eq.calibrationStatus === 'overdue').length > 0 && (
+                {metrics.filteredEquipment.filter(eq => eq.calibrationStatus === 'overdue').length > 0 && (
                   <Alert severity="error" sx={{ flex: '1 1 300px' }}>
                     <Typography variant="body2">
-                      <strong>{equipmentList.filter(eq => eq.calibrationStatus === 'overdue').length}</strong> ekipmanın kalibrasyon vadesi geçmiş!
+                      <strong>{metrics.filteredEquipment.filter(eq => eq.calibrationStatus === 'overdue').length}</strong> ekipmanın kalibrasyon vadesi geçmiş!
                     </Typography>
                   </Alert>
                 )}
@@ -1761,25 +1932,25 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <ListItem>
                       <ListItemText
                         primary="Kalibrasyon Durumu"
-                        secondary={`${equipmentList.filter(eq => eq.calibrationStatus === 'valid').length} geçerli, ${equipmentList.filter(eq => eq.calibrationStatus === 'due').length} vadesi yakın, ${equipmentList.filter(eq => eq.calibrationStatus === 'overdue').length} vadesi geçmiş`}
+                        secondary={`${metrics.filteredEquipment.filter(eq => eq.calibrationStatus === 'valid').length} geçerli, ${metrics.filteredEquipment.filter(eq => eq.calibrationStatus === 'due').length} vadesi yakın, ${metrics.filteredEquipment.filter(eq => eq.calibrationStatus === 'overdue').length} vadesi geçmiş`}
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
                         primary="Bakım Durumu"
-                        secondary={`${equipmentList.filter(eq => eq.maintenanceStatus === 'good').length} iyi durumda, ${equipmentList.filter(eq => eq.maintenanceStatus === 'due').length} bakım gerekli, ${equipmentList.filter(eq => eq.maintenanceStatus === 'critical').length} kritik`}
+                        secondary={`${metrics.filteredEquipment.filter(eq => eq.maintenanceStatus === 'good').length} iyi durumda, ${metrics.filteredEquipment.filter(eq => eq.maintenanceStatus === 'due').length} bakım gerekli, ${metrics.filteredEquipment.filter(eq => eq.maintenanceStatus === 'critical').length} kritik`}
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
                         primary="Kritik Ekipmanlar"
-                        secondary={`${equipmentList.filter(eq => eq.criticalEquipment).length} kritik ekipman takip ediliyor`}
+                        secondary={`${metrics.filteredEquipment.filter(eq => eq.criticalEquipment).length} kritik ekipman takip ediliyor`}
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemText
                         primary="Lokasyon Dağılımı"
-                        secondary={`${new Set(equipmentList.map(eq => eq.location)).size} farklı lokasyonda ekipman`}
+                        secondary={`${new Set(metrics.filteredEquipment.map(eq => eq.location)).size} farklı lokasyonda ekipman`}
                       />
                     </ListItem>
                   </List>
