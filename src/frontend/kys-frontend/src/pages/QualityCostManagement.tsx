@@ -13942,7 +13942,7 @@ const CategoryProductionManagementComponent: React.FC<{
 
   // ✅ YENİ: Gelişmiş Araç Bazlı Yıllık Üretim Yönetimi Modal
   const [advancedDialogOpen, setAdvancedDialogOpen] = useState(false);
-  const [selectedVehicleCategory, setSelectedVehicleCategory] = useState<VehicleCategory | ''>('');
+  const [selectedVehicleCategory, setSelectedVehicleCategory] = useState<VehicleCategory | ''>('Kompakt Araçlar');
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [yearlyProductionData, setYearlyProductionData] = useState<MonthlyCategoryProduction[]>([]);
 
@@ -14168,7 +14168,7 @@ const CategoryProductionManagementComponent: React.FC<{
 
   // Gelişmiş modal'ı aç
   const handleOpenAdvancedDialog = useCallback((category?: VehicleCategory) => {
-    const selectedCategory = category || selectedVehicleCategory || 'Araç Üstü Vakumlu';
+    const selectedCategory = category || selectedVehicleCategory || 'Kompakt Araçlar';
     setSelectedVehicleCategory(selectedCategory);
     loadYearlyProductionData(selectedCategory, selectedYear);
     setAdvancedDialogOpen(true);
@@ -14474,17 +14474,17 @@ const CategoryProductionManagementComponent: React.FC<{
             <Button
               startIcon={<AddIcon />}
               variant="contained"
-              onClick={() => setDialogOpen(true)}
+              onClick={() => handleOpenAdvancedDialog()}
               size="small"
             >
               Yeni Kayıt
             </Button>
             
-            {/* ✅ YENİ: Gelişmiş Araç Bazlı Yıllık Üretim Yönetimi Butonu */}
+            {/* ✅ YENİ: Basit Modal Butonu (Eski Yöntem) */}
             <Button
               startIcon={<CalendarTodayIcon />}
               variant="outlined"
-              onClick={() => handleOpenAdvancedDialog()}
+              onClick={() => setDialogOpen(true)}
               size="small"
               color="secondary"
               sx={{ 
@@ -14495,103 +14495,173 @@ const CategoryProductionManagementComponent: React.FC<{
                 }
               }}
             >
-              Araç Bazlı Yıllık Yönetim
+              Tek Kayıt
             </Button>
           </Box>
         </Box>
       </Paper>
 
-      {/* Data Table */}
-      <TableContainer component={Paper} sx={{ mb: 3 }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Dönem</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Araç Modeli</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Üretilen</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Planlanan</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Gerçekleşme</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Birim Hedefler</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Durum</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>İşlemler</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+      {/* ✅ YENİ: Gelişmiş Card View - Daha Kullanışlı Liste Görünümü */}
+      <Box sx={{ mb: 3 }}>
+        {filteredProductions.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <FactoryIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Henüz üretim kaydı bulunmuyor
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Yeni bir kayıt eklemek için yukarıdaki "Yeni Kayıt" butonunu kullanın
+            </Typography>
+            <Button 
+              variant="contained" 
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenAdvancedDialog()}
+            >
+              İlk Kaydı Oluştur
+            </Button>
+          </Paper>
+        ) : (
+          <Grid container spacing={2}>
             {filteredProductions.map((production) => (
-              <TableRow key={production.id}>
-                <TableCell>
-                  <Chip 
-                    label={production.donem} 
-                    color="primary"
-                    variant="outlined"
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {production.displayName}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">
-                    {production.kategori}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                    {production.uretilenAracSayisi} adet
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {production.planlanmisUretim || '-'} adet
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={getStatusText(production)}
-                    color={getStatusColor(production)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">
-                    Hedefler sekmesinden çekilir
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Switch
-                    checked={production.isActive}
-                    onChange={(e) => {
-                      const updatedProductions = categoryProductions.map(p =>
-                        p.id === production.id ? { ...p, isActive: e.target.checked } : p
-                      );
-                      setCategoryProductions(updatedProductions);
-                      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProductions));
-                    }}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    {/* ✅ YENİ: Üretim Kaydı Detay Görüntüleme Butonu */}
-                    <Tooltip title="Üretim Kaydı Detaylarını Görüntüle">
+              <Grid item xs={12} sm={6} md={4} lg={3} key={production.id}>
+                <Card 
+                  sx={{ 
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.2s ease-in-out',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: 4
+                    },
+                    borderLeft: '4px solid',
+                    borderLeftColor: getStatusColor(production) === 'success' ? 'success.main' :
+                                    getStatusColor(production) === 'warning' ? 'warning.main' :
+                                    getStatusColor(production) === 'error' ? 'error.main' : 'primary.main',
+                    opacity: production.isActive ? 1 : 0.7
+                  }}
+                >
+                  <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                    {/* Başlık */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <Typography variant="h6" component="h3" sx={{ 
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        lineHeight: 1.2,
+                        flexGrow: 1
+                      }}>
+                        {production.displayName}
+                      </Typography>
+                      <Switch
+                        checked={production.isActive}
+                        onChange={(e) => {
+                          const updatedProductions = categoryProductions.map(p =>
+                            p.id === production.id ? { ...p, isActive: e.target.checked } : p
+                          );
+                          setCategoryProductions(updatedProductions);
+                          localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProductions));
+                        }}
+                        size="small"
+                      />
+                    </Box>
+
+                    {/* Dönem ve Kategori */}
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                      <Chip 
+                        label={production.donem} 
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                      />
+                      <Chip 
+                        label={production.kategori} 
+                        color="secondary"
+                        variant="outlined"
+                        size="small"
+                      />
+                    </Box>
+
+                    {/* Üretim Bilgileri */}
+                    <Box sx={{ mb: 2 }}>
+                      <Grid container spacing={1}>
+                        <Grid item xs={6}>
+                          <Box sx={{ 
+                            textAlign: 'center',
+                            p: 1,
+                            borderRadius: 1,
+                            backgroundColor: 'primary.50',
+                            border: '1px solid',
+                            borderColor: 'primary.200'
+                          }}>
+                            <Typography variant="h5" color="primary" fontWeight="bold">
+                              {production.uretilenAracSayisi}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Üretilen
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Box sx={{ 
+                            textAlign: 'center',
+                            p: 1,
+                            borderRadius: 1,
+                            backgroundColor: 'success.50',
+                            border: '1px solid',
+                            borderColor: 'success.200'
+                          }}>
+                            <Typography variant="h5" color="success.main" fontWeight="bold">
+                              {production.planlanmisUretim || '-'}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Planlanan
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Box>
+
+                    {/* Performans Durumu */}
+                    <Box sx={{ mb: 2 }}>
+                      <Chip
+                        label={getStatusText(production)}
+                        color={getStatusColor(production)}
+                        size="small"
+                        sx={{ width: '100%', justifyContent: 'center' }}
+                      />
+                    </Box>
+
+                    {/* Açıklama (Varsa) */}
+                    {production.aciklama && (
+                      <Typography variant="body2" color="text.secondary" sx={{ 
+                        fontSize: '0.85rem',
+                        fontStyle: 'italic',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {production.aciklama}
+                      </Typography>
+                    )}
+                  </CardContent>
+
+                  <CardActions sx={{ p: 1, justifyContent: 'center' }}>
+                    <Tooltip title="Detayları Görüntüle">
                       <IconButton 
                         size="small" 
                         onClick={() => {
-                          // Üretim kaydı bazlı detay görüntüleme için özel bir kayıt oluştur
                           const productionDetailRecord = {
                             id: `production_${production.id}`,
                             maliyetTuru: 'production_record',
                             aracModeli: production.displayName,
                             aracKategorisi: production.kategori,
-                            maliyet: 0, // Üretim kaydında doğrudan maliyet yok
+                            maliyet: 0,
                             tarih: production.createdDate || new Date().toISOString(),
                             durum: production.isActive ? 'aktif' : 'pasif',
                             parcaKodu: `PROD-${production.displayName.toUpperCase()}`,
-                            aciklama: `${production.displayName} üretim kaydı - ${production.donem} dönemi, ${production.uretilenAracSayisi} adet üretilen`,
-                            // Ek üretim verileri
+                            aciklama: `${production.displayName} üretim kaydı - ${production.donem} dönemi`,
                             uretimDetaylari: {
                               donem: production.donem,
                               aracModeli: production.displayName,
@@ -14599,12 +14669,9 @@ const CategoryProductionManagementComponent: React.FC<{
                               uretilenAracSayisi: production.uretilenAracSayisi,
                               planlanmisUretim: production.planlanmisUretim,
                               gerceklesmeOrani: production.gerceklesmeOrani,
-                              isActive: production.isActive,
-                              createdDate: production.createdDate,
-                              updatedDate: production.updatedDate
+                              isActive: production.isActive
                             }
                           };
-                          console.log('🔍 Production Table Görüntüle Butonu Tıklandı:', productionDetailRecord);
                           if ((window as any).handleViewDetails) {
                             (window as any).handleViewDetails(productionDetailRecord);
                           }
@@ -14614,27 +14681,31 @@ const CategoryProductionManagementComponent: React.FC<{
                         <VisibilityIcon />
                       </IconButton>
                     </Tooltip>
-                    <IconButton 
-                      size="small" 
-                      onClick={() => handleEditProduction(production)}
-                      color="primary"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton 
-                      size="small" 
-                      onClick={() => handleDeleteProduction(production)}
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-              </TableRow>
+                    <Tooltip title="Düzenle">
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleEditProduction(production)}
+                        color="primary"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Sil">
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleDeleteProduction(production)}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </CardActions>
+                </Card>
+              </Grid>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+          </Grid>
+        )}
+      </Box>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
@@ -14747,10 +14818,10 @@ const CategoryProductionManagementComponent: React.FC<{
             <CalendarTodayIcon />
             <Box>
               <Typography variant="h5" fontWeight="bold">
-                Araç Bazlı Yıllık Üretim Yönetimi
+                Yıllık Üretim Planı
               </Typography>
               <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
-                Seçilen araç kategorisi için 12 aylık üretim verilerini tek ekranda yönetin
+                12 aylık üretim verilerini tek ekranda düzenleyin
               </Typography>
             </Box>
           </Box>
@@ -14862,7 +14933,13 @@ const CategoryProductionManagementComponent: React.FC<{
                                 size="small"
                                 fullWidth
                                 InputProps={{
-                                  endAdornment: <Typography variant="caption">adet</Typography>
+                                  endAdornment: (
+                                    <InputAdornment position="end">
+                                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                        adet
+                                      </Typography>
+                                    </InputAdornment>
+                                  )
                                 }}
                               />
                             </TableCell>
@@ -14875,7 +14952,13 @@ const CategoryProductionManagementComponent: React.FC<{
                                 size="small"
                                 fullWidth
                                 InputProps={{
-                                  endAdornment: <Typography variant="caption">adet</Typography>
+                                  endAdornment: (
+                                    <InputAdornment position="end">
+                                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                        adet
+                                      </Typography>
+                                    </InputAdornment>
+                                  )
                                 }}
                               />
                             </TableCell>
