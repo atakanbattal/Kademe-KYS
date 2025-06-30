@@ -3409,7 +3409,7 @@ const QuarantineManagement: React.FC = () => {
                     }
                   }}
                 >
-                  🏷️ Karantina Alan Listesi
+                  Karantina Alan Listesi
                 </Button>
               </Box>
 
