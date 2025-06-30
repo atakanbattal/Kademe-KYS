@@ -1626,8 +1626,8 @@ const QuarantineManagement: React.FC = () => {
   // PDF'de Türkçe karakter desteği için font ekle
   const addTurkishFont = (doc: jsPDF) => {
     try {
-      // Times New Roman fontunu kullan - Türkçe karakterleri destekler
-      doc.setFont('times', 'normal');
+      // Helvetica fontunu kullan - Unicode desteği daha iyi
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(12);
       
       // UTF-8 encoding için document properties ayarla
@@ -1638,6 +1638,11 @@ const QuarantineManagement: React.FC = () => {
         keywords: 'karantina, kalite, rapor',
         creator: 'KYS'
       });
+      
+      // Document encoding ayarla
+      (doc as any).internal.pageSize.getWidth = () => 210;
+      (doc as any).internal.pageSize.getHeight = () => 297;
+      
     } catch (error) {
       console.warn('Font yükleme hatası:', error);
       // Fallback olarak helvetica kullan
@@ -1646,22 +1651,41 @@ const QuarantineManagement: React.FC = () => {
     }
   };
 
-  // Advanced UTF-8 text encoding fonksiyonu
+  // Gelişmiş UTF-8 text encoding fonksiyonu
   const fixTurkishChars = (text: string): string => {
-    // UTF-8 encoding için HTML entity'leri kullan
-    return text
-      .replace(/İ/g, '\u0130')  // İ
-      .replace(/ı/g, '\u0131')  // ı  
-      .replace(/Ğ/g, '\u011E')  // Ğ
-      .replace(/ğ/g, '\u011F')  // ğ
-      .replace(/Ü/g, '\u00DC')  // Ü
-      .replace(/ü/g, '\u00FC')  // ü
-      .replace(/Ş/g, '\u015E')  // Ş
-      .replace(/ş/g, '\u015F')  // ş
-      .replace(/Ö/g, '\u00D6')  // Ö
-      .replace(/ö/g, '\u00F6')  // ö
-      .replace(/Ç/g, '\u00C7')  // Ç
-      .replace(/ç/g, '\u00E7'); // ç
+    if (!text) return '';
+    
+    // Önce normalize et
+    let result = text.normalize('NFC');
+    
+    // Türkçe karakterleri düzelt
+    const turkishChars = {
+      'İ': 'I',
+      'ı': 'i',
+      'Ğ': 'G',
+      'ğ': 'g',
+      'Ü': 'U',
+      'ü': 'u',
+      'Ş': 'S',
+      'ş': 's',
+      'Ö': 'O',
+      'ö': 'o',
+      'Ç': 'C',
+      'ç': 'c'
+    };
+    
+    // Türkçe karakterleri unicode escape sequences ile değiştir
+    for (const [turkishChar, replacement] of Object.entries(turkishChars)) {
+      result = result.replace(new RegExp(turkishChar, 'g'), replacement);
+    }
+    
+    // Diğer özel karakterleri temizle
+    result = result
+      .replace(/[^\x00-\x7F]/g, '') // ASCII olmayan karakterleri kaldır
+      .replace(/\u0000/g, '')      // Null karakterleri kaldır
+      .trim();
+    
+    return result;
   };
 
   // Filtrelenmiş veri al
@@ -1769,7 +1793,7 @@ const QuarantineManagement: React.FC = () => {
       styles: { 
         fontSize: 9, 
         cellPadding: 3,
-        font: 'times'
+        font: 'helvetica'
       }
     });
     
@@ -1800,7 +1824,7 @@ const QuarantineManagement: React.FC = () => {
         styles: { 
           fontSize: 8, 
           cellPadding: 2,
-          font: 'times'
+          font: 'helvetica'
         }
       });
     }
@@ -1857,7 +1881,7 @@ const QuarantineManagement: React.FC = () => {
       styles: { 
         fontSize: 9, 
         cellPadding: 3,
-        font: 'times'
+        font: 'helvetica'
       }
     });
     
@@ -1901,7 +1925,7 @@ const QuarantineManagement: React.FC = () => {
         styles: { 
           fontSize: 8, 
           cellPadding: 2,
-          font: 'times'
+          font: 'helvetica'
         }
       });
     }
@@ -1948,7 +1972,7 @@ const QuarantineManagement: React.FC = () => {
       styles: { 
         fontSize: 9, 
         cellPadding: 3,
-        font: 'times'
+        font: 'helvetica'
       }
     });
     
@@ -1998,7 +2022,7 @@ const QuarantineManagement: React.FC = () => {
       styles: { 
         fontSize: 9, 
         cellPadding: 3,
-        font: 'times'
+        font: 'helvetica'
       }
     });
     
@@ -2042,7 +2066,7 @@ const QuarantineManagement: React.FC = () => {
       styles: { 
         fontSize: 9, 
         cellPadding: 3,
-        font: 'times'
+        font: 'helvetica'
       }
     });
     
@@ -2103,7 +2127,7 @@ const QuarantineManagement: React.FC = () => {
         styles: { 
           fontSize: 8, 
           cellPadding: 2,
-          font: 'times'
+          font: 'helvetica'
         }
       });
     }
@@ -2146,7 +2170,7 @@ const QuarantineManagement: React.FC = () => {
         styles: { 
           fontSize: 8, 
           cellPadding: 2,
-          font: 'times'
+          font: 'helvetica'
         }
       });
     }
@@ -2216,7 +2240,7 @@ const QuarantineManagement: React.FC = () => {
         styles: { 
           fontSize: 8, 
           cellPadding: 2,
-          font: 'times'
+          font: 'helvetica'
         }
       });
       
@@ -3512,7 +3536,7 @@ const QuarantineManagement: React.FC = () => {
                       />
                     </Grid>
                     
-                                          {/* Karantinaya Alınış Tarihi */}
+                    {/* Karantinaya Alınış Tarihi */}
                     <Grid item xs={12} sm={4}>
                       <TextField
                         fullWidth
