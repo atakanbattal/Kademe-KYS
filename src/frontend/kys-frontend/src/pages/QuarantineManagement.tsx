@@ -84,6 +84,8 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // ============================================
 // 🔥 ENHANCED INTERFACES & TYPES
@@ -539,6 +541,14 @@ const QuarantineManagement: React.FC = () => {
 
   // Filter expansion state
   const [expanded, setExpanded] = useState<string | false>('panel1');
+
+  // Report filter states
+  const [reportFilters, setReportFilters] = useState({
+    status: 'ALL',
+    priority: 'ALL',
+    startDate: '',
+    endDate: ''
+  });
 
   // Dynamic suggestions and management
   const [partCodeSuggestions, setPartCodeSuggestions] = useState<string[]>(() => {
@@ -1439,6 +1449,410 @@ const QuarantineManagement: React.FC = () => {
     }
   };
 
+  // ============================================
+  // 🔥 RAPOR FONKSIYONLARI
+  // ============================================
+
+  // PDF'de Türkçe karakter desteği için font ekle
+  const addTurkishFont = (doc: jsPDF) => {
+    try {
+      // Varsayılan font kullan (Helvetica Türkçe karakterleri destekler)
+      doc.setFont('helvetica', 'normal');
+    } catch (error) {
+      console.warn('Font yükleme hatası:', error);
+    }
+  };
+
+  // Filtrelenmiş veri al
+  const getFilteredReportData = () => {
+    let data = quarantineData;
+    
+    // Status filtresi
+    if (reportFilters.status !== 'ALL') {
+      data = data.filter(item => item.status === reportFilters.status);
+    }
+    
+    // Priority filtresi
+    if (reportFilters.priority !== 'ALL') {
+      data = data.filter(item => item.priority === reportFilters.priority);
+    }
+    
+    // Tarih filtresi
+    if (reportFilters.startDate) {
+      const startDate = new Date(reportFilters.startDate);
+      data = data.filter(item => new Date(item.quarantineDate) >= startDate);
+    }
+    
+    if (reportFilters.endDate) {
+      const endDate = new Date(reportFilters.endDate);
+      data = data.filter(item => new Date(item.quarantineDate) <= endDate);
+    }
+    
+    return data;
+  };
+
+  // Genel PDF şablonu oluştur
+  const createPDFTemplate = (title: string) => {
+    const doc = new jsPDF();
+    addTurkishFont(doc);
+    
+    // Başlık
+    doc.setFontSize(20);
+    doc.setTextColor(25, 118, 210); // Primary color
+    doc.text('KADEME A.Ş. KALİTE YÖNETİM SİSTEMİ', 105, 20, { align: 'center' });
+    
+    // Rapor adı
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, 105, 35, { align: 'center' });
+    
+    // Tarih
+    doc.setFontSize(10);
+    doc.text(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 15, 50);
+    doc.text(`Rapor Saati: ${new Date().toLocaleTimeString('tr-TR')}`, 15, 55);
+    
+    // Filtre bilgileri
+    let yPos = 65;
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    
+    if (reportFilters.status !== 'ALL') {
+      doc.text(`Durum Filtresi: ${STATUS_LABELS[reportFilters.status as keyof typeof STATUS_LABELS]}`, 15, yPos);
+      yPos += 5;
+    }
+    if (reportFilters.priority !== 'ALL') {
+      doc.text(`Öncelik Filtresi: ${PRIORITY_LABELS[reportFilters.priority as keyof typeof PRIORITY_LABELS]}`, 15, yPos);
+      yPos += 5;
+    }
+    if (reportFilters.startDate) {
+      doc.text(`Başlangıç Tarihi: ${new Date(reportFilters.startDate).toLocaleDateString('tr-TR')}`, 15, yPos);
+      yPos += 5;
+    }
+    if (reportFilters.endDate) {
+      doc.text(`Bitiş Tarihi: ${new Date(reportFilters.endDate).toLocaleDateString('tr-TR')}`, 15, yPos);
+      yPos += 5;
+    }
+    
+    return { doc, startY: yPos + 10 };
+  };
+
+  // 1. Karantina Özet Raporu
+  const generateSummaryReport = () => {
+    const { doc, startY } = createPDFTemplate('KARANTİNA ÖZET RAPORU');
+    const data = getFilteredReportData();
+    
+    // Özet istatistikler
+    const summaryStats = calculateStats(data);
+    
+    // İstatistik tablosu
+    autoTable(doc, {
+      startY: startY,
+      head: [['İstatistik', 'Değer']],
+      body: [
+        ['Toplam Kayıt', summaryStats.totalItems.toString()],
+        ['Karantinada', summaryStats.inQuarantine.toString()],
+        ['Hurda', summaryStats.scrapped.toString()],
+        ['Sapma Onayı', summaryStats.approved.toString()],
+        ['Yeniden İşlem', summaryStats.reworked.toString()],
+        ['Serbest Bırakılan', summaryStats.released.toString()],
+        ['Toplam Maliyet', `₺${summaryStats.totalCost.toLocaleString('tr-TR')}`],
+        ['Ortalama İşlem Süresi', `${summaryStats.avgProcessingTime} gün`]
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [25, 118, 210] },
+      styles: { fontSize: 9, cellPadding: 3 }
+    });
+    
+    // Detaylı veriler
+    if (data.length > 0) {
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 15,
+        head: [['Takip No', 'Parça Kodu', 'Parça Adı', 'Miktar', 'Durum', 'Öncelik', 'Tarih']],
+        body: data.map(item => [
+          item.id,
+          item.partCode,
+          item.partName,
+          `${item.quantity} ${item.unit}`,
+          STATUS_LABELS[item.status],
+          PRIORITY_LABELS[item.priority],
+          new Date(item.quarantineDate).toLocaleDateString('tr-TR')
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [25, 118, 210] },
+        styles: { fontSize: 8, cellPadding: 2 }
+      });
+    }
+    
+    // İmza alanı
+    const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 20 : startY + 50;
+    doc.setFontSize(10);
+    doc.text('Hazırlayan: _________________', 15, finalY);
+    doc.text('Onaylayan: _________________', 105, finalY);
+    doc.text('Tarih: _______________', 15, finalY + 10);
+    doc.text('İmza: _______________', 105, finalY + 10);
+    
+    doc.save(`Karantina_Ozet_Raporu_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('Summary report created successfully!', 'success');
+  };
+
+  // 2. Birim Bazlı Rapor
+  const generateDepartmentReport = () => {
+    const { doc, startY } = createPDFTemplate('BIRIM BAZLI KARANTINA RAPORU');
+    const data = getFilteredReportData();
+    
+    // Birim bazlı gruplandırma
+    const departmentStats = data.reduce((acc, item) => {
+      const dept = item.responsibleDepartment;
+      if (!acc[dept]) {
+        acc[dept] = { count: 0, cost: 0, items: [] };
+      }
+      acc[dept].count++;
+      acc[dept].cost += item.estimatedCost;
+      acc[dept].items.push(item);
+      return acc;
+    }, {} as Record<string, { count: number; cost: number; items: QuarantineRecord[] }>);
+    
+    // Birim özet tablosu
+    autoTable(doc, {
+      startY: startY,
+      head: [['Birim', 'Kayit Sayisi', 'Toplam Maliyet', 'Ortalama Maliyet']],
+      body: Object.entries(departmentStats).map(([dept, stats]) => [
+        dept,
+        stats.count.toString(),
+        `${stats.cost.toLocaleString('tr-TR')} TL`,
+        `${(stats.cost / stats.count).toLocaleString('tr-TR')} TL`
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [25, 118, 210] },
+      styles: { fontSize: 9, cellPadding: 3 }
+    });
+    
+    doc.save(`Birim_Bazli_Rapor_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('Department report created successfully!', 'success');
+  };
+
+  // 3. Kritik Parçalar Raporu
+  const generateCriticalPartsReport = () => {
+    const { doc, startY } = createPDFTemplate('KRİTİK PARÇALAR RAPORU');
+    const data = getFilteredReportData().filter(item => 
+      item.priority === 'YUKSEK' || item.priority === 'KRITIK'
+    );
+    
+    if (data.length === 0) {
+      doc.setFontSize(12);
+      doc.text('Kritik parça bulunamadı.', 15, startY + 20);
+    } else {
+      autoTable(doc, {
+        startY: startY,
+        head: [['Takip No', 'Parça Kodu', 'Parça Adı', 'Öncelik', 'Maliyet', 'Durum', 'Tarih']],
+        body: data.map(item => [
+          item.id,
+          item.partCode,
+          item.partName,
+          PRIORITY_LABELS[item.priority],
+          `₺${item.estimatedCost.toLocaleString('tr-TR')}`,
+          STATUS_LABELS[item.status],
+          new Date(item.quarantineDate).toLocaleDateString('tr-TR')
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [211, 47, 47] }, // Red color for critical
+        styles: { fontSize: 8, cellPadding: 2 }
+      });
+    }
+    
+    doc.save(`Kritik_Parcalar_Raporu_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('Kritik parçalar raporu başarıyla oluşturuldu!', 'success');
+  };
+
+  // 4. Zaman Bazlı Rapor  
+  const generateTimeBasedReport = () => {
+    const { doc, startY } = createPDFTemplate('ZAMAN BAZLI KARANTİNA RAPORU');
+    const data = getFilteredReportData();
+    
+    // Aylık gruplandırma
+    const monthlyStats = data.reduce((acc, item) => {
+      const month = new Date(item.quarantineDate).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
+      if (!acc[month]) {
+        acc[month] = { count: 0, cost: 0 };
+      }
+      acc[month].count++;
+      acc[month].cost += item.estimatedCost;
+      return acc;
+    }, {} as Record<string, { count: number; cost: number }>);
+    
+    autoTable(doc, {
+      startY: startY,
+      head: [['Ay', 'Kayıt Sayısı', 'Toplam Maliyet', 'Ortalama Maliyet']],
+      body: Object.entries(monthlyStats).map(([month, stats]) => [
+        month,
+        stats.count.toString(),
+        `₺${stats.cost.toLocaleString('tr-TR')}`,
+        `₺${(stats.cost / stats.count || 0).toLocaleString('tr-TR')}`
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [25, 118, 210] },
+      styles: { fontSize: 9, cellPadding: 3 }
+    });
+    
+    doc.save(`Zaman_Bazli_Rapor_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('Zaman bazlı rapor başarıyla oluşturuldu!', 'success');
+  };
+
+  // 5. Performans Analizi Raporu
+  const generatePerformanceReport = () => {
+    const { doc, startY } = createPDFTemplate('PERFORMANS ANALİZİ RAPORU');
+    const data = getFilteredReportData();
+    
+    // Performans metrikleri
+    const completedItems = data.filter(item => item.status !== 'KARANTINADA');
+    const avgProcessingTime = completedItems.reduce((acc, item) => {
+      if (item.decisionDate) {
+        const quarantineDate = new Date(item.quarantineDate);
+        const decisionDate = new Date(item.decisionDate);
+        const days = Math.floor((decisionDate.getTime() - quarantineDate.getTime()) / (1000 * 60 * 60 * 24));
+        return acc + days;
+      }
+      return acc;
+    }, 0) / (completedItems.length || 1);
+    
+    const successRate = (data.filter(item => item.status === 'SERBEST_BIRAKILDI').length / (data.length || 1)) * 100;
+    const reworkRate = (data.filter(item => item.status === 'YENIDEN_ISLEM').length / (data.length || 1)) * 100;
+    const scrapRate = (data.filter(item => item.status === 'HURDA').length / (data.length || 1)) * 100;
+    
+    autoTable(doc, {
+      startY: startY,
+      head: [['Performans Metriği', 'Değer']],
+      body: [
+        ['Ortalama İşlem Süresi', `${avgProcessingTime.toFixed(1)} gün`],
+        ['Başarı Oranı (Serbest Bırakma)', `%${successRate.toFixed(1)}`],
+        ['Yeniden İşlem Oranı', `%${reworkRate.toFixed(1)}`],
+        ['Hurda Oranı', `%${scrapRate.toFixed(1)}`],
+        ['Toplam İşlenen Kayıt', completedItems.length.toString()],
+        ['Bekleyen Kayıt', data.filter(item => item.status === 'KARANTINADA').length.toString()]
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [76, 175, 80] }, // Green color
+      styles: { fontSize: 9, cellPadding: 3 }
+    });
+    
+    doc.save(`Performans_Analizi_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('Performans analizi raporu başarıyla oluşturuldu!', 'success');
+  };
+
+  // 6. Maliyet Analizi Raporu
+  const generateCostAnalysisReport = () => {
+    const { doc, startY } = createPDFTemplate('MALİYET ANALİZİ RAPORU');
+    const data = getFilteredReportData();
+    
+    const totalCost = data.reduce((acc, item) => acc + item.estimatedCost, 0);
+    const avgCost = totalCost / (data.length || 1);
+    
+    // Maliyet dağılımı
+    const costRanges = {
+      '0 - 1,000 TL': data.filter(item => item.estimatedCost < 1000).length,
+      '1,000 - 5,000 TL': data.filter(item => item.estimatedCost >= 1000 && item.estimatedCost < 5000).length,
+      '5,000 - 10,000 TL': data.filter(item => item.estimatedCost >= 5000 && item.estimatedCost < 10000).length,
+      '10,000 TL+': data.filter(item => item.estimatedCost >= 10000).length
+    };
+    
+    autoTable(doc, {
+      startY: startY,
+      head: [['Maliyet Aralığı', 'Kayıt Sayısı', 'Yüzde']],
+      body: Object.entries(costRanges).map(([range, count]) => [
+        range,
+        count.toString(),
+        `%${((count / (data.length || 1)) * 100).toFixed(1)}`
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: [255, 152, 0] }, // Orange color
+      styles: { fontSize: 9, cellPadding: 3 }
+    });
+    
+    doc.save(`Maliyet_Analizi_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('Maliyet analizi raporu başarıyla oluşturuldu!', 'success');
+  };
+
+  // 7. Hızlı Raporlar
+  const generateQuickReport = (type: 'daily' | 'weekly' | 'monthly') => {
+    const today = new Date();
+    let startDate: Date;
+    let title: string;
+    
+    switch (type) {
+      case 'daily':
+        startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        title = 'GÜNLÜK KARANTİNA RAPORU';
+        break;
+      case 'weekly':
+        startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
+        title = 'HAFTALIK KARANTİNA RAPORU';
+        break;
+      case 'monthly':
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        title = 'AYLIK KARANTİNA RAPORU';
+        break;
+    }
+    
+    const data = quarantineData.filter(item => new Date(item.quarantineDate) >= startDate);
+    
+    const { doc, startY } = createPDFTemplate(title);
+    
+    if (data.length === 0) {
+      doc.setFontSize(12);
+      doc.text('Bu tarih aralığında kayıt bulunamadı.', 15, startY + 20);
+    } else {
+      autoTable(doc, {
+        startY: startY,
+        head: [['Takip No', 'Parça Kodu', 'Durum', 'Öncelik', 'Maliyet', 'Tarih']],
+        body: data.map(item => [
+          item.id,
+          item.partCode,
+          STATUS_LABELS[item.status],
+          PRIORITY_LABELS[item.priority],
+          `₺${item.estimatedCost.toLocaleString('tr-TR')}`,
+          new Date(item.quarantineDate).toLocaleDateString('tr-TR')
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [25, 118, 210] },
+        styles: { fontSize: 8, cellPadding: 2 }
+      });
+    }
+    
+    doc.save(`${type}_Rapor_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification(`${type === 'daily' ? 'Günlük' : type === 'weekly' ? 'Haftalık' : 'Aylık'} rapor başarıyla oluşturuldu!`, 'success');
+  };
+
+  // PDF Çıktı (Tablodaki verileri PDF'e aktarır)
+  const generateTablePDF = () => {
+    const { doc, startY } = createPDFTemplate('KARANTİNA KAYITLARI TABLOSU');
+    const data = filteredData;
+    
+    if (data.length === 0) {
+      doc.setFontSize(12);
+      doc.text('Tabloda görüntülenecek kayıt bulunamadı.', 15, startY + 20);
+    } else {
+      autoTable(doc, {
+        startY: startY,
+        head: [['Takip No', 'Parça Kodu', 'Parça Adı', 'Durum', 'Öncelik', 'Birim', 'Tarih']],
+        body: data.map(item => [
+          item.id,
+          item.partCode,
+          item.partName,
+          STATUS_LABELS[item.status],
+          PRIORITY_LABELS[item.priority],
+          item.responsibleDepartment,
+          new Date(item.quarantineDate).toLocaleDateString('tr-TR')
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [25, 118, 210] },
+        styles: { fontSize: 8, cellPadding: 2 }
+      });
+    }
+    
+    doc.save(`Karantina_Tablosu_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('Tablo PDF raporu olusturuldu!', 'success');
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Stats Cards */}
@@ -2317,7 +2731,11 @@ const QuarantineManagement: React.FC = () => {
                 <Grid item xs={12} sm={3}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Durum</InputLabel>
-                    <Select defaultValue="ALL" label="Durum">
+                    <Select 
+                      value={reportFilters.status} 
+                      label="Durum"
+                      onChange={(e) => setReportFilters(prev => ({ ...prev, status: e.target.value }))}
+                    >
                       <MenuItem value="ALL">Tümü</MenuItem>
                       {Object.entries(STATUS_LABELS).map(([status, label]) => (
                         <MenuItem key={status} value={status}>{label}</MenuItem>
@@ -2328,7 +2746,11 @@ const QuarantineManagement: React.FC = () => {
                 <Grid item xs={12} sm={3}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Öncelik</InputLabel>
-                    <Select defaultValue="ALL" label="Öncelik">
+                    <Select 
+                      value={reportFilters.priority} 
+                      label="Öncelik"
+                      onChange={(e) => setReportFilters(prev => ({ ...prev, priority: e.target.value }))}
+                    >
                       <MenuItem value="ALL">Tümü</MenuItem>
                       {Object.entries(PRIORITY_LABELS).map(([priority, label]) => (
                         <MenuItem key={priority} value={priority}>{label}</MenuItem>
@@ -2342,6 +2764,8 @@ const QuarantineManagement: React.FC = () => {
                     size="small"
                     label="Başlangıç Tarihi"
                     type="date"
+                    value={reportFilters.startDate}
+                    onChange={(e) => setReportFilters(prev => ({ ...prev, startDate: e.target.value }))}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
@@ -2351,6 +2775,8 @@ const QuarantineManagement: React.FC = () => {
                     size="small"
                     label="Bitiş Tarihi"
                     type="date"
+                    value={reportFilters.endDate}
+                    onChange={(e) => setReportFilters(prev => ({ ...prev, endDate: e.target.value }))}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
@@ -2377,7 +2803,12 @@ const QuarantineManagement: React.FC = () => {
                         secondary="Tüm karantina kayıtlarının özet raporu"
                       />
                       <ListItemSecondaryAction>
-                        <Button variant="outlined" size="small" startIcon={<PrintIcon />}>
+                        <Button 
+                          variant="outlined" 
+                          size="small" 
+                          startIcon={<PrintIcon />}
+                          onClick={generateSummaryReport}
+                        >
                           PDF
                         </Button>
                       </ListItemSecondaryAction>
@@ -2392,7 +2823,12 @@ const QuarantineManagement: React.FC = () => {
                         secondary="Birimlere göre karantina dağılımı"
                       />
                       <ListItemSecondaryAction>
-                        <Button variant="outlined" size="small" startIcon={<PrintIcon />}>
+                        <Button 
+                          variant="outlined" 
+                          size="small" 
+                          startIcon={<PrintIcon />}
+                          onClick={generateDepartmentReport}
+                        >
                           PDF
                         </Button>
                       </ListItemSecondaryAction>
@@ -2407,7 +2843,12 @@ const QuarantineManagement: React.FC = () => {
                         secondary="Yüksek ve kritik öncelikli parçalar"
                       />
                       <ListItemSecondaryAction>
-                        <Button variant="outlined" size="small" startIcon={<PrintIcon />}>
+                        <Button 
+                          variant="outlined" 
+                          size="small" 
+                          startIcon={<PrintIcon />}
+                          onClick={generateCriticalPartsReport}
+                        >
                           PDF
                         </Button>
                       </ListItemSecondaryAction>
@@ -2515,7 +2956,7 @@ const QuarantineManagement: React.FC = () => {
                 <Button 
                   variant="contained" 
                   startIcon={<PrintIcon />}
-                  onClick={() => showNotification('Günlük rapor oluşturuluyor...', 'info')}
+                  onClick={() => generateQuickReport('daily')}
                 >
                   Günlük Rapor
                 </Button>
@@ -2523,7 +2964,7 @@ const QuarantineManagement: React.FC = () => {
                   variant="contained" 
                   color="secondary"
                   startIcon={<PrintIcon />}
-                  onClick={() => showNotification('Haftalık rapor oluşturuluyor...', 'info')}
+                  onClick={() => generateQuickReport('weekly')}
                 >
                   Haftalık Rapor
                 </Button>
@@ -2531,7 +2972,7 @@ const QuarantineManagement: React.FC = () => {
                   variant="contained" 
                   color="success"
                   startIcon={<PrintIcon />}
-                  onClick={() => showNotification('Aylık rapor oluşturuluyor...', 'info')}
+                  onClick={() => generateQuickReport('monthly')}
                 >
                   Aylık Rapor
                 </Button>
@@ -4251,14 +4692,12 @@ const QuarantineManagement: React.FC = () => {
                   </Typography>
                 </Box>
                 <Box display="flex" gap={2}>
-                  <Button 
-                    variant="outlined"
-                    startIcon={<PrintIcon />}
-                    onClick={() => {
-                      showNotification('PDF çıktı özelliği yakında eklenecek!', 'info');
-                    }}
-                  >
-                    PDF Çıktı
+                                        <Button
+                        variant="outlined"
+                        startIcon={<PrintIcon />}
+                        onClick={generateTablePDF}
+                      >
+                        PDF Çıktı
                   </Button>
                   <Button 
                     variant="outlined"
