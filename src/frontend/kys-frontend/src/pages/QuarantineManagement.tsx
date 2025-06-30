@@ -99,7 +99,6 @@ interface QuarantineRecord {
   responsiblePersons: ResponsiblePerson[];
   quarantineDate: string;
   supplierName?: string;
-  lotNumber?: string;
   productionOrder?: string;
   inspectionResults?: string;
   notes: string;
@@ -116,16 +115,14 @@ interface QuarantineRecord {
   lastModified: string;
   // Yeni alanlar
   location?: string;
-  containerNumber?: string;
   inspectionType?: string;
   inspectionDate?: string;
   inspectorName?: string;
   customerName?: string;
-  projectNumber?: string;
   drawingNumber?: string;
   revision?: string;
   materialType?: string;
-  dimensions?: string;
+  vehicleModel?: string; // Araç modeli eklendi
   nonConformityDetails?: NonConformityDetail[];
   correctiveActions?: CorrectiveAction[];
   photos?: PhotoAttachment[];
@@ -304,6 +301,22 @@ const MATERIAL_TYPES = [
   'Diğer'
 ];
 
+const VEHICLE_MODELS = [
+  'FTH-240',
+  'Çelik-2000',
+  'Aga2100',
+  'Aga3000',
+  'Aga6000',
+  'Kompost Makinesi',
+  'Çay Toplama Makinesi',
+  'KDM 35',
+  'KDM 70',
+  'KDM 80',
+  'Rusya Motor Odası',
+  'Ural',
+  'HSCK'
+];
+
 const NONCONFORMITY_TYPES = [
   'Boyut Hatası',
   'Form Hatası',
@@ -472,7 +485,6 @@ const QuarantineManagement: React.FC = () => {
     responsibleDepartment: '',
     responsiblePersons: [],
     supplierName: '',
-    lotNumber: '',
     productionOrder: '',
     inspectionResults: '',
     notes: '',
@@ -482,16 +494,14 @@ const QuarantineManagement: React.FC = () => {
     followUpActions: [],
     // Yeni alanlar
     location: '',
-    containerNumber: '',
     inspectionType: '',
     inspectionDate: '',
     inspectorName: '',
     customerName: '',
-    projectNumber: '',
     drawingNumber: '',
     revision: '',
     materialType: '',
-    dimensions: '',
+    vehicleModel: '', // Araç modeli eklendi
     nonConformityDetails: [],
     correctiveActions: [],
     photos: [],
@@ -767,8 +777,8 @@ const QuarantineManagement: React.FC = () => {
     
     const checkFields = [
       'partCode', 'partName', 'quantity', 'quarantineReason', 'responsibleDepartment',
-      'supplierName', 'lotNumber', 'productionOrder', 
-      'inspectionResults', 'notes', 'location', 'inspectionType', 'inspectorName', 'materialType'
+      'supplierName', 'productionOrder', 
+      'inspectionResults', 'notes', 'location', 'inspectionType', 'inspectorName', 'materialType', 'vehicleModel'
     ];
     
     checkFields.forEach(field => {
@@ -1064,7 +1074,6 @@ const QuarantineManagement: React.FC = () => {
       responsibleDepartment: '',
       responsiblePersons: [],
       supplierName: '',
-      lotNumber: '',
       productionOrder: '',
       inspectionResults: '',
       notes: '',
@@ -1073,16 +1082,14 @@ const QuarantineManagement: React.FC = () => {
       attachments: [],
       followUpActions: [],
       location: '',
-      containerNumber: '',
       inspectionType: '',
       inspectionDate: '',
       inspectorName: '',
       customerName: '',
-      projectNumber: '',
       drawingNumber: '',
       revision: '',
       materialType: '',
-      dimensions: '',
+      vehicleModel: '',
       nonConformityDetails: [],
       correctiveActions: [],
       photos: [],
@@ -1290,7 +1297,6 @@ const QuarantineManagement: React.FC = () => {
       responsiblePersons: formData.responsiblePersons || [],
       quarantineDate: selectedRecord?.quarantineDate || now,
       supplierName: formData.supplierName || '',
-      lotNumber: formData.lotNumber || '',
       productionOrder: formData.productionOrder || '',
       inspectionResults: formData.inspectionResults || '',
       notes: formData.notes || '',
@@ -1307,16 +1313,14 @@ const QuarantineManagement: React.FC = () => {
       decisionNotes: selectedRecord?.decisionNotes,
       // Yeni alanlar
       location: formData.location,
-      containerNumber: formData.containerNumber,
       inspectionType: formData.inspectionType,
       inspectionDate: formData.inspectionDate,
       inspectorName: formData.inspectorName,
       customerName: formData.customerName,
-      projectNumber: formData.projectNumber,
       drawingNumber: formData.drawingNumber,
       revision: formData.revision,
       materialType: formData.materialType,
-      dimensions: formData.dimensions,
+      vehicleModel: formData.vehicleModel,
       nonConformityDetails: formData.nonConformityDetails || [],
       correctiveActions: formData.correctiveActions || [],
       photos: formData.photos || [],
@@ -1400,7 +1404,7 @@ const QuarantineManagement: React.FC = () => {
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ background: 'linear-gradient(135deg, #1976d2, #1565c0)' }}>
+          <Card sx={{ background: appearanceSettings.primaryColor }}>
             <CardContent sx={{ color: 'white' }}>
               <Typography variant="h6" sx={{ mb: 1 }}>Toplam Kayıt</Typography>
               <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
@@ -1666,7 +1670,7 @@ const QuarantineManagement: React.FC = () => {
           <CardContent sx={{ p: 0 }}>
             {/* Professional Table Header */}
             <Box sx={{ 
-              background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+              background: appearanceSettings.primaryColor,
               color: 'white',
               p: 2.5,
               borderBottom: '3px solid #0d47a1'
@@ -1704,8 +1708,8 @@ const QuarantineManagement: React.FC = () => {
                       fontWeight: 700, 
                       fontSize: '0.85rem',
                       borderBottom: '2px solid #e0e0e0',
-                      color: '#1976d2',
-                      minWidth: 120,
+                      color: appearanceSettings.primaryColor,
+                      minWidth: 140,
                       textAlign: 'center'
                     }}>
                       Takip No
@@ -1716,7 +1720,7 @@ const QuarantineManagement: React.FC = () => {
                       fontSize: '0.85rem',
                       borderBottom: '2px solid #e0e0e0',
                       color: '#424242',
-                      minWidth: 100
+                      minWidth: 120
                     }}>
                       Parça Kodu
                     </TableCell>
@@ -1726,7 +1730,7 @@ const QuarantineManagement: React.FC = () => {
                       fontSize: '0.85rem',
                       borderBottom: '2px solid #e0e0e0',
                       color: '#424242',
-                      minWidth: 150
+                      minWidth: 180
                     }}>
                       Parça Adı
                     </TableCell>
@@ -1737,7 +1741,7 @@ const QuarantineManagement: React.FC = () => {
                       borderBottom: '2px solid #e0e0e0',
                       color: '#424242',
                       textAlign: 'center',
-                      minWidth: 80
+                      minWidth: 100
                     }}>
                       Miktar
                     </TableCell>
@@ -1747,7 +1751,7 @@ const QuarantineManagement: React.FC = () => {
                       fontSize: '0.85rem',
                       borderBottom: '2px solid #e0e0e0',
                       color: '#424242',
-                      minWidth: 140
+                      minWidth: 170
                     }}>
                       Karantina Nedeni
                     </TableCell>
@@ -1757,7 +1761,7 @@ const QuarantineManagement: React.FC = () => {
                       fontSize: '0.85rem',
                       borderBottom: '2px solid #e0e0e0',
                       color: '#424242',
-                      minWidth: 120
+                      minWidth: 140
                     }}>
                       Sorumlu Birim
                     </TableCell>
@@ -1768,7 +1772,7 @@ const QuarantineManagement: React.FC = () => {
                       borderBottom: '2px solid #e0e0e0',
                       color: '#424242',
                       textAlign: 'center',
-                      minWidth: 100
+                      minWidth: 150
                     }}>
                       Durum
                     </TableCell>
@@ -1779,7 +1783,7 @@ const QuarantineManagement: React.FC = () => {
                       borderBottom: '2px solid #e0e0e0',
                       color: '#424242',
                       textAlign: 'center',
-                      minWidth: 80
+                      minWidth: 100
                     }}>
                       Öncelik
                     </TableCell>
@@ -1790,7 +1794,7 @@ const QuarantineManagement: React.FC = () => {
                       borderBottom: '2px solid #e0e0e0',
                       color: '#424242',
                       textAlign: 'center',
-                      minWidth: 100
+                      minWidth: 120
                     }}>
                       Tarih
                     </TableCell>
@@ -1801,7 +1805,7 @@ const QuarantineManagement: React.FC = () => {
                       borderBottom: '2px solid #e0e0e0',
                       color: '#424242',
                       textAlign: 'center',
-                      minWidth: 120
+                      minWidth: 140
                     }}>
                       İşlemler
                     </TableCell>
@@ -1843,25 +1847,25 @@ const QuarantineManagement: React.FC = () => {
                           <Box sx={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            bgcolor: 'primary.main',
+                            bgcolor: appearanceSettings.primaryColor,
                             color: 'white',
-                            px: 1.5,
-                            py: 0.5,
-                            borderRadius: 2,
-                            fontSize: '0.8rem',
+                            px: 1,
+                            py: 0.3,
+                            borderRadius: 1.5,
+                            fontSize: '0.7rem',
                             fontWeight: 700,
                             fontFamily: 'monospace',
-                            minWidth: 100,
+                            minWidth: 120,
                             justifyContent: 'center',
-                            boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)'
+                            boxShadow: `0 2px 8px ${appearanceSettings.primaryColor}50`
                           }}>
-                            <QrCodeIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                            <QrCodeIcon sx={{ fontSize: 14, mr: 0.3 }} />
                             {record.id}
                           </Box>
                         </TableCell>
                         {/* Parça Kodu */}
                         <TableCell>
-                          <Typography variant="body2" fontWeight={600} color="primary.main">
+                          <Typography variant="body2" fontWeight={600} color={appearanceSettings.primaryColor}>
                             {record.partCode}
                           </Typography>
                         </TableCell>
@@ -1869,10 +1873,8 @@ const QuarantineManagement: React.FC = () => {
                         {/* Parça Adı */}
                         <TableCell>
                           <Typography variant="body2" sx={{ 
-                            maxWidth: 150, 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                            minWidth: 180,
+                            wordWrap: 'break-word'
                           }}>
                             {record.partName}
                           </Typography>
@@ -1888,10 +1890,8 @@ const QuarantineManagement: React.FC = () => {
                         {/* Karantina Nedeni */}
                         <TableCell>
                           <Typography variant="body2" sx={{ 
-                            maxWidth: 140, 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
+                            minWidth: 170,
+                            wordWrap: 'break-word'
                           }}>
                             {record.quarantineReason}
                           </Typography>
@@ -1904,9 +1904,9 @@ const QuarantineManagement: React.FC = () => {
                             size="small"
                             variant="outlined"
                             sx={{
-                              borderColor: '#1976d2',
-                              color: '#1976d2',
-                              fontSize: '0.75rem',
+                              borderColor: appearanceSettings.primaryColor,
+                              color: appearanceSettings.primaryColor,
+                              fontSize: '0.7rem',
                               height: 24,
                               '& .MuiChip-icon': {
                                 fontSize: 14
@@ -1922,10 +1922,15 @@ const QuarantineManagement: React.FC = () => {
                               backgroundColor: STATUS_COLORS[record.status],
                               color: 'white',
                               fontWeight: 600,
-                              fontSize: '0.75rem',
-                              height: 26,
-                              minWidth: 90,
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                              fontSize: '0.7rem',
+                              height: 24,
+                              minWidth: 100,
+                              maxWidth: 140,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                              '& .MuiChip-label': {
+                                px: 1,
+                                lineHeight: 1.2
+                              }
                             }}
                             size="small"
                           />
@@ -1939,10 +1944,15 @@ const QuarantineManagement: React.FC = () => {
                               backgroundColor: PRIORITY_COLORS[record.priority],
                               color: 'white',
                               fontWeight: 600,
-                              fontSize: '0.75rem',
-                              height: 26,
+                              fontSize: '0.7rem',
+                              height: 24,
                               minWidth: 70,
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                              maxWidth: 90,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                              '& .MuiChip-label': {
+                                px: 0.8,
+                                lineHeight: 1.2
+                              }
                             }}
                             size="small"
                           />
@@ -1983,9 +1993,9 @@ const QuarantineManagement: React.FC = () => {
                                 size="small" 
                                 onClick={() => handleEditRecord(record)}
                                 sx={{ 
-                                  color: 'primary.main',
+                                  color: appearanceSettings.primaryColor,
                                   '&:hover': { 
-                                    bgcolor: 'primary.main',
+                                    bgcolor: appearanceSettings.primaryColor,
                                     color: 'white',
                                     transform: 'scale(1.1)'
                                   },
@@ -2948,20 +2958,18 @@ const QuarantineManagement: React.FC = () => {
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Lot Numarası"
-                        value={formData.lotNumber || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, lotNumber: e.target.value }))}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Konteyner Numarası"
-                        value={formData.containerNumber || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, containerNumber: e.target.value }))}
-                      />
+                      <FormControl fullWidth>
+                        <InputLabel>Araç Modeli</InputLabel>
+                        <Select
+                          value={formData.vehicleModel || ''}
+                          label="Araç Modeli"
+                          onChange={(e) => setFormData(prev => ({ ...prev, vehicleModel: e.target.value }))}
+                        >
+                          {VEHICLE_MODELS.map(model => (
+                            <MenuItem key={model} value={model}>{model}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
 
                     <Grid item xs={12} sm={6}>
@@ -2972,14 +2980,7 @@ const QuarantineManagement: React.FC = () => {
                         onChange={(e) => setFormData(prev => ({ ...prev, productionOrder: e.target.value }))}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Proje Numarası"
-                        value={formData.projectNumber || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, projectNumber: e.target.value }))}
-                      />
-                    </Grid>
+
 
                     <Grid item xs={12} sm={6}>
                       <TextField
@@ -3012,15 +3013,7 @@ const QuarantineManagement: React.FC = () => {
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Boyutlar"
-                        value={formData.dimensions || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, dimensions: e.target.value }))}
-                        placeholder="Örn: 100x50x20 mm"
-                      />
-                    </Grid>
+
 
                     <Grid item xs={12} sm={6}>
                       <FormControl fullWidth>
@@ -3457,7 +3450,7 @@ const QuarantineManagement: React.FC = () => {
                           Ek Bilgiler
                         </Typography>
                         <Typography variant="body2"><strong>Tedarikçi:</strong> {formData.supplierName || '-'}</Typography>
-                        <Typography variant="body2"><strong>Lot No:</strong> {formData.lotNumber || '-'}</Typography>
+                        <Typography variant="body2"><strong>Araç Modeli:</strong> {formData.vehicleModel || '-'}</Typography>
                         <Typography variant="body2"><strong>Muayene Tipi:</strong> {formData.inspectionType || '-'}</Typography>
                         <Typography variant="body2"><strong>Malzeme Tipi:</strong> {formData.materialType || '-'}</Typography>
                         <Typography variant="body2"><strong>Risk Seviyesi:</strong> {formData.riskLevel}</Typography>
@@ -3557,7 +3550,6 @@ const QuarantineManagement: React.FC = () => {
                    responsibleDepartment: '',
                    responsiblePersons: [],
                    supplierName: '',
-                   lotNumber: '',
                    productionOrder: '',
                    inspectionResults: '',
                    notes: '',
@@ -3866,11 +3858,11 @@ const QuarantineManagement: React.FC = () => {
                             </Typography>
                           </Grid>
                         )}
-                        {selectedRecord.lotNumber && (
+                        {selectedRecord.vehicleModel && (
                           <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Lot Numarası</Typography>
+                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Araç Modeli</Typography>
                             <Typography variant="body1" sx={{ p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
-                              {selectedRecord.lotNumber}
+                              {selectedRecord.vehicleModel}
                             </Typography>
                           </Grid>
                         )}
@@ -3882,14 +3874,7 @@ const QuarantineManagement: React.FC = () => {
                             </Typography>
                           </Grid>
                         )}
-                        {selectedRecord.containerNumber && (
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>Konteyner No</Typography>
-                            <Typography variant="body1" sx={{ p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
-                              {selectedRecord.containerNumber}
-                            </Typography>
-                          </Grid>
-                        )}
+
                       </Grid>
                     </Card>
 
@@ -3941,12 +3926,7 @@ const QuarantineManagement: React.FC = () => {
                             <Typography variant="body1">{selectedRecord.materialType}</Typography>
                           </Grid>
                         )}
-                        {selectedRecord.dimensions && (
-                          <Grid item xs={12} sm={4}>
-                            <Typography variant="subtitle2" color="text.secondary">Boyutlar</Typography>
-                            <Typography variant="body1">{selectedRecord.dimensions}</Typography>
-                          </Grid>
-                        )}
+
                         {selectedRecord.riskLevel && (
                           <Grid item xs={12} sm={4}>
                             <Typography variant="subtitle2" color="text.secondary">Risk Seviyesi</Typography>
@@ -3966,12 +3946,7 @@ const QuarantineManagement: React.FC = () => {
                             <Typography variant="body1">{selectedRecord.customerName}</Typography>
                           </Grid>
                         )}
-                        {selectedRecord.projectNumber && (
-                          <Grid item xs={12} sm={4}>
-                            <Typography variant="subtitle2" color="text.secondary">Proje No</Typography>
-                            <Typography variant="body1">{selectedRecord.projectNumber}</Typography>
-                          </Grid>
-                        )}
+
                         {selectedRecord.drawingNumber && (
                           <Grid item xs={12} sm={4}>
                             <Typography variant="subtitle2" color="text.secondary">Çizim No</Typography>
