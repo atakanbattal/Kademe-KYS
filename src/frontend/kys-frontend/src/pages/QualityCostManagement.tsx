@@ -959,27 +959,22 @@ export default function QualityCostManagement() {
         console.log('✅ Araç bazlı üretim verisi kullanılıyor');
       }
       
-      // ✅ DÜZELTME: globalFilters.selectedMonth varsa onu kullan, yoksa tüm aktif kayıtları göster
+      // ✅ DÜZELTME: Dashboard için currentMonth (bu ay) filtrelemesi yap
       const filteredData = savedProductions.filter((p: any) => {
         const isActive = p.isActive !== false; // undefined da aktif sayılır
         
-        // Eğer globalFilters'da belirli bir ay seçilmişse sadece o ayı göster
-        if (globalFilters.selectedMonth) {
-          return isActive && p.donem === globalFilters.selectedMonth;
-        }
-        
-        // Eğer ay seçimi yoksa tüm aktif kayıtları göster
-        return isActive;
+        // Dashboard'da "Bu Ay Üretim" için currentMonth'u kullan
+        // Kayıtların donem alanı ile mevcut ayı karşılaştır
+        return isActive && p.donem === currentMonth;
       });
       
       console.log('📊 Ana Component Monthly Production Data Debug:', {
         currentMonth,
-        selectedMonth: globalFilters.selectedMonth,
         totalSavedProductions: savedProductions.length,
         filteredForCurrentMonth: filteredData.length,
         filteredProductions: filteredData,
         allProductions: savedProductions,
-        filterLogic: globalFilters.selectedMonth ? `Sadece ${globalFilters.selectedMonth} dönemi` : 'Tüm aktif kayıtlar',
+        filterLogic: `Dashboard için sadece ${currentMonth} dönemi gösteriliyor`,
         forceRefreshCount: dataRefreshTrigger
       });
       
@@ -988,7 +983,7 @@ export default function QualityCostManagement() {
       console.error('Üretim verisi okuma hatası:', error);
       return [];
     }
-  }, [currentMonth, globalFilters.selectedMonth, dataRefreshTrigger, forceRefresh]);
+  }, [currentMonth, dataRefreshTrigger, forceRefresh]);
 
   // ✅ DÜZELTME: productionSummary fonksiyonunu implement ediyoruz
   const productionSummary = useMemo(() => {
