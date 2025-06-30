@@ -728,6 +728,8 @@ const DocumentManagement: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [welderPage, setWelderPage] = useState(0);
   const [welderRowsPerPage, setWelderRowsPerPage] = useState(10);
+  const [expandedApprovalPanel, setExpandedApprovalPanel] = useState<string | false>('pending');
+  const [openApproverDialog, setOpenApproverDialog] = useState(false);
   
   // Get colors function
   const getColors = () => ({
@@ -745,6 +747,145 @@ const DocumentManagement: React.FC = () => {
     { name: 'EN 1090-1:2009+A1', type: 'Çelik Yapı Uygunluk', expiry: '2025-09-15', status: 'active', authority: 'TÜV NORD' },
     { name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
   ];
+
+  // Initialize sample documents with approval data
+  React.useEffect(() => {
+    if (documents.length === 0) {
+      const sampleDocuments: Document[] = [
+        {
+          id: '1',
+          type: 'WPS',
+          name: 'WPS-001 Çelik Kaynak Prosedürü',
+          number: 'WPS-001',
+          unit: 'Kaynak Atölyesi',
+          effectiveDate: '2024-01-15',
+          revisionNo: 1,
+          owner: 'Mehmet Kaya',
+          uploadDate: '2024-01-10',
+          description: 'S355 çelik için MAG kaynak prosedürü',
+          status: 'active',
+          approvalStatus: 'pending',
+          isActive: true,
+          viewCount: 5,
+          isFavorite: false,
+          keywords: ['çelik', 'kaynak', 'MAG'],
+          approvalHistory: [],
+          revisionHistory: []
+        },
+        {
+          id: '2',
+          type: 'ISO 9001 Belgesi',
+          name: 'ISO 9001:2015 Kalite Yönetim Sistemi',
+          number: 'ISO-9001-2024',
+          unit: 'Kalite Kontrol',
+          effectiveDate: '2024-02-01',
+          revisionNo: 3,
+          owner: 'Ayşe Demir',
+          uploadDate: '2024-01-25',
+          description: 'Kalite yönetim sistemi standart belgesi',
+          status: 'active',
+          approvalStatus: 'approved',
+          isActive: true,
+          viewCount: 12,
+          isFavorite: true,
+          keywords: ['ISO', 'kalite', 'yönetim'],
+          approvalHistory: [
+            {
+              id: '1',
+              approverName: 'Fatma Öz',
+              approverRole: 'Genel Müdür',
+              action: 'approved',
+              date: '2024-01-30T10:30:00Z',
+              comments: 'Kalite sistemi güncellemeleri uygun.',
+              level: 2
+            }
+          ],
+          revisionHistory: []
+        },
+        {
+          id: '3',
+          type: 'Prosedür',
+          name: 'PR-005 Malzeme Kontrol Prosedürü',
+          number: 'PR-005',
+          unit: 'Kalite Kontrol',
+          effectiveDate: '2024-03-01',
+          revisionNo: 2,
+          owner: 'Ali Vural',
+          uploadDate: '2024-02-20',
+          description: 'Gelen malzeme kontrol ve muayene prosedürü',
+          status: 'review',
+          approvalStatus: 'rejected',
+          isActive: false,
+          viewCount: 8,
+          isFavorite: false,
+          keywords: ['malzeme', 'kontrol', 'muayene'],
+          approvalHistory: [
+            {
+              id: '2',
+              approverName: 'Ayşe Demir',
+              approverRole: 'Kalite Müdürü',
+              action: 'rejected',
+              date: '2024-02-25T14:15:00Z',
+              comments: 'Kontrol adımları eksik, revizyon gerekli.',
+              level: 1
+            }
+          ],
+          revisionHistory: []
+        },
+        {
+          id: '4',
+          type: 'WPQR',
+          name: 'WPQR-001 Kaynak Kalite Kaydı',
+          number: 'WPQR-001',
+          unit: 'Kaynak Atölyesi',
+          effectiveDate: '2024-01-20',
+          revisionNo: 1,
+          owner: 'Mustafa Tan',
+          uploadDate: '2024-01-18',
+          description: 'WPS-001 için kaynak kalite test kaydı',
+          status: 'active',
+          approvalStatus: 'revision_required',
+          isActive: true,
+          viewCount: 3,
+          isFavorite: false,
+          keywords: ['WPQR', 'test', 'kalite'],
+          approvalHistory: [
+            {
+              id: '3',
+              approverName: 'Mehmet Kaya',
+              approverRole: 'Kaynak Mühendisi',
+              action: 'pending',
+              date: '2024-01-19T09:00:00Z',
+              comments: 'Test sonuçları gözden geçiriliyor.',
+              level: 1
+            }
+          ],
+          revisionHistory: []
+        },
+        {
+          id: '5',
+          type: 'Teknik Resim',
+          name: 'TR-100 Tank Kapak Detayı',
+          number: 'TR-100',
+          unit: 'Tasarım',
+          effectiveDate: '2024-03-15',
+          revisionNo: 1,
+          owner: 'Zeynep Ak',
+          uploadDate: '2024-03-10',
+          description: 'Basınçlı tank kapak imalat resmi',
+          status: 'draft',
+          approvalStatus: 'pending',
+          isActive: false,
+          viewCount: 2,
+          isFavorite: false,
+          keywords: ['teknik', 'resim', 'tank'],
+          approvalHistory: [],
+          revisionHistory: []
+        }
+      ];
+      setDocuments(sampleDocuments);
+    }
+  }, [documents.length]);
 
   // Initialize sample personnel documents
   React.useEffect(() => {
@@ -906,6 +1047,10 @@ const DocumentManagement: React.FC = () => {
     setExpanded(isExpanded ? panel : false);
   };
 
+  const handleApprovalAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpandedApprovalPanel(isExpanded ? panel : false);
+  };
+
   const handleFilterChange = (field: keyof FilterState, value: any) => {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
@@ -916,6 +1061,66 @@ const DocumentManagement: React.FC = () => {
 
   const handlePersonnelFilterChange = (field: keyof PersonnelDocumentFilterState, value: any) => {
     setPersonnelFilters(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleApproveDocument = (documentId: string) => {
+    setDocuments(prev => 
+      prev.map(doc => 
+        doc.id === documentId 
+          ? { 
+              ...doc, 
+              approvalStatus: 'approved' as ApprovalStatus,
+              approvalHistory: [
+                ...doc.approvalHistory,
+                {
+                  id: Date.now().toString(),
+                  approverName: 'Mevcut Kullanıcı', // Bu gerçek uygulamada auth context'ten gelecek
+                  approverRole: 'Kalite Müdürü',
+                  action: 'approved' as const,
+                  date: new Date().toISOString(),
+                  comments: 'Doküman incelendi ve onaylandı.',
+                  level: 1
+                }
+              ]
+            }
+          : doc
+      )
+    );
+    setSnackbar({ 
+      open: true, 
+      message: 'Doküman başarıyla onaylandı.', 
+      severity: 'success' 
+    });
+  };
+
+  const handleRejectDocument = (documentId: string) => {
+    setDocuments(prev => 
+      prev.map(doc => 
+        doc.id === documentId 
+          ? { 
+              ...doc, 
+              approvalStatus: 'rejected' as ApprovalStatus,
+              approvalHistory: [
+                ...doc.approvalHistory,
+                {
+                  id: Date.now().toString(),
+                  approverName: 'Mevcut Kullanıcı', // Bu gerçek uygulamada auth context'ten gelecek
+                  approverRole: 'Kalite Müdürü',
+                  action: 'rejected' as const,
+                  date: new Date().toISOString(),
+                  comments: 'Doküman revizyon gerektiriyor.',
+                  level: 1
+                }
+              ]
+            }
+          : doc
+      )
+    );
+    setSnackbar({ 
+      open: true, 
+      message: 'Doküman reddedildi.', 
+      severity: 'warning' 
+    });
   };
 
   // Filtered documents
@@ -2729,12 +2934,444 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         {/* Approval Processes Tab */}
         {activeTab === 3 && (
           <Box>
-            <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="body1">
-                Onay süreçleri modülü geliştirilme aşamasındadır. Bu modül doküman onay akışları, 
-                onay matrisleri ve süreç takibini içerecektir.
-              </Typography>
-            </Alert>
+            <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ApprovalIcon color="primary" />
+              Onay Süreçleri Yönetimi
+            </Typography>
+
+            {/* Onay İstatistikleri */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 4 }}>
+              <DocumentCard>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <PendingIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
+                    <Typography variant="h4" fontWeight="bold" color="warning.main">
+                      {documents.filter(d => d.approvalStatus === 'pending').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Bekleyen Onaylar
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </DocumentCard>
+
+              <DocumentCard>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <CheckCircleIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
+                    <Typography variant="h4" fontWeight="bold" color="success.main">
+                      {documents.filter(d => d.approvalStatus === 'approved').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Onaylanmış
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </DocumentCard>
+
+              <DocumentCard>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <ErrorIcon sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
+                    <Typography variant="h4" fontWeight="bold" color="error.main">
+                      {documents.filter(d => d.approvalStatus === 'rejected').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Reddedilen
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </DocumentCard>
+
+              <DocumentCard>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <ScheduleIcon sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
+                    <Typography variant="h4" fontWeight="bold" color="info.main">
+                      {documents.filter(d => d.approvalStatus === 'revision_required').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Revizyon Gerekli
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </DocumentCard>
+            </Box>
+
+            {/* Ana İçerik - Accordion Yapısı */}
+            <Box sx={{ mb: 3 }}>
+              {/* Bekleyen Onaylar */}
+              <Accordion expanded={expandedApprovalPanel === 'pending'} onChange={handleApprovalAccordionChange('pending')}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Badge badgeContent={documents.filter(d => d.approvalStatus === 'pending').length} color="warning">
+                      <PendingIcon color="warning" />
+                    </Badge>
+                    <Typography variant="h6" fontWeight="bold">
+                      Bekleyen Onaylar
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Box>
+                    {documents.filter(d => d.approvalStatus === 'pending').length === 0 ? (
+                      <Alert severity="success">
+                        <Typography>Bekleyen onay bulunmamaktadır.</Typography>
+                      </Alert>
+                    ) : (
+                      <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+                        <Table stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell><Typography variant="subtitle2" fontWeight="bold">Doküman</Typography></TableCell>
+                              <TableCell><Typography variant="subtitle2" fontWeight="bold">Tip</Typography></TableCell>
+                              <TableCell><Typography variant="subtitle2" fontWeight="bold">Yüklenme Tarihi</Typography></TableCell>
+                              <TableCell><Typography variant="subtitle2" fontWeight="bold">Sahip</Typography></TableCell>
+                              <TableCell><Typography variant="subtitle2" fontWeight="bold">Öncelik</Typography></TableCell>
+                              <TableCell align="center"><Typography variant="subtitle2" fontWeight="bold">İşlemler</Typography></TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {documents.filter(d => d.approvalStatus === 'pending').map((doc) => (
+                              <TableRow key={doc.id} hover>
+                                <TableCell>
+                                  <Box>
+                                    <Typography variant="body2" fontWeight="bold">{doc.name}</Typography>
+                                    <Typography variant="caption" color="text.secondary">{doc.number}</Typography>
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Chip label={doc.type} size="small" color="primary" variant="outlined" />
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant="body2">
+                                    {new Date(doc.uploadDate).toLocaleDateString('tr-TR')}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
+                                      {doc.owner.charAt(0)}
+                                    </Avatar>
+                                    <Typography variant="body2">{doc.owner}</Typography>
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Chip 
+                                    label={doc.type.includes('ISO') || doc.type.includes('WPS') ? 'Yüksek' : 'Normal'} 
+                                    size="small" 
+                                    color={doc.type.includes('ISO') || doc.type.includes('WPS') ? 'error' : 'default'}
+                                  />
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                    <Tooltip title="Onayla">
+                                      <IconButton 
+                                        size="small" 
+                                        color="success"
+                                        onClick={() => handleApproveDocument(doc.id)}
+                                      >
+                                        <CheckCircleIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Reddet">
+                                      <IconButton 
+                                        size="small" 
+                                        color="error"
+                                        onClick={() => handleRejectDocument(doc.id)}
+                                      >
+                                        <ErrorIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Görüntüle">
+                                      <IconButton 
+                                        size="small" 
+                                        onClick={() => handleViewDocument(doc.id)}
+                                      >
+                                        <ViewIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Box>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    )}
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Onay Akış Matrisi */}
+              <Accordion expanded={expandedApprovalPanel === 'matrix'} onChange={handleApprovalAccordionChange('matrix')}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AssessmentIcon color="primary" />
+                    <Typography variant="h6" fontWeight="bold">
+                      Onay Akış Matrisi
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      Doküman tiplerini onaylayıcı roller ve seviyeler
+                    </Typography>
+                    
+                    <TableContainer component={Paper}>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">Doküman Tipi</Typography></TableCell>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">1. Seviye Onay</Typography></TableCell>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">2. Seviye Onay</Typography></TableCell>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">3. Seviye Onay</Typography></TableCell>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">Süre (Gün)</Typography></TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {[
+                            { type: 'WPS', level1: 'Kaynak Mühendisi', level2: 'Kalite Müdürü', level3: 'Teknik Müdür', days: 5 },
+                            { type: 'WPQR', level1: 'Kaynak Mühendisi', level2: 'Kalite Müdürü', level3: '-', days: 3 },
+                            { type: 'ISO Belgeleri', level1: 'Kalite Müdürü', level2: 'Genel Müdür', level3: 'Yönetim Kurulu', days: 10 },
+                            { type: 'Prosedür', level1: 'Birim Müdürü', level2: 'Kalite Müdürü', level3: '-', days: 3 },
+                            { type: 'Talimat', level1: 'Birim Şefi', level2: 'Birim Müdürü', level3: '-', days: 2 },
+                            { type: 'Teknik Resim', level1: 'Tasarım Mühendisi', level2: 'Proje Müdürü', level3: '-', days: 3 },
+                            { type: 'Test Prosedürü', level1: 'Test Mühendisi', level2: 'Kalite Müdürü', level3: '-', days: 4 },
+                          ].map((rule, index) => (
+                            <TableRow key={index} hover>
+                              <TableCell>
+                                <Chip label={rule.type} size="small" color="primary" variant="outlined" />
+                              </TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <PersonIcon fontSize="small" color="action" />
+                                  <Typography variant="body2">{rule.level1}</Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <PersonIcon fontSize="small" color="action" />
+                                  <Typography variant="body2">{rule.level2}</Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {rule.level3 !== '-' ? (
+                                    <>
+                                      <PersonIcon fontSize="small" color="action" />
+                                      <Typography variant="body2">{rule.level3}</Typography>
+                                    </>
+                                  ) : (
+                                    <Typography variant="body2" color="text.secondary">-</Typography>
+                                  )}
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Chip 
+                                  label={`${rule.days} gün`} 
+                                  size="small" 
+                                  color={rule.days <= 2 ? 'success' : rule.days <= 5 ? 'warning' : 'error'}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Onay Geçmişi */}
+              <Accordion expanded={expandedApprovalPanel === 'history'} onChange={handleApprovalAccordionChange('history')}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ScheduleIcon color="primary" />
+                    <Typography variant="h6" fontWeight="bold">
+                      Onay Geçmişi
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      Son 30 günde yapılan onay işlemleri
+                    </Typography>
+                    
+                    <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+                      <Table stickyHeader>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">Tarih</Typography></TableCell>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">Doküman</Typography></TableCell>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">İşlem</Typography></TableCell>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">Onaylayıcı</Typography></TableCell>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">Yorum</Typography></TableCell>
+                            <TableCell><Typography variant="subtitle2" fontWeight="bold">Süre</Typography></TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {documents
+                            .filter(d => d.approvalHistory && d.approvalHistory.length > 0)
+                            .flatMap(d => d.approvalHistory.map(h => ({...h, documentName: d.name, documentType: d.type})))
+                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                            .slice(0, 20)
+                            .map((record, index) => (
+                            <TableRow key={index} hover>
+                              <TableCell>
+                                <Typography variant="body2">
+                                  {new Date(record.date).toLocaleDateString('tr-TR')}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {new Date(record.date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Box>
+                                  <Typography variant="body2" fontWeight="bold">
+                                    {record.documentName}
+                                  </Typography>
+                                  <Chip label={record.documentType} size="small" variant="outlined" />
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Chip 
+                                  label={
+                                    record.action === 'approved' ? 'Onaylandı' :
+                                    record.action === 'rejected' ? 'Reddedildi' : 'Bekliyor'
+                                  }
+                                  size="small"
+                                  color={
+                                    record.action === 'approved' ? 'success' :
+                                    record.action === 'rejected' ? 'error' : 'warning'
+                                  }
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
+                                    {record.approverName.charAt(0)}
+                                  </Avatar>
+                                  <Box>
+                                    <Typography variant="body2">{record.approverName}</Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {record.approverRole}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" sx={{ maxWidth: 200 }}>
+                                  {record.comments || '-'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Chip 
+                                  label={`Seviye ${record.level}`} 
+                                  size="small" 
+                                  color="primary"
+                                  variant="outlined"
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Onaylayıcı Atamaları */}
+              <Accordion expanded={expandedApprovalPanel === 'assignments'} onChange={handleApprovalAccordionChange('assignments')}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <VerifiedUserIcon color="primary" />
+                    <Typography variant="h6" fontWeight="bold">
+                      Onaylayıcı Atamaları
+                    </Typography>
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Sistem kullanıcıları ve onay yetkileri
+                      </Typography>
+                      <Button 
+                        variant="outlined" 
+                        startIcon={<AddIcon />}
+                        onClick={() => setOpenApproverDialog(true)}
+                      >
+                        Yeni Onaylayıcı
+                      </Button>
+                    </Box>
+                    
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
+                      {[
+                        { name: 'Mehmet Kaya', role: 'Kaynak Mühendisi', permissions: ['WPS', 'WPQR'], active: true },
+                        { name: 'Ayşe Demir', role: 'Kalite Müdürü', permissions: ['WPS', 'WPQR', 'Prosedür', 'ISO Belgeleri'], active: true },
+                        { name: 'Ali Vural', role: 'Teknik Müdür', permissions: ['WPS', 'ISO Belgeleri', 'Teknik Resim'], active: true },
+                        { name: 'Fatma Öz', role: 'Genel Müdür', permissions: ['ISO Belgeleri', 'Yüksek Seviye'], active: true },
+                        { name: 'Mustafa Tan', role: 'Birim Müdürü', permissions: ['Prosedür', 'Talimat'], active: false },
+                        { name: 'Zeynep Ak', role: 'Test Mühendisi', permissions: ['Test Prosedürü'], active: true },
+                      ].map((approver, index) => (
+                        <DocumentCard key={index}>
+                          <CardContent>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Avatar sx={{ width: 40, height: 40 }}>
+                                  {approver.name.split(' ').map(n => n.charAt(0)).join('')}
+                                </Avatar>
+                                <Box>
+                                  <Typography variant="subtitle2" fontWeight="bold">
+                                    {approver.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {approver.role}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Chip 
+                                label={approver.active ? 'Aktif' : 'Pasif'}
+                                size="small"
+                                color={approver.active ? 'success' : 'default'}
+                              />
+                            </Box>
+                            
+                            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                              Onay Yetkileri:
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+                              {approver.permissions.map((permission, idx) => (
+                                <Chip 
+                                  key={idx}
+                                  label={permission} 
+                                  size="small" 
+                                  variant="outlined"
+                                  color="primary"
+                                />
+                              ))}
+                            </Box>
+                            
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <IconButton size="small" color="primary">
+                                <EditIcon />
+                              </IconButton>
+                              <IconButton size="small" color="error">
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
+                          </CardContent>
+                        </DocumentCard>
+                      ))}
+                    </Box>
+                  </Box>
+                </AccordionDetails>
+              </Accordion>
+            </Box>
           </Box>
         )}
 

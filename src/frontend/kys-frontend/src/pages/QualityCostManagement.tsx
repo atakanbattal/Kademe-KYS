@@ -869,7 +869,7 @@ export default function QualityCostManagement() {
   const [kpis, setKpis] = useState<QualityCostKPI[]>([]);
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
   const [paretoData, setParetoData] = useState<ParetoAnalysis[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // ⚡ HIZLI: Default false olarak başla
   const [refreshKey, setRefreshKey] = useState(0);
   const [costEntryDialogOpen, setCostEntryDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -2123,28 +2123,32 @@ export default function QualityCostManagement() {
     });
   }, []);
 
-  // ✅ Context7 Data Loading Effect
+  // ✅ Context7 Optimized Data Loading Effect
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const copqData = generateCOPQData();
-      const kpiData = generateKPIs(copqData);
-      const insightData = generateAIInsights(copqData);
-      const paretoAnalysis = generateParetoData(copqData);
-      
-      setCopqData(copqData);
-      setKpis(kpiData);
-      setAiInsights(insightData);
-      setParetoData(paretoAnalysis);
-      setIsLoading(false);
+      try {
+        // ⚡ HIZLI YÜKLEME: Yapay gecikme kaldırıldı
+        // Sadece gerçek hesaplamaları yapalım
+        const copqData = generateCOPQData();
+        const kpiData = generateKPIs(copqData);
+        const insightData = generateAIInsights(copqData);
+        const paretoAnalysis = generateParetoData(copqData);
+        
+        setCopqData(copqData);
+        setKpis(kpiData);
+        setAiInsights(insightData);
+        setParetoData(paretoAnalysis);
+      } catch (error) {
+        console.error('❌ COPQ Data loading error:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadData();
-  }, [generateCOPQData, generateKPIs, generateAIInsights, generateParetoData, refreshKey]);
+  }, [refreshKey]); // ⚡ OPTIMIZE: Sadece refreshKey dependency'si
 
   // ✅ Context7 Calculated Values
   const totalCOPQ = useMemo(() => {
@@ -5131,7 +5135,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
     // 🚀 Gelişmiş Araç Bazlı Veri Analizi
     // 🚀 Gelişmiş Araç Bazlı Veri Analizi - Birleşik Veri Yönetiminden Doğru Veriler
-    const vehicleAnalysis = useMemo(() => {
+    // ⚡ PERFORMANCE: Heavy computation'ı memo ile optimize et
+  const vehicleAnalysis = useMemo(() => {
       // ARAÇ BAZLI TAKİP SENKRONIZASYON FİXİ: En güncel localStorage verisini kullan
       let realData;
       try {
@@ -5346,7 +5351,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       });
 
       return sortedAnalysis;
-    }, [globalFilteredData, filteredData, vehicleTargets, dataRefreshTrigger, forceRefresh, globalFilters.selectedMonth]);
+    }, [globalFilteredData, vehicleTargets]); // ⚡ OPTIMIZE: Sadece kritik dependency'ler
 
     // 📊 Özet İstatistikler
     const summaryStats = useMemo(() => {
@@ -5368,8 +5373,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       };
     }, [vehicleAnalysis]);
 
-    // 🚗 KATEGORİ BAZLI Araç Kartı Render Fonksiyonu
-    const renderVehicleCard = (vehicle: VehiclePerformanceAnalysis, index: number) => {
+    // ⚡ OPTIMIZED: Memo'lu araç kartı komponenti
+    const VehicleCard = memo(({ vehicle, index }: { vehicle: VehiclePerformanceAnalysis; index: number }) => {
       // 🚗 KATEGORİ BAZLI GÖRÜNTÜLEME: kategori ve displayName'i kullan
       const displayName = vehicle.displayName || vehicle.kategori || vehicle.aracModeli || 'Bilinmeyen Kategori';
       const cardKey = vehicle.kategori || vehicle.aracModeli || `category-${index}`;
@@ -6039,8 +6044,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           </CardContent>
         </Card>
       </Grid>
-    );
-  };
+      );
+    }); // ⚡ MEMO component - dependency array gerekli değil
 
     return (
       <Box sx={{ p: 3 }}>
@@ -6175,7 +6180,9 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             </Typography>
             
             <Grid container spacing={3}>
-              {vehicleAnalysis.map((vehicle, index) => renderVehicleCard(vehicle, index))}
+              {vehicleAnalysis.map((vehicle, index) => (
+                <VehicleCard key={vehicle.kategori || vehicle.aracModeli || index} vehicle={vehicle} index={index} />
+              ))}
             </Grid>
 
             {vehicleAnalysis.length === 0 && (
@@ -6752,19 +6759,16 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     </Box>
   );
 
-  // ✅ Context7 Loading State
+  // ⚡ OPTIMIZED Loading State - Sadece gerektiğinde göster
   if (isLoading) {
     return (
       <Box sx={{ p: 3 }}>
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <AutoGraphIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
-          <Typography variant="h5" gutterBottom>
-            COPQ Verileri Yükleniyor...
-      </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Kalitesizlik maliyeti analizleri hazırlanıyor
-        </Typography>
-          <LinearProgress sx={{ maxWidth: 300, mx: 'auto' }} />
+        <Paper sx={{ p: 2, textAlign: 'center' }}>
+          <AutoGraphIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
+          <Typography variant="h6" gutterBottom>
+            Veri Hazırlanıyor...
+          </Typography>
+          <LinearProgress sx={{ maxWidth: 200, mx: 'auto' }} />
         </Paper>
       </Box>
     );
