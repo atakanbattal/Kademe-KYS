@@ -14097,7 +14097,7 @@ const CategoryProductionManagementComponent: React.FC<{
   }, [categoryProductions, searchTerm, selectedCategory, selectedMonth]);
 
   const handleSaveProduction = () => {
-    if (!formData.kategori || !formData.donem || !formData.uretilenAracSayisi || !formData.planlanmisUretim) {
+    if (!formData.kategori || !formData.donem || formData.uretilenAracSayisi === undefined || formData.planlanmisUretim === undefined) {
       alert('Lütfen tüm zorunlu alanları doldurun!');
       return;
     }
@@ -14500,8 +14500,13 @@ const CategoryProductionManagementComponent: React.FC<{
                 fullWidth
                 type="number"
                 label="Üretilen Araç Sayısı"
-                value={formData.uretilenAracSayisi || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, uretilenAracSayisi: parseInt(e.target.value) || 0 }))}
+                value={formData.uretilenAracSayisi ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 0 : parseInt(value);
+                  setFormData(prev => ({ ...prev, uretilenAracSayisi: isNaN(numValue) ? 0 : numValue }));
+                }}
+                inputProps={{ min: 0 }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -14509,8 +14514,13 @@ const CategoryProductionManagementComponent: React.FC<{
                 fullWidth
                 type="number"
                 label="Planlanan Üretim"
-                value={formData.planlanmisUretim || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, planlanmisUretim: parseInt(e.target.value) || 0 }))}
+                value={formData.planlanmisUretim ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 0 : parseInt(value);
+                  setFormData(prev => ({ ...prev, planlanmisUretim: isNaN(numValue) ? 0 : numValue }));
+                }}
+                inputProps={{ min: 0 }}
               />
             </Grid>
             <Grid item xs={12}>
