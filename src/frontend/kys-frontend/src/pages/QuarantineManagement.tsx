@@ -810,7 +810,25 @@ const QuarantineManagement: React.FC = () => {
     return [];
   }, []);
 
-  const generateId = () => `QMT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  // 🚀 Otomatik Karantina Takip Numarası Generator
+  const generateQuarantineTrackingNumber = useCallback(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const yearMonth = `${year}-${month}`;
+    
+    // Mevcut kayıtlarda aynı ay/yıl ile başlayan kayıtları say
+    const existingRecords = quarantineData.filter(record => 
+      record.id.startsWith(yearMonth)
+    );
+    
+    // Sıradaki numara
+    const nextNumber = String(existingRecords.length + 1).padStart(3, '0');
+    
+    return `${yearMonth}-${nextNumber}`;
+  }, [quarantineData]);
+
+  const generateId = () => generateQuarantineTrackingNumber();
   
   const calculateStats = useCallback((data: QuarantineRecord[]): QuarantineStats => {
     const totalItems = data.length;
