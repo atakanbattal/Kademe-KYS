@@ -713,6 +713,7 @@ interface MonthlyVehicleProduction {
   id: string;
   aracModeli: VehicleModel;
   kategori: VehicleCategory;
+  displayName?: string;     // Opsiyonel: görüntüleme adı
   donem: string;            // 2025-01 formatında
   donemTuru: 'ay';          // Şu an sadece aylık
   uretilenAracSayisi: number;
@@ -5619,59 +5620,129 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
             {/* Detaylı Hedef Karşılaştırması */}
             {(() => {
-              // 🚗 KATEGORİ BAZLI hedef eşleştirme sistemi - GELİŞTİRİLDİ
+              // 🚗 KATEGORİ BAZLI hedef eşleştirme sistemi - ULTRA GELİŞTİRİLDİ
               let categoryTarget = null;
               
-              // 1. Kategori bazlı hedef arama (önce aktif hedefleri kontrol et)
+              // Normalizasyon fonksiyonu - kategori isimleri farklılıklarını giderir
+              const normalizeCategory = (category: string) => {
+                if (!category) return '';
+                return category.toLowerCase()
+                  .replace(/\s+/g, '_')
+                  .replace(/[üû]/g, 'u')
+                  .replace(/[çc]/g, 'c')
+                  .replace(/[ğg]/g, 'g')
+                  .replace(/[ıi]/g, 'i')
+                  .replace(/[öo]/g, 'o')
+                  .replace(/[şs]/g, 's')
+                  .trim();
+              };
+              
+              const normalizedVehicleCategory = normalizeCategory(vehicle.kategori || '');
+              const normalizedDisplayName = normalizeCategory(vehicle.displayName || displayName || '');
+              
+              // 1. EXACT kategori eşleştirmesi (önce aktif hedefleri)
               if (vehicle.kategori) {
                 categoryTarget = vehicleTargets.find(target => 
                   target.kategori === vehicle.kategori && target.isActive !== false
                 );
               }
               
-              // 2. Geriye uyumluluk için aracModeli kontrolü
+              // 2. EXACT model eşleştirmesi (geriye uyumluluk)
               if (!categoryTarget && vehicle.aracModeli) {
                 categoryTarget = vehicleTargets.find(target => 
                   target.aracModeli === vehicle.aracModeli && target.isActive !== false
                 );
               }
               
-              // 3. Eğer hâlâ bulunamadıysa, aktif olmayan hedefleri de dene
+              // 3. NORMALIZED kategori eşleştirmesi (space/accent tolerant)
+              if (!categoryTarget && normalizedVehicleCategory) {
+                categoryTarget = vehicleTargets.find(target => 
+                  normalizeCategory(target.kategori || '') === normalizedVehicleCategory && 
+                  target.isActive !== false
+                );
+              }
+              
+              // 4. NORMALIZED displayName eşleştirmesi
+              if (!categoryTarget && normalizedDisplayName) {
+                categoryTarget = vehicleTargets.find(target => 
+                  (normalizeCategory(target.kategori || '') === normalizedDisplayName ||
+                   normalizeCategory(target.aracModeli || '') === normalizedDisplayName) &&
+                  target.isActive !== false
+                );
+              }
+              
+              // 5. Aktif olmayan hedefleri de dene (exact)
               if (!categoryTarget && vehicle.kategori) {
                 categoryTarget = vehicleTargets.find(target => target.kategori === vehicle.kategori);
               }
               
-              // 4. Son çare: displayName ile arama
-              if (!categoryTarget && vehicle.displayName) {
+              // 6. Aktif olmayan hedefleri de dene (normalized)
+              if (!categoryTarget && normalizedVehicleCategory) {
                 categoryTarget = vehicleTargets.find(target => 
-                  target.kategori === vehicle.displayName || target.aracModeli === vehicle.displayName
+                  normalizeCategory(target.kategori || '') === normalizedVehicleCategory
                 );
               }
               
               // Debug bilgisi ekle
-              console.log('🎯 Kategori Bazlı Hedef Eşleştirme Debug:', {
-                kategori: vehicle.kategori,
-                aracModeli: vehicle.aracModeli,
-                displayName: displayName,
-                totalTargetsCount: vehicleTargets.length,
-                availableTargets: vehicleTargets.map(t => ({ 
-                  kategori: t.kategori, 
-                  aracModeli: t.aracModeli, 
-                  donem: t.donem, 
-                  isActive: t.isActive 
-                })),
-                activeTargets: vehicleTargets.filter(t => t.isActive !== false).map(t => ({ 
-                  kategori: t.kategori, 
-                  aracModeli: t.aracModeli, 
-                  donem: t.donem 
-                })),
-                foundTarget: categoryTarget?.kategori || categoryTarget?.aracModeli || 'Bulunamadı',
-                foundTargetDonem: categoryTarget?.donem,
-                searchSteps: {
-                  step1_kategori: vehicle.kategori ? `${vehicle.kategori} arandı` : 'kategori yok',
-                  step2_aracModeli: vehicle.aracModeli ? `${vehicle.aracModeli} arandı` : 'aracModeli yok',
-                  step3_displayName: vehicle.displayName ? `${vehicle.displayName} arandı` : 'displayName yok'
-                }
+              console.log('🎯 DETAYLI HEDEF EŞLEŞTİRME DEBUG:', {
+                // Araç bilgileri
+                vehicle: {
+                  kategori: vehicle.kategori,
+                  aracModeli: vehicle.aracModeli,
+                  displayName: vehicle.displayName || displayName,
+                  categoryModels: vehicle.categoryModels
+                },
+                
+                // Hedef durumu
+                targets: {
+                  totalCount: vehicleTargets.length,
+                  allTargets: vehicleTargets.map(t => ({ 
+                    id: t.id,
+                    kategori: t.kategori, 
+                    aracModeli: t.aracModeli, 
+                    donem: t.donem, 
+                    isActive: t.isActive,
+                    hedefler: t.hedefler ? 'mevcut' : 'yok'
+                  })),
+                  activeTargets: vehicleTargets.filter(t => t.isActive !== false),
+                  categorySpecificTargets: vehicleTargets.filter(t => t.kategori === vehicle.kategori),
+                  modelSpecificTargets: vehicleTargets.filter(t => t.aracModeli === vehicle.aracModeli)
+                },
+                
+                                 // Normalizasyon bilgileri
+                 normalization: {
+                   vehicleCategory: vehicle.kategori,
+                   normalizedVehicleCategory: normalizedVehicleCategory,
+                   displayName: vehicle.displayName || displayName,
+                   normalizedDisplayName: normalizedDisplayName,
+                   targetCategories: vehicleTargets.map(t => ({
+                     original: t.kategori,
+                     normalized: normalizeCategory(t.kategori || ''),
+                     match: normalizeCategory(t.kategori || '') === normalizedVehicleCategory
+                   }))
+                 },
+                 
+                 // Eşleştirme sonuçları
+                 matching: {
+                   foundTarget: categoryTarget ? {
+                     id: categoryTarget.id,
+                     kategori: categoryTarget.kategori,
+                     aracModeli: categoryTarget.aracModeli,
+                     donem: categoryTarget.donem,
+                     isActive: categoryTarget.isActive
+                   } : null,
+                   searchResults: {
+                     step1_exactKategoriAktif: vehicleTargets.filter(t => t.kategori === vehicle.kategori && t.isActive !== false).length,
+                     step2_exactModelAktif: vehicleTargets.filter(t => t.aracModeli === vehicle.aracModeli && t.isActive !== false).length,
+                     step3_normalizedKategoriAktif: vehicleTargets.filter(t => normalizeCategory(t.kategori || '') === normalizedVehicleCategory && t.isActive !== false).length,
+                     step4_normalizedDisplayNameAktif: vehicleTargets.filter(t => 
+                       (normalizeCategory(t.kategori || '') === normalizedDisplayName || normalizeCategory(t.aracModeli || '') === normalizedDisplayName) && 
+                       t.isActive !== false
+                     ).length,
+                     step5_exactKategoriTum: vehicleTargets.filter(t => t.kategori === vehicle.kategori).length,
+                     step6_normalizedKategoriTum: vehicleTargets.filter(t => normalizeCategory(t.kategori || '') === normalizedVehicleCategory).length
+                   }
+                 }
               });
               
               if (!categoryTarget) {
