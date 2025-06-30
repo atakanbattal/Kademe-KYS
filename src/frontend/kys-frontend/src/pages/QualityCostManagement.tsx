@@ -331,9 +331,10 @@ type VehicleModel =
 // Kategori ve model eşleştirmesi
 const VEHICLE_CATEGORIES: Record<VehicleCategory, VehicleModel[]> = {
   'Kompakt Araçlar': ['Aga2100', 'Aga3000', 'Aga6000'],
-  'Araç Üstü Vakumlu': ['KDM 80', 'KDM 70', 'KDM 35', 'Çay Toplama Makinesi'],
+  'Araç Üstü Vakumlu': ['KDM 80', 'KDM 70', 'KDM 35'],
   'Çekilir Tip Mekanik Süpürgeler': ['FTH-240', 'Çelik-2000', 'Ural'],
   'Kompost Makinesi': ['Kompost Makinesi'],
+  'Çay Toplama Makinesi': ['Çay Toplama Makinesi'],
   'Rusya Motor Odası': ['Rusya Motor Odası'],
   'HSCK': ['HSCK'],
   'Genel': ['Genel Amaçlı', 'Özel Proje', 'Protip'] // Genel kategori modelleri
@@ -347,7 +348,7 @@ const MODEL_TO_CATEGORY: Record<VehicleModel, VehicleCategory> = {
   'KDM 80': 'Araç Üstü Vakumlu',
   'KDM 70': 'Araç Üstü Vakumlu',
   'KDM 35': 'Araç Üstü Vakumlu',
-  'Çay Toplama Makinesi': 'Araç Üstü Vakumlu',
+  'Çay Toplama Makinesi': 'Çay Toplama Makinesi',
   'FTH-240': 'Çekilir Tip Mekanik Süpürgeler',
   'Çelik-2000': 'Çekilir Tip Mekanik Süpürgeler',
   'Ural': 'Çekilir Tip Mekanik Süpürgeler',
@@ -8807,6 +8808,7 @@ const ProfessionalDataTable: React.FC<{
     { value: 'Araç Üstü Vakumlu', label: 'Araç Üstü Vakumlu' },
     { value: 'Çekilir Tip Mekanik Süpürgeler', label: 'Çekilir Tip Mekanik Süpürgeler' },
     { value: 'Kompost Makinesi', label: 'Kompost Makinesi' },
+    { value: 'Çay Toplama Makinesi', label: 'Çay Toplama Makinesi' },
     { value: 'Rusya Motor Odası', label: 'Rusya Motor Odası' },
     { value: 'HSCK', label: 'HSCK' },
     { value: 'Genel', label: 'Genel (Araç Spesifik Olmayan)' }
@@ -12957,6 +12959,7 @@ const SmartTargetManagementComponent: React.FC<{
     'Araç Üstü Vakumlu', 
     'Çekilir Tip Mekanik Süpürgeler',
     'Kompost Makinesi',
+    'Çay Toplama Makinesi',
     'Rusya Motor Odası',
     'HSCK'
   ];
