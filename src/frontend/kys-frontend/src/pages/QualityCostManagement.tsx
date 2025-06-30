@@ -1035,7 +1035,8 @@ export default function QualityCostManagement() {
     const topProducingModel = monthlyProductionData.reduce((max: any, item: any) => {
       const currentCount = item.uretilenAracSayisi || 0;
       const maxCount = max.count || 0;
-      return currentCount > maxCount ? { model: item.aracModeli || 'Belirtilmemiş', count: currentCount } : max;
+      const modelName = item.kategori || item.displayName || item.aracModeli || 'Veri Yok';
+      return currentCount > maxCount ? { model: modelName, count: currentCount } : max;
     }, { model: 'Veri Yok', count: 0 });
 
     const result = {
@@ -4861,7 +4862,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       const topProducingModel = monthlyProductionData.reduce((max, item) => {
         const currentCount = item.uretilenAracSayisi || 0;
         const maxCount = max.count || 0;
-        return currentCount > maxCount ? { model: item.aracModeli || 'Belirtilmemiş', count: currentCount } : max;
+        const modelName = item.kategori || item.displayName || item.aracModeli || 'Veri Yok';
+        return currentCount > maxCount ? { model: modelName, count: currentCount } : max;
       }, { model: 'Veri Yok', count: 0 });
 
       return {
@@ -5617,27 +5619,59 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
             {/* Detaylı Hedef Karşılaştırması */}
             {(() => {
-              // 🚗 KATEGORİ BAZLI hedef eşleştirme sistemi - SADELEŞTİRİLDİ
+              // 🚗 KATEGORİ BAZLI hedef eşleştirme sistemi - GELİŞTİRİLDİ
               let categoryTarget = null;
               
-              // 1. Kategori bazlı hedef arama
+              // 1. Kategori bazlı hedef arama (önce aktif hedefleri kontrol et)
               if (vehicle.kategori) {
-                categoryTarget = vehicleTargets.find(target => target.kategori === vehicle.kategori);
+                categoryTarget = vehicleTargets.find(target => 
+                  target.kategori === vehicle.kategori && target.isActive !== false
+                );
               }
               
               // 2. Geriye uyumluluk için aracModeli kontrolü
               if (!categoryTarget && vehicle.aracModeli) {
-                categoryTarget = vehicleTargets.find(target => target.aracModeli === vehicle.aracModeli);
+                categoryTarget = vehicleTargets.find(target => 
+                  target.aracModeli === vehicle.aracModeli && target.isActive !== false
+                );
+              }
+              
+              // 3. Eğer hâlâ bulunamadıysa, aktif olmayan hedefleri de dene
+              if (!categoryTarget && vehicle.kategori) {
+                categoryTarget = vehicleTargets.find(target => target.kategori === vehicle.kategori);
+              }
+              
+              // 4. Son çare: displayName ile arama
+              if (!categoryTarget && vehicle.displayName) {
+                categoryTarget = vehicleTargets.find(target => 
+                  target.kategori === vehicle.displayName || target.aracModeli === vehicle.displayName
+                );
               }
               
               // Debug bilgisi ekle
               console.log('🎯 Kategori Bazlı Hedef Eşleştirme Debug:', {
                 kategori: vehicle.kategori,
+                aracModeli: vehicle.aracModeli,
                 displayName: displayName,
                 totalTargetsCount: vehicleTargets.length,
-                availableTargets: vehicleTargets.map(t => ({ kategori: t.kategori, aracModeli: t.aracModeli, donem: t.donem })),
+                availableTargets: vehicleTargets.map(t => ({ 
+                  kategori: t.kategori, 
+                  aracModeli: t.aracModeli, 
+                  donem: t.donem, 
+                  isActive: t.isActive 
+                })),
+                activeTargets: vehicleTargets.filter(t => t.isActive !== false).map(t => ({ 
+                  kategori: t.kategori, 
+                  aracModeli: t.aracModeli, 
+                  donem: t.donem 
+                })),
                 foundTarget: categoryTarget?.kategori || categoryTarget?.aracModeli || 'Bulunamadı',
-                foundTargetDonem: categoryTarget?.donem
+                foundTargetDonem: categoryTarget?.donem,
+                searchSteps: {
+                  step1_kategori: vehicle.kategori ? `${vehicle.kategori} arandı` : 'kategori yok',
+                  step2_aracModeli: vehicle.aracModeli ? `${vehicle.aracModeli} arandı` : 'aracModeli yok',
+                  step3_displayName: vehicle.displayName ? `${vehicle.displayName} arandı` : 'displayName yok'
+                }
               });
               
               if (!categoryTarget) {
