@@ -628,6 +628,261 @@ const generateIntegratedKPIs = (): KPI[] => {
     }
   };
 
+  const getProductionQualityKPIs = (): KPI[] => {
+    try {
+      const productionData = JSON.parse(localStorage.getItem('productionQualityData') || '[]');
+      
+      const totalDefects = productionData.reduce((sum: number, record: any) => 
+        sum + (record.defects ? record.defects.length : 0), 0
+      );
+      
+      const resolvedDefects = productionData.reduce((sum: number, record: any) => 
+        sum + (record.defects ? record.defects.filter((d: any) => d.status === 'resolved').length : 0), 0
+      );
+      
+      const defectResolutionRate = totalDefects > 0 ? (resolvedDefects / totalDefects) * 100 : 100;
+      
+      console.log('📊 KPI Integration - Production Quality Data:', {
+        totalRecords: productionData.length,
+        totalDefects,
+        resolvedDefects,
+        defectResolutionRate
+      });
+      
+      return productionData.length > 0 ? [
+        {
+          id: 'production-defect-rate',
+          title: 'Üretim Hata Oranı',
+          description: 'Üretimde tespit edilen hataların toplam üretim içindeki oranı',
+          category: 'production',
+          department: 'Üretim',
+          responsible: 'Üretim Müdürü',
+          unit: '%',
+          measurementPeriod: 'daily',
+          dataType: 'automatic',
+          dataSource: 'Üretim Kalite Takip Modülü',
+          targetValue: 2,
+          currentValue: productionData.length > 0 ? (totalDefects / productionData.length) * 100 : 0,
+          previousValue: 2.5,
+          warningThreshold: 5,
+          criticalThreshold: 10,
+          isIncreasing: false,
+          lastUpdated: currentTime,
+          status: (totalDefects / Math.max(productionData.length, 1)) * 100 <= 2 ? 'excellent' : 
+                  (totalDefects / Math.max(productionData.length, 1)) * 100 <= 5 ? 'good' : 
+                  (totalDefects / Math.max(productionData.length, 1)) * 100 <= 10 ? 'warning' : 'critical',
+          trend: 'down',
+          isFavorite: true,
+          isActive: true,
+          createdAt: currentTime,
+          updatedAt: currentTime,
+          moduleSource: 'ProductionQualityTracking',
+          progress: Math.max(0, 100 - ((totalDefects / Math.max(productionData.length, 1)) * 100 * 10)),
+          historicalData: generateHistoricalData('production-defect-rate', (totalDefects / Math.max(productionData.length, 1)) * 100, 2)
+        },
+        {
+          id: 'defect-resolution-rate',
+          title: 'Hata Çözüm Oranı',
+          description: 'Çözülen üretim hatalarının toplam içindeki oranı',
+          category: 'production',
+          department: 'Kalite Kontrol',
+          responsible: 'Kalite Sorumlusu',
+          unit: '%',
+          measurementPeriod: 'weekly',
+          dataType: 'automatic',
+          dataSource: 'Üretim Kalite Takip Modülü',
+          targetValue: 95,
+          currentValue: defectResolutionRate,
+          previousValue: 92,
+          warningThreshold: 85,
+          criticalThreshold: 75,
+          isIncreasing: true,
+          lastUpdated: currentTime,
+          status: defectResolutionRate >= 95 ? 'excellent' : defectResolutionRate >= 85 ? 'good' : defectResolutionRate >= 75 ? 'warning' : 'critical',
+          trend: defectResolutionRate > 92 ? 'up' : 'down',
+          isFavorite: false,
+          isActive: true,
+          createdAt: currentTime,
+          updatedAt: currentTime,
+          moduleSource: 'ProductionQualityTracking',
+          progress: Math.min(100, defectResolutionRate),
+          historicalData: generateHistoricalData('defect-resolution-rate', defectResolutionRate, 95)
+        }
+      ] : [];
+    } catch (error) {
+      console.error('❌ Production Quality KPI integration error:', error);
+      return [];
+    }
+  };
+
+  const getEquipmentCalibrationKPIs = (): KPI[] => {
+    try {
+      const equipmentData = JSON.parse(localStorage.getItem('equipment_calibration_data') || '[]');
+      
+      const totalEquipment = equipmentData.length;
+      const overdueCalibrations = equipmentData.filter((eq: any) => {
+        if (!eq.nextCalibrationDate) return false;
+        const dueDate = new Date(eq.nextCalibrationDate);
+        const today = new Date();
+        return dueDate < today && eq.status !== 'calibrated';
+      }).length;
+      
+      const calibrationComplianceRate = totalEquipment > 0 ? ((totalEquipment - overdueCalibrations) / totalEquipment) * 100 : 100;
+      
+      console.log('📊 KPI Integration - Equipment Calibration Data:', {
+        totalEquipment,
+        overdueCalibrations,
+        calibrationComplianceRate
+      });
+      
+      return totalEquipment > 0 ? [
+        {
+          id: 'calibration-compliance-rate',
+          title: 'Kalibrasyon Uyum Oranı',
+          description: 'Zamanında kalibre edilen ekipmanların toplam içindeki oranı',
+          category: 'quality',
+          department: 'Kalite Güvence',
+          responsible: 'Kalibrasyon Sorumlusu',
+          unit: '%',
+          measurementPeriod: 'monthly',
+          dataType: 'automatic',
+          dataSource: 'Ekipman Kalibrasyon Modülü',
+          targetValue: 98,
+          currentValue: calibrationComplianceRate,
+          previousValue: 96,
+          warningThreshold: 95,
+          criticalThreshold: 90,
+          isIncreasing: true,
+          lastUpdated: currentTime,
+          status: calibrationComplianceRate >= 98 ? 'excellent' : calibrationComplianceRate >= 95 ? 'good' : calibrationComplianceRate >= 90 ? 'warning' : 'critical',
+          trend: calibrationComplianceRate > 96 ? 'up' : 'down',
+          isFavorite: true,
+          isActive: true,
+          createdAt: currentTime,
+          updatedAt: currentTime,
+          moduleSource: 'EquipmentCalibrationManagement',
+          progress: Math.min(100, calibrationComplianceRate),
+          historicalData: generateHistoricalData('calibration-compliance-rate', calibrationComplianceRate, 98)
+        },
+        {
+          id: 'overdue-calibrations',
+          title: 'Gecikmiş Kalibrasyon Sayısı',
+          description: 'Kalibrasyon tarihi geçmiş ekipman sayısı',
+          category: 'quality',
+          department: 'Kalite Güvence',
+          responsible: 'Kalibrasyon Sorumlusu',
+          unit: 'adet',
+          measurementPeriod: 'daily',
+          dataType: 'automatic',
+          dataSource: 'Ekipman Kalibrasyon Modülü',
+          targetValue: 0,
+          currentValue: overdueCalibrations,
+          previousValue: overdueCalibrations + 1,
+          warningThreshold: 2,
+          criticalThreshold: 5,
+          isIncreasing: false,
+          lastUpdated: currentTime,
+          status: overdueCalibrations === 0 ? 'excellent' : overdueCalibrations <= 2 ? 'good' : overdueCalibrations <= 5 ? 'warning' : 'critical',
+          trend: 'down',
+          isFavorite: false,
+          isActive: true,
+          createdAt: currentTime,
+          updatedAt: currentTime,
+          moduleSource: 'EquipmentCalibrationManagement',
+          progress: Math.max(0, 100 - (overdueCalibrations * 20)),
+          historicalData: generateHistoricalData('overdue-calibrations', overdueCalibrations, 0)
+        }
+      ] : [];
+    } catch (error) {
+      console.error('❌ Equipment Calibration KPI integration error:', error);
+      return [];
+    }
+  };
+
+  const getTrainingManagementKPIs = (): KPI[] => {
+    try {
+      const trainingData = JSON.parse(localStorage.getItem('training-records') || '[]');
+      
+      const totalTrainings = trainingData.length;
+      const completedTrainings = trainingData.filter((t: any) => t.status === 'completed').length;
+      const trainingCompletionRate = totalTrainings > 0 ? (completedTrainings / totalTrainings) * 100 : 100;
+      
+      // Ortalama eğitim puanı hesaplama
+      const completedWithScores = trainingData.filter((t: any) => t.status === 'completed' && t.score);
+      const avgTrainingScore = completedWithScores.length > 0 ? 
+        completedWithScores.reduce((sum: number, t: any) => sum + t.score, 0) / completedWithScores.length : 0;
+      
+      console.log('📊 KPI Integration - Training Management Data:', {
+        totalTrainings,
+        completedTrainings,
+        trainingCompletionRate,
+        avgTrainingScore
+      });
+      
+      return totalTrainings > 0 ? [
+        {
+          id: 'training-completion-rate',
+          title: 'Eğitim Tamamlama Oranı',
+          description: 'Tamamlanan eğitimlerin toplam planlanan eğitimler içindeki oranı',
+          category: 'efficiency',
+          department: 'İnsan Kaynakları',
+          responsible: 'Eğitim Sorumlusu',
+          unit: '%',
+          measurementPeriod: 'monthly',
+          dataType: 'automatic',
+          dataSource: 'Eğitim Yönetimi Modülü',
+          targetValue: 90,
+          currentValue: trainingCompletionRate,
+          previousValue: 85,
+          warningThreshold: 80,
+          criticalThreshold: 70,
+          isIncreasing: true,
+          lastUpdated: currentTime,
+          status: trainingCompletionRate >= 90 ? 'excellent' : trainingCompletionRate >= 80 ? 'good' : trainingCompletionRate >= 70 ? 'warning' : 'critical',
+          trend: trainingCompletionRate > 85 ? 'up' : 'down',
+          isFavorite: true,
+          isActive: true,
+          createdAt: currentTime,
+          updatedAt: currentTime,
+          moduleSource: 'TrainingManagement',
+          progress: Math.min(100, trainingCompletionRate),
+          historicalData: generateHistoricalData('training-completion-rate', trainingCompletionRate, 90)
+        },
+        {
+          id: 'average-training-score',
+          title: 'Ortalama Eğitim Puanı',
+          description: 'Tamamlanan eğitimlerin ortalama başarı puanı',
+          category: 'efficiency',
+          department: 'İnsan Kaynakları',
+          responsible: 'Eğitim Sorumlusu',
+          unit: 'puan',
+          measurementPeriod: 'quarterly',
+          dataType: 'automatic',
+          dataSource: 'Eğitim Yönetimi Modülü',
+          targetValue: 80,
+          currentValue: avgTrainingScore,
+          previousValue: 78,
+          warningThreshold: 70,
+          criticalThreshold: 60,
+          isIncreasing: true,
+          lastUpdated: currentTime,
+          status: avgTrainingScore >= 80 ? 'excellent' : avgTrainingScore >= 70 ? 'good' : avgTrainingScore >= 60 ? 'warning' : 'critical',
+          trend: avgTrainingScore > 78 ? 'up' : 'down',
+          isFavorite: false,
+          isActive: true,
+          createdAt: currentTime,
+          updatedAt: currentTime,
+          moduleSource: 'TrainingManagement',
+          progress: Math.min(100, (avgTrainingScore / 100) * 100),
+          historicalData: generateHistoricalData('average-training-score', avgTrainingScore, 80)
+        }
+      ] : [];
+    } catch (error) {
+      console.error('❌ Training Management KPI integration error:', error);
+      return [];
+    }
+  };
+
   // ✅ MEVCUT STATİK KPI'LAR (gerektiğinde)
   const getStaticKPIs = (): KPI[] => {
     return [
@@ -664,12 +919,212 @@ const generateIntegratedKPIs = (): KPI[] => {
 
   console.log('🔄 KPI Integration - Collecting data from all modules...');
   
+  const getTankLeakTestKPIs = (): KPI[] => {
+    try {
+      const tankTestData = JSON.parse(localStorage.getItem('tankLeakTests') || '[]');
+      
+      const totalTests = tankTestData.length;
+      const passedTests = tankTestData.filter((test: any) => 
+        test.testResult && test.testResult.result === 'Geçti'
+      ).length;
+      
+      const testSuccessRate = totalTests > 0 ? (passedTests / totalTests) * 100 : 100;
+      
+      console.log('📊 KPI Integration - Tank Leak Test Data:', {
+        totalTests, passedTests, testSuccessRate
+      });
+      
+      return totalTests > 0 ? [{
+        id: 'tank-test-success-rate',
+        title: 'Tank Test Başarı Oranı',
+        description: 'Başarılı tank sızıntı testlerinin toplam test içindeki oranı',
+        category: 'quality',
+        department: 'Kalite Kontrol',
+        responsible: 'Test Sorumlusu',
+        unit: '%',
+        measurementPeriod: 'weekly',
+        dataType: 'automatic',
+        dataSource: 'Tank Sızıntı Test Modülü',
+        targetValue: 95,
+        currentValue: testSuccessRate,
+        previousValue: 93,
+        warningThreshold: 90,
+        criticalThreshold: 85,
+        isIncreasing: true,
+        lastUpdated: currentTime,
+        status: testSuccessRate >= 95 ? 'excellent' : testSuccessRate >= 90 ? 'good' : testSuccessRate >= 85 ? 'warning' : 'critical',
+        trend: testSuccessRate > 93 ? 'up' : 'down',
+        isFavorite: true,
+        isActive: true,
+        createdAt: currentTime,
+        updatedAt: currentTime,
+        moduleSource: 'TankLeakTest',
+        progress: Math.min(100, testSuccessRate),
+        historicalData: generateHistoricalData('tank-test-success-rate', testSuccessRate, 95)
+      }] : [];
+    } catch (error) {
+      console.error('❌ Tank Leak Test KPI integration error:', error);
+      return [];
+    }
+  };
+
+  const getCustomerFeedbackKPIs = (): KPI[] => {
+    try {
+      const feedbackData = JSON.parse(localStorage.getItem('customer-feedbacks') || '[]');
+      
+      const totalFeedbacks = feedbackData.length;
+      const avgSatisfactionScore = totalFeedbacks > 0 ? 
+        feedbackData.reduce((sum: number, fb: any) => sum + (fb.rating || 0), 0) / totalFeedbacks : 0;
+      
+      console.log('📊 KPI Integration - Customer Feedback Data:', {
+        totalFeedbacks, avgSatisfactionScore
+      });
+      
+      return totalFeedbacks > 0 ? [{
+        id: 'customer-satisfaction-score',
+        title: 'Müşteri Memnuniyet Puanı',
+        description: 'Müşteri geri bildirimlerinin ortalama puanı',
+        category: 'quality',
+        department: 'Müşteri Hizmetleri',
+        responsible: 'Müşteri İlişkileri Müdürü',
+        unit: 'puan',
+        measurementPeriod: 'monthly',
+        dataType: 'automatic',
+        dataSource: 'Müşteri Geri Bildirim Modülü',
+        targetValue: 4.5,
+        currentValue: avgSatisfactionScore,
+        previousValue: 4.2,
+        warningThreshold: 4.0,
+        criticalThreshold: 3.5,
+        isIncreasing: true,
+        lastUpdated: currentTime,
+        status: avgSatisfactionScore >= 4.5 ? 'excellent' : avgSatisfactionScore >= 4.0 ? 'good' : avgSatisfactionScore >= 3.5 ? 'warning' : 'critical',
+        trend: avgSatisfactionScore > 4.2 ? 'up' : 'down',
+        isFavorite: true,
+        isActive: true,
+        createdAt: currentTime,
+        updatedAt: currentTime,
+        moduleSource: 'CustomerFeedbackManagement',
+        progress: Math.min(100, (avgSatisfactionScore / 5) * 100),
+        historicalData: generateHistoricalData('customer-satisfaction-score', avgSatisfactionScore, 4.5)
+      }] : [];
+    } catch (error) {
+      console.error('❌ Customer Feedback KPI integration error:', error);
+      return [];
+    }
+  };
+
+  const getFanTestAnalysisKPIs = (): KPI[] => {
+    try {
+      const fanTestData = JSON.parse(localStorage.getItem('fanTestRecords') || '[]');
+      
+      const totalTests = fanTestData.length;
+      const passedTests = fanTestData.filter((test: any) => 
+        test.testResult === 'Geçti' || test.status === 'passed'
+      ).length;
+      
+      const fanTestSuccessRate = totalTests > 0 ? (passedTests / totalTests) * 100 : 100;
+      
+      console.log('📊 KPI Integration - Fan Test Analysis Data:', {
+        totalTests, passedTests, fanTestSuccessRate
+      });
+      
+      return totalTests > 0 ? [{
+        id: 'fan-test-success-rate',
+        title: 'Fan Test Başarı Oranı',
+        description: 'Başarılı fan testlerinin toplam test içindeki oranı',
+        category: 'quality',
+        department: 'Test Laboratuvarı',
+        responsible: 'Test Mühendisi',
+        unit: '%',
+        measurementPeriod: 'weekly',
+        dataType: 'automatic',
+        dataSource: 'Fan Test Analiz Modülü',
+        targetValue: 92,
+        currentValue: fanTestSuccessRate,
+        previousValue: 90,
+        warningThreshold: 85,
+        criticalThreshold: 80,
+        isIncreasing: true,
+        lastUpdated: currentTime,
+        status: fanTestSuccessRate >= 92 ? 'excellent' : fanTestSuccessRate >= 85 ? 'good' : fanTestSuccessRate >= 80 ? 'warning' : 'critical',
+        trend: fanTestSuccessRate > 90 ? 'up' : 'down',
+        isFavorite: true,
+        isActive: true,
+        createdAt: currentTime,
+        updatedAt: currentTime,
+        moduleSource: 'FanTestAnalysis',
+        progress: Math.min(100, fanTestSuccessRate),
+        historicalData: generateHistoricalData('fan-test-success-rate', fanTestSuccessRate, 92)
+      }] : [];
+    } catch (error) {
+      console.error('❌ Fan Test Analysis KPI integration error:', error);
+      return [];
+    }
+  };
+
+  const getMaterialCertificateKPIs = (): KPI[] => {
+    try {
+      const materialData = JSON.parse(localStorage.getItem('materialCertificateTracking') || '[]');
+      
+      const totalMaterials = materialData.length;
+      const certifiedMaterials = materialData.filter((mat: any) => 
+        mat.certificateStatus === 'valid' || mat.status === 'certified'
+      ).length;
+      
+      const certificationRate = totalMaterials > 0 ? (certifiedMaterials / totalMaterials) * 100 : 100;
+      
+      console.log('📊 KPI Integration - Material Certificate Data:', {
+        totalMaterials, certifiedMaterials, certificationRate
+      });
+      
+      return totalMaterials > 0 ? [{
+        id: 'material-certification-rate',
+        title: 'Malzeme Sertifikasyon Oranı',
+        description: 'Sertifikalı malzemelerin toplam malzeme içindeki oranı',
+        category: 'quality',
+        department: 'Kalite Güvence',
+        responsible: 'Malzeme Sorumlusu',
+        unit: '%',
+        measurementPeriod: 'monthly',
+        dataType: 'automatic',
+        dataSource: 'Malzeme Sertifika Takip Modülü',
+        targetValue: 98,
+        currentValue: certificationRate,
+        previousValue: 96,
+        warningThreshold: 95,
+        criticalThreshold: 90,
+        isIncreasing: true,
+        lastUpdated: currentTime,
+        status: certificationRate >= 98 ? 'excellent' : certificationRate >= 95 ? 'good' : certificationRate >= 90 ? 'warning' : 'critical',
+        trend: certificationRate > 96 ? 'up' : 'down',
+        isFavorite: true,
+        isActive: true,
+        createdAt: currentTime,
+        updatedAt: currentTime,
+        moduleSource: 'MaterialCertificateTracking',
+        progress: Math.min(100, certificationRate),
+        historicalData: generateHistoricalData('material-certification-rate', certificationRate, 98)
+      }] : [];
+    } catch (error) {
+      console.error('❌ Material Certificate KPI integration error:', error);
+      return [];
+    }
+  };
+
   // Tüm KPI'ları birleştir
   const allKPIs = [
     ...getQualityCostKPIs(),
     ...getSupplierQualityKPIs(),
     ...getDOFKPIs(),
     ...getRiskManagementKPIs(),
+    ...getProductionQualityKPIs(),
+    ...getEquipmentCalibrationKPIs(),
+    ...getTrainingManagementKPIs(),
+    ...getTankLeakTestKPIs(),
+    ...getCustomerFeedbackKPIs(),
+    ...getFanTestAnalysisKPIs(),
+    ...getMaterialCertificateKPIs(),
     ...getStaticKPIs()
   ];
 

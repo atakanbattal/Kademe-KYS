@@ -5614,7 +5614,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                             console.log('🎯 HEDEF YÖNETİMİ EŞLEŞTİRME DEBUG:', {
                 // Araç bilgileri
                 vehicle: {
-                  kategori: vehicle.kategori,
+                kategori: vehicle.kategori,
                   aracModeli: vehicle.aracModeli,
                   displayName: vehicle.displayName || displayName,
                   categoryModels: vehicle.categoryModels
@@ -5622,7 +5622,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 
                 // Hedef Yönetimi Sekmesi Durumu
                 targetManagement: {
-                  totalTargetsCount: vehicleTargets.length,
+                totalTargetsCount: vehicleTargets.length,
                   localStorageKey: 'vehicle-targets',
                   availableTargets: vehicleTargets.map(t => ({ 
                     id: t.id,
@@ -5668,12 +5668,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       }}>
                         <Typography variant="h6" color="white" fontWeight={700}>
                           ⚠️
-                        </Typography>
+                    </Typography>
                       </Box>
                       <Box>
                         <Typography variant="subtitle1" fontWeight={600} color="warning.dark">
                           Hedef Belirlenmemiş
-                        </Typography>
+                    </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {displayName} kategorisi için performans hedefleri bulunamadı
                         </Typography>
@@ -5713,7 +5713,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <Box sx={{ mt: 2, p: 1.5, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
                       <Typography variant="caption" color="info.dark" sx={{ fontWeight: 500 }}>
                         💡 İpucu: Hedef Yönetimi sekmesinde bu kategori için Ret, Hurda ve Fire hedeflerini adet/kg cinsinden belirleyebilirsiniz.
-                      </Typography>
+                    </Typography>
                     </Box>
                   </Box>
                 );
@@ -5758,12 +5758,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               const hurdaPerformans = calculatePerVehiclePerformance(vehicle.atikTuruDagilim.hurda.kg, categoryTarget.hedefler.maksHurdaKg, productionCount);
               const firePerformans = calculatePerVehiclePerformance(vehicle.atikTuruDagilim.fire.kg, categoryTarget.hedefler.maksFireKg, productionCount);
 
-                            return (
+              return (
                 <Box sx={{ mb: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="subtitle2" fontWeight={600}>
                       Hedef Performansı
-                    </Typography>
+                  </Typography>
                     <Chip
                       label={`Dönem: ${categoryTarget.donem}`}
                       size="small"
