@@ -863,11 +863,181 @@ const QuarantineManagement: React.FC = () => {
         console.log('✅ Karantina verileri yüklendi:', data.length);
         return data;
       }
+      
+      // İlk kez açıldığında sample data yükle
+      console.log('🔄 İlk açılış - Sample data yükleniyor...');
+      const sampleData = generateSampleData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
+      return sampleData;
     } catch (error) {
       console.error('❌ Karantina verileri yüklenemedi:', error);
     }
     return [];
   }, []);
+
+  // Sample data generator
+  const generateSampleData = (): QuarantineRecord[] => {
+    const sampleSuppliers = ['Kademe Metal San. Tic. A.Ş.', 'ABC Metal A.Ş.', 'XYZ Makina Ltd.', 'DEF Endüstri A.Ş.', 'GHI Çelik A.Ş.'];
+    const sampleVehicles = ['FTH-240', 'Çelik-2000', 'Aga2100', 'Aga3000', 'Aga6000', 'KDM 35', 'KDM 70', 'KDM 80'];
+    const sampleDepartments = ['Üretim', 'Kalite Kontrol', 'Satın Alma', 'Ar-Ge', 'Bakım Onarım'];
+    
+    const sampleRecords: QuarantineRecord[] = [
+      {
+        id: '2025-01-001',
+        partCode: 'FTH-240-001',
+        partName: 'Ana Motor Bileşeni',
+        quantity: 5,
+        unit: 'adet',
+        quarantineReason: 'Boyut hatası tespit edildi',
+        responsibleDepartment: 'Kalite Kontrol',
+        responsiblePersons: [{
+          id: '1',
+          name: 'Ahmet Yılmaz',
+          department: 'Kalite Kontrol',
+          role: 'Kalite Uzmanı',
+          email: 'ahmet.yilmaz@kademe.com',
+          phone: '0532 XXX XX XX',
+          isPrimary: true
+        }],
+        quarantineDate: '2025-01-10',
+        supplierName: 'Kademe Metal San. Tic. A.Ş.',
+        productionOrder: 'PO-2025-001',
+        inspectionResults: 'Ölçü toleransı aşılmış',
+        notes: 'Tedarikçi ile irtibata geçildi',
+        status: 'KARANTINADA',
+        priority: 'YUKSEK',
+        estimatedCost: 15000,
+        attachments: [],
+        followUpActions: [],
+        createdBy: 'Sistem Yöneticisi',
+        createdDate: '2025-01-10T08:00:00Z',
+        lastModified: '2025-01-10T08:00:00Z',
+        vehicleModel: 'FTH-240',
+        location: 'Depo A-1',
+        inspectionType: 'Boyutsal Kontrol',
+        inspectionDate: '2025-01-10',
+        inspectorName: 'Mehmet Kaya',
+        materialType: 'Çelik',
+        riskLevel: 'YUKSEK'
+      },
+      {
+        id: '2025-01-002',
+        partCode: 'AGA-3000-M15',
+        partName: 'Hidrolik Piston Contası',
+        quantity: 12,
+        unit: 'adet',
+        quarantineReason: 'Sızıntı problemi',
+        responsibleDepartment: 'Üretim',
+        responsiblePersons: [{
+          id: '2',
+          name: 'Fatma Özkan',
+          department: 'Üretim',
+          role: 'Üretim Uzmanı',
+          email: 'fatma.ozkan@kademe.com',
+          phone: '0535 XXX XX XX',
+          isPrimary: true
+        }],
+        quarantineDate: '2025-01-12',
+        supplierName: 'ABC Metal A.Ş.',
+        productionOrder: 'PO-2025-002',
+        inspectionResults: 'Conta materyali uygun değil',
+        notes: 'Yedek conta ile değiştirilecek',
+        status: 'YENIDEN_ISLEM',
+        priority: 'ORTA',
+        estimatedCost: 8500,
+        attachments: [],
+        followUpActions: [],
+        createdBy: 'Sistem Yöneticisi',
+        createdDate: '2025-01-12T09:30:00Z',
+        lastModified: '2025-01-12T09:30:00Z',
+        vehicleModel: 'Aga3000',
+        location: 'Depo B-2',
+        inspectionType: 'Fonksiyonel Test',
+        inspectionDate: '2025-01-12',
+        inspectorName: 'Ali Demir',
+        materialType: 'Kauçuk',
+        riskLevel: 'ORTA'
+      },
+      {
+        id: '2025-01-003',
+        partCode: 'KDM-70-BLK',
+        partName: 'Şase Kaynak Bağlantısı',
+        quantity: 1,
+        unit: 'adet',
+        quarantineReason: 'Kaynak kalitesi yetersiz',
+        responsibleDepartment: 'Kalite Kontrol',
+        responsiblePersons: [{
+          id: '3',
+          name: 'Mustafa Çelik',
+          department: 'Kalite Kontrol',
+          role: 'Kaynak Uzmanı',
+          email: 'mustafa.celik@kademe.com',
+          phone: '0533 XXX XX XX',
+          isPrimary: true
+        }],
+        quarantineDate: '2025-01-08',
+        supplierName: 'GHI Çelik A.Ş.',
+        productionOrder: 'PO-2025-003',
+        inspectionResults: 'Kaynak penetrasyonu yetersiz',
+        notes: 'Yeniden kaynak işlemi gerekli',
+        status: 'SAPMA_ONAYI',
+        priority: 'KRITIK',
+        estimatedCost: 25000,
+        attachments: [],
+        followUpActions: [],
+        createdBy: 'Sistem Yöneticisi',
+        createdDate: '2025-01-08T14:15:00Z',
+        lastModified: '2025-01-08T14:15:00Z',
+        vehicleModel: 'KDM 70',
+        location: 'Üretim Hattı 3',
+        inspectionType: 'NDT Kontrol',
+        inspectionDate: '2025-01-08',
+        inspectorName: 'Zeynep Aktaş',
+        materialType: 'St-37 Çelik',
+        riskLevel: 'KRITIK'
+      },
+      {
+        id: '2025-01-004',
+        partCode: 'CEL-2000-HYD',
+        partName: 'Hidrolik Silindir Kapağı', 
+        quantity: 3,
+        unit: 'adet',
+        quarantineReason: 'Yüzey pürüzlülüğü',
+        responsibleDepartment: 'Ar-Ge',
+        responsiblePersons: [{
+          id: '4',
+          name: 'Elif Yıldız',
+          department: 'Ar-Ge',
+          role: 'Ar-Ge Uzmanı',
+          email: 'elif.yildiz@kademe.com',
+          phone: '0534 XXX XX XX',
+          isPrimary: true
+        }],
+        quarantineDate: '2025-01-06',
+        supplierName: 'XYZ Makina Ltd.',
+        productionOrder: 'PO-2025-004',
+        inspectionResults: 'Ra değeri aşılmış',
+        notes: 'Yüzey işlemi tekrar edilecek',
+        status: 'SERBEST_BIRAKILDI',
+        priority: 'DUSUK',
+        estimatedCost: 4200,
+        attachments: [],
+        followUpActions: [],
+        createdBy: 'Sistem Yöneticisi',
+        createdDate: '2025-01-06T11:45:00Z',
+        lastModified: '2025-01-06T11:45:00Z',
+        vehicleModel: 'Çelik-2000',
+        location: 'Depo C-1',
+        inspectionType: 'Yüzey Kalitesi',
+        inspectionDate: '2025-01-06',
+        inspectorName: 'Hakan Güner',
+        materialType: 'Alüminyum',
+        riskLevel: 'DUSUK'
+      }
+    ];
+
+    return sampleRecords;
+  };
 
   // 🚀 Otomatik Karantina Takip Numarası Generator
   const generateQuarantineTrackingNumber = useCallback(() => {
