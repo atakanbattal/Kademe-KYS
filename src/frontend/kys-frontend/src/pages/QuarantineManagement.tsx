@@ -543,9 +543,26 @@ const QuarantineManagement: React.FC = () => {
     const saved = localStorage.getItem('partCodeSuggestions');
     return saved ? JSON.parse(saved) : ['KD-001-2024', 'KD-002-2024', 'KD-003-2024', 'MT-001-2024', 'SW-001-2024'];
   });
-  const [supplierSuggestions] = useState<string[]>([
-    'ABC Metal A.Ş.', 'XYZ Makina Ltd.', 'DEF Endüstri A.Ş.', 'GHI Çelik A.Ş.'
-  ]);
+  const [supplierSuggestions, setSupplierSuggestions] = useState<string[]>(() => {
+    const saved = localStorage.getItem('supplierSuggestions');
+    return saved ? JSON.parse(saved) : [
+      'ABC Metal A.Ş.',
+      'XYZ Makina Ltd.', 
+      'DEF Endüstri A.Ş.',
+      'GHI Çelik A.Ş.',
+      'Kademe Metal San. Tic. A.Ş.',
+      'Anadolu Makina İmalat Ltd.',
+      'Borusan Makina ve Güç Sistemleri',
+      'Tosçelik Profil ve Sac Endüstrisi A.Ş.',
+      'Çemtaş Çelik Makina San. ve Tic. A.Ş.',
+      'Kardemir Karabük Demir Çelik San. ve Tic. A.Ş.',
+      'İskenderun Demir ve Çelik A.Ş.',
+      'Norm Civata San. ve Tic. A.Ş.',
+      'Öztiryakiler Madeni Eşya San. A.Ş.',
+      'Hidromek Hidrolik ve Makina San. A.Ş.',
+      'BMC Otomotiv San. ve Tic. A.Ş.'
+    ];
+  });
   const [inspectorSuggestions, setInspectorSuggestions] = useState<string[]>(() => {
     const saved = localStorage.getItem('inspectorSuggestions');
     return saved ? JSON.parse(saved) : ['Ahmet Yılmaz', 'Mehmet Demir', 'Ayşe Kaya', 'Fatma Öz', 'Ali Şen'];
@@ -570,9 +587,11 @@ const QuarantineManagement: React.FC = () => {
 
   // Dialog states for managing dynamic lists
   const [partCodeDialog, setPartCodeDialog] = useState(false);
+  const [supplierDialog, setSupplierDialog] = useState(false);
   const [inspectorDialog, setInspectorDialog] = useState(false);
   const [responsiblePersonDialog, setResponsiblePersonDialog] = useState(false);
   const [newPartCode, setNewPartCode] = useState('');
+  const [newSupplier, setNewSupplier] = useState('');
   const [newInspector, setNewInspector] = useState('');
   const [newResponsiblePerson, setNewResponsiblePerson] = useState<Partial<ResponsiblePerson>>({
     name: '',
@@ -632,6 +651,24 @@ const QuarantineManagement: React.FC = () => {
     setPartCodeSuggestions(updated);
     localStorage.setItem('partCodeSuggestions', JSON.stringify(updated));
     showNotification('Parça kodu silindi', 'success');
+  };
+
+  const handleAddSupplier = () => {
+    if (newSupplier.trim() && !supplierSuggestions.includes(newSupplier.trim())) {
+      const updated = [...supplierSuggestions, newSupplier.trim()];
+      setSupplierSuggestions(updated);
+      localStorage.setItem('supplierSuggestions', JSON.stringify(updated));
+      setNewSupplier('');
+      setSupplierDialog(false);
+      showNotification('Tedarikçi eklendi', 'success');
+    }
+  };
+
+  const handleRemoveSupplier = (supplier: string) => {
+    const updated = supplierSuggestions.filter(supp => supp !== supplier);
+    setSupplierSuggestions(updated);
+    localStorage.setItem('supplierSuggestions', JSON.stringify(updated));
+    showNotification('Tedarikçi silindi', 'success');
   };
 
   const handleAddInspector = () => {
@@ -2942,7 +2979,16 @@ const QuarantineManagement: React.FC = () => {
                             label="Tedarikçi"
                             InputProps={{
                               ...params.InputProps,
-                              startAdornment: <DepartmentIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                              startAdornment: <DepartmentIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <Tooltip title="Tedarikçileri yönet">
+                                    <IconButton onClick={() => setSupplierDialog(true)} size="small">
+                                      <EditIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </InputAdornment>
+                              ),
                             }}
                           />
                         )}
@@ -4286,6 +4332,85 @@ const QuarantineManagement: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPartCodeDialog(false)}>Kapat</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Tedarikçi Yönetimi Dialog */}
+      <Dialog 
+        open={supplierDialog} 
+        onClose={() => setSupplierDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 2 }}>
+          <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center' }}>
+            <DepartmentIcon sx={{ mr: 1 }} />
+            Tedarikçi Yönetimi
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Yeni Tedarikçi"
+              value={newSupplier}
+              onChange={(e) => setNewSupplier(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddSupplier();
+                }
+              }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Button 
+                      variant="contained" 
+                      size="small"
+                      onClick={handleAddSupplier}
+                      disabled={!newSupplier.trim()}
+                    >
+                      Ekle
+                    </Button>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+          
+          <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>
+            Mevcut Tedarikçiler ({supplierSuggestions.length})
+          </Typography>
+          
+          <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+            {supplierSuggestions.map((supplier, index) => (
+              <Box 
+                key={index}
+                sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  p: 1,
+                  borderBottom: 1,
+                  borderColor: 'divider',
+                  '&:hover': {
+                    bgcolor: 'grey.50'
+                  }
+                }}
+              >
+                <Typography variant="body2">{supplier}</Typography>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleRemoveSupplier(supplier)}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSupplierDialog(false)}>Kapat</Button>
         </DialogActions>
       </Dialog>
 
