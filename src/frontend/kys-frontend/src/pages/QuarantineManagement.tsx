@@ -1657,129 +1657,380 @@ const QuarantineManagement: React.FC = () => {
 
       {/* Content based on active tab */}
       {activeTab === 0 && (
-        <Card>
-          <CardContent>
-            {/* Table */}
-            <TableContainer>
-              <Table>
+        <Card sx={{ 
+          boxShadow: '0 8px 32px rgba(0,0,0,0.08)', 
+          borderRadius: 3,
+          overflow: 'hidden',
+          border: '1px solid rgba(0,0,0,0.06)'
+        }}>
+          <CardContent sx={{ p: 0 }}>
+            {/* Professional Table Header */}
+            <Box sx={{ 
+              background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+              color: 'white',
+              p: 2.5,
+              borderBottom: '3px solid #0d47a1'
+            }}>
+              <Typography variant="h6" fontWeight="600" sx={{ display: 'flex', alignItems: 'center' }}>
+                <InventoryIcon sx={{ mr: 1.5 }} />
+                Karantina Kayıtları ({filteredData.length})
+              </Typography>
+            </Box>
+
+            {/* Professional Table */}
+            <TableContainer sx={{ 
+              maxHeight: 600,
+              '&::-webkit-scrollbar': {
+                width: '8px',
+                height: '8px'
+              },
+              '&::-webkit-scrollbar-track': {
+                background: '#f1f1f1',
+                borderRadius: '10px'
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: '#c1c1c1',
+                borderRadius: '10px',
+                '&:hover': {
+                  background: '#a8a8a8'
+                }
+              }
+            }}>
+              <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#1976d2',
+                      minWidth: 120,
+                      textAlign: 'center'
+                    }}>
                       Takip No
                     </TableCell>
-                    <TableCell>Parça Kodu</TableCell>
-                    <TableCell>Parça Adı</TableCell>
-                    <TableCell>Miktar</TableCell>
-                    <TableCell>Karantina Nedeni</TableCell>
-                    <TableCell>Sorumlu Birim</TableCell>
-                    <TableCell>Durum</TableCell>
-                    <TableCell>Öncelik</TableCell>
-                    <TableCell>Karantina Tarihi</TableCell>
-                    <TableCell>İşlemler</TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#424242',
+                      minWidth: 100
+                    }}>
+                      Parça Kodu
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#424242',
+                      minWidth: 150
+                    }}>
+                      Parça Adı
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#424242',
+                      textAlign: 'center',
+                      minWidth: 80
+                    }}>
+                      Miktar
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#424242',
+                      minWidth: 140
+                    }}>
+                      Karantina Nedeni
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#424242',
+                      minWidth: 120
+                    }}>
+                      Sorumlu Birim
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#424242',
+                      textAlign: 'center',
+                      minWidth: 100
+                    }}>
+                      Durum
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#424242',
+                      textAlign: 'center',
+                      minWidth: 80
+                    }}>
+                      Öncelik
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#424242',
+                      textAlign: 'center',
+                      minWidth: 100
+                    }}>
+                      Tarih
+                    </TableCell>
+                    <TableCell sx={{ 
+                      bgcolor: '#f8f9fa', 
+                      fontWeight: 700, 
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid #e0e0e0',
+                      color: '#424242',
+                      textAlign: 'center',
+                      minWidth: 120
+                    }}>
+                      İşlemler
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} align="center">
-                        <Typography variant="body1" color="text.secondary" sx={{ py: 4 }}>
-                          Henüz karantina kaydı bulunmamaktadır.
-                        </Typography>
+                      <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
+                        <Box sx={{ textAlign: 'center', color: 'text.secondary' }}>
+                          <InventoryIcon sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
+                          <Typography variant="h6" gutterBottom>
+                            Henüz karantina kaydı bulunmamaktadır
+                          </Typography>
+                          <Typography variant="body2">
+                            Yeni kayıt eklemek için "+" butonunu kullanın
+                          </Typography>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredData.map((record) => (
-                      <TableRow key={record.id} hover>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="bold" color="primary.main" sx={{ 
-                            fontSize: '0.8rem',
-                            fontFamily: 'monospace',
-                            bgcolor: 'action.hover',
-                            px: 1,
+                    filteredData.map((record, index) => (
+                      <TableRow 
+                        key={record.id} 
+                        hover
+                        sx={{ 
+                          '&:hover': { 
+                            bgcolor: 'rgba(25, 118, 210, 0.04)',
+                            transform: 'translateY(-1px)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          },
+                          transition: 'all 0.2s ease',
+                          borderBottom: '1px solid #f0f0f0',
+                          backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa'
+                        }}
+                      >
+                        {/* Takip Numarası */}
+                        <TableCell sx={{ textAlign: 'center' }}>
+                          <Box sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            bgcolor: 'primary.main',
+                            color: 'white',
+                            px: 1.5,
                             py: 0.5,
-                            borderRadius: 1
+                            borderRadius: 2,
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            fontFamily: 'monospace',
+                            minWidth: 100,
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)'
                           }}>
+                            <QrCodeIcon sx={{ fontSize: 16, mr: 0.5 }} />
                             {record.id}
+                          </Box>
+                        </TableCell>
+                        {/* Parça Kodu */}
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600} color="primary.main">
+                            {record.partCode}
                           </Typography>
                         </TableCell>
-                        <TableCell>{record.partCode}</TableCell>
-                        <TableCell>{record.partName}</TableCell>
+
+                        {/* Parça Adı */}
                         <TableCell>
-                          {record.quantity} {formatUnit(record.unit)}
+                          <Typography variant="body2" sx={{ 
+                            maxWidth: 150, 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {record.partName}
+                          </Typography>
                         </TableCell>
-                        <TableCell>{record.quarantineReason}</TableCell>
+
+                        {/* Miktar */}
+                        <TableCell sx={{ textAlign: 'center' }}>
+                          <Typography variant="body2" fontWeight={500}>
+                            {record.quantity} {formatUnit(record.unit)}
+                          </Typography>
+                        </TableCell>
+
+                        {/* Karantina Nedeni */}
+                        <TableCell>
+                          <Typography variant="body2" sx={{ 
+                            maxWidth: 140, 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {record.quarantineReason}
+                          </Typography>
+                        </TableCell>
+                        {/* Sorumlu Birim */}
                         <TableCell>
                           <Chip 
                             icon={<DepartmentIcon />}
                             label={record.responsibleDepartment}
                             size="small"
-                            color="primary"
                             variant="outlined"
+                            sx={{
+                              borderColor: '#1976d2',
+                              color: '#1976d2',
+                              fontSize: '0.75rem',
+                              height: 24,
+                              '& .MuiChip-icon': {
+                                fontSize: 14
+                              }
+                            }}
                           />
                         </TableCell>
-                        <TableCell>
-                                                      <Chip
-                              label={STATUS_LABELS[record.status]}
-                              sx={{ 
-                                backgroundColor: STATUS_COLORS[record.status],
-                                color: 'white',
-                                fontWeight: 500
-                              }}
-                              size="small"
-                            />
+                        {/* Durum */}
+                        <TableCell sx={{ textAlign: 'center' }}>
+                          <Chip
+                            label={STATUS_LABELS[record.status]}
+                            sx={{ 
+                              backgroundColor: STATUS_COLORS[record.status],
+                              color: 'white',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              height: 26,
+                              minWidth: 90,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            }}
+                            size="small"
+                          />
                         </TableCell>
-                        <TableCell>
+
+                        {/* Öncelik */}
+                        <TableCell sx={{ textAlign: 'center' }}>
                           <Chip
                             label={PRIORITY_LABELS[record.priority]}
                             sx={{
                               backgroundColor: PRIORITY_COLORS[record.priority],
                               color: 'white',
-                              fontWeight: 500
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              height: 26,
+                              minWidth: 70,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                             }}
                             size="small"
                           />
                         </TableCell>
-                        <TableCell>
-                          {new Date(record.quarantineDate).toLocaleDateString('tr-TR')}
+                        {/* Tarih */}
+                        <TableCell sx={{ textAlign: 'center' }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                            {new Date(record.quarantineDate).toLocaleDateString('tr-TR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
+                          </Typography>
                         </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Tooltip title="Görüntüle">
+                        {/* İşlemler */}
+                        <TableCell sx={{ textAlign: 'center' }}>
+                          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                            <Tooltip title="Görüntüle" arrow>
                               <IconButton 
                                 size="small" 
                                 onClick={() => handleViewRecord(record)}
-                                color="info"
+                                sx={{ 
+                                  color: 'info.main',
+                                  '&:hover': { 
+                                    bgcolor: 'info.main',
+                                    color: 'white',
+                                    transform: 'scale(1.1)'
+                                  },
+                                  transition: 'all 0.2s'
+                                }}
                               >
-                                <ViewIcon />
+                                <ViewIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Düzenle">
+                            
+                            <Tooltip title="Düzenle" arrow>
                               <IconButton 
                                 size="small" 
                                 onClick={() => handleEditRecord(record)}
-                                color="primary"
+                                sx={{ 
+                                  color: 'primary.main',
+                                  '&:hover': { 
+                                    bgcolor: 'primary.main',
+                                    color: 'white',
+                                    transform: 'scale(1.1)'
+                                  },
+                                  transition: 'all 0.2s'
+                                }}
                               >
-                                <EditIcon />
+                                <EditIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
+
                             {record.status === 'KARANTINADA' && (
-                              <Tooltip title="Karar Ver">
+                              <Tooltip title="Karar Ver" arrow>
                                 <IconButton 
                                   size="small" 
                                   onClick={() => handleDecisionDialog(record)}
-                                  color="warning"
+                                  sx={{ 
+                                    color: 'warning.main',
+                                    '&:hover': { 
+                                      bgcolor: 'warning.main',
+                                      color: 'white',
+                                      transform: 'scale(1.1)'
+                                    },
+                                    transition: 'all 0.2s'
+                                  }}
                                 >
-                                  <ApprovalIcon />
+                                  <ApprovalIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
                             )}
-                            <Tooltip title="Sil">
+
+                            <Tooltip title="Sil" arrow>
                               <IconButton 
                                 size="small" 
                                 onClick={() => handleDeleteRecord(record.id)}
-                                color="error"
+                                sx={{ 
+                                  color: 'error.main',
+                                  '&:hover': { 
+                                    bgcolor: 'error.main',
+                                    color: 'white',
+                                    transform: 'scale(1.1)'
+                                  },
+                                  transition: 'all 0.2s'
+                                }}
                               >
-                                <DeleteIcon />
+                                <DeleteIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
                           </Box>
@@ -1790,6 +2041,30 @@ const QuarantineManagement: React.FC = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+
+            {/* Table Footer with Pagination Info */}
+            {filteredData.length > 0 && (
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: '#f8f9fa',
+                borderTop: '1px solid #e0e0e0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <Typography variant="body2" color="text.secondary">
+                  Toplam {filteredData.length} kayıt gösteriliyor
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Son güncelleme: {new Date().toLocaleTimeString('tr-TR')}
+                  </Typography>
+                  <IconButton size="small" onClick={loadData} color="primary">
+                    <RefreshIcon />
+                  </IconButton>
+                </Box>
+              </Box>
+            )}
           </CardContent>
         </Card>
       )}
