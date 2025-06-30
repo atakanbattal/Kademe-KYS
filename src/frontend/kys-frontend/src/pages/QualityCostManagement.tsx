@@ -9458,11 +9458,14 @@ const ProfessionalDataTable: React.FC<{
 
   const handleSave = useCallback(() => {
     const calculatedCost = calculateDynamicCost();
-    // 🔧 GÜVENLİ MALİYET HESAPLAMA: Eğer hesaplanamıyorsa manuel girişi kullan
-    const finalCost = calculatedCost > 0 ? calculatedCost : formData.maliyet || 0;
+    // 🔧 ETKİLENEN BİRİMLER MALİYETİ: Etkilenen diğer birimlerin maliyetini de dahil et
+    const ekBirimlerToplamMaliyet = (formData.ekBirimMaliyetleri || []).reduce((sum: number, eb: any) => sum + (eb.maliyet || 0), 0);
+    // 🔧 GÜVENLİ MALİYET HESAPLAMA: Temel maliyet + etkilenen birimler maliyeti
+    const baseCost = calculatedCost > 0 ? calculatedCost : formData.maliyet || 0;
+    const finalCost = baseCost + ekBirimlerToplamMaliyet;
     const finalFormData = {
       ...formData,
-      maliyet: finalCost, // Use calculated cost or manual entry
+      maliyet: finalCost, // Use calculated cost + affected departments cost
     };
 
     if (editingEntry) {
