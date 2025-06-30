@@ -1456,11 +1456,42 @@ const QuarantineManagement: React.FC = () => {
   // PDF'de Türkçe karakter desteği için font ekle
   const addTurkishFont = (doc: jsPDF) => {
     try {
-      // Varsayılan font kullan (Helvetica Türkçe karakterleri destekler)
-      doc.setFont('helvetica', 'normal');
+      // Times New Roman fontunu kullan - Türkçe karakterleri destekler
+      doc.setFont('times', 'normal');
+      doc.setFontSize(12);
+      
+      // UTF-8 encoding için document properties ayarla
+      doc.setProperties({
+        title: 'Karantina Raporu',
+        subject: 'Kalite Yönetim Sistemi',
+        author: 'Kademe A.Ş.',
+        keywords: 'karantina, kalite, rapor',
+        creator: 'KYS'
+      });
     } catch (error) {
       console.warn('Font yükleme hatası:', error);
+      // Fallback olarak helvetica kullan
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
     }
+  };
+
+  // Advanced UTF-8 text encoding fonksiyonu
+  const fixTurkishChars = (text: string): string => {
+    // UTF-8 encoding için HTML entity'leri kullan
+    return text
+      .replace(/İ/g, '\u0130')  // İ
+      .replace(/ı/g, '\u0131')  // ı  
+      .replace(/Ğ/g, '\u011E')  // Ğ
+      .replace(/ğ/g, '\u011F')  // ğ
+      .replace(/Ü/g, '\u00DC')  // Ü
+      .replace(/ü/g, '\u00FC')  // ü
+      .replace(/Ş/g, '\u015E')  // Ş
+      .replace(/ş/g, '\u015F')  // ş
+      .replace(/Ö/g, '\u00D6')  // Ö
+      .replace(/ö/g, '\u00F6')  // ö
+      .replace(/Ç/g, '\u00C7')  // Ç
+      .replace(/ç/g, '\u00E7'); // ç
   };
 
   // Filtrelenmiş veri al
@@ -1499,17 +1530,17 @@ const QuarantineManagement: React.FC = () => {
     // Başlık
     doc.setFontSize(20);
     doc.setTextColor(25, 118, 210); // Primary color
-    doc.text('KADEME A.Ş. KALİTE YÖNETİM SİSTEMİ', 105, 20, { align: 'center' });
+    doc.text(fixTurkishChars('KADEME A.S. KALITE YONETIM SISTEMI'), 105, 20, { align: 'center' });
     
     // Rapor adı
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    doc.text(title, 105, 35, { align: 'center' });
+    doc.text(fixTurkishChars(title), 105, 35, { align: 'center' });
     
     // Tarih
     doc.setFontSize(10);
-    doc.text(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 15, 50);
-    doc.text(`Rapor Saati: ${new Date().toLocaleTimeString('tr-TR')}`, 15, 55);
+    doc.text(fixTurkishChars(`Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`), 15, 50);
+    doc.text(fixTurkishChars(`Rapor Saati: ${new Date().toLocaleTimeString('tr-TR')}`), 15, 55);
     
     // Filtre bilgileri
     let yPos = 65;
@@ -1517,19 +1548,19 @@ const QuarantineManagement: React.FC = () => {
     doc.setTextColor(100, 100, 100);
     
     if (reportFilters.status !== 'ALL') {
-      doc.text(`Durum Filtresi: ${STATUS_LABELS[reportFilters.status as keyof typeof STATUS_LABELS]}`, 15, yPos);
+      doc.text(fixTurkishChars(`Durum Filtresi: ${STATUS_LABELS[reportFilters.status as keyof typeof STATUS_LABELS]}`), 15, yPos);
       yPos += 5;
     }
     if (reportFilters.priority !== 'ALL') {
-      doc.text(`Öncelik Filtresi: ${PRIORITY_LABELS[reportFilters.priority as keyof typeof PRIORITY_LABELS]}`, 15, yPos);
+      doc.text(fixTurkishChars(`Oncelik Filtresi: ${PRIORITY_LABELS[reportFilters.priority as keyof typeof PRIORITY_LABELS]}`), 15, yPos);
       yPos += 5;
     }
     if (reportFilters.startDate) {
-      doc.text(`Başlangıç Tarihi: ${new Date(reportFilters.startDate).toLocaleDateString('tr-TR')}`, 15, yPos);
+      doc.text(fixTurkishChars(`Baslangic Tarihi: ${new Date(reportFilters.startDate).toLocaleDateString('tr-TR')}`), 15, yPos);
       yPos += 5;
     }
     if (reportFilters.endDate) {
-      doc.text(`Bitiş Tarihi: ${new Date(reportFilters.endDate).toLocaleDateString('tr-TR')}`, 15, yPos);
+      doc.text(fixTurkishChars(`Bitis Tarihi: ${new Date(reportFilters.endDate).toLocaleDateString('tr-TR')}`), 15, yPos);
       yPos += 5;
     }
     
@@ -1547,52 +1578,73 @@ const QuarantineManagement: React.FC = () => {
     // İstatistik tablosu
     autoTable(doc, {
       startY: startY,
-      head: [['İstatistik', 'Değer']],
+      head: [[fixTurkishChars('Istatistik'), fixTurkishChars('Deger')]],
       body: [
-        ['Toplam Kayıt', summaryStats.totalItems.toString()],
-        ['Karantinada', summaryStats.inQuarantine.toString()],
-        ['Hurda', summaryStats.scrapped.toString()],
-        ['Sapma Onayı', summaryStats.approved.toString()],
-        ['Yeniden İşlem', summaryStats.reworked.toString()],
-        ['Serbest Bırakılan', summaryStats.released.toString()],
-        ['Toplam Maliyet', `₺${summaryStats.totalCost.toLocaleString('tr-TR')}`],
-        ['Ortalama İşlem Süresi', `${summaryStats.avgProcessingTime} gün`]
+        [fixTurkishChars('Toplam Kayit'), summaryStats.totalItems.toString()],
+        [fixTurkishChars('Karantinada'), summaryStats.inQuarantine.toString()],
+        [fixTurkishChars('Hurda'), summaryStats.scrapped.toString()],
+        [fixTurkishChars('Sapma Onayi'), summaryStats.approved.toString()],
+        [fixTurkishChars('Yeniden Islem'), summaryStats.reworked.toString()],
+        [fixTurkishChars('Serbest Birakilan'), summaryStats.released.toString()],
+        [fixTurkishChars('Toplam Maliyet'), `${summaryStats.totalCost.toLocaleString('tr-TR')} TL`],
+        [fixTurkishChars('Ortalama Islem Suresi'), `${summaryStats.avgProcessingTime} gun`]
       ],
       theme: 'grid',
-      headStyles: { fillColor: [25, 118, 210] },
-      styles: { fontSize: 9, cellPadding: 3 }
+      headStyles: { 
+        fillColor: [25, 118, 210],
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'bold'
+      },
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 3,
+        font: 'times'
+      }
     });
     
     // Detaylı veriler
     if (data.length > 0) {
       autoTable(doc, {
         startY: (doc as any).lastAutoTable.finalY + 15,
-        head: [['Takip No', 'Parça Kodu', 'Parça Adı', 'Miktar', 'Durum', 'Öncelik', 'Tarih']],
+        head: [[
+          fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
+          fixTurkishChars('Miktar'), fixTurkishChars('Durum'), fixTurkishChars('Oncelik'), fixTurkishChars('Tarih')
+        ]],
         body: data.map(item => [
           item.id,
           item.partCode,
-          item.partName,
+          fixTurkishChars(item.partName),
           `${item.quantity} ${item.unit}`,
-          STATUS_LABELS[item.status],
-          PRIORITY_LABELS[item.priority],
+          fixTurkishChars(STATUS_LABELS[item.status]),
+          fixTurkishChars(PRIORITY_LABELS[item.priority]),
           new Date(item.quarantineDate).toLocaleDateString('tr-TR')
         ]),
         theme: 'striped',
-        headStyles: { fillColor: [25, 118, 210] },
-        styles: { fontSize: 8, cellPadding: 2 }
+        headStyles: { 
+          fillColor: [25, 118, 210],
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: 'bold'
+        },
+        styles: { 
+          fontSize: 8, 
+          cellPadding: 2,
+          font: 'times'
+        }
       });
     }
     
     // İmza alanı
     const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 20 : startY + 50;
     doc.setFontSize(10);
-    doc.text('Hazırlayan: _________________', 15, finalY);
-    doc.text('Onaylayan: _________________', 105, finalY);
-    doc.text('Tarih: _______________', 15, finalY + 10);
-    doc.text('İmza: _______________', 105, finalY + 10);
+    doc.text(fixTurkishChars('Hazirlayan: _________________'), 15, finalY);
+    doc.text(fixTurkishChars('Onaylayan: _________________'), 105, finalY);
+    doc.text(fixTurkishChars('Tarih: _______________'), 15, finalY + 10);
+    doc.text(fixTurkishChars('Imza: _______________'), 105, finalY + 10);
     
     doc.save(`Karantina_Ozet_Raporu_${new Date().toISOString().split('T')[0]}.pdf`);
-    showNotification('Summary report created successfully!', 'success');
+    showNotification('Karantina özet raporu başarıyla oluşturuldu!', 'success');
   };
 
   // 2. Birim Bazlı Rapor
@@ -1615,20 +1667,32 @@ const QuarantineManagement: React.FC = () => {
     // Birim özet tablosu
     autoTable(doc, {
       startY: startY,
-      head: [['Birim', 'Kayit Sayisi', 'Toplam Maliyet', 'Ortalama Maliyet']],
+      head: [[
+        fixTurkishChars('Birim'), fixTurkishChars('Kayit Sayisi'), 
+        fixTurkishChars('Toplam Maliyet'), fixTurkishChars('Ortalama Maliyet')
+      ]],
       body: Object.entries(departmentStats).map(([dept, stats]) => [
-        dept,
+        fixTurkishChars(dept),
         stats.count.toString(),
         `${stats.cost.toLocaleString('tr-TR')} TL`,
         `${(stats.cost / stats.count).toLocaleString('tr-TR')} TL`
       ]),
       theme: 'grid',
-      headStyles: { fillColor: [25, 118, 210] },
-      styles: { fontSize: 9, cellPadding: 3 }
+      headStyles: { 
+        fillColor: [25, 118, 210],
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'bold'
+      },
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 3,
+        font: 'times'
+      }
     });
     
     doc.save(`Birim_Bazli_Rapor_${new Date().toISOString().split('T')[0]}.pdf`);
-    showNotification('Department report created successfully!', 'success');
+    showNotification('Birim bazlı rapor başarıyla oluşturuldu!', 'success');
   };
 
   // 3. Kritik Parçalar Raporu
@@ -1640,23 +1704,35 @@ const QuarantineManagement: React.FC = () => {
     
     if (data.length === 0) {
       doc.setFontSize(12);
-      doc.text('Kritik parça bulunamadı.', 15, startY + 20);
+      doc.text(fixTurkishChars('Kritik parca bulunamadi.'), 15, startY + 20);
     } else {
       autoTable(doc, {
         startY: startY,
-        head: [['Takip No', 'Parça Kodu', 'Parça Adı', 'Öncelik', 'Maliyet', 'Durum', 'Tarih']],
+        head: [[
+          fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
+          fixTurkishChars('Oncelik'), fixTurkishChars('Maliyet'), fixTurkishChars('Durum'), fixTurkishChars('Tarih')
+        ]],
         body: data.map(item => [
           item.id,
           item.partCode,
-          item.partName,
-          PRIORITY_LABELS[item.priority],
-          `₺${item.estimatedCost.toLocaleString('tr-TR')}`,
-          STATUS_LABELS[item.status],
+          fixTurkishChars(item.partName),
+          fixTurkishChars(PRIORITY_LABELS[item.priority]),
+          `${item.estimatedCost.toLocaleString('tr-TR')} TL`,
+          fixTurkishChars(STATUS_LABELS[item.status]),
           new Date(item.quarantineDate).toLocaleDateString('tr-TR')
         ]),
         theme: 'striped',
-        headStyles: { fillColor: [211, 47, 47] }, // Red color for critical
-        styles: { fontSize: 8, cellPadding: 2 }
+        headStyles: { 
+          fillColor: [211, 47, 47], // Red color for critical
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: 'bold'
+        },
+        styles: { 
+          fontSize: 8, 
+          cellPadding: 2,
+          font: 'times'
+        }
       });
     }
     
@@ -1682,16 +1758,28 @@ const QuarantineManagement: React.FC = () => {
     
     autoTable(doc, {
       startY: startY,
-      head: [['Ay', 'Kayıt Sayısı', 'Toplam Maliyet', 'Ortalama Maliyet']],
+      head: [[
+        fixTurkishChars('Ay'), fixTurkishChars('Kayit Sayisi'), 
+        fixTurkishChars('Toplam Maliyet'), fixTurkishChars('Ortalama Maliyet')
+      ]],
       body: Object.entries(monthlyStats).map(([month, stats]) => [
-        month,
+        fixTurkishChars(month),
         stats.count.toString(),
-        `₺${stats.cost.toLocaleString('tr-TR')}`,
-        `₺${(stats.cost / stats.count || 0).toLocaleString('tr-TR')}`
+        `${stats.cost.toLocaleString('tr-TR')} TL`,
+        `${(stats.cost / stats.count || 0).toLocaleString('tr-TR')} TL`
       ]),
       theme: 'grid',
-      headStyles: { fillColor: [25, 118, 210] },
-      styles: { fontSize: 9, cellPadding: 3 }
+      headStyles: { 
+        fillColor: [25, 118, 210],
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'bold'
+      },
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 3,
+        font: 'times'
+      }
     });
     
     doc.save(`Zaman_Bazli_Rapor_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -1721,18 +1809,27 @@ const QuarantineManagement: React.FC = () => {
     
     autoTable(doc, {
       startY: startY,
-      head: [['Performans Metriği', 'Değer']],
+      head: [[fixTurkishChars('Performans Metrigi'), fixTurkishChars('Deger')]],
       body: [
-        ['Ortalama İşlem Süresi', `${avgProcessingTime.toFixed(1)} gün`],
-        ['Başarı Oranı (Serbest Bırakma)', `%${successRate.toFixed(1)}`],
-        ['Yeniden İşlem Oranı', `%${reworkRate.toFixed(1)}`],
-        ['Hurda Oranı', `%${scrapRate.toFixed(1)}`],
-        ['Toplam İşlenen Kayıt', completedItems.length.toString()],
-        ['Bekleyen Kayıt', data.filter(item => item.status === 'KARANTINADA').length.toString()]
+        [fixTurkishChars('Ortalama Islem Suresi'), fixTurkishChars(`${avgProcessingTime.toFixed(1)} gun`)],
+        [fixTurkishChars('Basari Orani (Serbest Birakma)'), `%${successRate.toFixed(1)}`],
+        [fixTurkishChars('Yeniden Islem Orani'), `%${reworkRate.toFixed(1)}`],
+        [fixTurkishChars('Hurda Orani'), `%${scrapRate.toFixed(1)}`],
+        [fixTurkishChars('Toplam Islenen Kayit'), completedItems.length.toString()],
+        [fixTurkishChars('Bekleyen Kayit'), data.filter(item => item.status === 'KARANTINADA').length.toString()]
       ],
       theme: 'grid',
-      headStyles: { fillColor: [76, 175, 80] }, // Green color
-      styles: { fontSize: 9, cellPadding: 3 }
+      headStyles: { 
+        fillColor: [76, 175, 80], // Green color
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'bold'
+      },
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 3,
+        font: 'times'
+      }
     });
     
     doc.save(`Performans_Analizi_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -1757,15 +1854,26 @@ const QuarantineManagement: React.FC = () => {
     
     autoTable(doc, {
       startY: startY,
-      head: [['Maliyet Aralığı', 'Kayıt Sayısı', 'Yüzde']],
+      head: [[
+        fixTurkishChars('Maliyet Araligi'), fixTurkishChars('Kayit Sayisi'), fixTurkishChars('Yuzde')
+      ]],
       body: Object.entries(costRanges).map(([range, count]) => [
-        range,
+        fixTurkishChars(range),
         count.toString(),
         `%${((count / (data.length || 1)) * 100).toFixed(1)}`
       ]),
       theme: 'grid',
-      headStyles: { fillColor: [255, 152, 0] }, // Orange color
-      styles: { fontSize: 9, cellPadding: 3 }
+      headStyles: { 
+        fillColor: [255, 152, 0], // Orange color
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'bold'
+      },
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 3,
+        font: 'times'
+      }
     });
     
     doc.save(`Maliyet_Analizi_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -1781,15 +1889,15 @@ const QuarantineManagement: React.FC = () => {
     switch (type) {
       case 'daily':
         startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        title = 'GÜNLÜK KARANTİNA RAPORU';
+        title = fixTurkishChars('GUNLUK KARANTINA RAPORU');
         break;
       case 'weekly':
         startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
-        title = 'HAFTALIK KARANTİNA RAPORU';
+        title = fixTurkishChars('HAFTALIK KARANTINA RAPORU');
         break;
       case 'monthly':
         startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-        title = 'AYLIK KARANTİNA RAPORU';
+        title = fixTurkishChars('AYLIK KARANTINA RAPORU');
         break;
     }
     
@@ -1799,22 +1907,34 @@ const QuarantineManagement: React.FC = () => {
     
     if (data.length === 0) {
       doc.setFontSize(12);
-      doc.text('Bu tarih aralığında kayıt bulunamadı.', 15, startY + 20);
+      doc.text(fixTurkishChars('Bu tarih araliginda kayit bulunamadi.'), 15, startY + 20);
     } else {
       autoTable(doc, {
         startY: startY,
-        head: [['Takip No', 'Parça Kodu', 'Durum', 'Öncelik', 'Maliyet', 'Tarih']],
+        head: [[
+          fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Durum'), 
+          fixTurkishChars('Oncelik'), fixTurkishChars('Maliyet'), fixTurkishChars('Tarih')
+        ]],
         body: data.map(item => [
           item.id,
           item.partCode,
-          STATUS_LABELS[item.status],
-          PRIORITY_LABELS[item.priority],
-          `₺${item.estimatedCost.toLocaleString('tr-TR')}`,
+          fixTurkishChars(STATUS_LABELS[item.status]),
+          fixTurkishChars(PRIORITY_LABELS[item.priority]),
+          `${item.estimatedCost.toLocaleString('tr-TR')} TL`,
           new Date(item.quarantineDate).toLocaleDateString('tr-TR')
         ]),
         theme: 'striped',
-        headStyles: { fillColor: [25, 118, 210] },
-        styles: { fontSize: 8, cellPadding: 2 }
+        headStyles: { 
+          fillColor: [25, 118, 210],
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: 'bold'
+        },
+        styles: { 
+          fontSize: 8, 
+          cellPadding: 2,
+          font: 'times'
+        }
       });
     }
     
@@ -1829,28 +1949,125 @@ const QuarantineManagement: React.FC = () => {
     
     if (data.length === 0) {
       doc.setFontSize(12);
-      doc.text('Tabloda görüntülenecek kayıt bulunamadı.', 15, startY + 20);
+      doc.text(fixTurkishChars('Tabloda goruntulenecek kayit bulunamadi.'), 15, startY + 20);
     } else {
       autoTable(doc, {
         startY: startY,
-        head: [['Takip No', 'Parça Kodu', 'Parça Adı', 'Durum', 'Öncelik', 'Birim', 'Tarih']],
+        head: [[
+          fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
+          fixTurkishChars('Durum'), fixTurkishChars('Oncelik'), fixTurkishChars('Birim'), fixTurkishChars('Tarih')
+        ]],
         body: data.map(item => [
           item.id,
           item.partCode,
-          item.partName,
-          STATUS_LABELS[item.status],
-          PRIORITY_LABELS[item.priority],
-          item.responsibleDepartment,
+          fixTurkishChars(item.partName),
+          fixTurkishChars(STATUS_LABELS[item.status]),
+          fixTurkishChars(PRIORITY_LABELS[item.priority]),
+          fixTurkishChars(item.responsibleDepartment),
           new Date(item.quarantineDate).toLocaleDateString('tr-TR')
         ]),
         theme: 'striped',
-        headStyles: { fillColor: [25, 118, 210] },
-        styles: { fontSize: 8, cellPadding: 2 }
+        headStyles: { 
+          fillColor: [25, 118, 210],
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: 'bold'
+        },
+        styles: { 
+          fontSize: 8, 
+          cellPadding: 2,
+          font: 'times'
+        }
       });
     }
     
     doc.save(`Karantina_Tablosu_${new Date().toISOString().split('T')[0]}.pdf`);
-    showNotification('Tablo PDF raporu olusturuldu!', 'success');
+    showNotification('Tablo PDF raporu başarıyla oluşturuldu!', 'success');
+  };
+
+  // 🏷️ Karantina Alan Takip Listesi (Duvara asılmak için)
+  const generateQuarantineWallChart = () => {
+    // Sadece aktif karantina kayıtlarını al
+    const activeQuarantineData = quarantineData.filter(item => item.status === 'KARANTINADA');
+    
+    // Standard PDF template kullan
+    const { doc, startY } = createPDFTemplate(fixTurkishChars('KARANTINA ALAN TAKIP LISTESI'));
+    
+    // Uyarı bilgisi ekle
+    doc.setFontSize(12);
+    doc.setTextColor(220, 38, 127);
+    doc.text(fixTurkishChars('*** BU ALANDAKI URUNLER KARANTINADADIR - YETKISIZ KULLANIM YASAKTIR ***'), 105, startY, { align: 'center' });
+    
+    let yPosition = startY + 15;
+    
+    if (activeQuarantineData.length === 0) {
+      // Karantinada ürün yoksa
+      doc.setFontSize(12);
+      doc.setTextColor(76, 175, 80);
+      doc.text(fixTurkishChars('Karantina alaninda urun bulunmamaktadir.'), 15, yPosition + 20);
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(fixTurkishChars('Bu alan su anda temizdir ve kullanima hazirdir.'), 15, yPosition + 35);
+    } else {
+      // Aktif karantina listesi - günlük rapor formatında
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text(fixTurkishChars(`Toplam ${activeQuarantineData.length} Urun Karantinada`), 15, yPosition);
+      
+      // Standard tablo formatı - günlük rapor gibi
+      autoTable(doc, {
+        startY: yPosition + 10,
+        head: [[
+          fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
+          fixTurkishChars('Miktar'), fixTurkishChars('Oncelik'), fixTurkishChars('Tarih'), fixTurkishChars('Sure')
+        ]],
+        body: activeQuarantineData.map(item => {
+          const quarantineDate = new Date(item.quarantineDate);
+          const today = new Date();
+          const daysDiff = Math.floor((today.getTime() - quarantineDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          return [
+            item.id,
+            item.partCode,
+            fixTurkishChars(item.partName.length > 20 ? item.partName.substring(0, 18) + '...' : item.partName),
+            `${item.quantity} ${item.unit}`,
+            fixTurkishChars(PRIORITY_LABELS[item.priority]),
+            quarantineDate.toLocaleDateString('tr-TR'),
+            fixTurkishChars(`${daysDiff} gun`)
+          ];
+        }),
+        theme: 'striped',
+        headStyles: { 
+          fillColor: [25, 118, 210], // Standard mavi
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: 'bold'
+        },
+        styles: { 
+          fontSize: 8, 
+          cellPadding: 2,
+          font: 'times'
+        }
+      });
+      
+      // Liste bilgisi
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(fixTurkishChars('Bu liste gunluk guncellenmektedir.'), 15, finalY);
+    }
+    
+    // İmza alanı - günlük rapor gibi
+    const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 25 : yPosition + 50;
+    doc.setFontSize(10);
+    doc.text(fixTurkishChars('Hazirlayan: _________________'), 15, finalY);
+    doc.text(fixTurkishChars('Onaylayan: _________________'), 105, finalY);
+    doc.text(fixTurkishChars('Tarih: _______________'), 15, finalY + 10);
+    doc.text(fixTurkishChars('Imza: _______________'), 105, finalY + 10);
+    
+    // Dosyayı kaydet
+    doc.save(`Karantina_Alan_Takip_Listesi_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('Karantina alan takip listesi başarıyla oluşturuldu!', 'success');
   };
 
   return (
@@ -2982,6 +3199,23 @@ const QuarantineManagement: React.FC = () => {
                   onClick={() => showNotification('Özel rapor tasarlayıcısı açılıyor...', 'info')}
                 >
                   Özel Rapor Tasarla
+                </Button>
+                
+                <Button 
+                  variant="contained"
+                  color="error"
+                  startIcon={<PrintIcon />}
+                  onClick={generateQuarantineWallChart}
+                  sx={{ 
+                    fontWeight: 'bold',
+                    boxShadow: 3,
+                    '&:hover': {
+                      boxShadow: 6,
+                      transform: 'translateY(-1px)'
+                    }
+                  }}
+                >
+                  🏷️ Karantina Alan Listesi
                 </Button>
               </Box>
 
