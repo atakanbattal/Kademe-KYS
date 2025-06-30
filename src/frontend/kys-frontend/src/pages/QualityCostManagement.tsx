@@ -5611,7 +5611,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               }
               
               // Debug bilgisi ekle
-              console.log('🎯 DETAYLI HEDEF EŞLEŞTİRME DEBUG:', {
+                            console.log('🎯 HEDEF YÖNETİMİ EŞLEŞTİRME DEBUG:', {
                 // Araç bilgileri
                 vehicle: {
                   kategori: vehicle.kategori,
@@ -5620,75 +5620,103 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   categoryModels: vehicle.categoryModels
                 },
                 
-                // Hedef durumu
-                targets: {
-                  totalCount: vehicleTargets.length,
-                  allTargets: vehicleTargets.map(t => ({ 
+                // Hedef Yönetimi Sekmesi Durumu
+                targetManagement: {
+                  totalTargetsCount: vehicleTargets.length,
+                  localStorageKey: 'vehicle-targets',
+                  availableTargets: vehicleTargets.map(t => ({ 
                     id: t.id,
                     kategori: t.kategori, 
                     aracModeli: t.aracModeli, 
                     donem: t.donem, 
                     isActive: t.isActive,
-                    hedefler: t.hedefler ? 'mevcut' : 'yok'
+                    hedefler: {
+                      ret: t.hedefler?.maksRetAdet || 'undefined',
+                      hurda: t.hedefler?.maksHurdaKg || 'undefined',  
+                      fire: t.hedefler?.maksFireKg || 'undefined'
+                    }
                   })),
-                  activeTargets: vehicleTargets.filter(t => t.isActive !== false),
-                  categorySpecificTargets: vehicleTargets.filter(t => t.kategori === vehicle.kategori),
-                  modelSpecificTargets: vehicleTargets.filter(t => t.aracModeli === vehicle.aracModeli)
+                  activeTargets: vehicleTargets.filter(t => t.isActive !== false).length,
+                  categorySpecificTargets: vehicleTargets.filter(t => t.kategori === vehicle.kategori).length
                 },
                 
-                                 // Normalizasyon bilgileri
-                 normalization: {
-                   vehicleCategory: vehicle.kategori,
-                   normalizedVehicleCategory: normalizedVehicleCategory,
-                   displayName: vehicle.displayName || displayName,
-                   normalizedDisplayName: normalizedDisplayName,
-                   targetCategories: vehicleTargets.map(t => ({
-                     original: t.kategori,
-                     normalized: normalizeCategory(t.kategori || ''),
-                     match: normalizeCategory(t.kategori || '') === normalizedVehicleCategory
-                   }))
-                 },
-                 
-                 // Eşleştirme sonuçları
-                 matching: {
-                   foundTarget: categoryTarget ? {
-                     id: categoryTarget.id,
-                     kategori: categoryTarget.kategori,
-                     aracModeli: categoryTarget.aracModeli,
-                     donem: categoryTarget.donem,
-                     isActive: categoryTarget.isActive
-                   } : null,
-                   searchResults: {
-                     step1_exactKategoriAktif: vehicleTargets.filter(t => t.kategori === vehicle.kategori && t.isActive !== false).length,
-                     step2_exactModelAktif: vehicleTargets.filter(t => t.aracModeli === vehicle.aracModeli && t.isActive !== false).length,
-                     step3_normalizedKategoriAktif: vehicleTargets.filter(t => normalizeCategory(t.kategori || '') === normalizedVehicleCategory && t.isActive !== false).length,
-                     step4_normalizedDisplayNameAktif: vehicleTargets.filter(t => 
-                       (normalizeCategory(t.kategori || '') === normalizedDisplayName || normalizeCategory(t.aracModeli || '') === normalizedDisplayName) && 
-                       t.isActive !== false
-                     ).length,
-                     step5_exactKategoriTum: vehicleTargets.filter(t => t.kategori === vehicle.kategori).length,
-                     step6_normalizedKategoriTum: vehicleTargets.filter(t => normalizeCategory(t.kategori || '') === normalizedVehicleCategory).length
-                   }
-                 }
+                // Eşleştirme Algoritması 
+                algorithm: {
+                  normalizedVehicleCategory: normalizedVehicleCategory,
+                  normalizedDisplayName: normalizedDisplayName,
+                  step1_exactMatch: vehicleTargets.filter(t => t.kategori === vehicle.kategori && t.isActive !== false).length,
+                  step2_modelMatch: vehicleTargets.filter(t => t.aracModeli === vehicle.aracModeli && t.isActive !== false).length,
+                  step3_normalizedMatch: vehicleTargets.filter(t => normalizeCategory(t.kategori || '') === normalizedVehicleCategory && t.isActive !== false).length,
+                  finalMatch: categoryTarget ? `✅ Hedef bulundu: ${categoryTarget.kategori} (${categoryTarget.donem})` : '❌ Hedef bulunamadı - Hedef Yönetimi sekmesine yönlendirilecek'
+                }
               });
               
-              // Hedef yoksa varsayılan hedefler kullan (genel performans standartları)
+              // ⚠️ Hedef bulunamadı - Hedef Yönetimi sekmesinden hedef oluşturulmasını iste
               if (!categoryTarget) {
-                categoryTarget = {
-                  id: `default-${vehicle.kategori}`,
-                  kategori: vehicle.kategori || 'Genel',
-                  aracModeli: vehicle.aracModeli || 'Genel',
-                  donem: '2025',
-                  isActive: true,
-                  hedefler: {
-                    maksRetAdet: 2.0,      // Varsayılan: 2 adet ret/araç
-                    maksHurdaKg: 1.5,      // Varsayılan: 1.5 kg hurda/araç
-                    maksFireKg: 0.5        // Varsayılan: 0.5 kg fire/araç
-                  },
-                  createdDate: new Date().toISOString(),
-                  updatedDate: new Date().toISOString(),
-                  createdBy: 'system-default'
-                };
+                return (
+                  <Box sx={{ mb: 3, p: 3, bgcolor: 'warning.50', borderRadius: 2, border: '2px dashed', borderColor: 'warning.main' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Box sx={{ 
+                        width: 40, 
+                        height: 40, 
+                        borderRadius: '50%', 
+                        bgcolor: 'warning.main',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        mr: 2
+                      }}>
+                        <Typography variant="h6" color="white" fontWeight={700}>
+                          ⚠️
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={600} color="warning.dark">
+                          Hedef Belirlenmemiş
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {displayName} kategorisi için performans hedefleri bulunamadı
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontStyle: 'italic' }}>
+                      Bu kategorinin performansını ölçebilmek için önce "Hedef Yönetimi" sekmesinden hedefler belirlemelisiniz.
+                    </Typography>
+                    
+                    <Button
+                      variant="contained"
+                      color="warning"
+                      size="large"
+                      fullWidth
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Hedef Yönetimi sekmesine geç (tab index 4)
+                        setCurrentTab(4);
+                        // Scroll to top
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      sx={{ 
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        py: 1.5,
+                        boxShadow: 3,
+                        '&:hover': {
+                          boxShadow: 6,
+                          transform: 'translateY(-1px)'
+                        }
+                      }}
+                    >
+                      🎯 Hedef Yönetimi Sekmesine Git
+                    </Button>
+                    
+                    <Box sx={{ mt: 2, p: 1.5, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
+                      <Typography variant="caption" color="info.dark" sx={{ fontWeight: 500 }}>
+                        💡 İpucu: Hedef Yönetimi sekmesinde bu kategori için Ret, Hurda ve Fire hedeflerini adet/kg cinsinden belirleyebilirsiniz.
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
               }
 
               // ⚡ ARAÇ BAŞINA PERFORMANS HESAPLAMA - Hedefler araç başına olduğu için üretim sayısıyla çarpılır
@@ -5730,17 +5758,17 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               const hurdaPerformans = calculatePerVehiclePerformance(vehicle.atikTuruDagilim.hurda.kg, categoryTarget.hedefler.maksHurdaKg, productionCount);
               const firePerformans = calculatePerVehiclePerformance(vehicle.atikTuruDagilim.fire.kg, categoryTarget.hedefler.maksFireKg, productionCount);
 
-              return (
+                            return (
                 <Box sx={{ mb: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="subtitle2" fontWeight={600}>
                       Hedef Performansı
                     </Typography>
                     <Chip
-                      label={categoryTarget.createdBy === 'system-default' ? 'Varsayılan Hedefler' : `Dönem: ${categoryTarget.donem}`}
+                      label={`Dönem: ${categoryTarget.donem}`}
                       size="small"
                       variant="outlined"
-                      color={categoryTarget.createdBy === 'system-default' ? 'warning' : 'primary'}
+                      color="primary"
                       sx={{ 
                         fontWeight: 600,
                         fontSize: '0.75rem',
@@ -14606,12 +14634,12 @@ const CategoryProductionManagementComponent: React.FC<{
 
                     {/* Dönem ve Kategori */}
                     <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                      <Chip 
-                        label={production.donem} 
-                        color="primary"
-                        variant="outlined"
-                        size="small"
-                      />
+                  <Chip 
+                    label={production.donem} 
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                  />
                       <Chip 
                         label={production.kategori} 
                         color="secondary"
@@ -14634,10 +14662,10 @@ const CategoryProductionManagementComponent: React.FC<{
                           }}>
                             <Typography variant="h5" color="primary" fontWeight="bold">
                               {production.uretilenAracSayisi}
-                            </Typography>
+                  </Typography>
                             <Typography variant="caption" color="text.secondary">
                               Üretilen
-                            </Typography>
+                  </Typography>
                           </Box>
                         </Grid>
                         <Grid item xs={6}>
@@ -14651,10 +14679,10 @@ const CategoryProductionManagementComponent: React.FC<{
                           }}>
                             <Typography variant="h5" color="success.main" fontWeight="bold">
                               {production.planlanmisUretim || '-'}
-                            </Typography>
+                  </Typography>
                             <Typography variant="caption" color="text.secondary">
                               Planlanan
-                            </Typography>
+                  </Typography>
                           </Box>
                         </Grid>
                       </Grid>
@@ -14662,10 +14690,10 @@ const CategoryProductionManagementComponent: React.FC<{
 
                     {/* Performans Durumu */}
                     <Box sx={{ mb: 2 }}>
-                      <Chip
-                        label={getStatusText(production)}
-                        color={getStatusColor(production)}
-                        size="small"
+                  <Chip
+                    label={getStatusText(production)}
+                    color={getStatusColor(production)}
+                    size="small"
                         sx={{ width: '100%', justifyContent: 'center' }}
                       />
                     </Box>
@@ -14682,7 +14710,7 @@ const CategoryProductionManagementComponent: React.FC<{
                         WebkitBoxOrient: 'vertical'
                       }}>
                         {production.aciklama}
-                      </Typography>
+                  </Typography>
                     )}
                   </CardContent>
 
@@ -14721,22 +14749,22 @@ const CategoryProductionManagementComponent: React.FC<{
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Düzenle">
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleEditProduction(production)}
-                        color="primary"
-                      >
-                        <EditIcon />
-                      </IconButton>
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleEditProduction(production)}
+                      color="primary"
+                    >
+                      <EditIcon />
+                    </IconButton>
                     </Tooltip>
                     <Tooltip title="Sil">
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleDeleteProduction(production)}
-                        color="error"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleDeleteProduction(production)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                     </Tooltip>
                   </CardActions>
                 </Card>
