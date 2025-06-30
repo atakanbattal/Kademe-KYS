@@ -88,7 +88,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 // ============================================
-// 🔥 ENHANCED INTERFACES & TYPES
+// ENHANCED INTERFACES & TYPES
 // ============================================
 
 interface QuarantineRecord {
@@ -216,7 +216,7 @@ interface FormValidation {
 }
 
 // ============================================
-// 🎯 ENHANCED CONSTANTS
+// ENHANCED CONSTANTS
 // ============================================
 
 const QUARANTINE_REASONS = [
@@ -396,7 +396,7 @@ const MONTHS = [
 ];
 
 // ============================================
-// 🚀 ENHANCED MAIN COMPONENT
+// ENHANCED MAIN COMPONENT
 // ============================================
 
 const QuarantineManagement: React.FC = () => {
@@ -615,7 +615,7 @@ const QuarantineManagement: React.FC = () => {
   });
 
   // ============================================
-  // 🔥 HANDLER FUNCTIONS
+  // HANDLER FUNCTIONS
   // ============================================
   
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -644,7 +644,7 @@ const QuarantineManagement: React.FC = () => {
   };
 
   // ============================================
-  // 🔥 DYNAMIC LIST MANAGEMENT FUNCTIONS
+  // DYNAMIC LIST MANAGEMENT FUNCTIONS
   // ============================================
 
   const handleAddPartCode = () => {
@@ -747,7 +747,7 @@ const QuarantineManagement: React.FC = () => {
   };
 
   // ============================================
-  // 🔥 ENHANCED UTILITY FUNCTIONS
+  // ENHANCED UTILITY FUNCTIONS
   // ============================================
   
   const formatUnit = (unit: string): string => {
@@ -841,7 +841,7 @@ const QuarantineManagement: React.FC = () => {
   }, [formData]);
 
   // ============================================
-  // 🔥 DATA PERSISTENCE FUNCTIONS (Same as before)
+  // DATA PERSISTENCE FUNCTIONS (Same as before)
   // ============================================
   
   const STORAGE_KEY = 'quarantine_management_data';
@@ -849,9 +849,9 @@ const QuarantineManagement: React.FC = () => {
   const saveToStorage = useCallback((data: QuarantineRecord[]) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      console.log('✅ Karantina verileri başarıyla kaydedildi:', data.length);
+      console.log('Karantina verileri başarıyla kaydedildi:', data.length);
     } catch (error) {
-      console.error('❌ Karantina verileri kaydedilemedi:', error);
+      console.error('Karantina verileri kaydedilemedi:', error);
     }
   }, []);
   
@@ -860,7 +860,7 @@ const QuarantineManagement: React.FC = () => {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const data = JSON.parse(stored);
-        console.log('✅ Karantina verileri yüklendi:', data.length);
+        console.log('Karantina verileri yüklendi:', data.length);
         return data;
       }
       
@@ -870,7 +870,7 @@ const QuarantineManagement: React.FC = () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
       return sampleData;
     } catch (error) {
-      console.error('❌ Karantina verileri yüklenemedi:', error);
+      console.error('Karantina verileri yüklenemedi:', error);
     }
     return [];
   }, []);
@@ -1039,7 +1039,7 @@ const QuarantineManagement: React.FC = () => {
     return sampleRecords;
   };
 
-  // 🚀 Otomatik Karantina Takip Numarası Generator
+  // Otomatik Karantina Takip Numarası Generator
   const generateQuarantineTrackingNumber = useCallback(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -1101,7 +1101,7 @@ const QuarantineManagement: React.FC = () => {
   };
 
   // ============================================
-  // 🔥 DATA OPERATIONS (Same as before)
+  // DATA OPERATIONS (Same as before)
   // ============================================
   
   const loadData = useCallback(() => {
@@ -1250,7 +1250,7 @@ const QuarantineManagement: React.FC = () => {
   }, [quarantineData, filters, calculateStats]);
 
   // ============================================
-  // 🔥 COMPONENT LIFECYCLE
+  // COMPONENT LIFECYCLE
   // ============================================
   
   useEffect(() => {
@@ -1276,11 +1276,11 @@ const QuarantineManagement: React.FC = () => {
   }, [formData, autoSave, addDialog]);
 
   // ============================================
-  // 🔥 ENHANCED EVENT HANDLERS
+  // ENHANCED EVENT HANDLERS
   // ============================================
   
   const handleAddRecord = () => {
-    // 🚀 Otomatik karantina takip numarası oluştur
+    // Otomatik karantina takip numarası oluştur
     const newTrackingNumber = generateQuarantineTrackingNumber();
     
     setFormData({
@@ -1620,7 +1620,7 @@ const QuarantineManagement: React.FC = () => {
   };
 
   // ============================================
-  // 🔥 RAPOR FONKSIYONLARI
+  // RAPOR FONKSIYONLARI
   // ============================================
 
   // PDF'de Türkçe karakter desteği için font ekle
@@ -3483,7 +3483,7 @@ const QuarantineManagement: React.FC = () => {
                   </Typography>
                   
                   <Grid container spacing={3}>
-                    {/* 🚀 Karantina Takip Numarası */}
+                    {/* Karantina Takip Numarası */}
                     <Grid item xs={12} sm={4}>
                       <TextField
                         fullWidth
@@ -3512,7 +3512,7 @@ const QuarantineManagement: React.FC = () => {
                       />
                     </Grid>
                     
-                    {/* 📅 Karantinaya Alınış Tarihi */}
+                                          {/* Karantinaya Alınış Tarihi */}
                     <Grid item xs={12} sm={4}>
                       <TextField
                         fullWidth
