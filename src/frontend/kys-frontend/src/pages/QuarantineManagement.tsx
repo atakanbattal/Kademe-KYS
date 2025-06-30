@@ -1051,7 +1051,11 @@ const QuarantineManagement: React.FC = () => {
   // ============================================
   
   const handleAddRecord = () => {
+    // 🚀 Otomatik karantina takip numarası oluştur
+    const newTrackingNumber = generateQuarantineTrackingNumber();
+    
     setFormData({
+      id: newTrackingNumber,
       partCode: '',
       partName: '',
       quantity: 0,
@@ -1093,6 +1097,9 @@ const QuarantineManagement: React.FC = () => {
     setFormValidation({});
     setFormProgress(0);
     setAddDialog(true);
+    
+    // Takip numarası bilgisi göster
+    showNotification(`Yeni karantina takip numarası: ${newTrackingNumber}`, 'info');
   };
 
 
@@ -1657,6 +1664,9 @@ const QuarantineManagement: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
+                      Takip No
+                    </TableCell>
                     <TableCell>Parça Kodu</TableCell>
                     <TableCell>Parça Adı</TableCell>
                     <TableCell>Miktar</TableCell>
@@ -1671,7 +1681,7 @@ const QuarantineManagement: React.FC = () => {
                 <TableBody>
                   {filteredData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} align="center">
+                      <TableCell colSpan={10} align="center">
                         <Typography variant="body1" color="text.secondary" sx={{ py: 4 }}>
                           Henüz karantina kaydı bulunmamaktadır.
                         </Typography>
@@ -1681,10 +1691,18 @@ const QuarantineManagement: React.FC = () => {
                     filteredData.map((record) => (
                       <TableRow key={record.id} hover>
                         <TableCell>
-                          <Typography variant="body2" fontWeight={500}>
-                            {record.partCode}
+                          <Typography variant="body2" fontWeight="bold" color="primary.main" sx={{ 
+                            fontSize: '0.8rem',
+                            fontFamily: 'monospace',
+                            bgcolor: 'action.hover',
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1
+                          }}>
+                            {record.id}
                           </Typography>
                         </TableCell>
+                        <TableCell>{record.partCode}</TableCell>
                         <TableCell>{record.partName}</TableCell>
                         <TableCell>
                           {record.quantity} {formatUnit(record.unit)}
@@ -2295,6 +2313,35 @@ const QuarantineManagement: React.FC = () => {
                   </Typography>
                   
                   <Grid container spacing={3}>
+                    {/* 🚀 Karantina Takip Numarası */}
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        fullWidth
+                        label="Karantina Takip Numarası"
+                        value={formData.id || ''}
+                        InputProps={{
+                          readOnly: true,
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <QrCodeIcon color="primary" />
+                            </InputAdornment>
+                          ),
+                        }}
+                        variant="outlined"
+                        sx={{
+                          '& .MuiInputBase-input': {
+                            fontWeight: 'bold',
+                            color: 'primary.main',
+                            textAlign: 'center'
+                          },
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: 'action.hover'
+                          }
+                        }}
+                        helperText="Otomatik oluşturulan takip numarası"
+                      />
+                    </Grid>
+                    
                     <Grid item xs={12} sm={8}>
                       <Autocomplete
                         freeSolo
