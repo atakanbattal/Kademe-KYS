@@ -739,20 +739,43 @@ const generateIntegratedKPIs = (): KPI[] => {
         'selectedData': equipmentData.length
       });
       
+      // Veri yapısını detaylarıyla debug et
+      console.log('🔍 DEBUG - Equipment Data Structure:', {
+        sampleData: equipmentData.slice(0, 3),
+        allEquipmentStatuses: equipmentData.map(eq => ({ 
+          id: eq.id, 
+          name: eq.equipmentName || eq.name,
+          status: eq.status, 
+          calibrationStatus: eq.calibrationStatus,
+          nextCalibrationDate: eq.nextCalibrationDate,
+          lastCalibrationDate: eq.lastCalibrationDate 
+        }))
+      });
+      
       const totalEquipment = equipmentData.length;
-      const overdueCalibrations = equipmentData.filter((eq: any) => {
-        if (!eq.nextCalibrationDate) return false;
-        const dueDate = new Date(eq.nextCalibrationDate);
-        const today = new Date();
-        return dueDate < today && eq.status !== 'calibrated';
+      
+      // Daha kapsamlı kalibrasyon durumu kontrolü
+      const calibratedEquipment = equipmentData.filter((eq: any) => {
+        // Birden fazla status kontrolü
+        const isCalibrated = 
+          eq.status === 'calibrated' || 
+          eq.status === 'active' || 
+          eq.calibrationStatus === 'valid' ||
+          eq.calibrationStatus === 'calibrated' ||
+          eq.calibrationStatus === 'current' ||
+          (eq.nextCalibrationDate && new Date(eq.nextCalibrationDate) > new Date());
+        
+        return isCalibrated;
       }).length;
       
-      const calibrationComplianceRate = totalEquipment > 0 ? ((totalEquipment - overdueCalibrations) / totalEquipment) * 100 : 100;
+      const calibrationComplianceRate = totalEquipment > 0 ? (calibratedEquipment / totalEquipment) * 100 : 100;
       
       console.log('📊 KPI Integration - Equipment Calibration Data:', {
         totalEquipment,
-        overdueCalibrations,
-        calibrationComplianceRate
+        calibratedEquipment,
+        nonCalibratedEquipment: totalEquipment - calibratedEquipment,
+        calibrationComplianceRate,
+        calculation: `${calibratedEquipment}/${totalEquipment} * 100 = ${calibrationComplianceRate.toFixed(2)}%`
       });
       
       return totalEquipment > 0 ? [
@@ -785,9 +808,9 @@ const generateIntegratedKPIs = (): KPI[] => {
           historicalData: generateHistoricalData('calibration-compliance-rate', calibrationComplianceRate, 98)
         },
         {
-          id: 'overdue-calibrations',
-          title: 'Gecikmiş Kalibrasyon Sayısı',
-          description: 'Kalibrasyon tarihi geçmiş ekipman sayısı',
+          id: 'non-calibrated-equipment',
+          title: 'Kalibre Edilmemiş Ekipman Sayısı',
+          description: 'Kalibrasyon gerekli ancak henüz kalibre edilmemiş ekipman sayısı',
           category: 'quality',
           department: 'Kalite Güvence',
           responsible: 'Kalibrasyon Sorumlusu',
@@ -796,21 +819,21 @@ const generateIntegratedKPIs = (): KPI[] => {
           dataType: 'automatic',
           dataSource: 'Ekipman Kalibrasyon Modülü',
           targetValue: 0,
-          currentValue: overdueCalibrations,
-          previousValue: overdueCalibrations + 1,
+          currentValue: totalEquipment - calibratedEquipment,
+          previousValue: (totalEquipment - calibratedEquipment) + 1,
           warningThreshold: 2,
           criticalThreshold: 5,
           isIncreasing: false,
           lastUpdated: currentTime,
-          status: overdueCalibrations === 0 ? 'excellent' : overdueCalibrations <= 2 ? 'good' : overdueCalibrations <= 5 ? 'warning' : 'critical',
+          status: (totalEquipment - calibratedEquipment) === 0 ? 'excellent' : (totalEquipment - calibratedEquipment) <= 2 ? 'good' : (totalEquipment - calibratedEquipment) <= 5 ? 'warning' : 'critical',
           trend: 'down',
           isFavorite: false,
           isActive: true,
           createdAt: currentTime,
           updatedAt: currentTime,
           moduleSource: 'EquipmentCalibrationManagement',
-          progress: Math.max(0, 100 - (overdueCalibrations * 20)),
-          historicalData: generateHistoricalData('overdue-calibrations', overdueCalibrations, 0)
+          progress: Math.max(0, 100 - ((totalEquipment - calibratedEquipment) * 20)),
+          historicalData: generateHistoricalData('non-calibrated-equipment', totalEquipment - calibratedEquipment, 0)
         }
       ] : [];
     } catch (error) {
