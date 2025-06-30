@@ -79,7 +79,8 @@ import {
   FilterList as FilterListIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
-  QrCode as QrCodeIcon
+  QrCode as QrCodeIcon,
+  Event as EventIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -492,6 +493,7 @@ const QuarantineManagement: React.FC = () => {
     estimatedCost: 0,
     attachments: [],
     followUpActions: [],
+    quarantineDate: new Date().toISOString().split('T')[0], // Karantinaya alınış tarihi eklendi
     // Yeni alanlar
     location: '',
     inspectionType: '',
@@ -1118,6 +1120,7 @@ const QuarantineManagement: React.FC = () => {
       estimatedCost: 0,
       attachments: [],
       followUpActions: [],
+      quarantineDate: new Date().toISOString().split('T')[0], // Manuel düzenlenebilir karantina tarihi
       location: '',
       inspectionType: '',
       inspectionDate: '',
@@ -1332,7 +1335,7 @@ const QuarantineManagement: React.FC = () => {
       quarantineReason: formData.quarantineReason!,
       responsibleDepartment: formData.responsibleDepartment!,
       responsiblePersons: formData.responsiblePersons || [],
-      quarantineDate: selectedRecord?.quarantineDate || now,
+      quarantineDate: formData.quarantineDate || selectedRecord?.quarantineDate || now,
       supplierName: formData.supplierName || '',
       productionOrder: formData.productionOrder || '',
       inspectionResults: formData.inspectionResults || '',
@@ -2661,6 +2664,33 @@ const QuarantineManagement: React.FC = () => {
                           }
                         }}
                         helperText="Otomatik oluşturulan takip numarası"
+                      />
+                    </Grid>
+                    
+                    {/* 📅 Karantinaya Alınış Tarihi */}
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        fullWidth
+                        label="Karantinaya Alınış Tarihi"
+                        type="date"
+                        value={formData.quarantineDate || new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setFormData(prev => ({ ...prev, quarantineDate: e.target.value }))}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <EventIcon color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                        helperText="Manuel olarak düzenlenebilir"
+                        sx={{
+                          '& .MuiInputBase-input': {
+                            fontWeight: 600
+                          }
+                        }}
                       />
                     </Grid>
                     
