@@ -14123,7 +14123,7 @@ const CategoryProductionManagementComponent: React.FC<{
         updatedDate: new Date().toISOString(),
         createdBy: 'system',
         isActive: true,
-        aciklama: `${category} - ${donem} dönemi template`
+        aciklama: `${category} - ${donem} dönemi`
       });
     }
     
@@ -14934,8 +14934,8 @@ const CategoryProductionManagementComponent: React.FC<{
                                 fullWidth
                                 InputProps={{
                                   endAdornment: (
-                                    <InputAdornment position="end">
-                                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                    <InputAdornment position="end" sx={{ minWidth: '45px', flexShrink: 0 }}>
+                                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', whiteSpace: 'nowrap' }}>
                                         adet
                                       </Typography>
                                     </InputAdornment>
@@ -14953,8 +14953,8 @@ const CategoryProductionManagementComponent: React.FC<{
                                 fullWidth
                                 InputProps={{
                                   endAdornment: (
-                                    <InputAdornment position="end">
-                                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                    <InputAdornment position="end" sx={{ minWidth: '45px', flexShrink: 0 }}>
+                                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', whiteSpace: 'nowrap' }}>
                                         adet
                                       </Typography>
                                     </InputAdornment>
