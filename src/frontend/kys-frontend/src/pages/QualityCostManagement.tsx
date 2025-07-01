@@ -14592,6 +14592,7 @@ const CategoryProductionManagementComponent: React.FC<{
                   Seçilen Ay
                 </Typography>
                 {(() => {
+                  const selectedMonth = globalFilters?.selectedMonth || '';
                   const hasSelectedMonth = selectedMonth && selectedMonth.trim() !== '';
                   const hasData = hasSelectedMonth && filteredProductions.some(p => p.donem === selectedMonth);
                   
@@ -14618,6 +14619,7 @@ const CategoryProductionManagementComponent: React.FC<{
                 textAlign: 'center' 
               }}>
                 {(() => {
+                  const selectedMonth = globalFilters?.selectedMonth || '';
                   if (!selectedMonth || selectedMonth.trim() === '') {
                     return '-';
                   }
