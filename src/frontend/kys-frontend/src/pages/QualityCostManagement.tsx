@@ -14157,7 +14157,7 @@ const CategoryProductionManagementComponent: React.FC<{
         totalDataCount: data.length,
         allData: data,
         currentMonth: new Date().toISOString().substring(0, 7),
-        availableMonths: [...new Set(data.map(p => p.donem))].sort()
+        availableMonths: Array.from(new Set(data.map(p => p.donem))).sort()
       });
       
       setCategoryProductions(data);
