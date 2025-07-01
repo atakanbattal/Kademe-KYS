@@ -14523,9 +14523,15 @@ const CategoryProductionManagementComponent: React.FC<{
 
 
       {/* Filters */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Grid container spacing={3} alignItems="center">
-          <Grid item xs={12} md={4}>
+      <Paper sx={{ 
+        p: 3, 
+        mb: 3, 
+        borderRadius: 2,
+        boxShadow: 1,
+        border: '1px solid rgba(0, 0, 0, 0.12)'
+      }}>
+        <Grid container spacing={2} alignItems="end">
+          <Grid item xs={12} sm={6} md={4}>
             <UltimateStableSearchInput
               defaultValue={searchTerm}
               onChange={handleSearchChange}
@@ -14533,8 +14539,8 @@ const CategoryProductionManagementComponent: React.FC<{
               fullWidth
             />
           </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
+          <Grid item xs={12} sm={6} md={2.5}>
+            <FormControl fullWidth size="small">
               <InputLabel>Kategori</InputLabel>
               <Select
                 value={selectedCategory}
@@ -14548,9 +14554,10 @@ const CategoryProductionManagementComponent: React.FC<{
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} sm={6} md={2.5}>
             <TextField
               fullWidth
+              size="small"
               type="month"
               label="Ay Seçin"
               value={selectedMonth}
@@ -14566,10 +14573,15 @@ const CategoryProductionManagementComponent: React.FC<{
               helperText={selectedMonth ? `Seçili: ${selectedMonth}` : 'Ay seçiniz'}
             />
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} sm={6} md={2}>
             <Button
               fullWidth
               variant="outlined"
+              size="small"
+              sx={{ 
+                height: 40,
+                minHeight: 40
+              }}
               onClick={() => {
                 setSearchTerm('');
                 setSelectedCategory('');
@@ -14579,30 +14591,67 @@ const CategoryProductionManagementComponent: React.FC<{
               Temizle
             </Button>
           </Grid>
+          <Grid item xs={12} sm={6} md={1}>
+            {/* Boş alan - daha iyi hizalama için */}
+          </Grid>
         </Grid>
       </Paper>
 
       {/* Summary Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={2.4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <FactoryIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6">Toplam Kayıt</Typography>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ 
+            height: 140, 
+            display: 'flex', 
+            flexDirection: 'column',
+            boxShadow: 2,
+            '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' },
+            transition: 'all 0.2s ease-in-out'
+          }}>
+            <CardContent sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'space-between',
+              p: 2.5
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <FactoryIcon sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                  Toplam Kayıt
+                </Typography>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h3" sx={{ 
+                fontWeight: 'bold', 
+                color: 'primary.main',
+                textAlign: 'center' 
+              }}>
                 {filteredProductions.length}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={2.4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <DirectionsCarIcon sx={{ mr: 1, color: 'success.main' }} />
-                <Typography variant="h6">Bu Ay Üretilen</Typography>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ 
+            height: 140, 
+            display: 'flex', 
+            flexDirection: 'column',
+            boxShadow: 2,
+            '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' },
+            transition: 'all 0.2s ease-in-out'
+          }}>
+            <CardContent sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'space-between',
+              p: 2.5
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <DirectionsCarIcon sx={{ mr: 1, color: 'success.main', fontSize: 20 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                  Bu Ay Üretilen
+                </Typography>
                 {(() => {
                   const currentMonth = new Date().toISOString().substring(0, 7);
                   const hasData = filteredProductions.some(p => p.donem === currentMonth);
@@ -14619,7 +14668,11 @@ const CategoryProductionManagementComponent: React.FC<{
                   return null;
                 })()}
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h3" sx={{ 
+                fontWeight: 'bold', 
+                color: 'success.main',
+                textAlign: 'center' 
+              }}>
                 {(() => {
                   const currentMonth = new Date().toISOString().substring(0, 7);
                   
@@ -14710,12 +14763,27 @@ const CategoryProductionManagementComponent: React.FC<{
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={2.4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <DateRangeIcon sx={{ mr: 1, color: 'info.main' }} />
-                <Typography variant="h6">Seçilen Ay</Typography>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ 
+            height: 140, 
+            display: 'flex', 
+            flexDirection: 'column',
+            boxShadow: 2,
+            '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' },
+            transition: 'all 0.2s ease-in-out'
+          }}>
+            <CardContent sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'space-between',
+              p: 2.5
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <DateRangeIcon sx={{ mr: 1, color: 'info.main', fontSize: 20 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                  Seçilen Ay
+                </Typography>
                 {(() => {
                   const hasSelectedMonth = selectedMonth && selectedMonth.trim() !== '';
                   const hasData = hasSelectedMonth && filteredProductions.some(p => p.donem === selectedMonth);
@@ -14723,21 +14791,25 @@ const CategoryProductionManagementComponent: React.FC<{
                   if (hasSelectedMonth && !hasData) {
                     return (
                       <Tooltip title={`${selectedMonth} ayı için henüz veri girilmemiş. Veri ekleyin veya farklı ay seçin.`}>
-                        <WarningIcon sx={{ ml: 1, color: 'warning.main', fontSize: 16 }} />
+                        <WarningIcon sx={{ ml: 1, color: 'warning.main', fontSize: 14 }} />
                       </Tooltip>
                     );
                   }
                   if (!hasSelectedMonth) {
                     return (
                       <Tooltip title="Yukarıdaki filtreden ay seçin">
-                        <InfoIcon sx={{ ml: 1, color: 'info.main', fontSize: 16 }} />
+                        <InfoIcon sx={{ ml: 1, color: 'info.main', fontSize: 14 }} />
                       </Tooltip>
                     );
                   }
                   return null;
                 })()}
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h3" sx={{ 
+                fontWeight: 'bold', 
+                color: 'info.main',
+                textAlign: 'center' 
+              }}>
                 {(() => {
                   if (!selectedMonth || selectedMonth.trim() === '') {
                     return '-';
@@ -14776,14 +14848,33 @@ const CategoryProductionManagementComponent: React.FC<{
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={2.4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <TrendingUpIcon sx={{ mr: 1, color: 'warning.main' }} />
-                <Typography variant="h6">Ortalama Üretim</Typography>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ 
+            height: 140, 
+            display: 'flex', 
+            flexDirection: 'column',
+            boxShadow: 2,
+            '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' },
+            transition: 'all 0.2s ease-in-out'
+          }}>
+            <CardContent sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'space-between',
+              p: 2.5
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <TrendingUpIcon sx={{ mr: 1, color: 'warning.main', fontSize: 20 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                  Ortalama Üretim
+                </Typography>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h3" sx={{ 
+                fontWeight: 'bold', 
+                color: 'warning.main',
+                textAlign: 'center' 
+              }}>
                 {filteredProductions.length > 0 
                   ? Math.round(filteredProductions.reduce((sum, p) => sum + p.uretilenAracSayisi, 0) / filteredProductions.length)
                   : 0}
@@ -14791,14 +14882,33 @@ const CategoryProductionManagementComponent: React.FC<{
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={2.4}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <TargetIcon sx={{ mr: 1, color: 'error.main' }} />
-                <Typography variant="h6">Hedef Tutma Oranı</Typography>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card sx={{ 
+            height: 140, 
+            display: 'flex', 
+            flexDirection: 'column',
+            boxShadow: 2,
+            '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' },
+            transition: 'all 0.2s ease-in-out'
+          }}>
+            <CardContent sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'space-between',
+              p: 2.5
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <TargetIcon sx={{ mr: 1, color: 'error.main', fontSize: 20 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                  Hedef Tutma Oranı
+                </Typography>
               </Box>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h3" sx={{ 
+                fontWeight: 'bold', 
+                color: 'error.main',
+                textAlign: 'center' 
+              }}>
                 %{filteredProductions.length > 0 
                   ? Math.round(filteredProductions
                       .filter(p => p.gerceklesmeOrani && p.gerceklesmeOrani >= 90)
