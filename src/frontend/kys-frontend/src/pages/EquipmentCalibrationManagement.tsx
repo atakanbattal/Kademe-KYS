@@ -374,50 +374,100 @@ const getMeasurementUncertaintiesByCategory = () => {
   
   const defaultUncertainties = {
     'Ölçüm Cihazları': [
-      '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', 
-      '±0.2 mm', '±0.5 mm', '±1 mm', 'Diğer'
+      '±0.001 mm', '±0.002 mm', '±0.005 mm', '±0.01 mm', 
+      '±0.02 mm', '±0.03 mm', '±0.04 mm', '±0.05 mm',
+      '±0.1 mm', '±0.2 mm', '±0.3 mm', '±0.4 mm',
+      '±0.5 mm', '±1 mm', '±2 mm', '±5 mm', 'Diğer'
     ],
     'Test Ekipmanları': [
-      '±0.01 V', '±0.1 V', '±1 V', '±0.01 A', '±0.1 A', 
-      '±1 A', '±0.1%', '±0.5%', '±1%', 'Diğer'
+      '±0.001 V', '±0.005 V', '±0.01 V', '±0.02 V',
+      '±0.05 V', '±0.1 V', '±0.2 V', '±0.5 V', '±1 V',
+      '±0.001 A', '±0.005 A', '±0.01 A', '±0.02 A',
+      '±0.05 A', '±0.1 A', '±0.2 A', '±0.5 A', '±1 A',
+      '±0.01%', '±0.02%', '±0.05%', '±0.1%', '±0.2%',
+      '±0.3%', '±0.4%', '±0.5%', '±1%', '±2%', 'Diğer'
     ],
     'Üretim Makineleri': [
-      '±0.5%', '±1%', '±2%', '±5%', '±0.1 kN', '±1 kN', 'Diğer'
+      '±0.1%', '±0.2%', '±0.3%', '±0.4%', '±0.5%',
+      '±1%', '±2%', '±3%', '±4%', '±5%',
+      '±0.01 kN', '±0.05 kN', '±0.1 kN', '±0.2 kN',
+      '±0.5 kN', '±1 kN', '±2 kN', '±5 kN', 'Diğer'
     ],
     'Kalite Kontrol Cihazları': [
-      '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', 
-      '±0.2 mm', '±0.5 mm', 'Diğer'
+      '±0.001 mm', '±0.002 mm', '±0.003 mm', '±0.004 mm',
+      '±0.005 mm', '±0.01 mm', '±0.02 mm', '±0.03 mm',
+      '±0.04 mm', '±0.05 mm', '±0.1 mm', '±0.2 mm',
+      '±0.3 mm', '±0.4 mm', '±0.5 mm', '±1 mm', 'Diğer'
     ],
     'Kaynak Ekipmanları': [
-      '±1 A', '±5 A', '±10 A', '±0.5 V', '±1 V', '±2%', 'Diğer'
+      '±0.1 A', '±0.2 A', '±0.3 A', '±0.4 A', '±0.5 A',
+      '±1 A', '±2 A', '±3 A', '±4 A', '±5 A',
+      '±10 A', '±15 A', '±20 A', '±0.1 V', '±0.2 V',
+      '±0.3 V', '±0.4 V', '±0.5 V', '±1 V', '±2 V',
+      '±1%', '±2%', '±3%', '±4%', '±5%', 'Diğer'
     ],
     'Elektrikli Cihazlar': [
-      '±0.1 V', '±0.5 V', '±1 V', '±0.1 A', '±0.5 A', 
-      '±1 A', '±0.5%', '±1%', 'Diğer'
+      '±0.01 V', '±0.02 V', '±0.03 V', '±0.04 V', '±0.05 V',
+      '±0.1 V', '±0.2 V', '±0.3 V', '±0.4 V', '±0.5 V',
+      '±1 V', '±2 V', '±5 V', '±0.01 A', '±0.02 A',
+      '±0.03 A', '±0.04 A', '±0.05 A', '±0.1 A', '±0.2 A',
+      '±0.3 A', '±0.4 A', '±0.5 A', '±1 A', '±0.1%',
+      '±0.2%', '±0.3%', '±0.4%', '±0.5%', '±1%', 'Diğer'
     ],
     'Pnömatik Sistemler': [
-      '±0.01 bar', '±0.05 bar', '±0.1 bar', '±0.2 bar', 
-      '±0.5 bar', '±1%', '±2%', 'Diğer'
+      '±0.001 bar', '±0.002 bar', '±0.003 bar', '±0.004 bar',
+      '±0.005 bar', '±0.01 bar', '±0.02 bar', '±0.03 bar',
+      '±0.04 bar', '±0.05 bar', '±0.1 bar', '±0.2 bar',
+      '±0.3 bar', '±0.4 bar', '±0.5 bar', '±1 bar',
+      '±0.1%', '±0.2%', '±0.3%', '±0.4%', '±0.5%',
+      '±1%', '±2%', '±3%', '±4%', '±5%', 'Diğer'
     ],
     'Hidrolik Sistemler': [
-      '±0.1 bar', '±0.5 bar', '±1 bar', '±2 bar', 
-      '±0.5%', '±1%', '±2%', 'Diğer'
+      '±0.01 bar', '±0.02 bar', '±0.03 bar', '±0.04 bar',
+      '±0.05 bar', '±0.1 bar', '±0.2 bar', '±0.3 bar',
+      '±0.4 bar', '±0.5 bar', '±1 bar', '±2 bar',
+      '±3 bar', '±4 bar', '±5 bar', '±10 bar',
+      '±0.1%', '±0.2%', '±0.3%', '±0.4%', '±0.5%',
+      '±1%', '±2%', '±3%', '±4%', '±5%', 'Diğer'
     ],
     'Bilgisayar ve IT': [
-      '±0.1%', '±0.5%', '±1%', '±1 bit', 'Diğer'
+      '±0.01%', '±0.02%', '±0.03%', '±0.04%', '±0.05%',
+      '±0.1%', '±0.2%', '±0.3%', '±0.4%', '±0.5%',
+      '±1%', '±2%', '±3%', '±4%', '±5%',
+      '±1 bit', '±2 bit', '±4 bit', '±8 bit', 'Diğer'
     ],
     'Güvenlik Ekipmanları': [
-      '±1%', '±2%', '±5%', '±10 ppm', 'Diğer'
+      '±0.1%', '±0.2%', '±0.3%', '±0.4%', '±0.5%',
+      '±1%', '±2%', '±3%', '±4%', '±5%',
+      '±10%', '±1 ppm', '±2 ppm', '±3 ppm', '±4 ppm',
+      '±5 ppm', '±10 ppm', '±20 ppm', '±50 ppm', 'Diğer'
     ],
     'Çevre Ölçüm Cihazları': [
-      '±0.1°C', '±0.5°C', '±1°C', '±2°C', '±2% RH', 
-      '±5% RH', '±10 ppm', '±5%', 'Diğer'
+      '±0.01°C', '±0.02°C', '±0.03°C', '±0.04°C', '±0.05°C',
+      '±0.1°C', '±0.2°C', '±0.3°C', '±0.4°C', '±0.5°C',
+      '±1°C', '±2°C', '±3°C', '±4°C', '±5°C',
+      '±1% RH', '±2% RH', '±3% RH', '±4% RH', '±5% RH',
+      '±1 ppm', '±2 ppm', '±3 ppm', '±4 ppm', '±5 ppm',
+      '±10 ppm', '±1%', '±2%', '±3%', '±4%', '±5%', 'Diğer'
     ],
     'Laboratuvar Ekipmanları': [
-      '±0.1 mg', '±1 mg', '±0.01 g', '±0.1 g', 
-      '±0.1°C', '±0.5°C', '±0.01 pH', 'Diğer'
+      '±0.01 mg', '±0.02 mg', '±0.03 mg', '±0.04 mg', '±0.05 mg',
+      '±0.1 mg', '±0.2 mg', '±0.3 mg', '±0.4 mg', '±0.5 mg',
+      '±1 mg', '±2 mg', '±5 mg', '±0.001 g', '±0.002 g',
+      '±0.003 g', '±0.004 g', '±0.005 g', '±0.01 g', '±0.02 g',
+      '±0.03 g', '±0.04 g', '±0.05 g', '±0.1 g', '±0.2 g',
+      '±0.01°C', '±0.02°C', '±0.03°C', '±0.04°C', '±0.05°C',
+      '±0.1°C', '±0.2°C', '±0.3°C', '±0.4°C', '±0.5°C',
+      '±0.001 pH', '±0.002 pH', '±0.003 pH', '±0.004 pH',
+      '±0.005 pH', '±0.01 pH', '±0.02 pH', '±0.03 pH',
+      '±0.04 pH', '±0.05 pH', '±0.1 pH', 'Diğer'
     ],
-    'Diğer': ['Diğer']
+    'Diğer': [
+      '±0.001', '±0.002', '±0.003', '±0.004', '±0.005',
+      '±0.01', '±0.02', '±0.03', '±0.04', '±0.05',
+      '±0.1', '±0.2', '±0.3', '±0.4', '±0.5',
+      '±1', '±2', '±3', '±4', '±5', 'Diğer'
+    ]
   };
   
   localStorage.setItem('measurement_uncertainties_by_category', JSON.stringify(defaultUncertainties));
@@ -3613,6 +3663,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       if (window.confirm(`"${manufacturer}" üreticisini silmek istediğinize emin misiniz?`)) {
                         const updatedList = manufacturersList.filter(m => m !== manufacturer);
                         setManufacturersList(updatedList);
+                        localStorage.setItem('manufacturers_list', JSON.stringify(updatedList));
                       }
                     }}
                   >
@@ -3750,6 +3801,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       if (window.confirm(`"${model}" modelini silmek istediğinize emin misiniz?`)) {
                         const updatedList = modelsList.filter(m => m !== model);
                         setModelsList(updatedList);
+                        localStorage.setItem('models_list', JSON.stringify(updatedList));
                       }
                     }}
                   >
