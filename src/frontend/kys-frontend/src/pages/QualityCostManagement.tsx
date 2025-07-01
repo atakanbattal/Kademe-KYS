@@ -14499,6 +14499,21 @@ const CategoryProductionManagementComponent: React.FC<{
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <DirectionsCarIcon sx={{ mr: 1, color: 'success.main' }} />
                 <Typography variant="h6">Bu Ay Üretilen</Typography>
+                {(() => {
+                  const currentMonth = new Date().toISOString().substring(0, 7);
+                  const hasData = filteredProductions.some(p => p.donem === currentMonth);
+                  const vehicleData = JSON.parse(localStorage.getItem('monthly_vehicle_productions') || '[]');
+                  const hasVehicleData = vehicleData.some(p => p.donem === currentMonth && p.isActive !== false);
+                  
+                  if (!hasData && !hasVehicleData) {
+                    return (
+                      <Tooltip title={`${currentMonth} ayı için henüz veri girilmemiş. Aylık Üretim Sayıları sekmesinden veri ekleyin.`}>
+                        <WarningIcon sx={{ ml: 1, color: 'warning.main', fontSize: 16 }} />
+                      </Tooltip>
+                    );
+                  }
+                  return null;
+                })()}
               </Box>
               <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                 {(() => {
@@ -14507,18 +14522,53 @@ const CategoryProductionManagementComponent: React.FC<{
                   // ✅ ÇOKLU KAYNAK KONTROLÜ: Hem category hem vehicle production verilerini kontrol et
                   let totalProduced = 0;
                   let allSources = [];
+                  let debugInfo = {
+                    currentMonth,
+                    hasAnyData: false,
+                    categoryData: { exists: false, total: 0, count: 0, data: [] },
+                    vehicleData: { exists: false, total: 0, count: 0, data: [] },
+                    selectedSource: 'none'
+                  };
                   
                   // 1. Category productions (mevcut filteredProductions)
                   const currentMonthCategoryData = filteredProductions.filter(p => p.donem === currentMonth);
                   const categoryTotal = currentMonthCategoryData.reduce((sum, p) => sum + (p.uretilenAracSayisi || 0), 0);
                   
+                  if (currentMonthCategoryData.length > 0) {
+                    debugInfo.categoryData = {
+                      exists: true,
+                      total: categoryTotal,
+                      count: currentMonthCategoryData.length,
+                      data: currentMonthCategoryData.map(p => ({ 
+                        id: p.id, 
+                        donem: p.donem, 
+                        kategori: p.kategori, 
+                        uretilen: p.uretilenAracSayisi 
+                      }))
+                    };
+                  }
+                  
                   // 2. Vehicle productions (eski sistem için)
                   let vehicleTotal = 0;
+                  let vehicleData = [];
                   try {
-                    const vehicleData = JSON.parse(localStorage.getItem('monthly_vehicle_productions') || '[]');
+                    vehicleData = JSON.parse(localStorage.getItem('monthly_vehicle_productions') || '[]');
                     const currentMonthVehicleData = vehicleData.filter(p => p.donem === currentMonth && p.isActive !== false);
                     vehicleTotal = currentMonthVehicleData.reduce((sum, p) => sum + (p.uretilenAracSayisi || p.uretilen || p.quantity || p.adet || 0), 0);
-                    allSources.push({ source: 'vehicle_productions', count: currentMonthVehicleData.length, total: vehicleTotal });
+                    
+                    if (currentMonthVehicleData.length > 0) {
+                      debugInfo.vehicleData = {
+                        exists: true,
+                        total: vehicleTotal,
+                        count: currentMonthVehicleData.length,
+                        data: currentMonthVehicleData.map(p => ({ 
+                          id: p.id, 
+                          donem: p.donem, 
+                          model: p.aracModeli || p.vehicleModel, 
+                          uretilen: p.uretilenAracSayisi || p.uretilen || p.quantity || p.adet || 0
+                        }))
+                      };
+                    }
                   } catch (error) {
                     console.warn('Vehicle production verileri okunamadı:', error);
                   }
@@ -14526,29 +14576,29 @@ const CategoryProductionManagementComponent: React.FC<{
                   // 3. Hangi kaynağın daha fazla verisi varsa onu kullan
                   if (categoryTotal > 0) {
                     totalProduced = categoryTotal;
-                    allSources.push({ source: 'category_productions', count: currentMonthCategoryData.length, total: categoryTotal });
+                    debugInfo.selectedSource = 'category_productions';
+                    debugInfo.hasAnyData = true;
                   } else if (vehicleTotal > 0) {
                     totalProduced = vehicleTotal;
+                    debugInfo.selectedSource = 'vehicle_productions';
+                    debugInfo.hasAnyData = true;
                   }
                   
-                  // Debug için konsol çıktısı
-                  console.log('🏭 Bu Ay Üretilen Kartı - ÇOK KAYNAK DEBUG:', {
-                    currentMonth,
-                    categoryData: {
-                      count: currentMonthCategoryData.length,
-                      total: categoryTotal,
-                      data: currentMonthCategoryData.map(p => ({ donem: p.donem, kategori: p.kategori, uretilen: p.uretilenAracSayisi }))
-                    },
-                    vehicleTotal,
-                    finalTotalProduced: totalProduced,
-                    allSources,
-                    localStorage: {
-                      categoryKey: 'monthly_category_productions',
-                      vehicleKey: 'monthly_vehicle_productions',
-                      categoryExists: !!localStorage.getItem('monthly_category_productions'),
-                      vehicleExists: !!localStorage.getItem('monthly_vehicle_productions')
-                    }
-                  });
+                  // ✅ KAPSAMLI DEBUG MESAJI
+                  console.log('🏭 Bu Ay Üretilen Kartı - DETAYLI DEBUG:', debugInfo);
+                  
+                  // Eğer veri yoksa uyarı mesajı da yazdır
+                  if (!debugInfo.hasAnyData) {
+                    console.warn('⚠️ BU AY İÇİN HİÇ ÜRETİM VERİSİ BULUNAMADI!', {
+                      çözüm1: 'Aylık Üretim Sayıları sekmesinden veri girişi yapın',
+                      çözüm2: 'Dönem formatının ' + currentMonth + ' olmasına dikkat edin',
+                      localStorage: {
+                        categoryProductionsKey: 'monthly_category_productions',
+                        vehicleProductionsKey: 'monthly_vehicle_productions',
+                        mevcutKeys: Object.keys(localStorage).filter(k => k.includes('production'))
+                      }
+                    });
+                  }
                   
                   return totalProduced;
                 })()}
