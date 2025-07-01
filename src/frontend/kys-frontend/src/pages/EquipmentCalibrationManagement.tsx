@@ -226,23 +226,24 @@ const EQUIPMENT_CATEGORIES = [
 
 const LOCATIONS = [
   'Ar-Ge',
-  'Girdi Kalite Kontrol',
-  'Proses Kalite Kontrol',
-  'Final Kalite Kontrol',
-  'Depo',
-  'Tesellüm',
-  'Kesim',
+  'Boyahane',
   'Büküm',
   'Çatım',
-  'Kaynakhane',
-  'Boyahane',
+  'Depo',
+  'Dış Saha',
   'Elektrik Montaj',
+  'Final Kalite Kontrol',
+  'Girdi Kalite Kontrol',
+  'Kaynakhane',
+  'Kesim',
+  'Makine İşleme',
   'Mekanik Montaj',
   'Planlama',
+  'Proses Kalite Kontrol',
   'Satın Alma',
-  'Makine İşleme',
   'Test Sahası',
-  'Dış Saha'
+  'Tesellüm',
+  'Torna'
 ];
 
 const DEPARTMENTS = [
@@ -304,103 +305,123 @@ const getPersonnelData = (): Personnel[] => {
 };
 
 // Dinamik ölçüm aralıkları - cihaz kategorisine göre
-const MEASUREMENT_RANGES_BY_CATEGORY = {
-  'Ölçüm Cihazları': [
-    '0-25 mm', '0-50 mm', '0-100 mm', '0-150 mm', '0-200 mm', 
-    '0-300 mm', '0-500 mm', '0-1000 mm', '0-2000 mm', 'Diğer'
-  ],
-  'Test Ekipmanları': [
-    '0-10 V', '0-100 V', '0-1000 V', '0-10 A', '0-100 A', 
-    '0-1000 A', '0-1 kHz', '0-100 kHz', '0-1 MHz', 'Diğer'
-  ],
-  'Üretim Makineleri': [
-    '0-100 kN', '0-500 kN', '0-1000 kN', '0-5000 kN',
-    '0-100 Nm', '0-500 Nm', '0-1000 Nm', 'Diğer'
-  ],
-  'Kalite Kontrol Cihazları': [
-    '0-25 mm', '0-50 mm', '0-100 mm', '0-200 mm',
-    '0-500 mm', '0-1000 mm', 'Diğer'
-  ],
-  'Kaynak Ekipmanları': [
-    '0-300 A', '0-500 A', '0-1000 A', '10-50 V',
-    '20-80 V', '0-100%', 'Diğer'
-  ],
-  'Elektrikli Cihazlar': [
-    '0-12 V', '0-24 V', '0-110 V', '0-220 V', '0-380 V',
-    '0-1000 V', '0-10 A', '0-100 A', '0-1000 A', 'Diğer'
-  ],
-  'Pnömatik Sistemler': [
-    '0-6 bar', '0-10 bar', '0-16 bar', '0-25 bar',
-    '0-100 bar', '0-300 bar', 'Diğer'
-  ],
-  'Hidrolik Sistemler': [
-    '0-100 bar', '0-250 bar', '0-400 bar', '0-630 bar',
-    '0-1000 bar', '0-2000 bar', 'Diğer'
-  ],
-  'Bilgisayar ve IT': [
-    'Digital', 'Analog', '0-5 V', '0-10 V', '0-24 V', 'Diğer'
-  ],
-  'Güvenlik Ekipmanları': [
-    'Açık/Kapalı', '0-100%', '0-1000 ppm', 'Diğer'
-  ],
-  'Çevre Ölçüm Cihazları': [
-    '-50°C - +150°C', '-100°C - +300°C', '0-100% RH',
-    '0-2000 ppm', '0-10000 lux', 'Diğer'
-  ],
-  'Laboratuvar Ekipmanları': [
-    '0.1-1000 mg', '0.01-100 g', '0.1-10 kg', 
-    '-80°C - +200°C', '0-14 pH', 'Diğer'
-  ],
-  'Diğer': ['Diğer']
+const getMeasurementRangesByCategory = () => {
+  const stored = localStorage.getItem('measurement_ranges_by_category');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  
+  const defaultRanges = {
+    'Ölçüm Cihazları': [
+      '0-25 mm', '0-50 mm', '0-100 mm', '0-150 mm', '0-200 mm', 
+      '0-300 mm', '0-500 mm', '0-1000 mm', '0-2000 mm', 'Diğer'
+    ],
+    'Test Ekipmanları': [
+      '0-10 V', '0-100 V', '0-1000 V', '0-10 A', '0-100 A', 
+      '0-1000 A', '0-1 kHz', '0-100 kHz', '0-1 MHz', 'Diğer'
+    ],
+    'Üretim Makineleri': [
+      '0-100 kN', '0-500 kN', '0-1000 kN', '0-5000 kN',
+      '0-100 Nm', '0-500 Nm', '0-1000 Nm', 'Diğer'
+    ],
+    'Kalite Kontrol Cihazları': [
+      '0-25 mm', '0-50 mm', '0-100 mm', '0-200 mm',
+      '0-500 mm', '0-1000 mm', 'Diğer'
+    ],
+    'Kaynak Ekipmanları': [
+      '0-300 A', '0-500 A', '0-1000 A', '10-50 V',
+      '20-80 V', '0-100%', 'Diğer'
+    ],
+    'Elektrikli Cihazlar': [
+      '0-12 V', '0-24 V', '0-110 V', '0-220 V', '0-380 V',
+      '0-1000 V', '0-10 A', '0-100 A', '0-1000 A', 'Diğer'
+    ],
+    'Pnömatik Sistemler': [
+      '0-6 bar', '0-10 bar', '0-16 bar', '0-25 bar',
+      '0-100 bar', '0-300 bar', 'Diğer'
+    ],
+    'Hidrolik Sistemler': [
+      '0-100 bar', '0-250 bar', '0-400 bar', '0-630 bar',
+      '0-1000 bar', '0-2000 bar', 'Diğer'
+    ],
+    'Bilgisayar ve IT': [
+      'Digital', 'Analog', '0-5 V', '0-10 V', '0-24 V', 'Diğer'
+    ],
+    'Güvenlik Ekipmanları': [
+      'Açık/Kapalı', '0-100%', '0-1000 ppm', 'Diğer'
+    ],
+    'Çevre Ölçüm Cihazları': [
+      '-50°C - +150°C', '-100°C - +300°C', '0-100% RH',
+      '0-2000 ppm', '0-10000 lux', 'Diğer'
+    ],
+    'Laboratuvar Ekipmanları': [
+      '0.1-1000 mg', '0.01-100 g', '0.1-10 kg', 
+      '-80°C - +200°C', '0-14 pH', 'Diğer'
+    ],
+    'Diğer': ['Diğer']
+  };
+  
+  localStorage.setItem('measurement_ranges_by_category', JSON.stringify(defaultRanges));
+  return defaultRanges;
 };
 
-// Dinamik ölçüm belirsizlikleri - cihaz kategorisine göre
-const MEASUREMENT_UNCERTAINTIES_BY_CATEGORY = {
-  'Ölçüm Cihazları': [
-    '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', 
-    '±0.2 mm', '±0.5 mm', '±1 mm', 'Diğer'
-  ],
-  'Test Ekipmanları': [
-    '±0.01 V', '±0.1 V', '±1 V', '±0.01 A', '±0.1 A', 
-    '±1 A', '±0.1%', '±0.5%', '±1%', 'Diğer'
-  ],
-  'Üretim Makineleri': [
-    '±0.5%', '±1%', '±2%', '±5%', '±0.1 kN', '±1 kN', 'Diğer'
-  ],
-  'Kalite Kontrol Cihazları': [
-    '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', 
-    '±0.2 mm', '±0.5 mm', 'Diğer'
-  ],
-  'Kaynak Ekipmanları': [
-    '±1 A', '±5 A', '±10 A', '±0.5 V', '±1 V', '±2%', 'Diğer'
-  ],
-  'Elektrikli Cihazlar': [
-    '±0.1 V', '±0.5 V', '±1 V', '±0.1 A', '±0.5 A', 
-    '±1 A', '±0.5%', '±1%', 'Diğer'
-  ],
-  'Pnömatik Sistemler': [
-    '±0.01 bar', '±0.05 bar', '±0.1 bar', '±0.2 bar', 
-    '±0.5 bar', '±1%', '±2%', 'Diğer'
-  ],
-  'Hidrolik Sistemler': [
-    '±0.1 bar', '±0.5 bar', '±1 bar', '±2 bar', 
-    '±0.5%', '±1%', '±2%', 'Diğer'
-  ],
-  'Bilgisayar ve IT': [
-    '±0.1%', '±0.5%', '±1%', '±1 bit', 'Diğer'
-  ],
-  'Güvenlik Ekipmanları': [
-    '±1%', '±2%', '±5%', '±10 ppm', 'Diğer'
-  ],
-  'Çevre Ölçüm Cihazları': [
-    '±0.1°C', '±0.5°C', '±1°C', '±2°C', '±2% RH', 
-    '±5% RH', '±10 ppm', '±5%', 'Diğer'
-  ],
-  'Laboratuvar Ekipmanları': [
-    '±0.1 mg', '±1 mg', '±0.01 g', '±0.1 g', 
-    '±0.1°C', '±0.5°C', '±0.01 pH', 'Diğer'
-  ],
-  'Diğer': ['Diğer']
+// Dinamik ölçüm belirsizlikleri - cihaz kategorisine göre  
+const getMeasurementUncertaintiesByCategory = () => {
+  const stored = localStorage.getItem('measurement_uncertainties_by_category');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  
+  const defaultUncertainties = {
+    'Ölçüm Cihazları': [
+      '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', 
+      '±0.2 mm', '±0.5 mm', '±1 mm', 'Diğer'
+    ],
+    'Test Ekipmanları': [
+      '±0.01 V', '±0.1 V', '±1 V', '±0.01 A', '±0.1 A', 
+      '±1 A', '±0.1%', '±0.5%', '±1%', 'Diğer'
+    ],
+    'Üretim Makineleri': [
+      '±0.5%', '±1%', '±2%', '±5%', '±0.1 kN', '±1 kN', 'Diğer'
+    ],
+    'Kalite Kontrol Cihazları': [
+      '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', 
+      '±0.2 mm', '±0.5 mm', 'Diğer'
+    ],
+    'Kaynak Ekipmanları': [
+      '±1 A', '±5 A', '±10 A', '±0.5 V', '±1 V', '±2%', 'Diğer'
+    ],
+    'Elektrikli Cihazlar': [
+      '±0.1 V', '±0.5 V', '±1 V', '±0.1 A', '±0.5 A', 
+      '±1 A', '±0.5%', '±1%', 'Diğer'
+    ],
+    'Pnömatik Sistemler': [
+      '±0.01 bar', '±0.05 bar', '±0.1 bar', '±0.2 bar', 
+      '±0.5 bar', '±1%', '±2%', 'Diğer'
+    ],
+    'Hidrolik Sistemler': [
+      '±0.1 bar', '±0.5 bar', '±1 bar', '±2 bar', 
+      '±0.5%', '±1%', '±2%', 'Diğer'
+    ],
+    'Bilgisayar ve IT': [
+      '±0.1%', '±0.5%', '±1%', '±1 bit', 'Diğer'
+    ],
+    'Güvenlik Ekipmanları': [
+      '±1%', '±2%', '±5%', '±10 ppm', 'Diğer'
+    ],
+    'Çevre Ölçüm Cihazları': [
+      '±0.1°C', '±0.5°C', '±1°C', '±2°C', '±2% RH', 
+      '±5% RH', '±10 ppm', '±5%', 'Diğer'
+    ],
+    'Laboratuvar Ekipmanları': [
+      '±0.1 mg', '±1 mg', '±0.01 g', '±0.1 g', 
+      '±0.1°C', '±0.5°C', '±0.01 pH', 'Diğer'
+    ],
+    'Diğer': ['Diğer']
+  };
+  
+  localStorage.setItem('measurement_uncertainties_by_category', JSON.stringify(defaultUncertainties));
+  return defaultUncertainties;
 };
 
 // Üretici firmaları (kayıt eklenebilir)
@@ -827,7 +848,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
     maintenanceFrequency: 6,
     criticalEquipment: false,
     specifications: '',
-    notes: ''
+    notes: '',
+    measurementRange: '',
+    measurementUncertainty: ''
   });
 
   // Equipment data - localStorage'dan yüklenir
@@ -855,6 +878,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const [modelsList, setModelsList] = useState<string[]>(() => getModels());
   const [calibrationCompaniesList, setCalibrationCompaniesList] = useState<string[]>(() => getCalibrationCompanies());
   
+  // Ölçüm aralığı ve belirsizlik verileri
+  const [measurementRanges, setMeasurementRanges] = useState<any>(() => getMeasurementRangesByCategory());
+  const [measurementUncertainties, setMeasurementUncertainties] = useState<any>(() => getMeasurementUncertaintiesByCategory());
+  
   // Dialog state'leri
   const [openManufacturerDialog, setOpenManufacturerDialog] = useState(false);
   const [openManufacturerManagementDialog, setOpenManufacturerManagementDialog] = useState(false);
@@ -862,10 +889,16 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const [openModelManagementDialog, setOpenModelManagementDialog] = useState(false);
   const [openCalibrationCompanyDialog, setOpenCalibrationCompanyDialog] = useState(false);
   
+  // Ölçüm yönetimi dialog state'leri
+  const [openMeasurementRangeManagementDialog, setOpenMeasurementRangeManagementDialog] = useState(false);
+  const [openMeasurementUncertaintyManagementDialog, setOpenMeasurementUncertaintyManagementDialog] = useState(false);
+  
   // Yeni ekleme için input state'leri
   const [newManufacturer, setNewManufacturer] = useState('');
   const [newModel, setNewModel] = useState('');
   const [newCalibrationCompany, setNewCalibrationCompany] = useState('');
+  const [newMeasurementRange, setNewMeasurementRange] = useState('');
+  const [newMeasurementUncertainty, setNewMeasurementUncertainty] = useState('');
 
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
@@ -936,11 +969,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
   }, [equipmentList, filters]);
 
   const openCreateDialog = () => {
+    // Yeni ekipman kodu otomatik oluştur (001, 002, 003...)
+    const nextCode = (equipmentList.length + 1).toString().padStart(3, '0');
+    
     setDialogMode('create');
     setDialogTitle('Yeni Ekipman Kaydı');
     setSelectedPersonnel([]);
     setFormData({
-      equipmentCode: '',
+      equipmentCode: nextCode,
       name: '',
       manufacturer: '',
       model: '',
@@ -956,7 +992,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
       maintenanceFrequency: 6,
       criticalEquipment: false,
       specifications: '',
-      notes: ''
+      notes: '',
+      measurementRange: '',
+      measurementUncertainty: ''
     });
     setActiveStep(0);
     setOpenDialog(true);
@@ -991,7 +1029,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
       maintenanceFrequency: equipment.maintenanceFrequency,
       criticalEquipment: equipment.criticalEquipment,
       specifications: equipment.specifications,
-      notes: equipment.notes
+      notes: equipment.notes,
+      measurementRange: equipment.measurementRange,
+      measurementUncertainty: equipment.measurementUncertainty
     });
     setDialogMode('edit');
     setActiveStep(0);
@@ -1150,6 +1190,58 @@ const EquipmentCalibrationManagement: React.FC = () => {
       const updatedList = calibrationCompaniesList.filter(c => c !== company);
       setCalibrationCompaniesList(updatedList);
       localStorage.setItem('calibration_companies_list', JSON.stringify(updatedList));
+    }
+  };
+
+  // Ölçüm aralığı yönetimi fonksiyonları
+  const handleSaveMeasurementRange = () => {
+    if (newMeasurementRange.trim() && formData.category) {
+      // Eğer mm eklenmemişse otomatik ekle
+      const range = newMeasurementRange.trim().includes('mm') ? newMeasurementRange.trim() : `${newMeasurementRange.trim()} mm`;
+      
+      const updatedRanges = {...measurementRanges};
+      updatedRanges[formData.category] = [...(updatedRanges[formData.category] || []), range];
+      setMeasurementRanges(updatedRanges);
+      localStorage.setItem('measurement_ranges_by_category', JSON.stringify(updatedRanges));
+      
+      setNewMeasurementRange('');
+      setOpenMeasurementRangeManagementDialog(false);
+    }
+  };
+
+  const handleDeleteMeasurementRange = (range: string) => {
+    if (formData.category) {
+      const updatedRanges = {...measurementRanges};
+      updatedRanges[formData.category] = updatedRanges[formData.category].filter((r: string) => r !== range);
+      setMeasurementRanges(updatedRanges);
+      localStorage.setItem('measurement_ranges_by_category', JSON.stringify(updatedRanges));
+    }
+  };
+
+  // Ölçüm belirsizliği yönetimi fonksiyonları
+  const handleSaveMeasurementUncertainty = () => {
+    if (newMeasurementUncertainty.trim() && formData.category) {
+      // Eğer ± ve mm eklenmemişse otomatik ekle
+      let uncertainty = newMeasurementUncertainty.trim();
+      if (!uncertainty.startsWith('±')) uncertainty = `±${uncertainty}`;
+      if (!uncertainty.includes('mm')) uncertainty = `${uncertainty} mm`;
+      
+      const updatedUncertainties = {...measurementUncertainties};
+      updatedUncertainties[formData.category] = [...(updatedUncertainties[formData.category] || []), uncertainty];
+      setMeasurementUncertainties(updatedUncertainties);
+      localStorage.setItem('measurement_uncertainties_by_category', JSON.stringify(updatedUncertainties));
+      
+      setNewMeasurementUncertainty('');
+      setOpenMeasurementUncertaintyManagementDialog(false);
+    }
+  };
+
+  const handleDeleteMeasurementUncertainty = (uncertainty: string) => {
+    if (formData.category) {
+      const updatedUncertainties = {...measurementUncertainties};
+      updatedUncertainties[formData.category] = updatedUncertainties[formData.category].filter((u: string) => u !== uncertainty);
+      setMeasurementUncertainties(updatedUncertainties);
+      localStorage.setItem('measurement_uncertainties_by_category', JSON.stringify(updatedUncertainties));
     }
   };
 
@@ -1553,8 +1645,28 @@ const EquipmentCalibrationManagement: React.FC = () => {
             sx={{ 
               borderRadius: 3,
               boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-              overflow: 'hidden',
-              maxHeight: '70vh'
+              overflow: 'auto',
+              overflowX: 'auto',
+              overflowY: 'auto',
+              maxHeight: '60vh',
+              minHeight: '400px',
+              minWidth: '1200px',
+              width: '100%',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+                height: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: 'rgba(0,0,0,0.1)',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: 'rgba(25, 118, 210, 0.3)',
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: 'rgba(25, 118, 210, 0.5)',
+                },
+              },
             }}
           >
             <Table size="small" stickyHeader>
@@ -2419,7 +2531,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
       )}
 
       {/* Create/Edit Dialog - YENİ PROFESYONELLEŞTİRİLMİŞ FORM */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth>
+              <Dialog 
+          open={openDialog} 
+          onClose={(event, reason) => {
+            // Sadece 'escapeKeyDown' ve 'backdropClick' dışındaki durumlarda kapat
+            if (reason !== 'escapeKeyDown' && reason !== 'backdropClick') {
+              setOpenDialog(false);
+            }
+          }} 
+          maxWidth="lg" 
+          fullWidth
+        >
         <DialogTitle sx={{ 
           bgcolor: 'primary.main', 
           color: 'white', 
@@ -2814,7 +2936,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             onChange={(e) => setFormData({...formData, measurementRange: e.target.value})}
                             disabled={!formData.category}
                           >
-                            {formData.category && (MEASUREMENT_RANGES_BY_CATEGORY[formData.category] || MEASUREMENT_RANGES_BY_CATEGORY['Diğer']).map((range) => (
+                            {formData.category && (measurementRanges[formData.category] || measurementRanges['Diğer']).map((range) => (
                               <MenuItem key={range} value={range}>{range}</MenuItem>
                             ))}
                           </Select>
@@ -2826,7 +2948,18 @@ const EquipmentCalibrationManagement: React.FC = () => {
                               const newRange = prompt('Yeni ölçüm aralığı giriniz (örn: 0-150mm):');
                               if (newRange?.trim()) {
                                 const category = formData.category || 'Diğer';
-                                MEASUREMENT_RANGES_BY_CATEGORY[category] = [...(MEASUREMENT_RANGES_BY_CATEGORY[category] || []), newRange.trim()];
+                                // Eğer mm eklenmemişse otomatik ekle
+                                const range = newRange.trim().includes('mm') ? newRange.trim() : `${newRange.trim()} mm`;
+                                
+                                const updatedRanges = {...measurementRanges};
+                                updatedRanges[category] = [...(updatedRanges[category] || []), range];
+                                setMeasurementRanges(updatedRanges);
+                                
+                                // localStorage'a kaydet
+                                localStorage.setItem('measurement_ranges_by_category', JSON.stringify(updatedRanges));
+                                
+                                // Form'a otomatik seç
+                                setFormData({...formData, measurementRange: range});
                               }
                             }}
                             sx={{ minWidth: 50 }}
@@ -2834,6 +2967,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             color="warning"
                           >
                             <AddIcon />
+                          </Button>
+                        </Tooltip>
+                        <Tooltip title="Ölçüm aralıklarını yönet">
+                          <Button
+                            variant="outlined"
+                            onClick={() => setOpenMeasurementRangeManagementDialog(true)}
+                            sx={{ minWidth: 50 }}
+                            disabled={!formData.category}
+                            color="warning"
+                          >
+                            <EditIcon />
                           </Button>
                         </Tooltip>
                       </Box>
@@ -2871,7 +3015,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             onChange={(e) => setFormData({...formData, measurementUncertainty: e.target.value})}
                             disabled={!formData.category}
                           >
-                            {formData.category && (MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[formData.category] || MEASUREMENT_UNCERTAINTIES_BY_CATEGORY['Diğer']).map((uncertainty) => (
+                            {formData.category && (measurementUncertainties[formData.category] || measurementUncertainties['Diğer']).map((uncertainty) => (
                               <MenuItem key={uncertainty} value={uncertainty}>{uncertainty}</MenuItem>
                             ))}
                           </Select>
@@ -2883,7 +3027,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
                               const newUncertainty = prompt('Yeni ölçüm belirsizliği giriniz (örn: ±0.01mm):');
                               if (newUncertainty?.trim()) {
                                 const category = formData.category || 'Diğer';
-                                MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] = [...(MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] || []), newUncertainty.trim()];
+                                // Eğer ± ve mm eklenmemişse otomatik ekle
+                                let uncertainty = newUncertainty.trim();
+                                if (!uncertainty.startsWith('±')) uncertainty = `±${uncertainty}`;
+                                if (!uncertainty.includes('mm')) uncertainty = `${uncertainty} mm`;
+                                
+                                const updatedUncertainties = {...measurementUncertainties};
+                                updatedUncertainties[category] = [...(updatedUncertainties[category] || []), uncertainty];
+                                setMeasurementUncertainties(updatedUncertainties);
+                                
+                                // localStorage'a kaydet
+                                localStorage.setItem('measurement_uncertainties_by_category', JSON.stringify(updatedUncertainties));
+                                
+                                // Form'a otomatik seç
+                                setFormData({...formData, measurementUncertainty: uncertainty});
                               }
                             }}
                             sx={{ minWidth: 50 }}
@@ -2891,6 +3048,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             color="warning"
                           >
                             <AddIcon />
+                          </Button>
+                        </Tooltip>
+                        <Tooltip title="Ölçüm belirsizliklerini yönet">
+                          <Button
+                            variant="outlined"
+                            onClick={() => setOpenMeasurementUncertaintyManagementDialog(true)}
+                            sx={{ minWidth: 50 }}
+                            disabled={!formData.category}
+                            color="warning"
+                          >
+                            <EditIcon />
                           </Button>
                         </Tooltip>
                       </Box>
@@ -3619,6 +3787,220 @@ const EquipmentCalibrationManagement: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenCalibrationCompanyDialog(false)}>Kapat</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Ölçüm Aralığı Yönetimi Dialogi */}
+      <Dialog open={openMeasurementRangeManagementDialog} onClose={() => setOpenMeasurementRangeManagementDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ScienceIcon color="warning" />
+            Ölçüm Aralığı Yönetimi - {formData.category}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Yeni Ölçüm Aralığı Ekle"
+              value={newMeasurementRange}
+              onChange={(e) => setNewMeasurementRange(e.target.value)}
+              margin="dense"
+              placeholder="Örn: 0-150mm, 0-500mm, 0-1000mm..."
+              helperText="mm eklenmemişse otomatik eklenecektir"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Button 
+                      variant="contained" 
+                      onClick={handleSaveMeasurementRange}
+                      disabled={!newMeasurementRange.trim()}
+                      size="small"
+                      color="warning"
+                    >
+                      Ekle
+                    </Button>
+                  </InputAdornment>
+                )
+              }}
+            />
+          </Box>
+
+          <Typography variant="h6" sx={{ mb: 2, color: 'warning.main' }}>
+            {formData.category} Kategorisi Ölçüm Aralıkları ({formData.category ? (measurementRanges[formData.category] || []).length : 0})
+          </Typography>
+          
+          {!formData.category ? (
+            <Alert severity="warning">
+              Önce kategori seçmelisiniz.
+            </Alert>
+          ) : (measurementRanges[formData.category] || []).length === 0 ? (
+            <Box sx={{ 
+              p: 4, 
+              textAlign: 'center', 
+              bgcolor: 'warning.50', 
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'warning.300'
+            }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Bu kategori için ölçüm aralığı bulunmuyor
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Yukarıdaki alandan yeni ölçüm aralığı ekleyebilirsiniz.
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+              {(measurementRanges[formData.category] || []).map((range: string, index: number) => (
+                range !== 'Diğer' && (
+                  <Paper 
+                    key={index}
+                    sx={{ 
+                      p: 2,
+                      mb: 1,
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      '&:hover': { bgcolor: 'warning.50' }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <ScienceIcon color="warning" fontSize="small" />
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {range}
+                      </Typography>
+                    </Box>
+                    <Button 
+                      size="small" 
+                      color="error"
+                      variant="outlined"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => {
+                        if (window.confirm(`"${range}" aralığını silmek istediğinize emin misiniz?`)) {
+                          handleDeleteMeasurementRange(range);
+                        }
+                      }}
+                    >
+                      Sil
+                    </Button>
+                  </Paper>
+                )
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenMeasurementRangeManagementDialog(false)}>
+            Kapat
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Ölçüm Belirsizliği Yönetimi Dialogi */}
+      <Dialog open={openMeasurementUncertaintyManagementDialog} onClose={() => setOpenMeasurementUncertaintyManagementDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ScienceIcon color="warning" />
+            Ölçüm Belirsizliği Yönetimi - {formData.category}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Yeni Ölçüm Belirsizliği Ekle"
+              value={newMeasurementUncertainty}
+              onChange={(e) => setNewMeasurementUncertainty(e.target.value)}
+              margin="dense"
+              placeholder="Örn: ±0.01mm, ±0.1mm, ±0.5mm..."
+              helperText="± ve mm eklenmemişse otomatik eklenecektir"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Button 
+                      variant="contained" 
+                      onClick={handleSaveMeasurementUncertainty}
+                      disabled={!newMeasurementUncertainty.trim()}
+                      size="small"
+                      color="warning"
+                    >
+                      Ekle
+                    </Button>
+                  </InputAdornment>
+                )
+              }}
+            />
+          </Box>
+
+          <Typography variant="h6" sx={{ mb: 2, color: 'warning.main' }}>
+            {formData.category} Kategorisi Ölçüm Belirsizlikleri ({formData.category ? (measurementUncertainties[formData.category] || []).length : 0})
+          </Typography>
+          
+          {!formData.category ? (
+            <Alert severity="warning">
+              Önce kategori seçmelisiniz.
+            </Alert>
+          ) : (measurementUncertainties[formData.category] || []).length === 0 ? (
+            <Box sx={{ 
+              p: 4, 
+              textAlign: 'center', 
+              bgcolor: 'warning.50', 
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'warning.300'
+            }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Bu kategori için ölçüm belirsizliği bulunmuyor
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Yukarıdaki alandan yeni ölçüm belirsizliği ekleyebilirsiniz.
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+              {(measurementUncertainties[formData.category] || []).map((uncertainty: string, index: number) => (
+                uncertainty !== 'Diğer' && (
+                  <Paper 
+                    key={index}
+                    sx={{ 
+                      p: 2,
+                      mb: 1,
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      '&:hover': { bgcolor: 'warning.50' }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <ScienceIcon color="warning" fontSize="small" />
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {uncertainty}
+                      </Typography>
+                    </Box>
+                    <Button 
+                      size="small" 
+                      color="error"
+                      variant="outlined"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => {
+                        if (window.confirm(`"${uncertainty}" belirsizliğini silmek istediğinize emin misiniz?`)) {
+                          handleDeleteMeasurementUncertainty(uncertainty);
+                        }
+                      }}
+                    >
+                      Sil
+                    </Button>
+                  </Paper>
+                )
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenMeasurementUncertaintyManagementDialog(false)}>
+            Kapat
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
