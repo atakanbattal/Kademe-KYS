@@ -1250,7 +1250,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <FilterListIcon sx={{ color: '#ffffff' }} />
-            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>Filtreler ve Arama (Tüm Modül)</Typography>
+                          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>Filtreler ve Arama</Typography>
             {Object.values(filters).some(v => v !== '' && !(typeof v === 'object' && !v.start && !v.end) && v !== false) && (
               <Badge color="primary" variant="dot" />
             )}
@@ -2455,21 +2455,36 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 />
               </Box>
 
-              {/* Üretici ve Model - 2 Kolon + Butonlar */}
+              {/* Üretici ve Model - 2 Kolon + Butonlar - GÜÇLÜ HİZALAMA */}
               <Box sx={{ 
-                display: 'grid', 
+                display: 'grid !important', 
                 gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
                 gap: 2, 
                 mb: 3,
-                alignItems: 'stretch'
+                alignItems: 'stretch !important',
+                '& > *': {
+                  height: '56px !important',
+                  alignSelf: 'stretch !important'
+                }
               }}>
-                <Box sx={{ display: 'flex', gap: 1, height: 56 }}>
-                  <FormControl fullWidth sx={{ flex: 1, height: 56 }}>
+                <Box sx={{ 
+                  display: 'flex !important', 
+                  gap: 1, 
+                  height: '56px !important',
+                  alignItems: 'stretch !important'
+                }}>
+                  <FormControl fullWidth sx={{ 
+                    flex: 1, 
+                    height: '56px !important',
+                    '& .MuiInputBase-root': {
+                      height: '56px !important'
+                    }
+                  }}>
                     <InputLabel>Üretici</InputLabel>
                     <Select
                       value={formData.manufacturer || ''}
                       onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
-                      sx={{ height: 56 }}
+                      sx={{ height: '56px !important' }}
                     >
                       {manufacturersList.map((manufacturer) => (
                         <MenuItem key={manufacturer} value={manufacturer}>{manufacturer}</MenuItem>
@@ -2480,20 +2495,35 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   <Button 
                     variant="outlined" 
                     onClick={() => setOpenManufacturerDialog(true)}
-                    sx={{ minWidth: 50, height: 56, flexShrink: 0 }}
+                    sx={{ 
+                      minWidth: 50, 
+                      height: '56px !important', 
+                      flexShrink: '0 !important'
+                    }}
                     title="Yeni Üretici Ekle"
                   >
                     +
                   </Button>
                 </Box>
                 
-                <Box sx={{ display: 'flex', gap: 1, height: 56 }}>
-                  <FormControl fullWidth sx={{ flex: 1, height: 56 }}>
+                <Box sx={{ 
+                  display: 'flex !important', 
+                  gap: 1, 
+                  height: '56px !important',
+                  alignItems: 'stretch !important'
+                }}>
+                  <FormControl fullWidth sx={{ 
+                    flex: 1, 
+                    height: '56px !important',
+                    '& .MuiInputBase-root': {
+                      height: '56px !important'
+                    }
+                  }}>
                     <InputLabel>Model</InputLabel>
                     <Select
                       value={formData.model || ''}
                       onChange={(e) => setFormData({...formData, model: e.target.value})}
-                      sx={{ height: 56 }}
+                      sx={{ height: '56px !important' }}
                     >
                       {modelsList.map((model) => (
                         <MenuItem key={model} value={model}>{model}</MenuItem>
@@ -2504,7 +2534,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   <Button 
                     variant="outlined" 
                     onClick={() => setOpenModelDialog(true)}
-                    sx={{ minWidth: 50, height: 56, flexShrink: 0 }}
+                    sx={{ 
+                      minWidth: 50, 
+                      height: '56px !important', 
+                      flexShrink: '0 !important'
+                    }}
                     title="Yeni Model Ekle"
                   >
                     +
@@ -2643,22 +2677,37 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   Cihazın Teknik Özellikleri
                 </Typography>
                 
-                {/* Ölçüm Aralığı ve Belirsizlik - MÜKEMMEL HİZALAMA */}
+                {/* Ölçüm Aralığı ve Belirsizlik - SÜPER GÜÇLÜ HİZALAMA */}
                 <Box sx={{ 
-                  display: 'grid', 
+                  display: 'grid !important', 
                   gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
                   gap: 2, 
                   mb: 3,
-                  alignItems: 'stretch'
+                  alignItems: 'stretch !important',
+                  '& > *': {
+                    height: '56px !important',
+                    alignSelf: 'stretch !important'
+                  }
                 }}>
-                  <Box sx={{ display: 'flex', gap: 1, height: 56 }}>
-                    <FormControl fullWidth required sx={{ flex: 1, height: 56 }}>
+                  <Box sx={{ 
+                    display: 'flex !important', 
+                    gap: 1, 
+                    height: '56px !important',
+                    alignItems: 'stretch !important'
+                  }}>
+                    <FormControl fullWidth required sx={{ 
+                      flex: 1, 
+                      height: '56px !important',
+                      '& .MuiInputBase-root': {
+                        height: '56px !important'
+                      }
+                    }}>
                       <InputLabel>Ölçüm Aralığı</InputLabel>
                       <Select
                         value={formData.measurementRange || ''}
                         onChange={(e) => setFormData({...formData, measurementRange: e.target.value})}
                         disabled={!formData.category}
-                        sx={{ height: 56 }}
+                        sx={{ height: '56px !important' }}
                       >
                         {formData.category && (MEASUREMENT_RANGES_BY_CATEGORY[formData.category] || MEASUREMENT_RANGES_BY_CATEGORY['Diğer']).map((range) => (
                           <MenuItem key={range} value={range}>{range}</MenuItem>
@@ -2674,7 +2723,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           MEASUREMENT_RANGES_BY_CATEGORY[category] = [...(MEASUREMENT_RANGES_BY_CATEGORY[category] || []), newRange.trim()];
                         }
                       }}
-                      sx={{ minWidth: 50, height: 56, flexShrink: 0 }}
+                      sx={{ 
+                        minWidth: 50, 
+                        height: '56px !important', 
+                        flexShrink: '0 !important'
+                      }}
                       title="Yeni Ölçüm Aralığı Ekle"
                       disabled={!formData.category}
                     >
@@ -2682,14 +2735,25 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </Button>
                   </Box>
                   
-                  <Box sx={{ display: 'flex', gap: 1, height: 56 }}>
-                    <FormControl fullWidth required sx={{ flex: 1, height: 56 }}>
+                  <Box sx={{ 
+                    display: 'flex !important', 
+                    gap: 1, 
+                    height: '56px !important',
+                    alignItems: 'stretch !important'
+                  }}>
+                    <FormControl fullWidth required sx={{ 
+                      flex: 1, 
+                      height: '56px !important',
+                      '& .MuiInputBase-root': {
+                        height: '56px !important'
+                      }
+                    }}>
                       <InputLabel>Ölçüm Belirsizliği</InputLabel>
                       <Select
                         value={formData.measurementUncertainty || ''}
                         onChange={(e) => setFormData({...formData, measurementUncertainty: e.target.value})}
                         disabled={!formData.category}
-                        sx={{ height: 56 }}
+                        sx={{ height: '56px !important' }}
                       >
                         {formData.category && (MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[formData.category] || MEASUREMENT_UNCERTAINTIES_BY_CATEGORY['Diğer']).map((uncertainty) => (
                           <MenuItem key={uncertainty} value={uncertainty}>{uncertainty}</MenuItem>
@@ -2705,7 +2769,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] = [...(MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] || []), newUncertainty.trim()];
                         }
                       }}
-                      sx={{ minWidth: 50, height: 56, flexShrink: 0 }}
+                      sx={{ 
+                        minWidth: 50, 
+                        height: '56px !important', 
+                        flexShrink: '0 !important'
+                      }}
                       title="Yeni Ölçüm Belirsizliği Ekle"
                       disabled={!formData.category}
                     >
