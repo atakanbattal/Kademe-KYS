@@ -2451,11 +2451,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   value={formData.name || ''}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   required
-                  sx={{ height: 56 }}
+                  sx={{ 
+                    height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important',
+                    '& .MuiInputBase-root': {
+                      height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important'
+                    }
+                  }}
                 />
               </Box>
 
-              {/* Üretici ve Model - 2 Kolon + Butonlar - GÜÇLÜ HİZALAMA */}
+              {/* Üretici ve Model - 2 Kolon + Butonlar - ULTRA GÜÇLÜ HİZALAMA */}
               <Box sx={{ 
                 display: 'grid !important', 
                 gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
@@ -2464,27 +2473,46 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 alignItems: 'stretch !important',
                 '& > *': {
                   height: '56px !important',
-                  alignSelf: 'stretch !important'
+                  alignSelf: 'stretch !important',
+                  display: 'flex !important',
+                  alignItems: 'stretch !important'
                 }
               }}>
                 <Box sx={{ 
                   display: 'flex !important', 
                   gap: 1, 
                   height: '56px !important',
-                  alignItems: 'stretch !important'
+                  alignItems: 'stretch !important',
+                  minHeight: '56px !important',
+                  maxHeight: '56px !important'
                 }}>
                   <FormControl fullWidth sx={{ 
                     flex: 1, 
                     height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important',
                     '& .MuiInputBase-root': {
-                      height: '56px !important'
+                      height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important'
+                    },
+                    '& .MuiSelect-select': {
+                      height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important',
+                      display: 'flex !important',
+                      alignItems: 'center !important'
                     }
                   }}>
                     <InputLabel>Üretici</InputLabel>
                     <Select
                       value={formData.manufacturer || ''}
                       onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
-                      sx={{ height: '56px !important' }}
+                      sx={{ 
+                        height: '56px !important',
+                        minHeight: '56px !important',
+                        maxHeight: '56px !important'
+                      }}
                     >
                       {manufacturersList.map((manufacturer) => (
                         <MenuItem key={manufacturer} value={manufacturer}>{manufacturer}</MenuItem>
@@ -2498,6 +2526,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     sx={{ 
                       minWidth: 50, 
                       height: '56px !important', 
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important',
                       flexShrink: '0 !important'
                     }}
                     title="Yeni Üretici Ekle"
@@ -2510,20 +2540,37 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   display: 'flex !important', 
                   gap: 1, 
                   height: '56px !important',
-                  alignItems: 'stretch !important'
+                  alignItems: 'stretch !important',
+                  minHeight: '56px !important',
+                  maxHeight: '56px !important'
                 }}>
                   <FormControl fullWidth sx={{ 
                     flex: 1, 
                     height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important',
                     '& .MuiInputBase-root': {
-                      height: '56px !important'
+                      height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important'
+                    },
+                    '& .MuiSelect-select': {
+                      height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important',
+                      display: 'flex !important',
+                      alignItems: 'center !important'
                     }
                   }}>
                     <InputLabel>Model</InputLabel>
                     <Select
                       value={formData.model || ''}
                       onChange={(e) => setFormData({...formData, model: e.target.value})}
-                      sx={{ height: '56px !important' }}
+                      sx={{ 
+                        height: '56px !important',
+                        minHeight: '56px !important',
+                        maxHeight: '56px !important'
+                      }}
                     >
                       {modelsList.map((model) => (
                         <MenuItem key={model} value={model}>{model}</MenuItem>
@@ -2537,6 +2584,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     sx={{ 
                       minWidth: 50, 
                       height: '56px !important', 
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important',
                       flexShrink: '0 !important'
                     }}
                     title="Yeni Model Ekle"
@@ -2554,7 +2603,16 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   value={formData.serialNumber || ''}
                   onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
                   required
-                  sx={{ height: 56 }}
+                  sx={{ 
+                    height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important',
+                    '& .MuiInputBase-root': {
+                      height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important'
+                    }
+                  }}
                 />
               </Box>
 
@@ -2564,9 +2622,30 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, 
                 gap: 2, 
                 mb: 3,
-                '& .MuiFormControl-root': { height: 56 }
+                alignItems: 'stretch !important',
+                '& .MuiFormControl-root': { 
+                  height: '56px !important',
+                  minHeight: '56px !important',
+                  maxHeight: '56px !important'
+                }
               }}>
-                <FormControl fullWidth required sx={{ height: 56 }}>
+                <FormControl fullWidth required sx={{ 
+                  height: '56px !important',
+                  minHeight: '56px !important',
+                  maxHeight: '56px !important',
+                  '& .MuiInputBase-root': {
+                    height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important'
+                  },
+                  '& .MuiSelect-select': {
+                    height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important',
+                    display: 'flex !important',
+                    alignItems: 'center !important'
+                  }
+                }}>
                   <InputLabel>Kategori</InputLabel>
                   <Select
                     value={formData.category || ''}
@@ -2579,7 +2658,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         measurementUncertainty: ''
                       });
                     }}
-                    sx={{ height: 56 }}
+                    sx={{ 
+                      height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important'
+                    }}
                   >
                     {EQUIPMENT_CATEGORIES.map((category) => (
                       <MenuItem key={category} value={category}>{category}</MenuItem>
@@ -2587,12 +2670,32 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </Select>
                 </FormControl>
                 
-                <FormControl fullWidth required sx={{ height: 56 }}>
+                <FormControl fullWidth required sx={{ 
+                  height: '56px !important',
+                  minHeight: '56px !important',
+                  maxHeight: '56px !important',
+                  '& .MuiInputBase-root': {
+                    height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important'
+                  },
+                  '& .MuiSelect-select': {
+                    height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important',
+                    display: 'flex !important',
+                    alignItems: 'center !important'
+                  }
+                }}>
                   <InputLabel>Lokasyon</InputLabel>
                   <Select
                     value={formData.location || ''}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    sx={{ height: 56 }}
+                    sx={{ 
+                      height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important'
+                    }}
                   >
                     {LOCATIONS.map((location) => (
                       <MenuItem key={location} value={location}>{location}</MenuItem>
@@ -2600,12 +2703,32 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </Select>
                 </FormControl>
                 
-                <FormControl fullWidth required sx={{ height: 56 }}>
+                <FormControl fullWidth required sx={{ 
+                  height: '56px !important',
+                  minHeight: '56px !important',
+                  maxHeight: '56px !important',
+                  '& .MuiInputBase-root': {
+                    height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important'
+                  },
+                  '& .MuiSelect-select': {
+                    height: '56px !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important',
+                    display: 'flex !important',
+                    alignItems: 'center !important'
+                  }
+                }}>
                   <InputLabel>Departman</InputLabel>
                   <Select
                     value={formData.department || ''}
                     onChange={(e) => setFormData({...formData, department: e.target.value})}
-                    sx={{ height: 56 }}
+                    sx={{ 
+                      height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important'
+                    }}
                   >
                     {DEPARTMENTS.map((dept) => (
                       <MenuItem key={dept} value={dept}>{dept}</MenuItem>
@@ -2677,7 +2800,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   Cihazın Teknik Özellikleri
                 </Typography>
                 
-                {/* Ölçüm Aralığı ve Belirsizlik - SÜPER GÜÇLÜ HİZALAMA */}
+                {/* Ölçüm Aralığı ve Belirsizlik - ULTRA GÜÇLÜ HİZALAMA */}
                 <Box sx={{ 
                   display: 'grid !important', 
                   gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
@@ -2686,20 +2809,35 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   alignItems: 'stretch !important',
                   '& > *': {
                     height: '56px !important',
-                    alignSelf: 'stretch !important'
+                    alignSelf: 'stretch !important',
+                    display: 'flex !important',
+                    alignItems: 'stretch !important'
                   }
                 }}>
                   <Box sx={{ 
                     display: 'flex !important', 
                     gap: 1, 
                     height: '56px !important',
-                    alignItems: 'stretch !important'
+                    alignItems: 'stretch !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important'
                   }}>
                     <FormControl fullWidth required sx={{ 
                       flex: 1, 
                       height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important',
                       '& .MuiInputBase-root': {
-                        height: '56px !important'
+                        height: '56px !important',
+                        minHeight: '56px !important',
+                        maxHeight: '56px !important'
+                      },
+                      '& .MuiSelect-select': {
+                        height: '56px !important',
+                        minHeight: '56px !important',
+                        maxHeight: '56px !important',
+                        display: 'flex !important',
+                        alignItems: 'center !important'
                       }
                     }}>
                       <InputLabel>Ölçüm Aralığı</InputLabel>
@@ -2707,7 +2845,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         value={formData.measurementRange || ''}
                         onChange={(e) => setFormData({...formData, measurementRange: e.target.value})}
                         disabled={!formData.category}
-                        sx={{ height: '56px !important' }}
+                        sx={{ 
+                          height: '56px !important',
+                          minHeight: '56px !important',
+                          maxHeight: '56px !important'
+                        }}
                       >
                         {formData.category && (MEASUREMENT_RANGES_BY_CATEGORY[formData.category] || MEASUREMENT_RANGES_BY_CATEGORY['Diğer']).map((range) => (
                           <MenuItem key={range} value={range}>{range}</MenuItem>
@@ -2726,6 +2868,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       sx={{ 
                         minWidth: 50, 
                         height: '56px !important', 
+                        minHeight: '56px !important',
+                        maxHeight: '56px !important',
                         flexShrink: '0 !important'
                       }}
                       title="Yeni Ölçüm Aralığı Ekle"
@@ -2739,13 +2883,26 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     display: 'flex !important', 
                     gap: 1, 
                     height: '56px !important',
-                    alignItems: 'stretch !important'
+                    alignItems: 'stretch !important',
+                    minHeight: '56px !important',
+                    maxHeight: '56px !important'
                   }}>
                     <FormControl fullWidth required sx={{ 
                       flex: 1, 
                       height: '56px !important',
+                      minHeight: '56px !important',
+                      maxHeight: '56px !important',
                       '& .MuiInputBase-root': {
-                        height: '56px !important'
+                        height: '56px !important',
+                        minHeight: '56px !important',
+                        maxHeight: '56px !important'
+                      },
+                      '& .MuiSelect-select': {
+                        height: '56px !important',
+                        minHeight: '56px !important',
+                        maxHeight: '56px !important',
+                        display: 'flex !important',
+                        alignItems: 'center !important'
                       }
                     }}>
                       <InputLabel>Ölçüm Belirsizliği</InputLabel>
@@ -2753,7 +2910,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         value={formData.measurementUncertainty || ''}
                         onChange={(e) => setFormData({...formData, measurementUncertainty: e.target.value})}
                         disabled={!formData.category}
-                        sx={{ height: '56px !important' }}
+                        sx={{ 
+                          height: '56px !important',
+                          minHeight: '56px !important',
+                          maxHeight: '56px !important'
+                        }}
                       >
                         {formData.category && (MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[formData.category] || MEASUREMENT_UNCERTAINTIES_BY_CATEGORY['Diğer']).map((uncertainty) => (
                           <MenuItem key={uncertainty} value={uncertainty}>{uncertainty}</MenuItem>
@@ -2772,6 +2933,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       sx={{ 
                         minWidth: 50, 
                         height: '56px !important', 
+                        minHeight: '56px !important',
+                        maxHeight: '56px !important',
                         flexShrink: '0 !important'
                       }}
                       title="Yeni Ölçüm Belirsizliği Ekle"
