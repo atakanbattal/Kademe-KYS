@@ -2822,7 +2822,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           required
                           error={!formData.category}
                           helperText={!formData.category ? "Kategori seçimi zorunludur" : ""}
-                          placeholder="300 yazdığınızda filtrelenir"
+                          placeholder="Kategori ara..."
                         />
                       )}
                       freeSolo
@@ -2902,7 +2902,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <TextField
                               {...params}
                               label="Üretici"
-                              placeholder="Üretici ara... (ör: 300)"
+                              placeholder="Üretici ara..."
                             />
                           )}
                           freeSolo
@@ -2969,7 +2969,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <TextField
                               {...params}
                               label="Model"
-                              placeholder="Model ara... (ör: 300)"
+                              placeholder="Model ara..."
                             />
                           )}
                           freeSolo
@@ -3142,7 +3142,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <TextField
                               {...params}
                               label="Ölçüm Aralığı *"
-                              placeholder="300 yazdığınızda 300 içeren aralıklar gelir"
+                              placeholder="Ölçüm aralığı ara..."
                               disabled={!formData.category}
                             />
                           )}
@@ -3231,7 +3231,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <TextField
                               {...params}
                               label="Ölçüm Belirsizliği *"
-                              placeholder="0.01 yazın, belirsizlik değerleri gelsin"
+                              placeholder="Ölçüm belirsizliği ara..."
                               disabled={!formData.category}
                             />
                           )}
