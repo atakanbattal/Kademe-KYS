@@ -69,6 +69,14 @@ import {
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
+// jsPDF autoTable tipini genişlet
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => void;
+    lastAutoTable: { finalY: number };
+  }
+}
+
 // Types
 interface WPSData {
   materialType: string;
@@ -141,28 +149,28 @@ const JOINT_TYPES: JointType[] = [
   {
     code: 'BUTT',
     name: 'Alın Birleştirme',
-    icon: '⎯⎯',
+    icon: 'BT',
     description: 'İki parçanın uç uca birleştirilmesi',
     applications: ['Basınçlı kaplar', 'Boru hatları', 'Yapı çelikleri']
   },
   {
     code: 'FILLET',
     name: 'Köşe Birleştirme',
-    icon: '⟋',
+    icon: 'FL',
     description: 'İki parçanın dik açıyla birleştirilmesi',
     applications: ['Köşe bağlantıları', 'Destek elemanları', 'Flanş bağlantıları']
   },
   {
     code: 'LAP',
     name: 'Bindirme Birleştirme',
-    icon: '⌐⌐',
+    icon: 'LP',
     description: 'İki parçanın üst üste bindirilerek kaynak edilmesi',
     applications: ['Sacların birleştirilmesi', 'Tamir kaynakları']
   },
   {
     code: 'EDGE',
     name: 'Kenar Birleştirme',
-    icon: '||',
+    icon: 'EG',
     description: 'İki parçanın kenarlarının yan yana kaynak edilmesi',
     applications: ['İnce saclar', 'Özel uygulamalar']
   }
@@ -1248,7 +1256,7 @@ const WpsGenerator: React.FC = () => {
     doc.setTextColor(0, 0, 0);
     let y = 55;
     
-    autoTable(doc, {
+    doc.autoTable({
       startY: y,
       head: [['WPS BILGILERI', '']],
       body: [
