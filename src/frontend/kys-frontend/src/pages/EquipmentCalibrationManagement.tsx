@@ -313,8 +313,10 @@ const getMeasurementRangesByCategory = () => {
   
   const defaultRanges = {
     'Ölçüm Cihazları': [
-      '0-25 mm', '0-50 mm', '0-100 mm', '0-150 mm', '0-200 mm', 
-      '0-300 mm', '0-500 mm', '0-1000 mm', '0-2000 mm', 'Diğer'
+      '0-25 mm', '25-50 mm', '50-75 mm', '75-100 mm', '100-125 mm',
+      '125-150 mm', '150-175 mm', '175-200 mm', '0-50 mm', '0-100 mm', 
+      '0-150 mm', '0-200 mm', '0-300 mm', '0-500 mm', '0-1000 mm', 
+      '0-2000 mm', 'Diğer'
     ],
     'Test Ekipmanları': [
       '0-10 V', '0-100 V', '0-1000 V', '0-10 A', '0-100 A', 
