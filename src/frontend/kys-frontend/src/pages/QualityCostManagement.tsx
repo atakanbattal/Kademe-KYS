@@ -98,7 +98,6 @@ import {
   GpsFixed as TargetIcon,
   FileDownload as ExportIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
   FilterList as FilterListIcon,
   Tune as TuneIcon,
   Science as ScienceIcon,
@@ -134,196 +133,7 @@ import {
 // DÖF/8D Integration Import
 import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
 
-// ✅ PROFESSIONAL MONTH PICKER COMPONENT
-interface ProfessionalMonthPickerProps {
-  value: string;
-  onChange: (value: string) => void;
-}
 
-const ProfessionalMonthPicker: React.FC<ProfessionalMonthPickerProps> = ({ value, onChange }) => {
-  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [selectedYear, setSelectedYear] = useState(() => {
-    if (value) {
-      return parseInt(value.split('-')[0]);
-    }
-    return new Date().getFullYear();
-  });
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleMonthSelect = (month: number) => {
-    const monthStr = month.toString().padStart(2, '0');
-    const newValue = `${selectedYear}-${monthStr}`;
-    onChange(newValue);
-    handleClose();
-  };
-
-  const handleClear = () => {
-    onChange('');
-    handleClose();
-  };
-
-  const getCurrentMonthName = () => {
-    if (!value) return '';
-    const [year, month] = value.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleDateString('tr-TR', { 
-      year: 'numeric', 
-      month: 'long' 
-    });
-  };
-
-  const isCurrentMonth = (month: number) => {
-    if (!value) return false;
-    const [year, selectedMonth] = value.split('-');
-    return parseInt(year) === selectedYear && parseInt(selectedMonth) === month;
-  };
-
-  const monthNames = [
-    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
-  ];
-
-  const currentYear = new Date().getFullYear();
-  const availableYears = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
-
-  return (
-    <>
-      <TextField
-        fullWidth
-        size="small"
-        label="Ay Seçin"
-        value={getCurrentMonthName()}
-        onClick={handleClick}
-        placeholder="Ay seçiniz"
-        InputLabelProps={{ 
-          shrink: true
-        }}
-        InputProps={{
-          readOnly: true,
-          endAdornment: (
-            <InputAdornment position="end">
-              <CalendarTodayIcon sx={{ color: 'action.active', cursor: 'pointer' }} />
-            </InputAdornment>
-          )
-        }}
-        sx={{
-          '& .MuiInputBase-root': {
-            height: 40,
-            cursor: 'pointer'
-          },
-          '& .MuiInputBase-input': {
-            cursor: 'pointer'
-          }
-        }}
-      />
-      
-      <Dialog
-        open={Boolean(anchorEl)}
-        onClose={handleClose}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            maxWidth: 400
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          textAlign: 'center', 
-          pb: 1,
-          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-          color: 'white'
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <IconButton 
-              onClick={() => setSelectedYear(prev => prev - 1)}
-              sx={{ color: 'white' }}
-            >
-              <ExpandLessIcon sx={{ transform: 'rotate(-90deg)' }} />
-            </IconButton>
-            
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              {selectedYear}
-            </Typography>
-            
-            <IconButton 
-              onClick={() => setSelectedYear(prev => prev + 1)}
-              sx={{ color: 'white' }}
-            >
-              <ExpandLessIcon sx={{ transform: 'rotate(90deg)' }} />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        
-        <DialogContent sx={{ p: 3 }}>
-          <Grid container spacing={1}>
-            {monthNames.map((monthName, index) => {
-              const monthNumber = index + 1;
-              const isSelected = isCurrentMonth(monthNumber);
-              const isCurrentActualMonth = selectedYear === currentYear && monthNumber === new Date().getMonth() + 1;
-              
-              return (
-                <Grid item xs={4} key={monthNumber}>
-                  <Button
-                    fullWidth
-                    variant={isSelected ? "contained" : "outlined"}
-                    onClick={() => handleMonthSelect(monthNumber)}
-                    sx={{
-                      height: 48,
-                      borderRadius: 2,
-                      fontWeight: isSelected ? 'bold' : 'normal',
-                      backgroundColor: isSelected 
-                        ? 'primary.main' 
-                        : isCurrentActualMonth 
-                          ? 'action.hover' 
-                          : 'transparent',
-                      borderColor: isCurrentActualMonth && !isSelected 
-                        ? 'primary.main' 
-                        : undefined,
-                      '&:hover': {
-                        backgroundColor: isSelected 
-                          ? 'primary.dark'
-                          : 'action.hover'
-                      }
-                    }}
-                  >
-                    {monthName}
-                  </Button>
-                </Grid>
-              );
-            })}
-          </Grid>
-        </DialogContent>
-        
-        <DialogActions sx={{ justifyContent: 'space-between', p: 2 }}>
-          <Button 
-            onClick={handleClear}
-            color="warning"
-            variant="outlined"
-            startIcon={<CloseIcon />}
-          >
-            Temizle
-          </Button>
-          <Button 
-            onClick={handleClose}
-            variant="contained"
-            startIcon={<CheckCircleIcon />}
-          >
-            Tamam
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
-  );
-};
 
 // 🔥 ULTIMATE STABLE SEARCH INPUT - Kesinlikle focus kaybı yok!
 const UltimateStableSearchInput = memo<{
@@ -14196,17 +14006,7 @@ const CategoryProductionManagementComponent: React.FC<{
   const [categoryProductions, setCategoryProductions] = useState<MonthlyCategoryProduction[]>([]);
   const [filteredProductions, setFilteredProductions] = useState<MonthlyCategoryProduction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<VehicleCategory | ''>('');
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    const initial = globalFilters?.selectedMonth || '';
-    console.log('🔄 selectedMonth başlangıç değeri:', {
-      globalFilters,
-      globalFiltersSelectedMonth: globalFilters?.selectedMonth,
-      initialValue: initial
-    });
-    return initial;
-  });
+
 
   // Search term artık doğrudan TextField onChange ile handle ediliyor
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -14243,50 +14043,8 @@ const CategoryProductionManagementComponent: React.FC<{
 
   // Filtreleme
   useEffect(() => {
-    applyFilters();
-  }, [categoryProductions, searchTerm, selectedCategory, selectedMonth]);
-
-  // GlobalFilters ile senkronizasyon
-  useEffect(() => {
-    console.log('🔄 GlobalFilters senkronizasyon useEffect:', {
-      globalFiltersSelectedMonth: globalFilters?.selectedMonth,
-      currentSelectedMonth: selectedMonth,
-      needsUpdate: globalFilters?.selectedMonth !== selectedMonth
-    });
-    
-    if (globalFilters?.selectedMonth !== selectedMonth) {
-      const newValue = globalFilters?.selectedMonth || '';
-      console.log('🔄 selectedMonth güncelleniyor:', {
-        from: selectedMonth,
-        to: newValue
-      });
-      setSelectedMonth(newValue);
-    }
-  }, [globalFilters?.selectedMonth]);
-
-  // SelectedMonth değiştiğinde globalFilters'ı güncelle
-  const handleMonthChange = (newMonth: string) => {
-    console.log('📅 handleMonthChange çağrıldı:', {
-      newMonth,
-      currentSelectedMonth: selectedMonth,
-      globalFiltersExists: !!globalFilters,
-      setGlobalFiltersExists: !!setGlobalFilters,
-      globalFilters: globalFilters
-    });
-    
-    setSelectedMonth(newMonth);
-    
-    if (setGlobalFilters && globalFilters) {
-      const updatedFilters = {...globalFilters, selectedMonth: newMonth};
-      console.log('🔄 GlobalFilters güncelleniyor:', updatedFilters);
-      setGlobalFilters(updatedFilters);
-    } else {
-      console.warn('⚠️ GlobalFilters güncellenemedi:', {
-        setGlobalFiltersExists: !!setGlobalFilters,
-        globalFiltersExists: !!globalFilters
-      });
-    }
-  };
+    setFilteredProductions(categoryProductions);
+  }, [categoryProductions]);
 
   // Event listeners
   useEffect(() => {
@@ -14396,71 +14154,7 @@ const CategoryProductionManagementComponent: React.FC<{
     return sampleData;
   };
 
-  const applyFilters = useCallback(() => {
-    console.log('🔍 applyFilters çağrıldı:', {
-      categoryProductionsLength: categoryProductions.length,
-      searchTerm,
-      selectedCategory,
-      selectedMonth,
-      categoryProductions: categoryProductions.map(p => ({
-        id: p.id,
-        kategori: p.kategori,
-        donem: p.donem,
-        uretilen: p.uretilenAracSayisi
-      }))
-    });
-    
-    let filtered = [...categoryProductions];
-    const originalLength = filtered.length;
 
-    // Arama terimi
-    if (searchTerm) {
-      filtered = filtered.filter(prod => 
-        prod.kategori.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        prod.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        prod.donem.includes(searchTerm) ||
-        (prod.aciklama && prod.aciklama.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-      console.log(`🔍 Arama filtresi sonrası: ${filtered.length} kayıt`);
-    }
-
-    // Kategori filtresi
-    if (selectedCategory) {
-      filtered = filtered.filter(prod => prod.kategori === selectedCategory);
-      console.log(`🔍 Kategori filtresi sonrası: ${filtered.length} kayıt`);
-    }
-
-    // Ay filtresi
-    if (selectedMonth) {
-      const beforeMonthFilter = filtered.length;
-      filtered = filtered.filter(prod => {
-        const matches = prod.donem === selectedMonth;
-        console.log(`📅 Ay filtre kontrolü: ${prod.donem} === ${selectedMonth} = ${matches}`);
-        return matches;
-      });
-      console.log(`📅 Ay filtresi sonrası: ${beforeMonthFilter} -> ${filtered.length} kayıt`);
-    }
-
-    // Aktif olanlar önce
-    filtered.sort((a, b) => {
-      if (a.isActive && !b.isActive) return -1;
-      if (!a.isActive && b.isActive) return 1;
-      return new Date(b.donem).getTime() - new Date(a.donem).getTime();
-    });
-
-    console.log('🔍 Final filtrelenmiş veri:', {
-      originalLength,
-      finalLength: filtered.length,
-      filteredData: filtered.map(p => ({
-        id: p.id,
-        kategori: p.kategori,
-        donem: p.donem,
-        uretilen: p.uretilenAracSayisi
-      }))
-    });
-
-    setFilteredProductions(filtered);
-  }, [categoryProductions, searchTerm, selectedCategory, selectedMonth]);
 
   // ✅ YENİ: Gelişmiş Araç Bazlı Yıllık Üretim Yönetimi Fonksiyonları
   
@@ -14709,117 +14403,6 @@ const CategoryProductionManagementComponent: React.FC<{
 
   return (
     <Box sx={{ p: 3 }}>
-
-
-      {/* Filters */}
-      <Paper sx={{ 
-        p: 3, 
-        mb: 3, 
-        borderRadius: 2,
-        boxShadow: 1,
-        border: '1px solid rgba(0, 0, 0, 0.12)'
-      }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3.5}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Arama"
-              placeholder="Araç modeli, kategori veya ay ile ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{
-                '& .MuiInputBase-root': {
-                  height: 40
-                }
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={2.5}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Kategori</InputLabel>
-              <Select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value as VehicleCategory | '')}
-                label="Kategori"
-                sx={{
-                  height: 40,
-                  '& .MuiSelect-select': {
-                    height: 40,
-                    display: 'flex',
-                    alignItems: 'center',
-                    py: 0
-                  }
-                }}
-              >
-                <MenuItem value="">Tümü</MenuItem>
-                {Object.keys(VEHICLE_CATEGORIES).map(category => (
-                  <MenuItem key={category} value={category}>{category}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2.5}>
-            <ProfessionalMonthPicker
-              value={selectedMonth}
-              onChange={handleMonthChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: 40
-            }}>
-              <Typography 
-                variant="body2" 
-                color="text.secondary"
-                sx={{ 
-                  textAlign: 'center',
-                  fontStyle: 'italic'
-                }}
-              >
-                {(() => {
-                  const filters = [];
-                  if (searchTerm) filters.push('Arama');
-                  if (selectedCategory) filters.push('Kategori');
-                  if (selectedMonth) filters.push('Ay');
-                  
-                  if (filters.length === 0) return 'Filtre yok';
-                  return `${filters.join(', ')} aktif`;
-                })()}
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.5}>
-            <Button
-              fullWidth
-              variant="text"
-              size="small"
-              color="secondary"
-              startIcon={<FilterListIcon />}
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('');
-                handleMonthChange('');
-              }}
-              sx={{ 
-                height: 40,
-                minHeight: 40,
-                textTransform: 'none',
-                fontWeight: 500,
-                '&:hover': {
-                  backgroundColor: 'secondary.light',
-                  color: 'secondary.contrastText'
-                }
-              }}
-            >
-              Filtreleri Temizle
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
 
       {/* Summary Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
