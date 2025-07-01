@@ -43,6 +43,7 @@ import {
   StepLabel,
   StepContent,
   Switch,
+  FormHelperText,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -856,7 +857,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
   
   // Dialog state'leri
   const [openManufacturerDialog, setOpenManufacturerDialog] = useState(false);
+  const [openManufacturerManagementDialog, setOpenManufacturerManagementDialog] = useState(false);
   const [openModelDialog, setOpenModelDialog] = useState(false);
+  const [openModelManagementDialog, setOpenModelManagementDialog] = useState(false);
   const [openCalibrationCompanyDialog, setOpenCalibrationCompanyDialog] = useState(false);
   
   // Yeni ekleme için input state'leri
@@ -2415,155 +2418,271 @@ const EquipmentCalibrationManagement: React.FC = () => {
         </Box>
       )}
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="xl" fullWidth>
-        <DialogTitle>
-          {dialogTitle || (dialogMode === 'create' ? 'Yeni Ekipman Ekle' :
-           dialogMode === 'edit' ? 'Ekipman Düzenle' :
-           dialogMode === 'calibration' ? 'Kalibrasyon Kaydı' :
-           dialogMode === 'maintenance' ? 'Bakım Kaydı' : 'Ekipman Detayları')}
+      {/* Create/Edit Dialog - YENİ PROFESYONELLEŞTİRİLMİŞ FORM */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 2,
+          borderBottom: '4px solid',
+          borderColor: 'primary.dark'
+        }}>
+          <BuildIcon />
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+              {dialogMode === 'create' ? 'Yeni Ekipman Kaydı' :
+               dialogMode === 'edit' ? 'Ekipman Düzenle' :
+               dialogMode === 'calibration' ? 'Kalibrasyon Kaydı' :
+               dialogMode === 'maintenance' ? 'Bakım Kaydı' : 'Ekipman Detayları'}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              {dialogMode === 'edit' ? 'Mevcut ekipman bilgilerini güncelleyin' : ''}
+            </Typography>
+          </Box>
         </DialogTitle>
-        <DialogContent>
+        
+        <DialogContent sx={{ p: 0 }}>
           {dialogMode === 'create' || dialogMode === 'edit' ? (
-            <Box sx={{ mt: 2 }}>
-              {/* ========== TEMİZ VE BASİT FORM ========== */}
-              <Box sx={{
-                '& .MuiTextField-root, & .MuiFormControl-root': {
-                  height: 56,
-                  '& .MuiInputBase-root': { height: 56 },
-                  '& .MuiSelect-select': { height: 56, display: 'flex', alignItems: 'center' }
-                }
-              }}>
+            <Box sx={{ bgcolor: 'grey.50', minHeight: '70vh' }}>
+              {/* Form Container */}
+              <Box sx={{ p: 4 }}>
                 
-                {/* Temel Bilgiler */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
-                  <TextField
-                    fullWidth
-                    label="Ekipman Kodu *"
-                    value={formData.equipmentCode || ''}
-                    onChange={(e) => setFormData({...formData, equipmentCode: e.target.value})}
-                    required
-                  />
-                  <TextField
-                    fullWidth
-                    label="Cihazın Adı *"
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
-                  />
+                {/* FORM BAŞLIK */}
+                <Box sx={{ mb: 4, textAlign: 'center' }}>
+                  <Typography variant="h6" color="primary" sx={{ mb: 1, fontWeight: 600 }}>
+                    Ekipman Bilgileri Formu
+                  </Typography>
                 </Box>
-                
-                {/* Üretici ve Model */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <FormControl fullWidth sx={{ height: 56 }}>
-                      <InputLabel>Üretici</InputLabel>
-                      <Select
-                        value={formData.manufacturer || ''}
-                        onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
-                      >
-                        {manufacturersList.map((manufacturer) => (
-                          <MenuItem key={manufacturer} value={manufacturer}>{manufacturer}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <Button 
-                      variant="outlined" 
-                      onClick={() => setOpenManufacturerDialog(true)}
-                      sx={{ minWidth: 50, height: 56 }}
-                    >
-                      +
-                    </Button>
+
+                {/* TEMEL BİLGİLER SEKSİYONU */}
+                <Paper elevation={2} sx={{ p: 3, mb: 3, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                  <Typography variant="h6" sx={{ mb: 3, color: 'primary.main', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <EngineeringIcon />
+                    Temel Ekipman Bilgileri
+                  </Typography>
+                  
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
+                    <TextField
+                      fullWidth
+                      label="Ekipman Kodu"
+                      value={formData.equipmentCode || ''}
+                      onChange={(e) => setFormData({...formData, equipmentCode: e.target.value})}
+                      required
+                      error={!formData.equipmentCode?.trim()}
+                      helperText={!formData.equipmentCode?.trim() ? "Ekipman kodu zorunludur" : ""}
+                      placeholder="EQ-001, MEAS-001, CAL-001"
+                    />
+                    <TextField
+                      fullWidth
+                      label="Cihazın Adı"
+                      value={formData.name || ''}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      required
+                      error={!formData.name?.trim()}
+                      helperText={!formData.name?.trim() ? "Cihaz adı zorunludur" : ""}
+                      placeholder="Dijital Kumpas, Mikrometre, Test Cihazı"
+                    />
                   </Box>
                   
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <FormControl fullWidth sx={{ height: 56 }}>
-                      <InputLabel>Model</InputLabel>
-                      <Select
-                        value={formData.model || ''}
-                        onChange={(e) => setFormData({...formData, model: e.target.value})}
-                      >
-                        {modelsList.map((model) => (
-                          <MenuItem key={model} value={model}>{model}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <Button 
-                      variant="outlined" 
-                      onClick={() => setOpenModelDialog(true)}
-                      sx={{ minWidth: 50, height: 56 }}
-                    >
-                      +
-                    </Button>
-                  </Box>
-                </Box>
-                
-                {/* Seri Numarası */}
-                <Box sx={{ mb: 3 }}>
                   <TextField
                     fullWidth
-                    label="Cihaz Seri Numarası *"
+                    label="Seri Numarası"
                     value={formData.serialNumber || ''}
                     onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
                     required
+                    error={!formData.serialNumber?.trim()}
+                    helperText={!formData.serialNumber?.trim() ? "Seri numarası zorunludur" : ""}
+                    placeholder="ABC123456, SN-789456123"
+                    sx={{ mb: 3 }}
                   />
-                </Box>
-                
-                {/* Kategori, Lokasyon, Departman */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 2, mb: 3 }}>
-                  <FormControl fullWidth required sx={{ height: 56 }}>
-                    <InputLabel>Kategori</InputLabel>
-                    <Select
-                      value={formData.category || ''}
-                      onChange={(e) => {
-                        const newCategory = e.target.value as string;
-                        setFormData({
-                          ...formData, 
-                          category: newCategory,
-                          measurementRange: '',
-                          measurementUncertainty: ''
-                        });
-                      }}
-                    >
-                      {EQUIPMENT_CATEGORIES.map((category) => (
-                        <MenuItem key={category} value={category}>{category}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  
-                  <FormControl fullWidth required sx={{ height: 56 }}>
-                    <InputLabel>Lokasyon</InputLabel>
-                    <Select
-                      value={formData.location || ''}
-                      onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    >
-                      {LOCATIONS.map((location) => (
-                        <MenuItem key={location} value={location}>{location}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  
-                  <FormControl fullWidth required sx={{ height: 56 }}>
-                    <InputLabel>Departman</InputLabel>
-                    <Select
-                      value={formData.department || ''}
-                      onChange={(e) => setFormData({...formData, department: e.target.value})}
-                    >
-                      {DEPARTMENTS.map((dept) => (
-                        <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-                
-                {/* Zimmet Bilgileri */}
-                <Box sx={{ mt: 4, p: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 2, bgcolor: 'primary.50' }}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'primary.main', fontWeight: 600 }}>
-                    Zimmet Bilgileri
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
+                    <FormControl fullWidth required error={!formData.category}>
+                      <InputLabel>Kategori</InputLabel>
+                      <Select
+                        value={formData.category || ''}
+                        onChange={(e) => {
+                          const newCategory = e.target.value as string;
+                          setFormData({
+                            ...formData, 
+                            category: newCategory,
+                            measurementRange: '',
+                            measurementUncertainty: ''
+                          });
+                        }}
+                      >
+                        {EQUIPMENT_CATEGORIES.map((category) => (
+                          <MenuItem key={category} value={category}>{category}</MenuItem>
+                        ))}
+                      </Select>
+                      {!formData.category && <FormHelperText>Kategori seçimi zorunludur</FormHelperText>}
+                    </FormControl>
+                    
+                    <FormControl fullWidth required error={!formData.location}>
+                      <InputLabel>Lokasyon</InputLabel>
+                      <Select
+                        value={formData.location || ''}
+                        onChange={(e) => setFormData({...formData, location: e.target.value})}
+                      >
+                        {LOCATIONS.map((location) => (
+                          <MenuItem key={location} value={location}>{location}</MenuItem>
+                        ))}
+                      </Select>
+                      {!formData.location && <FormHelperText>Lokasyon seçimi zorunludur</FormHelperText>}
+                    </FormControl>
+                    
+                    <FormControl fullWidth required error={!formData.department}>
+                      <InputLabel>Departman</InputLabel>
+                      <Select
+                        value={formData.department || ''}
+                        onChange={(e) => setFormData({...formData, department: e.target.value})}
+                      >
+                        {DEPARTMENTS.map((dept) => (
+                          <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+                        ))}
+                      </Select>
+                      {!formData.department && <FormHelperText>Departman seçimi zorunludur</FormHelperText>}
+                    </FormControl>
+                  </Box>
+                </Paper>
+
+                {/* ÜRETİCİ VE MODEL SEKSİYONU */}
+                <Paper elevation={2} sx={{ p: 3, mb: 3, borderLeft: '4px solid', borderColor: 'info.main' }}>
+                  <Typography variant="h6" sx={{ mb: 3, color: 'info.main', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <BuildIcon />
+                    Üretici ve Model Bilgileri
                   </Typography>
                   
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 2, mb: 2 }}>
-                    <FormControl fullWidth required sx={{ height: 56 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                    {/* Üretici Seçimi */}
+                    <Box>
+                      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                        <FormControl fullWidth>
+                          <InputLabel>Üretici</InputLabel>
+                          <Select
+                            value={formData.manufacturer || ''}
+                            onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
+                          >
+                            {manufacturersList.map((manufacturer) => (
+                              <MenuItem key={manufacturer} value={manufacturer}>{manufacturer}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <Tooltip title="Yeni üretici ekle">
+                          <Button 
+                            variant="contained" 
+                            onClick={() => setOpenManufacturerDialog(true)}
+                            sx={{ minWidth: 50 }}
+                            color="success"
+                          >
+                            <AddIcon />
+                          </Button>
+                        </Tooltip>
+                      </Box>
+                      
+                      {/* Üretici Arama */}
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Üretici ara veya yönet..."
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon />
+                            </InputAdornment>
+                          ),
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton 
+                                size="small" 
+                                onClick={() => setOpenManufacturerManagementDialog(true)}
+                                title="Üretici yönet"
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        }}
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': { 
+                            bgcolor: 'info.50',
+                            '&:hover': { bgcolor: 'info.100' }
+                          }
+                        }}
+                      />
+                    </Box>
+                    
+                    {/* Model Seçimi */}
+                    <Box>
+                      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                        <FormControl fullWidth>
+                          <InputLabel>Model</InputLabel>
+                          <Select
+                            value={formData.model || ''}
+                            onChange={(e) => setFormData({...formData, model: e.target.value})}
+                          >
+                            {modelsList.map((model) => (
+                              <MenuItem key={model} value={model}>{model}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <Tooltip title="Yeni model ekle">
+                          <Button 
+                            variant="contained" 
+                            onClick={() => setOpenModelDialog(true)}
+                            sx={{ minWidth: 50 }}
+                            color="success"
+                          >
+                            <AddIcon />
+                          </Button>
+                        </Tooltip>
+                      </Box>
+                      
+                      {/* Model Arama */}
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Model ara veya yönet..."
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon />
+                            </InputAdornment>
+                          ),
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton 
+                                size="small" 
+                                onClick={() => setOpenModelManagementDialog(true)}
+                                title="Model yönet"
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        }}
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': { 
+                            bgcolor: 'info.50',
+                            '&:hover': { bgcolor: 'info.100' }
+                          }
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                </Paper>
+
+                {/* SORUMLU PERSONEL SEKSİYONU */}
+                <Paper elevation={2} sx={{ p: 3, mb: 3, borderLeft: '4px solid', borderColor: 'success.main' }}>
+                  <Typography variant="h6" sx={{ mb: 3, color: 'success.main', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PersonAddIcon />
+                    Zimmet ve Sorumlu Personel
+                  </Typography>
+                  
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3, mb: 3 }}>
+                    <FormControl fullWidth required error={!formData.responsiblePersonSicilNo}>
                       <InputLabel>Sorumlu Personel</InputLabel>
                       <Select
                         value={formData.responsiblePersonSicilNo || ''}
@@ -2585,133 +2704,259 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             </MenuItem>
                           ))}
                       </Select>
+                      {!formData.responsiblePersonSicilNo && <FormHelperText>Sorumlu personel seçimi zorunludur</FormHelperText>}
                     </FormControl>
                   
                     <Button
                       variant="contained"
                       onClick={() => setOpenPersonnelDialog(true)}
-                      sx={{ height: 56 }}
                       startIcon={<PersonAddIcon />}
+                      color="success"
+                      sx={{ height: 56 }}
                     >
                       Yeni Personel
                     </Button>
                   </Box>
-                
+
+                  {/* Seçilen Personel Bilgisi */}
                   {formData.responsiblePersonName && (
-                    <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.8)', borderRadius: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Seçilen Personel: <strong>{formData.responsiblePersonName}</strong> (Sicil: {formData.responsiblePersonSicilNo})
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        <strong>Seçilen Personel:</strong> {formData.responsiblePersonName} (Sicil: {formData.responsiblePersonSicilNo})
                       </Typography>
-                    </Box>
+                    </Alert>
                   )}
-                </Box>
 
-                {/* Teknik Özellikler */}
-                <Box sx={{ mt: 4, p: 3, border: '2px solid', borderColor: 'success.main', borderRadius: 2, bgcolor: 'success.50' }}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'success.main', fontWeight: 600 }}>
-                    Cihazın Teknik Özellikleri
-                  </Typography>
-                  
-                  {/* Ölçüm Aralığı ve Belirsizlik */}
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <FormControl fullWidth required sx={{ height: 56 }}>
-                        <InputLabel>Ölçüm Aralığı</InputLabel>
-                        <Select
-                          value={formData.measurementRange || ''}
-                          onChange={(e) => setFormData({...formData, measurementRange: e.target.value})}
-                          disabled={!formData.category}
-                        >
-                          {formData.category && (MEASUREMENT_RANGES_BY_CATEGORY[formData.category] || MEASUREMENT_RANGES_BY_CATEGORY['Diğer']).map((range) => (
-                            <MenuItem key={range} value={range}>{range}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <Button
-                        variant="outlined"
-                        onClick={() => {
-                          const newRange = prompt('Yeni ölçüm aralığı giriniz:');
-                          if (newRange) {
-                            const category = formData.category || 'Diğer';
-                            MEASUREMENT_RANGES_BY_CATEGORY[category] = [...(MEASUREMENT_RANGES_BY_CATEGORY[category] || []), newRange.trim()];
-                          }
-                        }}
-                        sx={{ minWidth: 50, height: 56 }}
-                        disabled={!formData.category}
-                      >
-                        +
-                      </Button>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <FormControl fullWidth required sx={{ height: 56 }}>
-                        <InputLabel>Ölçüm Belirsizliği</InputLabel>
-                        <Select
-                          value={formData.measurementUncertainty || ''}
-                          onChange={(e) => setFormData({...formData, measurementUncertainty: e.target.value})}
-                          disabled={!formData.category}
-                        >
-                          {formData.category && (MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[formData.category] || MEASUREMENT_UNCERTAINTIES_BY_CATEGORY['Diğer']).map((uncertainty) => (
-                            <MenuItem key={uncertainty} value={uncertainty}>{uncertainty}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <Button 
-                        variant="outlined"
-                        onClick={() => {
-                          const newUncertainty = prompt('Yeni ölçüm belirsizliği giriniz:');
-                          if (newUncertainty) {
-                            const category = formData.category || 'Diğer';
-                            MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] = [...(MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] || []), newUncertainty.trim()];
-                          }
-                        }}
-                        sx={{ minWidth: 50, height: 56 }}
-                        disabled={!formData.category}
-                      >
-                        +
-                      </Button>
-                    </Box>
-                  </Box>
-
-                  {/* Detaylı Teknik Özellikler */}
+                  {/* Personel Arama ve Yönetimi */}
                   <Box sx={{ mb: 3 }}>
                     <TextField
                       fullWidth
-                      label="Detaylı Teknik Özellikler"
-                      multiline
-                      rows={3}
-                      value={formData.specifications || ''}
-                      onChange={(e) => setFormData({...formData, specifications: e.target.value})}
-                      placeholder="Cihazın tüm teknik özelliklerini detaylı şekilde giriniz..."
+                      size="small"
+                      placeholder="Personel ara veya yönet..."
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton 
+                              size="small" 
+                              onClick={() => setOpenPersonnelManagementDialog(true)}
+                              title="Personel yönet"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        )
+                      }}
+                      sx={{ 
+                        '& .MuiOutlinedInput-root': { 
+                          bgcolor: 'success.50',
+                          '&:hover': { bgcolor: 'success.100' }
+                        }
+                      }}
                     />
                   </Box>
-                </Box>
 
-                {/* Kalibrasyon Bilgileri */}
-                <Box sx={{ mt: 4, p: 3, border: '2px solid', borderColor: 'warning.main', borderRadius: 2, bgcolor: 'warning.50' }}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'warning.main', fontWeight: 600 }}>
-                    Kalibrasyon Bilgileri
+                  {/* Personel Listesi Özeti */}
+                  {personnelList.length > 0 && (
+                    <Box sx={{ bgcolor: 'success.50', borderRadius: 2, p: 2 }}>
+                      <Typography variant="subtitle2" color="success.main" sx={{ mb: 2, fontWeight: 600 }}>
+                        Kayıtlı Personeller ({personnelList.length})
+                      </Typography>
+                      
+                      <Box sx={{ maxHeight: 150, overflow: 'auto' }}>
+                        {personnelList.slice(0, 4).map((person) => (
+                          <Box key={person.sicilNo} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid rgba(76, 175, 80, 0.2)' }}>
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                {person.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {person.sicilNo} • {person.department}
+                              </Typography>
+                            </Box>
+                            <Chip 
+                              label={person.isActive ? "Aktif" : "Pasif"}
+                              size="small"
+                              color={person.isActive ? "success" : "default"}
+                              variant="outlined"
+                            />
+                          </Box>
+                        ))}
+                        {personnelList.length > 4 && (
+                          <Typography variant="caption" color="success.main" sx={{ display: 'block', textAlign: 'center', pt: 1, fontWeight: 500 }}>
+                            +{personnelList.length - 4} personel daha... (Tümünü görmek için yönet butonuna tıklayın)
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  )}
+                </Paper>
+
+                {/* TEKNİK ÖZELLİKLER SEKSİYONU */}
+                <Paper elevation={2} sx={{ p: 3, mb: 3, borderLeft: '4px solid', borderColor: 'warning.main' }}>
+                  <Typography variant="h6" sx={{ mb: 3, color: 'warning.main', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ScienceIcon />
+                    Teknik Özellikler
                   </Typography>
                   
-                  {/* Kalibrasyon Tarihleri */}
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
+                    {/* Ölçüm Aralığı */}
+                    <Box>
+                      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                        <FormControl fullWidth required>
+                          <InputLabel>Ölçüm Aralığı</InputLabel>
+                          <Select
+                            value={formData.measurementRange || ''}
+                            onChange={(e) => setFormData({...formData, measurementRange: e.target.value})}
+                            disabled={!formData.category}
+                          >
+                            {formData.category && (MEASUREMENT_RANGES_BY_CATEGORY[formData.category] || MEASUREMENT_RANGES_BY_CATEGORY['Diğer']).map((range) => (
+                              <MenuItem key={range} value={range}>{range}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <Tooltip title="Yeni ölçüm aralığı ekle">
+                          <Button
+                            variant="contained"
+                            onClick={() => {
+                              const newRange = prompt('Yeni ölçüm aralığı giriniz (örn: 0-150mm):');
+                              if (newRange?.trim()) {
+                                const category = formData.category || 'Diğer';
+                                MEASUREMENT_RANGES_BY_CATEGORY[category] = [...(MEASUREMENT_RANGES_BY_CATEGORY[category] || []), newRange.trim()];
+                              }
+                            }}
+                            sx={{ minWidth: 50 }}
+                            disabled={!formData.category}
+                            color="warning"
+                          >
+                            <AddIcon />
+                          </Button>
+                        </Tooltip>
+                      </Box>
+                      
+                      {/* Ölçüm Aralığı Arama */}
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder={formData.category ? `${formData.category} aralığı ara...` : "Önce kategori seçin"}
+                        disabled={!formData.category}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon />
+                            </InputAdornment>
+                          ),
+                          endAdornment: null
+                        }}
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': { 
+                            bgcolor: formData.category ? 'warning.50' : 'grey.200',
+                            '&:hover': { bgcolor: formData.category ? 'warning.100' : 'grey.200' }
+                          }
+                        }}
+                      />
+                    </Box>
+                    
+                    {/* Ölçüm Belirsizliği */}
+                    <Box>
+                      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                        <FormControl fullWidth required>
+                          <InputLabel>Ölçüm Belirsizliği</InputLabel>
+                          <Select
+                            value={formData.measurementUncertainty || ''}
+                            onChange={(e) => setFormData({...formData, measurementUncertainty: e.target.value})}
+                            disabled={!formData.category}
+                          >
+                            {formData.category && (MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[formData.category] || MEASUREMENT_UNCERTAINTIES_BY_CATEGORY['Diğer']).map((uncertainty) => (
+                              <MenuItem key={uncertainty} value={uncertainty}>{uncertainty}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <Tooltip title="Yeni belirsizlik değeri ekle">
+                          <Button 
+                            variant="contained"
+                            onClick={() => {
+                              const newUncertainty = prompt('Yeni ölçüm belirsizliği giriniz (örn: ±0.01mm):');
+                              if (newUncertainty?.trim()) {
+                                const category = formData.category || 'Diğer';
+                                MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] = [...(MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] || []), newUncertainty.trim()];
+                              }
+                            }}
+                            sx={{ minWidth: 50 }}
+                            disabled={!formData.category}
+                            color="warning"
+                          >
+                            <AddIcon />
+                          </Button>
+                        </Tooltip>
+                      </Box>
+                      
+                      {/* Belirsizlik Arama */}
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder={formData.category ? `${formData.category} belirsizliği ara...` : "Önce kategori seçin"}
+                        disabled={!formData.category}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon />
+                            </InputAdornment>
+                          ),
+                          endAdornment: null
+                        }}
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': { 
+                            bgcolor: formData.category ? 'warning.50' : 'grey.200',
+                            '&:hover': { bgcolor: formData.category ? 'warning.100' : 'grey.200' }
+                          }
+                        }}
+                      />
+                    </Box>
+                  </Box>
+
+                  <TextField
+                    fullWidth
+                    label="Detaylı Teknik Özellikler"
+                    multiline
+                    rows={4}
+                    value={formData.specifications || ''}
+                    onChange={(e) => setFormData({...formData, specifications: e.target.value})}
+                    placeholder="Cihazın tüm teknik özelliklerini detaylı şekilde giriniz..."
+                    helperText="Cihazın işlevselliği, doğruluk sınıfı, çalışma koşulları vb. bilgileri ekleyiniz"
+                  />
+                </Paper>
+
+                {/* KALİBRASYON BİLGİLERİ SEKSİYONU */}
+                <Paper elevation={2} sx={{ p: 3, mb: 3, borderLeft: '4px solid', borderColor: 'error.main' }}>
+                  <Typography variant="h6" sx={{ mb: 3, color: 'error.main', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ScheduleIcon />
+                    Kalibrasyon Programı
+                  </Typography>
+                  
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
                     <TextField
                       fullWidth
-                      label="En Son Kalibre Edildiği Tarih"
+                      label="Son Kalibrasyon Tarihi"
                       type="date"
                       value={formData.lastCalibrationDate || new Date().toISOString().split('T')[0]}
                       onChange={(e) => setFormData({...formData, lastCalibrationDate: e.target.value})}
                       InputLabelProps={{ shrink: true }}
-                      sx={{ height: 56 }}
+                      helperText="En son kalibre edildiği tarihi giriniz"
                     />
                     <TextField
                       fullWidth
-                      label="Kalibrasyon Periyodu (Ay) *"
+                      label="Kalibrasyon Periyodu (Ay)"
                       type="number"
                       value={formData.calibrationFrequency || 12}
                       onChange={(e) => {
                         const months = parseInt(e.target.value) || 12;
-                        const nextDate = new Date();
+                        const lastDate = new Date(formData.lastCalibrationDate || new Date());
+                        const nextDate = new Date(lastDate);
                         nextDate.setMonth(nextDate.getMonth() + months);
                         setFormData({
                           ...formData, 
@@ -2721,68 +2966,175 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       }}
                       required
                       inputProps={{ min: 1, max: 60 }}
-                      sx={{ height: 56 }}
+                      helperText="Kaç ayda bir kalibre edilecek"
                     />
                   </Box>
                   
-                  {/* Hedef Tarih ve Laboratuvar */}
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
                     <TextField
                       fullWidth
-                      label="Bir Sonraki Hedef Kalibre Tarihi"
+                      label="Hedef Kalibrasyon Tarihi"
                       type="date"
                       value={formData.nextCalibrationDate || ''}
                       onChange={(e) => setFormData({...formData, nextCalibrationDate: e.target.value})}
                       InputLabelProps={{ shrink: true }}
-                      sx={{ height: 56 }}
+                      helperText="Bir sonraki kalibrasyon için hedef tarih"
+                      disabled
                     />
                     
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <FormControl fullWidth sx={{ height: 56 }}>
-                        <InputLabel>Kalibrasyon Laboratuvarı</InputLabel>
-                        <Select
-                          value={formData.calibrationCompany || ''}
-                          onChange={(e) => setFormData({...formData, calibrationCompany: e.target.value})}
-                        >
-                          {calibrationCompaniesList.map((company) => (
-                            <MenuItem key={company} value={company}>{company}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <Button 
-                        variant="outlined"
-                        onClick={() => setOpenCalibrationCompanyDialog(true)}
-                        sx={{ minWidth: 50, height: 56 }}
-                      >
-                        +
-                      </Button>
+                    {/* Kalibrasyon Laboratuvarı */}
+                    <Box>
+                      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                        <FormControl fullWidth>
+                          <InputLabel>Kalibrasyon Laboratuvarı</InputLabel>
+                          <Select
+                            value={formData.calibrationCompany || ''}
+                            onChange={(e) => setFormData({...formData, calibrationCompany: e.target.value})}
+                          >
+                            {calibrationCompaniesList.map((company) => (
+                              <MenuItem key={company} value={company}>{company}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <Tooltip title="Yeni laboratuvar ekle">
+                          <Button 
+                            variant="contained"
+                            onClick={() => setOpenCalibrationCompanyDialog(true)}
+                            sx={{ minWidth: 50 }}
+                            color="secondary"
+                          >
+                            <AddIcon />
+                          </Button>
+                        </Tooltip>
+                      </Box>
+                      
+                      {/* Laboratuvar Arama */}
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Laboratuvar ara veya yönet..."
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon />
+                            </InputAdornment>
+                          ),
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton 
+                                size="small" 
+                                onClick={() => setOpenCalibrationCompanyDialog(true)}
+                                title="Laboratuvar yönet"
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        }}
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': { 
+                            bgcolor: 'secondary.50',
+                            '&:hover': { bgcolor: 'secondary.100' }
+                          }
+                        }}
+                      />
                     </Box>
                   </Box>
                   
-                  {/* Sertifika Numarası */}
-                  <Box sx={{ mb: 3 }}>
-                    <TextField
-                      fullWidth
-                      label="En Son Kalibrasyon Sertifika Numarası"
-                      value={formData.lastCalibrationCertificateNumber || ''}
-                      onChange={(e) => setFormData({...formData, lastCalibrationCertificateNumber: e.target.value})}
-                      sx={{ height: 56 }}
-                    />
-                  </Box>
-                </Box>
+                  <TextField
+                    fullWidth
+                    label="Son Kalibrasyon Sertifika Numarası"
+                    value={formData.lastCalibrationCertificateNumber || ''}
+                    onChange={(e) => setFormData({...formData, lastCalibrationCertificateNumber: e.target.value})}
+                    placeholder="CERT-2024-001, KAL-24-123456"
+                    helperText="En son alınan kalibrasyon sertifikasının numarası"
+                  />
+                </Paper>
+
+                {/* FORM VALİDASYON DURUMU */}
+                <Paper elevation={1} sx={{ p: 2, bgcolor: 'info.50', borderLeft: '4px solid', borderColor: 'info.main' }}>
+                  <Typography variant="body2" color="info.main" sx={{ mb: 1, fontWeight: 600 }}>
+                    Form Durumu
+                  </Typography>
+                  {(() => {
+                    const requiredFields = [
+                      { field: 'equipmentCode', label: 'Ekipman Kodu' },
+                      { field: 'name', label: 'Cihaz Adı' },
+                      { field: 'serialNumber', label: 'Seri Numarası' },
+                      { field: 'category', label: 'Kategori' },
+                      { field: 'location', label: 'Lokasyon' },
+                      { field: 'department', label: 'Departman' },
+                      { field: 'responsiblePersonSicilNo', label: 'Sorumlu Personel' },
+                      { field: 'measurementRange', label: 'Ölçüm Aralığı' },
+                      { field: 'measurementUncertainty', label: 'Ölçüm Belirsizliği' }
+                    ];
+                    
+                    const missingFields = requiredFields.filter(item => !formData[item.field]?.toString().trim());
+                    const completedFields = requiredFields.length - missingFields.length;
+                    const completionPercentage = Math.round((completedFields / requiredFields.length) * 100);
+                    
+                    return (
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                          <Typography variant="body2">
+                            Tamamlanan: {completedFields}/{requiredFields.length} (%{completionPercentage})
+                          </Typography>
+                          <Box sx={{ 
+                            width: 100, 
+                            height: 8, 
+                            bgcolor: 'grey.300', 
+                            borderRadius: 4,
+                            overflow: 'hidden'
+                          }}>
+                            <Box sx={{ 
+                              width: `${completionPercentage}%`, 
+                              height: '100%', 
+                              bgcolor: completionPercentage === 100 ? 'success.main' : 'warning.main',
+                              transition: 'all 0.3s'
+                            }} />
+                          </Box>
+                        </Box>
+                        {missingFields.length > 0 && (
+                          <Typography variant="caption" color="error">
+                            Eksik alanlar: {missingFields.map(f => f.label).join(', ')}
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  })()}
+                </Paper>
+
               </Box>
             </Box>
           ) : dialogMode === 'view' ? (
-            <Box>Görüntüleme modu</Box>
+            <Box sx={{ p: 3 }}>
+              <Typography>Görüntüleme modu - Ekipman detayları burada gösterilecek</Typography>
+            </Box>
           ) : (
-            <Box>Diğer mod</Box>
+            <Box sx={{ p: 3 }}>
+              <Typography>Diğer modlar için içerik</Typography>
+            </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>İptal</Button>
+        
+        <DialogActions sx={{ p: 3, bgcolor: 'grey.50', borderTop: '1px solid', borderColor: 'divider' }}>
+          <Button 
+            onClick={() => setOpenDialog(false)} 
+            size="large"
+            startIcon={<ClearIcon />}
+          >
+            İptal
+          </Button>
           {(dialogMode === 'create' || dialogMode === 'edit') && (
-            <Button onClick={handleSave} variant="contained">
-              {dialogMode === 'create' ? 'Ekipmanı Kaydet' : 'Güncelle'}
+            <Button 
+              onClick={handleSave} 
+              variant="contained" 
+              size="large"
+              startIcon={<SaveIcon />}
+              disabled={!formData.equipmentCode?.trim() || !formData.name?.trim() || !formData.serialNumber?.trim()}
+              sx={{ minWidth: 150 }}
+            >
+              {dialogMode === 'create' ? 'Ekipmanı Kaydet' : 'Değişiklikleri Kaydet'}
             </Button>
           )}
         </DialogActions>
@@ -2966,6 +3318,118 @@ const EquipmentCalibrationManagement: React.FC = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Üretici Yönetimi Dialogi */}
+      <Dialog open={openManufacturerManagementDialog} onClose={() => setOpenManufacturerManagementDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <BuildIcon color="info" />
+            Üretici Yönetimi
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Yeni Üretici Ekle"
+              value={newManufacturer}
+              onChange={(e) => setNewManufacturer(e.target.value)}
+              margin="dense"
+              placeholder="Örn: Mitutoyo, Starrett, Tesa..."
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Button 
+                      variant="contained" 
+                      onClick={handleSaveManufacturer}
+                      disabled={!newManufacturer.trim()}
+                      size="small"
+                      color="info"
+                    >
+                      Ekle
+                    </Button>
+                  </InputAdornment>
+                )
+              }}
+            />
+          </Box>
+
+          <Typography variant="h6" sx={{ mb: 2, color: 'info.main' }}>
+            Kayıtlı Üreticiler ({manufacturersList.length})
+          </Typography>
+          
+          {manufacturersList.length === 0 ? (
+            <Box sx={{ 
+              p: 4, 
+              textAlign: 'center', 
+              bgcolor: 'grey.50', 
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'grey.300'
+            }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Henüz üretici bulunmuyor
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Yukarıdaki alandan yeni üretici ekleyebilirsiniz.
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+              {manufacturersList.map((manufacturer, index) => (
+                <Paper 
+                  key={index}
+                  sx={{ 
+                    p: 2,
+                    mb: 1,
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    '&:hover': { bgcolor: 'info.50' }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <BuildIcon color="info" fontSize="small" />
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {manufacturer}
+                    </Typography>
+                  </Box>
+                  <Button 
+                    size="small" 
+                    color="error"
+                    variant="outlined"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => {
+                      if (window.confirm(`"${manufacturer}" üreticisini silmek istediğinize emin misiniz?`)) {
+                        const updatedList = manufacturersList.filter(m => m !== manufacturer);
+                        setManufacturersList(updatedList);
+                      }
+                    }}
+                  >
+                    Sil
+                  </Button>
+                </Paper>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenManufacturerManagementDialog(false)}>
+            Kapat
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={() => {
+              setOpenManufacturerManagementDialog(false);
+              setOpenManufacturerDialog(true);
+            }}
+            startIcon={<AddIcon />}
+            color="info"
+          >
+            Hızlı Ekle
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Model Ekleme Dialogi */}
       <Dialog open={openModelDialog} onClose={() => setOpenModelDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Yeni Model Ekle</DialogTitle>
@@ -2987,6 +3451,118 @@ const EquipmentCalibrationManagement: React.FC = () => {
             disabled={!newModel.trim()}
           >
             Ekle
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Model Yönetimi Dialogi */}
+      <Dialog open={openModelManagementDialog} onClose={() => setOpenModelManagementDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <BuildIcon color="info" />
+            Model Yönetimi
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Yeni Model Ekle"
+              value={newModel}
+              onChange={(e) => setNewModel(e.target.value)}
+              margin="dense"
+              placeholder="Örn: CD-15APX, 799-1234, HD-2000..."
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Button 
+                      variant="contained" 
+                      onClick={handleSaveModel}
+                      disabled={!newModel.trim()}
+                      size="small"
+                      color="info"
+                    >
+                      Ekle
+                    </Button>
+                  </InputAdornment>
+                )
+              }}
+            />
+          </Box>
+
+          <Typography variant="h6" sx={{ mb: 2, color: 'info.main' }}>
+            Kayıtlı Modeller ({modelsList.length})
+          </Typography>
+          
+          {modelsList.length === 0 ? (
+            <Box sx={{ 
+              p: 4, 
+              textAlign: 'center', 
+              bgcolor: 'grey.50', 
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'grey.300'
+            }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Henüz model bulunmuyor
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Yukarıdaki alandan yeni model ekleyebilirsiniz.
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+              {modelsList.map((model, index) => (
+                <Paper 
+                  key={index}
+                  sx={{ 
+                    p: 2,
+                    mb: 1,
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    '&:hover': { bgcolor: 'info.50' }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <BuildIcon color="info" fontSize="small" />
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {model}
+                    </Typography>
+                  </Box>
+                  <Button 
+                    size="small" 
+                    color="error"
+                    variant="outlined"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => {
+                      if (window.confirm(`"${model}" modelini silmek istediğinize emin misiniz?`)) {
+                        const updatedList = modelsList.filter(m => m !== model);
+                        setModelsList(updatedList);
+                      }
+                    }}
+                  >
+                    Sil
+                  </Button>
+                </Paper>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenModelManagementDialog(false)}>
+            Kapat
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={() => {
+              setOpenModelManagementDialog(false);
+              setOpenModelDialog(true);
+            }}
+            startIcon={<AddIcon />}
+            color="info"
+          >
+            Hızlı Ekle
           </Button>
         </DialogActions>
       </Dialog>
