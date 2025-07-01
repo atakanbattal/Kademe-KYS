@@ -424,6 +424,138 @@ const MainContainer = styled(Container)(({ theme }) => ({
   padding: theme.spacing(3),
 }));
 
+// Doğru MIG/MAG parametrelerini hesaplayan fonksiyon
+const getMigParameters = (thickness: number, wireSize: number): {
+  current: number;
+  voltage: number;
+  minCurrent: number;
+  maxCurrent: number;
+  minVoltage: number;
+  maxVoltage: number;
+} => {
+  // Profesyonel MIG/MAG kaynak parametreleri tablosu
+  const migTable = [
+    // [kalınlık_min, kalınlık_max, tel_çapı, voltaj_min, voltaj_max, amper_min, amper_max]
+    [0.4, 0.6, 0.6, 15, 17, 20, 30],
+    [0.8, 1.2, 0.6, 16, 18, 30, 40],
+    [0.8, 1.2, 0.8, 16, 18, 30, 40],
+    [1.3, 1.7, 0.6, 17, 19, 35, 50],
+    [1.3, 1.7, 0.8, 17, 19, 35, 50],
+    [1.8, 2.2, 0.8, 18, 20, 40, 90],
+    [1.8, 2.2, 1.0, 18, 20, 40, 90],
+    [2.3, 2.7, 0.8, 19, 21, 50, 100],
+    [2.3, 2.7, 1.0, 19, 21, 50, 100],
+    [2.8, 3.2, 0.8, 20, 22, 90, 120],
+    [2.8, 3.2, 1.0, 20, 22, 90, 120],
+    [2.8, 3.2, 1.2, 20, 22, 90, 120],
+    [3.3, 3.7, 0.8, 21, 23, 100, 130],
+    [3.3, 3.7, 1.0, 21, 23, 100, 130],
+    [3.3, 3.7, 1.2, 21, 23, 100, 130],
+    [3.8, 4.2, 0.8, 22, 24, 120, 150],
+    [3.8, 4.2, 1.0, 22, 24, 120, 150],
+    [3.8, 4.2, 1.2, 22, 24, 120, 150],
+    [4.3, 4.7, 0.8, 23, 25, 140, 170],
+    [4.3, 4.7, 1.0, 23, 25, 140, 170],
+    [4.3, 4.7, 1.2, 23, 25, 140, 170],
+    [4.8, 5.2, 0.8, 24, 26, 150, 180],
+    [4.8, 5.2, 1.0, 24, 26, 150, 180],
+    [4.8, 5.2, 1.2, 24, 26, 150, 180],
+    [5.3, 5.7, 0.8, 25, 27, 160, 190],
+    [5.3, 5.7, 1.0, 25, 27, 160, 190],
+    [5.3, 5.7, 1.2, 25, 27, 160, 190],
+    [5.8, 6.2, 0.8, 26, 28, 180, 210],
+    [5.8, 6.2, 1.0, 26, 28, 180, 210],
+    [5.8, 6.2, 1.2, 26, 28, 180, 210],
+    [6.5, 7.5, 0.8, 21, 26, 210, 250],
+    [6.5, 7.5, 1.0, 21, 26, 210, 250],
+    [6.5, 7.5, 1.2, 21, 26, 210, 250],
+    [7.5, 8.5, 0.8, 22, 26, 220, 270],
+    [7.5, 8.5, 1.0, 22, 26, 220, 270],
+    [7.5, 8.5, 1.2, 22, 26, 220, 270],
+    [8.5, 9.5, 0.8, 23, 27, 220, 300],
+    [8.5, 9.5, 1.0, 23, 27, 220, 300],
+    [8.5, 9.5, 1.2, 23, 27, 220, 300],
+    [9.5, 10.5, 1.0, 24, 28, 250, 320],
+    [9.5, 10.5, 1.2, 24, 28, 250, 320],
+    [10.5, 12.5, 1.0, 26, 30, 280, 350],
+    [10.5, 12.5, 1.2, 26, 30, 280, 350],
+    [10.5, 12.5, 1.6, 26, 30, 280, 350],
+    [12.5, 15.5, 1.2, 28, 32, 320, 400],
+    [12.5, 15.5, 1.6, 28, 32, 320, 400],
+    [15.5, 20.5, 1.6, 30, 35, 400, 500],
+    [15.5, 20.5, 2.0, 30, 35, 400, 500],
+    [20.5, 25.5, 1.6, 32, 38, 500, 600],
+    [20.5, 25.5, 2.0, 32, 38, 500, 600],
+    [25.5, 30.5, 2.0, 35, 40, 600, 700],
+    [30.5, 40.5, 2.0, 38, 45, 700, 800]
+  ];
+
+  // En uygun parametreyi bul
+  let bestMatch = null;
+  let bestScore = Infinity;
+
+  for (const params of migTable) {
+    const [minThick, maxThick, wireD, minV, maxV, minA, maxA] = params;
+    
+    // Kalınlık ve tel çapı kontrolü
+    if (thickness >= minThick && thickness <= maxThick && Math.abs(wireSize - wireD) < 0.1) {
+      const thickScore = Math.abs(thickness - (minThick + maxThick) / 2);
+      const wireScore = Math.abs(wireSize - wireD);
+      const totalScore = thickScore + wireScore * 10;
+      
+      if (totalScore < bestScore) {
+        bestScore = totalScore;
+        bestMatch = params;
+      }
+    }
+  }
+
+  if (bestMatch) {
+    const [, , , minV, maxV, minA, maxA] = bestMatch;
+    return {
+      current: (minA + maxA) / 2, // Ortalama amper
+      voltage: (minV + maxV) / 2, // Ortalama voltaj
+      minCurrent: minA,
+      maxCurrent: maxA,
+      minVoltage: minV,
+      maxVoltage: maxV
+    };
+  }
+
+  // Eğer tablo'da bulunamadıysa genel hesaplama
+  let current = 50;
+  let voltage = 15;
+
+  if (thickness <= 1) {
+    current = 30 + thickness * 20;
+    voltage = 15 + thickness * 2;
+  } else if (thickness <= 3) {
+    current = 50 + thickness * 30;
+    voltage = 17 + thickness * 1.5;
+  } else if (thickness <= 6) {
+    current = 120 + thickness * 15;
+    voltage = 20 + thickness * 1;
+  } else if (thickness <= 12) {
+    current = 200 + thickness * 20;
+    voltage = 24 + thickness * 0.5;
+  } else if (thickness <= 20) {
+    current = 350 + thickness * 15;
+    voltage = 28 + thickness * 0.3;
+  } else {
+    current = 500 + thickness * 10;
+    voltage = 32 + thickness * 0.2;
+  }
+
+  return {
+    current: Math.round(current),
+    voltage: Math.round(voltage * 10) / 10,
+    minCurrent: Math.round(current * 0.8),
+    maxCurrent: Math.round(current * 1.2),
+    minVoltage: Math.round((voltage - 1) * 10) / 10,
+    maxVoltage: Math.round((voltage + 1) * 10) / 10
+  };
+};
+
 // Smart Pass Calculation Engine
 const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
   if (!wpsData.thickness || !wpsData.wireSize || !wpsData.process) {
@@ -600,16 +732,23 @@ const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
     }
 
     let baseCurrent = 0;
+    let baseVoltage = 0;
+
     if (wpsData.process === 'MIG/MAG') {
-      baseCurrent = wireSize * 100 + thickness * 20;
+      // Doğru MIG/MAG parametreleri - profesyonel tablolara göre
+      const migParams = getMigParameters(thickness, wireSize);
+      baseCurrent = migParams.current;
+      baseVoltage = migParams.voltage;
     } else if (wpsData.process === 'TIG') {
       baseCurrent = wireSize * 80 + thickness * 15;
+      baseVoltage = 14 + wireSize * 2;
     } else if (wpsData.process === 'MMA') {
       baseCurrent = wireSize * 50 + thickness * 15;
+      baseVoltage = 14 + wireSize * 2;
     }
 
     const current = Math.round(baseCurrent * currentFactor);
-    const voltage = Math.round((14 + wireSize * 2) * voltageFactor * 10) / 10;
+    const voltage = Math.round(baseVoltage * voltageFactor * 10) / 10;
     
     let wireSpeed = 0;
     if (wpsData.process === 'MIG/MAG') {
