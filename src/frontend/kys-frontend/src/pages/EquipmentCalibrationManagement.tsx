@@ -480,6 +480,67 @@ const getCalibrationCompanies = (): string[] => {
   return defaultCompanies;
 };
 
+// Departmanlara göre pozisyon listesi
+const getPositionsByDepartment = (department: string): string[] => {
+  const positionsByDept: { [key: string]: string[] } = {
+    'Kalite Güvence': [
+      'Kalite Güvence Müdürü',
+      'Kalite Güvence Uzmanı',
+      'Kalite Güvence Teknisyeni',
+      'Kalite Kontrol Elemanı',
+      'Ürün Kalite Sorumlusu'
+    ],
+    'Üretim': [
+      'Üretim Müdürü',
+      'Üretim Şef',
+      'Makine Operatörü',
+      'Vardiya Amiri',
+      'Üretim Teknisyeni',
+      'Hat Lideri'
+    ],
+    'Ar-Ge': [
+      'Ar-Ge Müdürü',
+      'Ar-Ge Uzmanı',
+      'Test Teknisyeni',
+      'Laboratuvar Teknisyeni',
+      'Ürün Geliştirme Uzmanı'
+    ],
+    'Satın Alma': [
+      'Satın Alma Müdürü',
+      'Satın Alma Uzmanı',
+      'Tedarik Zinciri Uzmanı',
+      'Malzeme Kontrol Elemanı'
+    ],
+    'Bakım': [
+      'Bakım Müdürü',
+      'Bakım Şef',
+      'Makine Bakım Teknisyeni',
+      'Elektrik Teknisyeni',
+      'Mekanik Teknisyeni'
+    ],
+    'Depo': [
+      'Depo Sorumlusu',
+      'Depo Elemanı',
+      'Sevkiyat Sorumlusu',
+      'Forklift Operatörü'
+    ],
+    'Proses': [
+      'Proses Müdürü',
+      'Proses Uzmanı',
+      'Kaynakçı',
+      'Torna Tezgahı Operatörü',
+      'CNC Operatörü'
+    ]
+  };
+  
+  return positionsByDept[department] || [
+    'Uzman',
+    'Teknisyen',
+    'Elemanı',
+    'Sorumlusu'
+  ];
+};
+
 // Styled Components
 const StyledAccordion = styled(Accordion)(() => ({
   marginBottom: 20,
@@ -970,7 +1031,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
 
   const openCreateDialog = () => {
     // Yeni ekipman kodu otomatik oluştur (001, 002, 003...)
-    const nextCode = (equipmentList.length + 1).toString().padStart(3, '0');
+    // En yüksek mevcut kodu bul ve +1 yap
+    const existingCodes = equipmentList.map(eq => {
+      const codeNumber = parseInt(eq.equipmentCode);
+      return isNaN(codeNumber) ? 0 : codeNumber;
+    });
+    const maxCode = existingCodes.length > 0 ? Math.max(...existingCodes) : 0;
+    const nextCode = (maxCode + 1).toString().padStart(3, '0');
     
     setDialogMode('create');
     setDialogTitle('Yeni Ekipman Kaydı');
@@ -1354,7 +1421,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
         </AccordionSummary>
         <AccordionDetails>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
               <UltimateStableSearchInput
                 label="Ekipman Arama"
                 placeholder="Ekipman adı veya kodu ile arayın..."
@@ -1364,11 +1431,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
               />
             </Box>
             <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-              <FormControl fullWidth>
+              <FormControl fullWidth sx={{ height: 56 }}>
                 <InputLabel>Kategori</InputLabel>
                 <Select
                   value={filters.category}
                   onChange={(e) => handleFilterChange('category', e.target.value)}
+                  sx={{ height: 56 }}
                 >
                   <MenuItem value="">Tüm Kategoriler</MenuItem>
                   {EQUIPMENT_CATEGORIES.map((category) => (
@@ -1377,12 +1445,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-              <FormControl fullWidth>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
+              <FormControl fullWidth sx={{ height: 56 }}>
                 <InputLabel>Lokasyon</InputLabel>
                 <Select
                   value={filters.location}
                   onChange={(e) => handleFilterChange('location', e.target.value)}
+                  sx={{ height: 56 }}
                 >
                   <MenuItem value="">Tüm Lokasyonlar</MenuItem>
                   {LOCATIONS.map((location) => (
@@ -1391,12 +1460,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-              <FormControl fullWidth>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
+              <FormControl fullWidth sx={{ height: 56 }}>
                 <InputLabel>Departman</InputLabel>
                 <Select
                   value={filters.department}
                   onChange={(e) => handleFilterChange('department', e.target.value)}
+                  sx={{ height: 56 }}
                 >
                   <MenuItem value="">Tüm Departmanlar</MenuItem>
                   {DEPARTMENTS.map((dept) => (
@@ -1405,12 +1475,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-              <FormControl fullWidth>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
+              <FormControl fullWidth sx={{ height: 56 }}>
                 <InputLabel>Kalibrasyon Durumu</InputLabel>
                 <Select
                   value={filters.calibrationStatus}
                   onChange={(e) => handleFilterChange('calibrationStatus', e.target.value)}
+                  sx={{ height: 56 }}
                 >
                   <MenuItem value="">Tüm Durumlar</MenuItem>
                   <MenuItem value="valid">Geçerli</MenuItem>
@@ -1420,7 +1491,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56, display: 'flex', alignItems: 'center' }}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -1431,7 +1502,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 label="Sadece Kritik Ekipmanlar"
               />
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56, display: 'flex', alignItems: 'center' }}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -1442,7 +1513,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 label="Sadece Vadesi Geçenler"
               />
             </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
               <Button
                 fullWidth
                 variant="outlined"
@@ -2882,40 +2953,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     />
                   </Box>
 
-                  {/* Personel Listesi Özeti */}
-                  {personnelList.length > 0 && (
-                    <Box sx={{ bgcolor: 'success.50', borderRadius: 2, p: 2 }}>
-                      <Typography variant="subtitle2" color="success.main" sx={{ mb: 2, fontWeight: 600 }}>
-                        Kayıtlı Personeller ({personnelList.length})
-                      </Typography>
-                      
-                      <Box sx={{ maxHeight: 150, overflow: 'auto' }}>
-                        {personnelList.slice(0, 4).map((person) => (
-                          <Box key={person.sicilNo} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid rgba(76, 175, 80, 0.2)' }}>
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                {person.name}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {person.sicilNo} • {person.department}
-                              </Typography>
-                            </Box>
-                            <Chip 
-                              label={person.isActive ? "Aktif" : "Pasif"}
-                              size="small"
-                              color={person.isActive ? "success" : "default"}
-                              variant="outlined"
-                            />
-                          </Box>
-                        ))}
-                        {personnelList.length > 4 && (
-                          <Typography variant="caption" color="success.main" sx={{ display: 'block', textAlign: 'center', pt: 1, fontWeight: 500 }}>
-                            +{personnelList.length - 4} personel daha... (Tümünü görmek için yönet butonuna tıklayın)
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-                  )}
+
                 </Paper>
 
                 {/* TEKNİK ÖZELLİKLER SEKSİYONU */}
@@ -3344,7 +3382,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
               <InputLabel>Departman *</InputLabel>
               <Select
                 value={newPersonnelData.department}
-                onChange={(e) => setNewPersonnelData({...newPersonnelData, department: e.target.value})}
+                onChange={(e) => setNewPersonnelData({...newPersonnelData, department: e.target.value, position: ''})}
               >
                 {DEPARTMENTS.map((dept) => (
                   <MenuItem key={dept} value={dept}>{dept}</MenuItem>
@@ -3352,13 +3390,18 @@ const EquipmentCalibrationManagement: React.FC = () => {
               </Select>
             </FormControl>
             
-            <TextField
-              fullWidth
-              label="Pozisyon"
-              value={newPersonnelData.position}
-              onChange={(e) => setNewPersonnelData({...newPersonnelData, position: e.target.value})}
-              placeholder="Kalite Teknisyeni, Makine Operatörü..."
-            />
+            <FormControl fullWidth>
+              <InputLabel>Pozisyon</InputLabel>
+              <Select
+                value={newPersonnelData.position}
+                onChange={(e) => setNewPersonnelData({...newPersonnelData, position: e.target.value})}
+                disabled={!newPersonnelData.department}
+              >
+                {newPersonnelData.department && getPositionsByDepartment(newPersonnelData.department).map((position) => (
+                  <MenuItem key={position} value={position}>{position}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>
