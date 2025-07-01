@@ -44,6 +44,7 @@ import {
   StepContent,
   Switch,
   FormHelperText,
+  Autocomplete,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -306,9 +307,16 @@ const getPersonnelData = (): Personnel[] => {
 
 // Dinamik ölçüm aralıkları - cihaz kategorisine göre
 const getMeasurementRangesByCategory = () => {
+  // Önce localStorage'dan yükle, yoksa default değerleri oluştur
   const stored = localStorage.getItem('measurement_ranges_by_category');
+  // Versiyon kontrolü için - eğer "0 mm" belirsizlik değeri yoksa yeniden yükle
   if (stored) {
-    return JSON.parse(stored);
+    const data = JSON.parse(stored);
+    if (!data['Ölçüm Cihazları'] || !data['Ölçüm Cihazları'].includes('25-50 mm')) {
+      localStorage.removeItem('measurement_ranges_by_category');
+    } else {
+      return data;
+    }
   }
   
   const defaultRanges = {
@@ -318,6 +326,7 @@ const getMeasurementRangesByCategory = () => {
       '0-150 mm', '0-200 mm', '0-300 mm', '0-500 mm', '0-1000 mm', 
       '0-2000 mm', 'Diğer'
     ],
+
     'Test Ekipmanları': [
       '0-10 V', '0-100 V', '0-1000 V', '0-10 A', '0-100 A', 
       '0-1000 A', '0-1 kHz', '0-100 kHz', '0-1 MHz', 'Diğer'
@@ -327,8 +336,9 @@ const getMeasurementRangesByCategory = () => {
       '0-100 Nm', '0-500 Nm', '0-1000 Nm', 'Diğer'
     ],
     'Kalite Kontrol Cihazları': [
-      '0-25 mm', '0-50 mm', '0-100 mm', '0-200 mm',
-      '0-500 mm', '0-1000 mm', 'Diğer'
+      '0-25 mm', '25-50 mm', '50-75 mm', '75-100 mm', '100-125 mm',
+      '125-150 mm', '150-175 mm', '175-200 mm', '0-50 mm', '0-100 mm', 
+      '0-200 mm', '0-500 mm', '0-1000 mm', 'Diğer'
     ],
     'Kaynak Ekipmanları': [
       '0-300 A', '0-500 A', '0-1000 A', '10-50 V',
@@ -369,18 +379,31 @@ const getMeasurementRangesByCategory = () => {
 
 // Dinamik ölçüm belirsizlikleri - cihaz kategorisine göre  
 const getMeasurementUncertaintiesByCategory = () => {
+  // Önce localStorage'dan yükle, yoksa default değerleri oluştur
   const stored = localStorage.getItem('measurement_uncertainties_by_category');
+  // Versiyon kontrolü için - eğer "0 mm" belirsizlik değeri yoksa yeniden yükle
   if (stored) {
-    return JSON.parse(stored);
+    const data = JSON.parse(stored);
+    if (!data['Ölçüm Cihazları'] || !data['Ölçüm Cihazları'].includes('0 mm')) {
+      localStorage.removeItem('measurement_uncertainties_by_category');
+    } else {
+      return data;
+    }
   }
   
   const defaultUncertainties = {
     'Ölçüm Cihazları': [
-      '±0.001 mm', '±0.002 mm', '±0.005 mm', '±0.01 mm', 
-      '±0.02 mm', '±0.03 mm', '±0.04 mm', '±0.05 mm',
-      '±0.1 mm', '±0.2 mm', '±0.3 mm', '±0.4 mm',
-      '±0.5 mm', '±1 mm', '±2 mm', '±5 mm', 'Diğer'
+      '0 mm', '±0.001 mm', '±0.002 mm', '±0.003 mm', '±0.004 mm', '±0.005 mm',
+      '±0.006 mm', '±0.007 mm', '±0.008 mm', '±0.009 mm', '±0.01 mm', 
+      '±0.015 mm', '±0.02 mm', '±0.025 mm', '±0.03 mm', '±0.035 mm',
+      '±0.04 mm', '±0.045 mm', '±0.05 mm', '±0.06 mm', '±0.07 mm',
+      '±0.08 mm', '±0.09 mm', '±0.1 mm', '±0.15 mm', '±0.2 mm', 
+      '±0.25 mm', '±0.3 mm', '±0.35 mm', '±0.4 mm', '±0.45 mm',
+      '±0.5 mm', '±0.6 mm', '±0.7 mm', '±0.8 mm', '±0.9 mm',
+      '±1 mm', '±1.5 mm', '±2 mm', '±2.5 mm', '±3 mm', '±4 mm', 
+      '±5 mm', '±10 mm', 'Diğer'
     ],
+
     'Test Ekipmanları': [
       '±0.001 V', '±0.005 V', '±0.01 V', '±0.02 V',
       '±0.05 V', '±0.1 V', '±0.2 V', '±0.5 V', '±1 V',
@@ -396,10 +419,15 @@ const getMeasurementUncertaintiesByCategory = () => {
       '±0.5 kN', '±1 kN', '±2 kN', '±5 kN', 'Diğer'
     ],
     'Kalite Kontrol Cihazları': [
-      '±0.001 mm', '±0.002 mm', '±0.003 mm', '±0.004 mm',
-      '±0.005 mm', '±0.01 mm', '±0.02 mm', '±0.03 mm',
-      '±0.04 mm', '±0.05 mm', '±0.1 mm', '±0.2 mm',
-      '±0.3 mm', '±0.4 mm', '±0.5 mm', '±1 mm', 'Diğer'
+      '0 mm', '±0.001 mm', '±0.002 mm', '±0.003 mm', '±0.004 mm', '±0.005 mm',
+      '±0.006 mm', '±0.007 mm', '±0.008 mm', '±0.009 mm', '±0.01 mm', 
+      '±0.015 mm', '±0.02 mm', '±0.025 mm', '±0.03 mm', '±0.035 mm',
+      '±0.04 mm', '±0.045 mm', '±0.05 mm', '±0.06 mm', '±0.07 mm',
+      '±0.08 mm', '±0.09 mm', '±0.1 mm', '±0.15 mm', '±0.2 mm', 
+      '±0.25 mm', '±0.3 mm', '±0.35 mm', '±0.4 mm', '±0.45 mm',
+      '±0.5 mm', '±0.6 mm', '±0.7 mm', '±0.8 mm', '±0.9 mm',
+      '±1 mm', '±1.5 mm', '±2 mm', '±2.5 mm', '±3 mm', '±4 mm', 
+      '±5 mm', '±10 mm', 'Diğer'
     ],
     'Kaynak Ekipmanları': [
       '±0.1 A', '±0.2 A', '±0.3 A', '±0.4 A', '±0.5 A',
@@ -974,6 +1002,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
 
   // Personnel data
   const [personnelList, setPersonnelList] = useState<Personnel[]>(() => getPersonnelData());
+
+  // Component mount edildiğinde localStorage verilerini güncelle
+  useEffect(() => {
+    // Ölçüm aralıklarını güncelle
+    const updatedRanges = getMeasurementRangesByCategory();
+    setMeasurementRanges(updatedRanges);
+    
+    // Ölçüm belirsizliklerini güncelle
+    const updatedUncertainties = getMeasurementUncertaintiesByCategory();
+    setMeasurementUncertainties(updatedUncertainties);
+  }, []);
   
   // Personnel management states
   const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>([]);
@@ -1132,6 +1171,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
     setDialogTitle(`${equipment.name} - Düzenle`);
     setSelectedPersonnel(equipment.responsiblePersons || []);
     setFormData({
+      id: equipment.id,
       equipmentCode: equipment.equipmentCode,
       name: equipment.name,
       manufacturer: equipment.manufacturer,
@@ -1141,16 +1181,36 @@ const EquipmentCalibrationManagement: React.FC = () => {
       location: equipment.location,
       department: equipment.department,
       responsiblePersons: equipment.responsiblePersons,
+      purchaseDate: equipment.purchaseDate,
+      installationDate: equipment.installationDate,
+      warrantyExpiry: equipment.warrantyExpiry,
       status: equipment.status,
       calibrationRequired: equipment.calibrationRequired,
       calibrationFrequency: equipment.calibrationFrequency,
+      lastCalibrationDate: equipment.lastCalibrationDate,
+      nextCalibrationDate: equipment.nextCalibrationDate,
+      calibrationStatus: equipment.calibrationStatus,
       maintenanceRequired: equipment.maintenanceRequired,
       maintenanceFrequency: equipment.maintenanceFrequency,
+      lastMaintenanceDate: equipment.lastMaintenanceDate,
+      nextMaintenanceDate: equipment.nextMaintenanceDate,
+      maintenanceStatus: equipment.maintenanceStatus,
       criticalEquipment: equipment.criticalEquipment,
       specifications: equipment.specifications,
+      operatingManual: equipment.operatingManual,
       notes: equipment.notes,
+      qrCode: equipment.qrCode,
+      images: equipment.images || [],
+      certificates: equipment.certificates || [],
+      maintenanceRecords: equipment.maintenanceRecords || [],
       measurementRange: equipment.measurementRange,
-      measurementUncertainty: equipment.measurementUncertainty
+      measurementUncertainty: equipment.measurementUncertainty,
+      customMeasurementRange: equipment.customMeasurementRange,
+      customMeasurementUncertainty: equipment.customMeasurementUncertainty,
+      calibrationCompany: equipment.calibrationCompany,
+      lastCalibrationCertificateNumber: equipment.lastCalibrationCertificateNumber,
+      responsiblePersonName: equipment.responsiblePersonName,
+      responsiblePersonSicilNo: equipment.responsiblePersonSicilNo
     });
     setDialogMode('edit');
     setActiveStep(0);
@@ -2744,52 +2804,81 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   />
 
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
-                    <FormControl fullWidth required error={!formData.category}>
-                      <InputLabel>Kategori</InputLabel>
-                      <Select
-                        value={formData.category || ''}
-                        onChange={(e) => {
-                          const newCategory = e.target.value as string;
-                          setFormData({
-                            ...formData, 
-                            category: newCategory,
-                            measurementRange: '',
-                            measurementUncertainty: ''
-                          });
-                        }}
-                      >
-                        {EQUIPMENT_CATEGORIES.map((category) => (
-                          <MenuItem key={category} value={category}>{category}</MenuItem>
-                        ))}
-                      </Select>
-                      {!formData.category && <FormHelperText>Kategori seçimi zorunludur</FormHelperText>}
-                    </FormControl>
+                    <Autocomplete
+                      options={EQUIPMENT_CATEGORIES}
+                      value={formData.category || ''}
+                      onChange={(_, newValue) => {
+                        setFormData({
+                          ...formData, 
+                          category: newValue || '',
+                          measurementRange: '',
+                          measurementUncertainty: ''
+                        });
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Kategori"
+                          required
+                          error={!formData.category}
+                          helperText={!formData.category ? "Kategori seçimi zorunludur" : ""}
+                          placeholder="300 yazdığınızda filtrelenir"
+                        />
+                      )}
+                      freeSolo
+                      filterOptions={(options, params) => {
+                        const filtered = options.filter(option =>
+                          option.toLowerCase().includes(params.inputValue.toLowerCase())
+                        );
+                        return filtered;
+                      }}
+                    />
                     
-                    <FormControl fullWidth required error={!formData.location}>
-                      <InputLabel>Lokasyon</InputLabel>
-                      <Select
-                        value={formData.location || ''}
-                        onChange={(e) => setFormData({...formData, location: e.target.value})}
-                      >
-                        {LOCATIONS.map((location) => (
-                          <MenuItem key={location} value={location}>{location}</MenuItem>
-                        ))}
-                      </Select>
-                      {!formData.location && <FormHelperText>Lokasyon seçimi zorunludur</FormHelperText>}
-                    </FormControl>
+                    <Autocomplete
+                      options={LOCATIONS}
+                      value={formData.location || ''}
+                      onChange={(_, newValue) => setFormData({...formData, location: newValue || ''})}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Lokasyon"
+                          required
+                          error={!formData.location}
+                          helperText={!formData.location ? "Lokasyon seçimi zorunludur" : ""}
+                          placeholder="Lokasyon ara..."
+                        />
+                      )}
+                      freeSolo
+                      filterOptions={(options, params) => {
+                        const filtered = options.filter(option =>
+                          option.toLowerCase().includes(params.inputValue.toLowerCase())
+                        );
+                        return filtered;
+                      }}
+                    />
                     
-                    <FormControl fullWidth required error={!formData.department}>
-                      <InputLabel>Departman</InputLabel>
-                      <Select
-                        value={formData.department || ''}
-                        onChange={(e) => setFormData({...formData, department: e.target.value})}
-                      >
-                        {DEPARTMENTS.map((dept) => (
-                          <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                        ))}
-                      </Select>
-                      {!formData.department && <FormHelperText>Departman seçimi zorunludur</FormHelperText>}
-                    </FormControl>
+                    <Autocomplete
+                      options={DEPARTMENTS}
+                      value={formData.department || ''}
+                      onChange={(_, newValue) => setFormData({...formData, department: newValue || ''})}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Departman"
+                          required
+                          error={!formData.department}
+                          helperText={!formData.department ? "Departman seçimi zorunludur" : ""}
+                          placeholder="Departman ara..."
+                        />
+                      )}
+                      freeSolo
+                      filterOptions={(options, params) => {
+                        const filtered = options.filter(option =>
+                          option.toLowerCase().includes(params.inputValue.toLowerCase())
+                        );
+                        return filtered;
+                      }}
+                    />
                   </Box>
                 </Paper>
 
@@ -2804,17 +2893,26 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     {/* Üretici Seçimi */}
                     <Box>
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                        <FormControl fullWidth>
-                          <InputLabel>Üretici</InputLabel>
-                          <Select
-                            value={formData.manufacturer || ''}
-                            onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
-                          >
-                            {manufacturersList.map((manufacturer) => (
-                              <MenuItem key={manufacturer} value={manufacturer}>{manufacturer}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+                        <Autocomplete
+                          fullWidth
+                          options={manufacturersList}
+                          value={formData.manufacturer || ''}
+                          onChange={(_, newValue) => setFormData({...formData, manufacturer: newValue || ''})}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Üretici"
+                              placeholder="Üretici ara... (ör: 300)"
+                            />
+                          )}
+                          freeSolo
+                          filterOptions={(options, params) => {
+                            const filtered = options.filter(option =>
+                              option.toLowerCase().includes(params.inputValue.toLowerCase())
+                            );
+                            return filtered;
+                          }}
+                        />
                         <Tooltip title="Yeni üretici ekle">
                           <Button 
                             variant="contained" 
@@ -2862,17 +2960,26 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     {/* Model Seçimi */}
                     <Box>
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                        <FormControl fullWidth>
-                          <InputLabel>Model</InputLabel>
-                          <Select
-                            value={formData.model || ''}
-                            onChange={(e) => setFormData({...formData, model: e.target.value})}
-                          >
-                            {modelsList.map((model) => (
-                              <MenuItem key={model} value={model}>{model}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+                        <Autocomplete
+                          fullWidth
+                          options={modelsList}
+                          value={formData.model || ''}
+                          onChange={(_, newValue) => setFormData({...formData, model: newValue || ''})}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Model"
+                              placeholder="Model ara... (ör: 300)"
+                            />
+                          )}
+                          freeSolo
+                          filterOptions={(options, params) => {
+                            const filtered = options.filter(option =>
+                              option.toLowerCase().includes(params.inputValue.toLowerCase())
+                            );
+                            return filtered;
+                          }}
+                        />
                         <Tooltip title="Yeni model ekle">
                           <Button 
                             variant="contained" 
@@ -2927,30 +3034,36 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </Typography>
                   
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3, mb: 3 }}>
-                    <FormControl fullWidth required error={!formData.responsiblePersonSicilNo}>
-                      <InputLabel>Sorumlu Personel</InputLabel>
-                      <Select
-                        value={formData.responsiblePersonSicilNo || ''}
-                        onChange={(e) => {
-                          const sicilNo = e.target.value as string;
-                          const person = personnelList.find(p => p.sicilNo === sicilNo);
-                          setFormData({
-                            ...formData,
-                            responsiblePersonSicilNo: sicilNo,
-                            responsiblePersonName: person?.name || ''
-                          });
-                        }}
-                      >
-                        {personnelList
-                          .filter(p => p.isActive)
-                          .map((person) => (
-                            <MenuItem key={person.sicilNo} value={person.sicilNo}>
-                              {person.name} ({person.sicilNo}) - {person.department}
-                            </MenuItem>
-                          ))}
-                      </Select>
-                      {!formData.responsiblePersonSicilNo && <FormHelperText>Sorumlu personel seçimi zorunludur</FormHelperText>}
-                    </FormControl>
+                    <Autocomplete
+                      fullWidth
+                      options={personnelList.filter(p => p.isActive)}
+                      value={personnelList.find(p => p.sicilNo === formData.responsiblePersonSicilNo) || null}
+                      onChange={(_, newValue) => {
+                        setFormData({
+                          ...formData,
+                          responsiblePersonSicilNo: newValue?.sicilNo || '',
+                          responsiblePersonName: newValue?.name || ''
+                        });
+                      }}
+                      getOptionLabel={(option) => `${option.name} (${option.sicilNo}) - ${option.department}`}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Sorumlu Personel *"
+                          placeholder="Personel ara... (isim, sicil veya departman)"
+                          error={!formData.responsiblePersonSicilNo}
+                          helperText={!formData.responsiblePersonSicilNo ? "Sorumlu personel seçimi zorunludur" : ""}
+                        />
+                      )}
+                      filterOptions={(options, params) => {
+                        const filtered = options.filter((option) =>
+                          option.name.toLowerCase().includes(params.inputValue.toLowerCase()) ||
+                          option.sicilNo.toLowerCase().includes(params.inputValue.toLowerCase()) ||
+                          option.department.toLowerCase().includes(params.inputValue.toLowerCase())
+                        );
+                        return filtered;
+                      }}
+                    />
                   
                     <Button
                       variant="contained"
@@ -3019,18 +3132,28 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     {/* Ölçüm Aralığı */}
                     <Box>
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Ölçüm Aralığı</InputLabel>
-                          <Select
-                            value={formData.measurementRange || ''}
-                            onChange={(e) => setFormData({...formData, measurementRange: e.target.value})}
-                            disabled={!formData.category}
-                          >
-                            {formData.category && (measurementRanges[formData.category] || measurementRanges['Diğer']).map((range) => (
-                              <MenuItem key={range} value={range}>{range}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+                        <Autocomplete
+                          fullWidth
+                          options={formData.category ? (measurementRanges[formData.category] || measurementRanges['Diğer'] || []) : []}
+                          value={formData.measurementRange || ''}
+                          onChange={(_, newValue) => setFormData({...formData, measurementRange: newValue || ''})}
+                          disabled={!formData.category}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Ölçüm Aralığı *"
+                              placeholder="300 yazdığınızda 300 içeren aralıklar gelir"
+                              disabled={!formData.category}
+                            />
+                          )}
+                          freeSolo
+                          filterOptions={(options, params) => {
+                            const filtered = options.filter((option: string) =>
+                              option.toLowerCase().includes(params.inputValue.toLowerCase())
+                            );
+                            return filtered;
+                          }}
+                        />
                         <Tooltip title="Yeni ölçüm aralığı ekle">
                           <Button
                             variant="contained"
@@ -3098,18 +3221,28 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     {/* Ölçüm Belirsizliği */}
                     <Box>
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Ölçüm Belirsizliği</InputLabel>
-                          <Select
-                            value={formData.measurementUncertainty || ''}
-                            onChange={(e) => setFormData({...formData, measurementUncertainty: e.target.value})}
-                            disabled={!formData.category}
-                          >
-                            {formData.category && (measurementUncertainties[formData.category] || measurementUncertainties['Diğer']).map((uncertainty) => (
-                              <MenuItem key={uncertainty} value={uncertainty}>{uncertainty}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+                        <Autocomplete
+                          fullWidth
+                          options={formData.category ? (measurementUncertainties[formData.category] || measurementUncertainties['Diğer'] || []) : []}
+                          value={formData.measurementUncertainty || ''}
+                          onChange={(_, newValue) => setFormData({...formData, measurementUncertainty: newValue || ''})}
+                          disabled={!formData.category}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Ölçüm Belirsizliği *"
+                              placeholder="0.01 yazın, belirsizlik değerleri gelsin"
+                              disabled={!formData.category}
+                            />
+                          )}
+                          freeSolo
+                          filterOptions={(options, params) => {
+                            const filtered = options.filter((option: string) =>
+                              option.toLowerCase().includes(params.inputValue.toLowerCase())
+                            );
+                            return filtered;
+                          }}
+                        />
                         <Tooltip title="Yeni belirsizlik değeri ekle">
                           <Button 
                             variant="contained"
@@ -3243,17 +3376,26 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     {/* Kalibrasyon Laboratuvarı */}
                     <Box>
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                        <FormControl fullWidth>
-                          <InputLabel>Kalibrasyon Laboratuvarı</InputLabel>
-                          <Select
-                            value={formData.calibrationCompany || ''}
-                            onChange={(e) => setFormData({...formData, calibrationCompany: e.target.value})}
-                          >
-                            {calibrationCompaniesList.map((company) => (
-                              <MenuItem key={company} value={company}>{company}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
+                        <Autocomplete
+                          fullWidth
+                          options={calibrationCompaniesList}
+                          value={formData.calibrationCompany || ''}
+                          onChange={(_, newValue) => setFormData({...formData, calibrationCompany: newValue || ''})}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Kalibrasyon Laboratuvarı"
+                              placeholder="Laboratuvar ara..."
+                            />
+                          )}
+                          freeSolo
+                          filterOptions={(options, params) => {
+                            const filtered = options.filter(option =>
+                              option.toLowerCase().includes(params.inputValue.toLowerCase())
+                            );
+                            return filtered;
+                          }}
+                        />
                         <Tooltip title="Yeni laboratuvar ekle">
                           <Button 
                             variant="contained"
