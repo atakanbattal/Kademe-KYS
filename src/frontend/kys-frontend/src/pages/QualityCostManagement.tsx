@@ -14052,28 +14052,37 @@ const CategoryProductionManagementComponent: React.FC<{
     loadProductionData();
   }, []);
 
-  // Filtreleme
+  // Filtreleme - selectedMonth değiştiğinde de çalışmalı
   useEffect(() => {
+    console.log('🔄 Filtreleme useEffect tetiklendi:', {
+      categoryProductionsLength: categoryProductions.length,
+      searchTerm,
+      selectedCategory,
+      selectedMonth,
+      trigger: 'dependency change'
+    });
     applyFilters();
   }, [categoryProductions, searchTerm, selectedCategory, selectedMonth]);
 
-  // GlobalFilters ile senkronizasyon
+  // GlobalFilters ile senkronizasyon - Initial load ve external changes için
   useEffect(() => {
     console.log('🔄 GlobalFilters senkronizasyon useEffect:', {
       globalFiltersSelectedMonth: globalFilters?.selectedMonth,
       currentSelectedMonth: selectedMonth,
-      needsUpdate: globalFilters?.selectedMonth !== selectedMonth
+      needsUpdate: globalFilters?.selectedMonth !== selectedMonth,
+      globalFiltersObject: globalFilters
     });
     
-    if (globalFilters?.selectedMonth !== selectedMonth) {
-      const newValue = globalFilters?.selectedMonth || '';
-      console.log('🔄 selectedMonth güncelleniyor:', {
+    if (globalFilters && globalFilters.selectedMonth !== selectedMonth) {
+      const newValue = globalFilters.selectedMonth || '';
+      console.log('🔄 selectedMonth external change detected:', {
         from: selectedMonth,
-        to: newValue
+        to: newValue,
+        source: 'globalFilters'
       });
       setSelectedMonth(newValue);
     }
-  }, [globalFilters?.selectedMonth]);
+  }, [globalFilters?.selectedMonth, selectedMonth]);
 
   // SelectedMonth değiştiğinde globalFilters'ı güncelle
   const handleMonthChange = (newMonth: string) => {
@@ -14161,6 +14170,13 @@ const CategoryProductionManagementComponent: React.FC<{
       });
       
       setCategoryProductions(data);
+      
+      // Veri yüklendikten sonra filtrelemeyi tetikle
+      setTimeout(() => {
+        console.log('🔄 Veri yüklendi, filtreleme tetikleniyor...');
+        // applyFilters fonksiyonu useEffect dependency'si sayesinde otomatik çalışacak
+      }, 100);
+      
     } catch (error) {
       console.error('Kategori üretim verisi yüklenemedi:', error);
       setCategoryProductions([]);
@@ -14530,22 +14546,26 @@ const CategoryProductionManagementComponent: React.FC<{
         boxShadow: 1,
         border: '1px solid rgba(0, 0, 0, 0.12)'
       }}>
-        <Grid container spacing={2} alignItems="end">
+        <Grid container spacing={2} alignItems="stretch">
           <Grid item xs={12} sm={6} md={4}>
-            <UltimateStableSearchInput
-              defaultValue={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Araç modeli, kategori veya ay ile ara..."
-              fullWidth
-            />
+            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+              <UltimateStableSearchInput
+                defaultValue={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="Araç modeli, kategori veya ay ile ara..."
+                fullWidth
+                size="small"
+              />
+            </Box>
           </Grid>
           <Grid item xs={12} sm={6} md={2.5}>
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" sx={{ minHeight: 56 }}>
               <InputLabel>Kategori</InputLabel>
               <Select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value as VehicleCategory | '')}
                 label="Kategori"
+                sx={{ height: 40 }}
               >
                 <MenuItem value="">Tümü</MenuItem>
                 {Object.keys(VEHICLE_CATEGORIES).map(category => (
@@ -14555,41 +14575,90 @@ const CategoryProductionManagementComponent: React.FC<{
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={6} md={2.5}>
-            <TextField
-              fullWidth
-              size="small"
-              type="month"
-              label="Ay Seçin"
-              value={selectedMonth}
-              onChange={(e) => {
-                console.log('📅 Ay seçme input onChange:', {
-                  newValue: e.target.value,
-                  currentValue: selectedMonth
-                });
-                handleMonthChange(e.target.value);
-              }}
-              InputLabelProps={{ shrink: true }}
-              placeholder="YYYY-MM"
-              helperText={selectedMonth ? `Seçili: ${selectedMonth}` : 'Ay seçiniz'}
-            />
+            <Box sx={{ minHeight: 56 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel shrink>Ay Seçin</InputLabel>
+                <Select
+                  value={selectedMonth}
+                  onChange={(e) => {
+                    const newValue = e.target.value as string;
+                    console.log('📅 Ay seçme SELECT onChange:', {
+                      newValue,
+                      currentValue: selectedMonth,
+                      eventTarget: e.target
+                    });
+                    handleMonthChange(newValue);
+                  }}
+                  label="Ay Seçin"
+                  displayEmpty
+                  sx={{ height: 40 }}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300
+                      }
+                    }
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>Ay seçiniz</em>
+                  </MenuItem>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const month = (i + 1).toString().padStart(2, '0');
+                    const currentYear = new Date().getFullYear();
+                    const value = `${currentYear}-${month}`;
+                    const monthNames = [
+                      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+                      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+                    ];
+                    return (
+                      <MenuItem key={value} value={value}>
+                        {monthNames[i]} {currentYear}
+                      </MenuItem>
+                    );
+                  })}
+                  {/* Geçen yıl ayları da ekle */}
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const month = (i + 1).toString().padStart(2, '0');
+                    const lastYear = new Date().getFullYear() - 1;
+                    const value = `${lastYear}-${month}`;
+                    const monthNames = [
+                      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+                      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+                    ];
+                    return (
+                      <MenuItem key={value} value={value}>
+                        {monthNames[i]} {lastYear}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+              <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, fontSize: '0.75rem' }}>
+                {selectedMonth ? `Seçili: ${selectedMonth}` : 'Ay seçiniz'}
+              </Typography>
+            </Box>
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
-            <Button
-              fullWidth
-              variant="outlined"
-              size="small"
-              sx={{ 
-                height: 40,
-                minHeight: 40
-              }}
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('');
-                handleMonthChange('');
-              }}
-            >
-              Temizle
-            </Button>
+            <Box sx={{ minHeight: 56, display: 'flex', alignItems: 'center' }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                size="small"
+                sx={{ 
+                  height: 40,
+                  minHeight: 40
+                }}
+                onClick={() => {
+                  console.log('🧹 Temizle butonu tıklandı');
+                  setSearchTerm('');
+                  setSelectedCategory('');
+                  handleMonthChange('');
+                }}
+              >
+                Temizle
+              </Button>
+            </Box>
           </Grid>
           <Grid item xs={12} sm={6} md={1}>
             {/* Boş alan - daha iyi hizalama için */}
