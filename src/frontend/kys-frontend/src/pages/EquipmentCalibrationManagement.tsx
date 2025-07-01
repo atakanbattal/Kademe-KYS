@@ -2826,11 +2826,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         />
                       )}
                       freeSolo
+                      includeInputInList
+                      clearOnBlur={false}
+                      selectOnFocus
+                      handleHomeEndKeys
+                      getOptionLabel={(option) => option}
+                      isOptionEqualToValue={(option, value) => option === value}
                       filterOptions={(options, params) => {
-                        const filtered = options.filter(option =>
-                          option.toLowerCase().includes(params.inputValue.toLowerCase())
-                        );
-                        return filtered;
+                        const inputValue = params.inputValue.toLowerCase().trim();
+                        if (!inputValue) return options;
+                        
+                        return options.filter(option => {
+                          const optionLower = option.toLowerCase();
+                          return optionLower.includes(inputValue) || 
+                                 optionLower.startsWith(inputValue) || 
+                                 optionLower.indexOf(inputValue) !== -1;
+                        });
                       }}
                     />
                     
@@ -2849,11 +2860,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         />
                       )}
                       freeSolo
+                      includeInputInList
+                      clearOnBlur={false}
+                      selectOnFocus
+                      handleHomeEndKeys
+                      getOptionLabel={(option) => option}
+                      isOptionEqualToValue={(option, value) => option === value}
                       filterOptions={(options, params) => {
-                        const filtered = options.filter(option =>
-                          option.toLowerCase().includes(params.inputValue.toLowerCase())
-                        );
-                        return filtered;
+                        const inputValue = params.inputValue.toLowerCase().trim();
+                        if (!inputValue) return options;
+                        
+                        return options.filter(option => {
+                          const optionLower = option.toLowerCase();
+                          return optionLower.includes(inputValue) || 
+                                 optionLower.startsWith(inputValue) || 
+                                 optionLower.indexOf(inputValue) !== -1;
+                        });
                       }}
                     />
                     
@@ -2872,11 +2894,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         />
                       )}
                       freeSolo
+                      includeInputInList
+                      clearOnBlur={false}
+                      selectOnFocus
+                      handleHomeEndKeys
+                      getOptionLabel={(option) => option}
+                      isOptionEqualToValue={(option, value) => option === value}
                       filterOptions={(options, params) => {
-                        const filtered = options.filter(option =>
-                          option.toLowerCase().includes(params.inputValue.toLowerCase())
-                        );
-                        return filtered;
+                        const inputValue = params.inputValue.toLowerCase().trim();
+                        if (!inputValue) return options;
+                        
+                        return options.filter(option => {
+                          const optionLower = option.toLowerCase();
+                          return optionLower.includes(inputValue) || 
+                                 optionLower.startsWith(inputValue) || 
+                                 optionLower.indexOf(inputValue) !== -1;
+                        });
                       }}
                     />
                   </Box>
@@ -2906,11 +2939,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             />
                           )}
                           freeSolo
+                          includeInputInList
+                          clearOnBlur={false}
+                          selectOnFocus
+                          handleHomeEndKeys
+                          getOptionLabel={(option) => option}
+                          isOptionEqualToValue={(option, value) => option === value}
                           filterOptions={(options, params) => {
-                            const filtered = options.filter(option =>
-                              option.toLowerCase().includes(params.inputValue.toLowerCase())
-                            );
-                            return filtered;
+                            const inputValue = params.inputValue.toLowerCase().trim();
+                            if (!inputValue) return options;
+                            
+                            return options.filter(option => {
+                              const optionLower = option.toLowerCase();
+                              return optionLower.includes(inputValue) || 
+                                     optionLower.startsWith(inputValue) || 
+                                     optionLower.indexOf(inputValue) !== -1;
+                            });
                           }}
                         />
                         <Tooltip title="Yeni üretici ekle">
@@ -2973,11 +3017,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             />
                           )}
                           freeSolo
+                          includeInputInList
+                          clearOnBlur={false}
+                          selectOnFocus
+                          handleHomeEndKeys
+                          getOptionLabel={(option) => option}
+                          isOptionEqualToValue={(option, value) => option === value}
                           filterOptions={(options, params) => {
-                            const filtered = options.filter(option =>
-                              option.toLowerCase().includes(params.inputValue.toLowerCase())
-                            );
-                            return filtered;
+                            const inputValue = params.inputValue.toLowerCase().trim();
+                            if (!inputValue) return options;
+                            
+                            return options.filter(option => {
+                              const optionLower = option.toLowerCase();
+                              return optionLower.includes(inputValue) || 
+                                     optionLower.startsWith(inputValue) || 
+                                     optionLower.indexOf(inputValue) !== -1;
+                            });
                           }}
                         />
                         <Tooltip title="Yeni model ekle">
@@ -3046,6 +3101,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         });
                       }}
                       getOptionLabel={(option) => `${option.name} (${option.sicilNo}) - ${option.department}`}
+                      isOptionEqualToValue={(option, value) => option.sicilNo === value?.sicilNo}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -3055,13 +3111,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           helperText={!formData.responsiblePersonSicilNo ? "Sorumlu personel seçimi zorunludur" : ""}
                         />
                       )}
+                      includeInputInList
+                      clearOnBlur={false}
+                      selectOnFocus
+                      handleHomeEndKeys
                       filterOptions={(options, params) => {
-                        const filtered = options.filter((option) =>
-                          option.name.toLowerCase().includes(params.inputValue.toLowerCase()) ||
-                          option.sicilNo.toLowerCase().includes(params.inputValue.toLowerCase()) ||
-                          option.department.toLowerCase().includes(params.inputValue.toLowerCase())
-                        );
-                        return filtered;
+                        const inputValue = params.inputValue.toLowerCase().trim();
+                        if (!inputValue) return options;
+                        
+                        return options.filter((option) => {
+                          const nameMatch = option.name.toLowerCase().includes(inputValue);
+                          const sicilMatch = option.sicilNo.toLowerCase().includes(inputValue);
+                          const deptMatch = option.department.toLowerCase().includes(inputValue);
+                          const positionMatch = option.position.toLowerCase().includes(inputValue);
+                          
+                          return nameMatch || sicilMatch || deptMatch || positionMatch;
+                        });
                       }}
                     />
                   
@@ -3147,11 +3212,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             />
                           )}
                           freeSolo
+                          includeInputInList
+                          clearOnBlur={false}
+                          selectOnFocus
+                          handleHomeEndKeys
+                          getOptionLabel={(option) => option}
+                          isOptionEqualToValue={(option, value) => option === value}
                           filterOptions={(options, params) => {
-                            const filtered = options.filter((option: string) =>
-                              option.toLowerCase().includes(params.inputValue.toLowerCase())
-                            );
-                            return filtered;
+                            const inputValue = params.inputValue.toLowerCase().trim();
+                            if (!inputValue) return options;
+                            
+                            return options.filter((option: string) => {
+                              const optionLower = option.toLowerCase();
+                              return optionLower.includes(inputValue) || 
+                                     optionLower.startsWith(inputValue) || 
+                                     optionLower.indexOf(inputValue) !== -1;
+                            });
                           }}
                         />
                         <Tooltip title="Yeni ölçüm aralığı ekle">
@@ -3236,11 +3312,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             />
                           )}
                           freeSolo
+                          includeInputInList
+                          clearOnBlur={false}
+                          selectOnFocus
+                          handleHomeEndKeys
+                          getOptionLabel={(option) => option}
+                          isOptionEqualToValue={(option, value) => option === value}
                           filterOptions={(options, params) => {
-                            const filtered = options.filter((option: string) =>
-                              option.toLowerCase().includes(params.inputValue.toLowerCase())
-                            );
-                            return filtered;
+                            const inputValue = params.inputValue.toLowerCase().trim();
+                            if (!inputValue) return options;
+                            
+                            return options.filter((option: string) => {
+                              const optionLower = option.toLowerCase();
+                              return optionLower.includes(inputValue) || 
+                                     optionLower.startsWith(inputValue) || 
+                                     optionLower.indexOf(inputValue) !== -1;
+                            });
                           }}
                         />
                         <Tooltip title="Yeni belirsizlik değeri ekle">
@@ -3389,11 +3476,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             />
                           )}
                           freeSolo
+                          includeInputInList
+                          clearOnBlur={false}
+                          selectOnFocus
+                          handleHomeEndKeys
+                          getOptionLabel={(option) => option}
+                          isOptionEqualToValue={(option, value) => option === value}
                           filterOptions={(options, params) => {
-                            const filtered = options.filter(option =>
-                              option.toLowerCase().includes(params.inputValue.toLowerCase())
-                            );
-                            return filtered;
+                            const inputValue = params.inputValue.toLowerCase().trim();
+                            if (!inputValue) return options;
+                            
+                            return options.filter(option => {
+                              const optionLower = option.toLowerCase();
+                              return optionLower.includes(inputValue) || 
+                                     optionLower.startsWith(inputValue) || 
+                                     optionLower.indexOf(inputValue) !== -1;
+                            });
                           }}
                         />
                         <Tooltip title="Yeni laboratuvar ekle">
