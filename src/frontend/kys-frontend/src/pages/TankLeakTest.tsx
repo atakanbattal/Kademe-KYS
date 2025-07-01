@@ -75,7 +75,7 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import 'jspdf-autotable';
 
 // DÖF/8D Integration Import
 import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
@@ -1875,7 +1875,7 @@ const TankLeakTest: React.FC = () => {
       let y = 55;
       
       // Report Information Table
-      autoTable(doc, {
+      (doc as any).autoTable( {
         startY: y,
         head: [[convertTurkish('RAPOR BİLGİLERİ'), '']],
         body: [
@@ -1904,7 +1904,7 @@ const TankLeakTest: React.FC = () => {
         [convertTurkish('Parti Numarası'), test.tankInfo.batchNumber || convertTurkish('Belirtilmemiş')]
       ];
       
-      autoTable(doc, {
+      (doc as any).autoTable( {
         startY: y,
         head: [[convertTurkish('TANK BİLGİLERİ'), '']],
         body: tankInfo,
@@ -1922,7 +1922,7 @@ const TankLeakTest: React.FC = () => {
         [convertTurkish('Kontrol Sorumlusu'), convertTurkish(test.personnel?.inspector || 'Belirtilmemiş')]
       ];
       
-      autoTable(doc, {
+      (doc as any).autoTable( {
         startY: y,
         head: [[convertTurkish('PERSONEL BİLGİLERİ'), '']],
         body: personnelInfo,
@@ -1942,7 +1942,7 @@ const TankLeakTest: React.FC = () => {
         [convertTurkish('Seri Numarası'), test.tankInfo?.serialNumber || convertTurkish('Belirtilmemiş')]
       ];
       
-      autoTable(doc, {
+      (doc as any).autoTable( {
         startY: y,
         head: [[convertTurkish('ARAÇ BİLGİLERİ'), '']],
         body: vehicleInfo,
@@ -1972,7 +1972,7 @@ const TankLeakTest: React.FC = () => {
           [convertTurkish('Basınç Düşüşü'), `${test.testParameters.pressureDrop || 0} bar`]
         ];
         
-        autoTable(doc, {
+        (doc as any).autoTable( {
           startY: y,
           head: [[convertTurkish('TEST PARAMETRELERİ'), '']],
           body: testParams,
@@ -2002,7 +2002,7 @@ const TankLeakTest: React.FC = () => {
           ...(test.testParameters.testConditions.acceptanceCriteria || []).map((criteria) => ['✅', convertTurkish(criteria)])
         ];
         
-        autoTable(doc, {
+        (doc as any).autoTable( {
           startY: y,
           head: [[convertTurkish('TEST KOŞULLARI'), '']],
           body: testConditions,
@@ -2025,7 +2025,7 @@ const TankLeakTest: React.FC = () => {
           convertTurkish(error.repairMethod)
         ]);
         
-        autoTable(doc, {
+        (doc as any).autoTable( {
           startY: y,
           head: [[convertTurkish('HATA/SIZDIRMA BİLGİLERİ')]],
           body: [],
@@ -2037,7 +2037,7 @@ const TankLeakTest: React.FC = () => {
         
         y = (doc as any).lastAutoTable.finalY + 2;
         
-        autoTable(doc, {
+        (doc as any).autoTable( {
           startY: y,
           head: [['Hata No', convertTurkish('Hata Türü'), 'Konum', 'Boyut', convertTurkish('Tamir Yöntemi')]],
           body: errorTableData,

@@ -69,11 +69,12 @@ import {
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-// jsPDF autoTable tipini genişlet
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => void;
-    lastAutoTable: { finalY: number };
+// TypeScript tip deklarasyonu
+declare global {
+  namespace jsPDF {
+    interface jsPDF {
+      lastAutoTable: { finalY: number };
+    }
   }
 }
 
@@ -83,6 +84,8 @@ interface WPSData {
   materialGroup: string;
   thickness: number;
   jointType: string;
+  connectionType: string; // Yeni: boru-boru, plaka-plaka, boru-plaka
+  pipeDiameter?: number; // Yeni: Eğer boru varsa çap
   process: string;
   position: string;
   wireSize: number;
@@ -146,22 +149,22 @@ interface GrooveType {
 
 // Constants
 const JOINT_TYPES: JointType[] = [
-  {
-    code: 'BUTT',
+  { 
+    code: 'BUTT', 
     name: 'Alın Birleştirme',
     icon: 'BT',
     description: 'İki parçanın uç uca birleştirilmesi',
     applications: ['Basınçlı kaplar', 'Boru hatları', 'Yapı çelikleri']
   },
-  {
-    code: 'FILLET',
+  { 
+    code: 'FILLET', 
     name: 'Köşe Birleştirme',
     icon: 'FL',
     description: 'İki parçanın dik açıyla birleştirilmesi',
     applications: ['Köşe bağlantıları', 'Destek elemanları', 'Flanş bağlantıları']
   },
-  {
-    code: 'LAP',
+  { 
+    code: 'LAP', 
     name: 'Bindirme Birleştirme',
     icon: 'LP',
     description: 'İki parçanın üst üste bindirilerek kaynak edilmesi',
@@ -192,27 +195,96 @@ const WELDING_PROCESSES: WeldingProcess[] = [
   {
     code: 'MMA',
     name: 'MMA (111)',
-    description: 'Manuel Metal Arc Kaynağı',
-    applications: ['Çelik', 'Dökme demir', 'Bakım kaynakları']
+    description: 'Manuel Metal Arc Kaynağı - Elektrodlu El Arkı',
+    applications: ['Çelik', 'Dökme demir', 'Bakım kaynakları', 'Saha kaynakları']
+  },
+  {
+    code: '111',
+    name: '111 - El Arkı Kaynağı',
+    description: 'Manuel Metal Arc - Elektrodlu Kaynak',
+    applications: ['Çelik yapılar', 'Saha montajı', 'Bakım-onarım']
   }
 ];
 
 const MATERIAL_TYPES = [
   'Karbon Çelik',
   'Düşük Alaşımlı Çelik',
+  'Yüksek Alaşımlı Çelik',
   'Paslanmaz Çelik',
   'Alüminyum Alaşımları',
   'Dökme Demir',
-  'Nikel Alaşımları'
+  'Nikel Alaşımları',
+  'Bakır Alaşımları'
 ];
 
 const MATERIAL_GROUPS = {
-  'Karbon Çelik': ['S235', 'S275', 'S355', 'S460'],
-  'Düşük Alaşımlı Çelik': ['P235GH', 'P265GH', 'P355GH'],
-  'Paslanmaz Çelik': ['304', '316', '321', '347'],
-  'Alüminyum Alaşımları': ['1050', '5083', '6061', '6082'],
-  'Dökme Demir': ['EN-GJL-200', 'EN-GJL-250', 'EN-GJS-400'],
-  'Nikel Alaşımları': ['Inconel 600', 'Monel 400', 'Hastelloy C276']
+  'Karbon Çelik': [
+    'S235 JR - Genel Yapı Çeliği (235 MPa)',
+    'S275 JR - Orta Mukavemetli Yapı Çeliği (275 MPa)', 
+    'S355 JR - Yüksek Mukavemetli Yapı Çeliği (355 MPa)',
+    'S460 NH - Ultra Yüksek Mukavemetli Çelik (460 MPa)',
+    'S690 QL - Sertleştirilmiş Yüksek Mukavemetli Çelik (690 MPa)'
+  ],
+  'Düşük Alaşımlı Çelik': [
+    'P235GH - Basınçlı Kap Çeliği (235 MPa)',
+    'P265GH - Orta Sıcaklık Basınçlı Kap (265 MPa)',
+    'P355GH - Yüksek Sıcaklık Basınçlı Kap (355 MPa)',
+    'P460GH - Ultra Yüksek Basınçlı Kap (460 MPa)',
+    'P690GH - Kritik Basınçlı Sistemler (690 MPa)',
+    '16Mo3 - Yüksek Sıcaklık Servis Çeliği',
+    '15NiCuMoNb5 - Nükleer Sınıf Çelik'
+  ],
+  'Yüksek Alaşımlı Çelik': [
+    '25CrMo4 - Krom-Molibden Alaşımlı Çelik',
+    '42CrMo4 - Yüksek Mukavemetli Krom-Molibden',
+    '34CrNiMo6 - Nikel-Krom-Molibden Alaşımı',
+    '30CrNiMo8 - Ağır Hizmet Tipi Alaşımlı Çelik',
+    '36CrNiMo4 - Otomotiv Sınıfı Alaşımlı Çelik'
+  ],
+  'Paslanmaz Çelik': [
+    'AISI 304 - 18/8 Ostenitik Paslanmaz (Cr18-Ni8)',
+    'AISI 316 - Molibden İlaveli Ostenitik (Cr18-Ni12-Mo2)',
+    'AISI 321 - Titanyum Stabilize Ostenitik',
+    'AISI 347 - Niyobyum Stabilize Ostenitik', 
+    'AISI 410 - Martensitik Paslanmaz (Cr12)',
+    'AISI 430 - Ferritik Paslanmaz (Cr17)',
+    'AISI 316L - Düşük Karbonlu Ostenitik',
+    'Duplex 2205 - Çift Fazlı Paslanmaz (σ=850MPa)'
+  ],
+  'Alüminyum Alaşımları': [
+    'AA1050 - Saf Alüminyum (%99.5 Al)',
+    'AA1100 - Ticari Saf Alüminyum (%99.0 Al)',
+    'AA5083 - Denizcilik Sınıfı (Al-Mg4.5)',
+    'AA6061 - Yapısal Alaşım (Al-Mg-Si)',
+    'AA6082 - Yüksek Mukavemetli (Al-Mg-Si)',
+    'AA7075 - Havacılık Sınıfı (Al-Zn-Mg-Cu)',
+    'AA5754 - Otomotiv Levha Alaşımı',
+    'AA2024 - Havacılık Alaşımı (Al-Cu-Mg)'
+  ],
+  'Dökme Demir': [
+    'EN-GJL-200 - Gri Dökme Demir (σ=200MPa)',
+    'EN-GJL-250 - Yüksek Mukavemetli Gri Dökme (σ=250MPa)',
+    'EN-GJS-400 - Küresel Grafitli Dökme (σ=400MPa)',
+    'EN-GJS-500 - Yüksek Mukavemetli Küresel Grafitli (σ=500MPa)',
+    'EN-GJV-300 - Vermiküler Grafitli Dökme Demir',
+    'EN-GJMW-350-4 - Temperleme Dökme Demir'
+  ],
+  'Nikel Alaşımları': [
+    'Inconel 600 - Nikel-Krom Süper Alaşım (Ni76-Cr15)',
+    'Inconel 625 - Nikel-Krom-Molibden (Ni58-Cr22-Mo9)',
+    'Monel 400 - Nikel-Bakır Alaşımı (Ni67-Cu28)',
+    'Hastelloy C276 - Korozyon Dirençli Süper Alaşım',
+    'Inconel 718 - Yüksek Sıcaklık Süper Alaşım',
+    'Nimonic 80A - Yüksek Sıcaklık Çalışma Alaşımı'
+  ],
+  'Bakır Alaşımları': [
+    'CuZn37 - Pirinç Alaşımı (Cu63-Zn37)',
+    'CuSn8 - Fosfor Bronz (Cu92-Sn8)',
+    'CuNi10Fe1Mn - Küpronikel (Cu90-Ni10)',
+    'CuAl10Fe3 - Alüminyum Bronz',
+    'CuBe2 - Berilyum Bronz (Yüksek Mukavemet)',
+    'CuZn39Pb3 - Serbest İşleme Pirinç'
+  ]
 };
 
 const WELDING_POSITIONS = [
@@ -230,7 +302,8 @@ const WELDING_POSITIONS = [
 const WIRE_SIZES = {
   'MIG/MAG': [0.6, 0.8, 1.0, 1.2, 1.6, 2.0],
   'TIG': [1.6, 2.0, 2.4, 3.2, 4.0],
-  'MMA': [2.5, 3.2, 4.0, 5.0, 6.0]
+  'MMA': [2.5, 3.2, 4.0, 5.0, 6.0],
+  '111': [2.5, 3.2, 4.0, 5.0, 6.0]
 };
 
 const GAS_COMPOSITIONS = {
@@ -246,7 +319,8 @@ const GAS_COMPOSITIONS = {
     'I2 (Ar + He)',
     'I3 (100% He)'
   ],
-  'MMA': []
+  'MMA': [],
+  '111': []
 };
 
 const GROOVE_TYPES: GrooveType[] = [
@@ -261,6 +335,31 @@ const GROOVE_TYPES: GrooveType[] = [
   { code: 'Y', name: 'Y Ağzı', minThickness: 10, maxThickness: 40, recommendedAngle: 45, description: 'Tek taraflı pah', jointTypes: ['BUTT'] },
   { code: 'SQUARE', name: 'Düz Ağız', minThickness: 1, maxThickness: 8, recommendedAngle: 0, description: 'Hazırlıksız düz', jointTypes: ['LAP', 'EDGE'] },
   { code: 'FILLET', name: 'Köşe Ağzı', minThickness: 2, maxThickness: 50, recommendedAngle: 90, description: 'Köşe birleştirme', jointTypes: ['FILLET'] }
+];
+
+// Yeni: Birleştirme tipleri
+const CONNECTION_TYPES = [
+  {
+    code: 'PIPE_PIPE',
+    name: 'Boru - Boru',
+    description: 'İki borunun birleştirilmesi',
+    needsDiameter: true,
+    icon: '⚪⚪'
+  },
+  {
+    code: 'PLATE_PLATE', 
+    name: 'Plaka - Plaka',
+    description: 'İki plakanın birleştirilmesi',
+    needsDiameter: false,
+    icon: '⬜⬜'
+  },
+  {
+    code: 'PIPE_PLATE',
+    name: 'Boru - Plaka', 
+    description: 'Boru ile plakanın birleştirilmesi',
+    needsDiameter: true,
+    icon: '⚪⬜'
+  }
 ];
 
 // Doğru MIG/MAG parametrelerini hesaplayan fonksiyon
@@ -743,7 +842,7 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
         suggestedWireSize = 2.4;
         reason = 'Kalın TIG kaynağı için - daha iyi akım taşıma';
       }
-    } else if (wpsData.process === 'MMA') {
+    } else if (wpsData.process === 'MMA' || wpsData.process === '111') {
       if (wpsData.thickness <= 4) {
         suggestedWireSize = 2.5;
         reason = 'İnce elektrod kaynağı için minimum çap';
@@ -834,10 +933,10 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
     } else if (wpsData.process === 'TIG') {
       suggestedGas = 'I1 (100% Ar)';
       reason = 'TIG kaynağı için standart - temiz ark, stabil kaynak';
-    } else if (wpsData.process === 'MMA') {
-      // MMA için gaz koruması yok, sadece bilgi amaçlı
+    } else if (wpsData.process === 'MMA' || wpsData.process === '111') {
+      // MMA/111 için gaz koruması yok, sadece bilgi amaçlı
       suggestedGas = 'Gaz koruması yok';
-      reason = 'MMA kaynağında elektrod kaplamalar koruma sağlar';
+      reason = 'Elektrodlu kaynakta elektrod kaplamalar koruma sağlar';
     }
 
     if (suggestedGas && suggestedGas !== 'Gaz koruması yok') {
@@ -877,7 +976,7 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
       maxCurrent = Math.round(current * 1.2);
       minVoltage = Math.round((voltage - 1) * 10) / 10;
       maxVoltage = Math.round((voltage + 1) * 10) / 10;
-    } else if (wpsData.process === 'MMA') {
+    } else if (wpsData.process === 'MMA' || wpsData.process === '111') {
       current = wpsData.wireSize * 35 + wpsData.thickness * 10;
       voltage = 20 + (current - 80) * 0.025;
       minCurrent = Math.round(current * 0.8);
@@ -888,26 +987,26 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
 
     // Pozisyon faktörü sadece MIG/MAG dışındakiler için
     if (wpsData.process !== 'MIG/MAG') {
-      let positionFactor = 1.0;
-      switch (wpsData.position) {
-        case 'PA': positionFactor = 1.0; break;
-        case 'PB': positionFactor = 0.9; break;
-        case 'PC': positionFactor = 0.85; break;
-        case 'PD': positionFactor = 0.8; break;
-        case 'PE': case 'PF': case 'PG': case 'PH': positionFactor = 0.88; break;
-        case '2G': case '3G': positionFactor = 0.92; break;
-        case '4G': case '6G': positionFactor = 0.82; break;
-        default: positionFactor = 1.0;
-      }
-      
-      current = current * positionFactor;
+    let positionFactor = 1.0;
+    switch (wpsData.position) {
+      case 'PA': positionFactor = 1.0; break;
+      case 'PB': positionFactor = 0.9; break;
+      case 'PC': positionFactor = 0.85; break;
+      case 'PD': positionFactor = 0.8; break;
+      case 'PE': case 'PF': case 'PG': case 'PH': positionFactor = 0.88; break;
+      case '2G': case '3G': positionFactor = 0.92; break;
+      case '4G': case '6G': positionFactor = 0.82; break;
+      default: positionFactor = 1.0;
+    }
+    
+    current = current * positionFactor;
       minCurrent = Math.round(current * 0.8);
       maxCurrent = Math.round(current * 1.2);
 
-      switch (wpsData.position) {
-        case 'PB': case 'PC': voltage *= 1.05; break;
-        case 'PD': voltage *= 1.1; break;
-        case '4G': case '6G': voltage *= 1.08; break;
+    switch (wpsData.position) {
+      case 'PB': case 'PC': voltage *= 1.05; break;
+      case 'PD': voltage *= 1.1; break;
+      case '4G': case '6G': voltage *= 1.08; break;
       }
       minVoltage = Math.round(voltage * 0.9 * 10) / 10;
       maxVoltage = Math.round(voltage * 1.1 * 10) / 10;
@@ -999,7 +1098,7 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
     } else if (wpsData.process === 'TIG') {
       travelSpeed = 200 - (wpsData.thickness * 15);
       if (wpsData.thickness > 8) travelSpeed = 80;
-    } else if (wpsData.process === 'MMA') {
+    } else if (wpsData.process === 'MMA' || wpsData.process === '111') {
       travelSpeed = 250 - (wpsData.thickness * 20);
       if (wpsData.thickness > 6) travelSpeed = 100;
     }
@@ -1050,30 +1149,7 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
   return recommendations;
 };
 
-// Modern styled components
-const ModernContainer = () => (
-  <Container maxWidth="xl" sx={{ py: 4 }}>
-    <Paper elevation={0} sx={{ 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      p: 4,
-      mb: 4,
-      borderRadius: 3
-    }}>
-      <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-        WPS Oluşturucu
-      </Typography>
-      <Typography variant="h6" sx={{ opacity: 0.9, mb: 3 }}>
-        Profesyonel Kaynak Prosedür Şartnamesi Hazırlama Sistemi
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <Chip label="EN ISO 15609-1" variant="outlined" sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)' }} />
-        <Chip label="Akıllı Parametre Önerisi" variant="outlined" sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)' }} />
-        <Chip label="Otomatik PDF" variant="outlined" sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)' }} />
-      </Box>
-    </Paper>
-  </Container>
-);
+
 
 const SectionCard = ({ title, icon, children, step, completed = false }: any) => (
   <Card sx={{ 
@@ -1116,7 +1192,7 @@ const WpsGenerator: React.FC = () => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [passData, setPassData] = useState<PassData[]>([]);
   const [showRecommendations, setShowRecommendations] = useState(true);
-  const [autoApplyRecommendations, setAutoApplyRecommendations] = useState(false);
+  const [autoApplyRecommendations, setAutoApplyRecommendations] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
 
@@ -1130,18 +1206,50 @@ const WpsGenerator: React.FC = () => {
       setWpsData(prev => ({ ...prev, passes, passCount: passes.length }));
     }
 
-    // Otomatik öneri uygulama - sadece boş alanları doldur
+    // Otomatik öneri uygulama - akıllı güncelleme sistemi
     if (autoApplyRecommendations && recs.length > 0) {
       setTimeout(() => {
+        setWpsData(prev => {
+          const newData = { ...prev };
+          let hasUpdates = false;
+          
         recs.forEach(rec => {
-          const currentValue = wpsData[rec.parameter as keyof WPSData];
-          // Sadece henüz doldurulmamış alanları otomatik uygula
-          if (!currentValue || currentValue === 0 || currentValue === '') {
+            const currentValue = prev[rec.parameter as keyof WPSData];
+            // Teknik parametreler için: boş alanları veya 0 değerleri güncelle
+            const technicalParams = ['current', 'voltage', 'gasFlow', 'wireSpeed', 'travelSpeed', 'preheatTemp'];
+            // Seçim parametreleri için: sadece boş olanları güncelle
+            const selectionParams = ['process', 'position', 'wireSize', 'grooveType', 'gasComposition'];
+            
+            let shouldUpdate = false;
+            if (technicalParams.includes(rec.parameter)) {
+              // Teknik parametreler: boş veya 0 ise güncelle
+              shouldUpdate = (!currentValue || currentValue === 0 || currentValue === '');
+            } else if (selectionParams.includes(rec.parameter)) {
+              // Seçim parametreleri: sadece tamamen boş ise güncelle
+              shouldUpdate = (!currentValue || currentValue === '');
+            }
+            
+            if (shouldUpdate) {
             console.log(`Otomatik uygulama: ${rec.parameter} = ${rec.value}`);
-            applyRecommendation(rec);
-          }
+              hasUpdates = true;
+              
+              if (rec.parameter === 'current') newData.current = rec.value as number;
+              else if (rec.parameter === 'voltage') newData.voltage = rec.value as number;
+              else if (rec.parameter === 'gasFlow') newData.gasFlow = rec.value as number;
+              else if (rec.parameter === 'gasComposition') newData.gasComposition = rec.value as string;
+              else if (rec.parameter === 'wireSpeed') newData.wireSpeed = rec.value as number;
+              else if (rec.parameter === 'travelSpeed') newData.travelSpeed = rec.value as number;
+              else if (rec.parameter === 'preheatTemp') newData.preheatTemp = rec.value as number;
+              else if (rec.parameter === 'process') newData.process = rec.value as string;
+              else if (rec.parameter === 'position') newData.position = rec.value as string;
+              else if (rec.parameter === 'wireSize') newData.wireSize = rec.value as number;
+              else if (rec.parameter === 'grooveType') newData.grooveType = rec.value as string;
+            }
+          });
+          
+          return hasUpdates ? newData : prev;
         });
-      }, 200); // Daha uzun gecikme ile state güncellemelerinin çakışmasını önle
+      }, 100); // Kısa gecikme ile state güncellemelerinin çakışmasını önle
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -1149,6 +1257,8 @@ const WpsGenerator: React.FC = () => {
     wpsData.materialGroup, 
     wpsData.thickness, 
     wpsData.jointType,
+    wpsData.connectionType,
+    wpsData.pipeDiameter,
     wpsData.process, 
     wpsData.position, 
     wpsData.wireSize, 
@@ -1162,6 +1272,19 @@ const WpsGenerator: React.FC = () => {
   const updateWpsData = (field: keyof WPSData, value: any) => {
     setWpsData(prev => {
       const newData = { ...prev, [field]: value };
+      
+      // Temel parametreler değiştiğinde teknik parametreleri sıfırla
+      const criticalFields = ['thickness', 'materialType', 'materialGroup', 'process', 'wireSize'];
+      if (criticalFields.includes(field)) {
+        // Kalınlık, malzeme türü, kaynak yöntemi değiştiğinde parametreleri sıfırla
+        newData.current = 0;
+        newData.voltage = 0;
+        newData.gasFlow = 0;
+        newData.wireSpeed = 0;
+        newData.travelSpeed = 0;
+        newData.preheatTemp = 0;
+        console.log(`Temel parametre değişti (${field}), teknik parametreler sıfırlandı`);
+      }
       
       // Kaynak ağzı türü değiştiğinde otomatik olarak önerilen açıyı set et
       if (field === 'grooveType' && value) {
@@ -1256,7 +1379,7 @@ const WpsGenerator: React.FC = () => {
     doc.setTextColor(0, 0, 0);
     let y = 55;
     
-    doc.autoTable({
+    (doc as any).autoTable({
       startY: y,
       head: [['WPS BILGILERI', '']],
       body: [
@@ -1273,132 +1396,93 @@ const WpsGenerator: React.FC = () => {
       columnStyles: { 0: { cellWidth: 60, fontStyle: 'bold' }, 1: { cellWidth: 120 } }
     });
     
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y += 10;
     
-    autoTable(doc, {
-      startY: y,
-      head: [['MALZEME BILGILERI', '']],
-      body: [
-        ['Ana Malzeme Turu', wpsData.materialType || 'Belirtilmemis'],
-        ['Malzeme Grubu/Sinifi', wpsData.materialGroup || 'Belirtilmemis'],
-        ['Malzeme Kalinligi', `${wpsData.thickness || 0} mm`],
-        ['Birlestirme Tipi', wpsData.jointType === 'BUTT' ? 'Alin Birlestirme' :
+        // Basit PDF oluşturma - tablolar olmadan
+    y += 10;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MALZEME BILGILERI', 20, y);
+    y += 10;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Ana Malzeme Turu: ${wpsData.materialType || 'Belirtilmemis'}`, 20, y); y += 6;
+    doc.text(`Malzeme Grubu: ${wpsData.materialGroup || 'Belirtilmemis'}`, 20, y); y += 6;
+    doc.text(`Malzeme Kalinligi: ${wpsData.thickness || 0} mm`, 20, y); y += 6;
+    
+    const jointTypeText = wpsData.jointType === 'BUTT' ? 'Alin Birlestirme' :
           wpsData.jointType === 'FILLET' ? 'Kose Birlestirme' :
           wpsData.jointType === 'LAP' ? 'Bindirme Birlestirme' :
-          wpsData.jointType || 'Belirtilmemis'],
-        ['Standart/Norm', 'EN 10025 / ASTM'],
-        ['Kimyasal Kompozisyon', 'Standart uyumlu']
-      ],
-      theme: 'grid',
-      styles: { font: 'helvetica', fontStyle: 'normal' },
-      headStyles: { fillColor: [46, 204, 113], textColor: 255, fontSize: 11, fontStyle: 'bold', font: 'helvetica' },
-      bodyStyles: { fontSize: 10, font: 'helvetica' },
-      columnStyles: { 0: { cellWidth: 60, fontStyle: 'bold' }, 1: { cellWidth: 120 } }
-    });
+      wpsData.jointType || 'Belirtilmemis';
+    doc.text(`Birlestirme Tipi: ${jointTypeText}`, 20, y); y += 6;
     
-    y = (doc as any).lastAutoTable.finalY + 10;
+    const connectionTypeText = wpsData.connectionType === 'PIPE_PIPE' ? 'Boru - Boru' :
+      wpsData.connectionType === 'PLATE_PLATE' ? 'Plaka - Plaka' :
+      wpsData.connectionType === 'PIPE_PLATE' ? 'Boru - Plaka' :
+      wpsData.connectionType || 'Belirtilmemis';
+    doc.text(`Baglanti Tipi: ${connectionTypeText}`, 20, y); y += 6;
     
-    autoTable(doc, {
-      startY: y,
-      head: [['KAYNAK YONTEMI VE PARAMETRELERI', '']],
-      body: [
-        ['Kaynak Yontemi', wpsData.process || 'Belirtilmemis'],
-        ['Kaynak Pozisyonu', wpsData.position || 'Belirtilmemis'],
-        ['Tel/Elektrod Capi', `${wpsData.wireSize || 0} mm`],
-        ['Koruyucu Gaz', wpsData.gasComposition || 'Belirtilmemis'],
-        ['Akim Siddeti', `${wpsData.current || 0} A`],
-        ['Kaynak Voltaji', `${wpsData.voltage || 0} V`],
-        ['Gaz Debisi', `${wpsData.gasFlow || 0} L/dk`],
-        ['Tel Hizi', `${wpsData.wireSpeed || 0} m/dk`],
-        ['Kaynak Hizi', `${wpsData.travelSpeed || 0} mm/dk`],
-        ['On Isitma Sicakligi', `${wpsData.preheatTemp || 0} C`]
-      ],
-      theme: 'grid',
-      styles: { font: 'helvetica', fontStyle: 'normal' },
-      headStyles: { fillColor: [230, 126, 34], textColor: 255, fontSize: 11, fontStyle: 'bold', font: 'helvetica' },
-      bodyStyles: { fontSize: 10, font: 'helvetica' },
-      columnStyles: { 0: { cellWidth: 80, fontStyle: 'bold' }, 1: { cellWidth: 100 } }
-    });
+    if (wpsData.pipeDiameter) {
+      doc.text(`Boru Capi: ${wpsData.pipeDiameter} mm`, 20, y); y += 6;
+    }
     
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y += 10;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('KAYNAK YONTEMI VE PARAMETRELERI', 20, y);
+    y += 10;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Kaynak Yontemi: ${wpsData.process || 'Belirtilmemis'}`, 20, y); y += 6;
+    doc.text(`Kaynak Pozisyonu: ${wpsData.position || 'Belirtilmemis'}`, 20, y); y += 6;
+    doc.text(`Tel/Elektrod Capi: ${wpsData.wireSize || 0} mm`, 20, y); y += 6;
+    doc.text(`Koruyucu Gaz: ${wpsData.gasComposition || 'Belirtilmemis'}`, 20, y); y += 6;
+    doc.text(`Akim Siddeti: ${wpsData.current || 0} A`, 20, y); y += 6;
+    doc.text(`Kaynak Voltaji: ${wpsData.voltage || 0} V`, 20, y); y += 6;
+    doc.text(`Gaz Debisi: ${wpsData.gasFlow || 0} L/dk`, 20, y); y += 6;
+    doc.text(`Tel Hizi: ${wpsData.wireSpeed || 0} m/dk`, 20, y); y += 6;
+    doc.text(`Kaynak Hizi: ${wpsData.travelSpeed || 0} mm/dk`, 20, y); y += 6;
+    doc.text(`On Isitma Sicakligi: ${wpsData.preheatTemp || 0} C`, 20, y); y += 6;
     
     if (wpsData.passes && wpsData.passes.length > 0) {
-      const passTableData = wpsData.passes.map(pass => [
-        `${pass.passNumber}. Paso`,
-        pass.passType === 'root' ? 'Kok' : pass.passType === 'fill' ? 'Ara' : 'Kapak',
-        `${pass.current} A`,
-        `${pass.voltage} V`,
-        `${pass.wireSpeed} m/dk`,
-        `${pass.travelSpeed} mm/dk`
-      ]);
-
-      autoTable(doc, {
-        startY: y,
-        head: [['PASO BAZLI PARAMETRELER']],
-        body: [],
-        theme: 'grid',
-        styles: { font: 'helvetica', fontStyle: 'normal' },
-        headStyles: { fillColor: [155, 89, 182], textColor: 255, fontSize: 11, fontStyle: 'bold', font: 'helvetica', halign: 'center' },
-        columnStyles: { 0: { cellWidth: 180 } }
-      });
+      y += 10;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PASO BAZLI PARAMETRELER', 20, y);
+      y += 10;
       
-      y = (doc as any).lastAutoTable.finalY + 2;
-
-      autoTable(doc, {
-        startY: y,
-        head: [['Paso No', 'Paso Tipi', 'Akim (A)', 'Voltaj (V)', 'Tel Hizi', 'Kaynak Hizi']],
-        body: passTableData,
-        theme: 'grid',
-        styles: { font: 'helvetica', fontStyle: 'normal', fontSize: 8 },
-        headStyles: { fillColor: [155, 89, 182], textColor: 255, fontSize: 9, fontStyle: 'bold', font: 'helvetica', halign: 'center' },
-        bodyStyles: { fontSize: 8, font: 'helvetica', halign: 'center' },
-        columnStyles: {
-          0: { cellWidth: 25, fontStyle: 'bold' },
-          1: { cellWidth: 28, fontStyle: 'bold' },
-          2: { cellWidth: 25 },
-          3: { cellWidth: 28 },
-          4: { cellWidth: 30 },
-          5: { cellWidth: 32 }
-        }
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      wpsData.passes.forEach((pass, index) => {
+        const passTypeText = pass.passType === 'root' ? 'Kok' : pass.passType === 'fill' ? 'Ara' : 'Kapak';
+        doc.text(`${pass.passNumber}. Paso (${passTypeText}): ${pass.current}A, ${pass.voltage}V`, 20, y);
+        y += 6;
       });
-      
-      y = (doc as any).lastAutoTable.finalY + 10;
     }
 
     if (wpsData.grooveType) {
-      autoTable(doc, {
-        startY: y,
-        head: [['KAYNAK AGZI BILGILERI', '']],
-        body: [
-          ['Agiz Turu', wpsData.grooveType === 'I' ? 'I Kaynak Agzi (Ince)' :
+      y += 10;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('KAYNAK AGZI BILGILERI', 20, y);
+      y += 10;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      
+      const grooveTypeText = wpsData.grooveType === 'I' ? 'I Kaynak Agzi (Ince)' :
           wpsData.grooveType === 'I_HEAVY' ? 'I Kaynak Agzi (Kalin)' :
           wpsData.grooveType === 'V' ? 'V Agzi' :
           wpsData.grooveType === 'U' ? 'U Agzi' :
           wpsData.grooveType === 'X' ? 'X Agzi (Cift V Simetrik)' :
-          wpsData.grooveType === 'K' ? 'K Agzi (Asimetrik Cift V)' :
-          wpsData.grooveType === 'Y' ? 'Y Agzi (Tek Tarafli Pah)' :
-          wpsData.grooveType === 'DOUBLE_V' ? 'Cift V Agzi (Standart)' :
-          wpsData.grooveType === 'DOUBLE_U' ? 'Cift U Agzi' :
-          wpsData.grooveType === 'J' ? 'J Agzi' :
-          wpsData.grooveType === 'FLARE_V' ? 'Kavisli V Agzi' :
-          wpsData.grooveType === 'HV' ? 'Yarim V Agzi' :
-          wpsData.grooveType === 'HU' ? 'Yarim U Agzi' :
-          wpsData.grooveType === 'BEVEL' ? 'Pah Agzi' :
-          wpsData.grooveType === 'SQUARE' ? 'Duz Agiz' :
-          wpsData.grooveType === 'FILLET' ? 'Kose Kaynagi' :
-          wpsData.grooveType || 'Belirtilmemis'],
-          ['Agiz Acisi', `${wpsData.grooveAngle || 0} derece`],
-          ['Kok Acikligi', `${wpsData.rootOpening || 0} mm`],
-          ['Toplam Paso Sayisi', `${wpsData.passCount || 0} paso`],
-        ],
-        theme: 'grid',
-        styles: { font: 'helvetica', fontStyle: 'normal' },
-        headStyles: { fillColor: [52, 152, 219], textColor: 255, fontSize: 11, fontStyle: 'bold', font: 'helvetica' },
-        bodyStyles: { fontSize: 10, font: 'helvetica' },
-        columnStyles: { 0: { cellWidth: 60, fontStyle: 'bold' }, 1: { cellWidth: 120 } }
-      });
-      
-      y = (doc as any).lastAutoTable.finalY + 10;
+        wpsData.grooveType || 'Belirtilmemis';
+        
+      doc.text(`Agiz Turu: ${grooveTypeText}`, 20, y); y += 6;
+      doc.text(`Agiz Acisi: ${wpsData.grooveAngle || 0} derece`, 20, y); y += 6;
+      doc.text(`Kok Acikligi: ${wpsData.rootOpening || 0} mm`, 20, y); y += 6;
+      doc.text(`Toplam Paso Sayisi: ${wpsData.passCount || 0} paso`, 20, y); y += 6;
     }
     
     const pageHeight = doc.internal.pageSize.height;
@@ -1454,9 +1538,7 @@ const WpsGenerator: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
-      <ModernContainer />
-      
-      <Container maxWidth="xl">
+      <Container maxWidth="xl" sx={{ py: 4 }}>
         {/* Progress and Controls */}
         <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -1473,33 +1555,33 @@ const WpsGenerator: React.FC = () => {
             </Box>
             
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <FormControlLabel
-                control={<Switch checked={showRecommendations} onChange={(e) => setShowRecommendations(e.target.checked)} />}
-                label="Akıllı Öneriler"
-              />
-              <FormControlLabel
+          <FormControlLabel
+            control={<Switch checked={showRecommendations} onChange={(e) => setShowRecommendations(e.target.checked)} />}
+            label="Akıllı Öneriler"
+          />
+          <FormControlLabel
                 control={<Switch checked={autoApplyRecommendations} onChange={(e) => setAutoApplyRecommendations(e.target.checked)} />}
                 label="Otomatik Uygula"
                 disabled={!showRecommendations}
-              />
-              <Button variant="outlined" startIcon={<ExportIcon />} onClick={() => setPreviewOpen(true)}>
-                Önizleme
-              </Button>
+          />
+          <Button variant="outlined" startIcon={<ExportIcon />} onClick={() => setPreviewOpen(true)}>
+            Önizleme
+          </Button>
               <Button 
                 variant="contained" 
                 startIcon={<PdfIcon />} 
                 size="large"
-                onClick={() => {/* generatePDF logic */}}
+                onClick={generateEnhancedPDF}
                 disabled={getCompletionStatus().percentage < 100}
               >
-                WPS Oluştur
-              </Button>
-            </Box>
-          </Box>
+            WPS Oluştur
+          </Button>
+        </Box>
+      </Box>
         </Paper>
 
         <Grid container spacing={4}>
-          {/* Main Form */}
+        {/* Main Form */}
           <Grid item xs={12} lg={showRecommendations ? 8 : 12}>
             <Box>
               {/* Step 1: Material and Joint Information */}
@@ -1511,50 +1593,47 @@ const WpsGenerator: React.FC = () => {
               >
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Malzeme Türü</InputLabel>
+                  <FormControl fullWidth required>
+                    <InputLabel>Malzeme Türü</InputLabel>
                       <Select 
                         value={wpsData.materialType || ''} 
                         onChange={(e) => updateWpsData('materialType', e.target.value)}
                       >
-                        {MATERIAL_TYPES.map(type => (
-                          <MenuItem key={type} value={type}>{type}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                      {MATERIAL_TYPES.map(type => (
+                        <MenuItem key={type} value={type}>{type}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                   </Grid>
-                  
+
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Malzeme Grubu</InputLabel>
-                      <Select 
-                        value={wpsData.materialGroup || ''} 
-                        onChange={(e) => updateWpsData('materialGroup', e.target.value)}
-                        disabled={!wpsData.materialType}
-                      >
-                        {(MATERIAL_GROUPS[wpsData.materialType as keyof typeof MATERIAL_GROUPS] || []).map(group => (
-                          <MenuItem key={group} value={group}>{group}</MenuItem>
-                        ))}
-                      </Select>
-                      <FormHelperText>
-                        {wpsData.materialType ? `${wpsData.materialType} için uygun gruplar` : 'Önce malzeme türünü seçin'}
-                      </FormHelperText>
-                    </FormControl>
+                  <FormControl fullWidth>
+                    <InputLabel>Malzeme Grubu</InputLabel>
+                    <Select 
+                      value={wpsData.materialGroup || ''} 
+                      onChange={(e) => updateWpsData('materialGroup', e.target.value)}
+                      disabled={!wpsData.materialType}
+                    >
+                      {(MATERIAL_GROUPS[wpsData.materialType as keyof typeof MATERIAL_GROUPS] || []).map(group => (
+                        <MenuItem key={group} value={group}>{group}</MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText>
+                      {wpsData.materialType ? `${wpsData.materialType} için uygun gruplar` : 'Önce malzeme türünü seçin'}
+                    </FormHelperText>
+                  </FormControl>
                   </Grid>
-                  
+
                   <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Malzeme Kalınlığı"
-                      type="number"
+                  <TextField
+                    fullWidth
+                      label="Kalınlık (mm)"
+                    type="number"
                       required
-                      value={wpsData.thickness || ''}
-                      onChange={(e) => updateWpsData('thickness', parseFloat(e.target.value) || 0)}
-                      InputProps={{ 
-                        endAdornment: <InputAdornment position="end">mm</InputAdornment> 
-                      }}
-                      helperText="Kaynak edilecek malzeme kalınlığı"
-                    />
+                    value={wpsData.thickness || ''}
+                    onChange={(e) => updateWpsData('thickness', parseFloat(e.target.value) || 0)}
+                    helperText="Kaynak edilecek malzeme kalınlığı"
+                  />
                   </Grid>
                   
                   <Grid item xs={12}>
@@ -1591,12 +1670,69 @@ const WpsGenerator: React.FC = () => {
                               <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
                                 {joint.description}
                               </Typography>
+            </CardContent>
+                          </Card>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Grid>
+
+                  {/* Yeni: Birleştirme Tipi (Boru/Plaka) */}
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle1" gutterBottom sx={{ mt: 2, mb: 2, fontWeight: 600 }}>
+                      Bağlantı Tipi
+                    </Typography>
+                    <Grid container spacing={2}>
+                      {CONNECTION_TYPES.map((connection) => (
+                        <Grid item xs={12} sm={4} key={connection.code}>
+                          <Card 
+                            sx={{ 
+                              cursor: 'pointer',
+                              border: 2,
+                              borderColor: wpsData.connectionType === connection.code ? 'info.main' : 'grey.300',
+                              backgroundColor: wpsData.connectionType === connection.code ? 'info.50' : 'background.paper',
+                              height: '100%',
+                              transition: 'all 0.2s',
+                              '&:hover': { 
+                                borderColor: 'info.main', 
+                                backgroundColor: 'info.50',
+                                transform: 'translateY(-2px)',
+                                boxShadow: 4
+                              }
+                            }}
+                            onClick={() => updateWpsData('connectionType', connection.code)}
+                          >
+                            <CardContent sx={{ textAlign: 'center' }}>
+                              <Typography variant="h4" sx={{ mb: 1 }}>
+                                {connection.icon}
+                              </Typography>
+                              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                                {connection.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {connection.description}
+                              </Typography>
                             </CardContent>
                           </Card>
                         </Grid>
                       ))}
                     </Grid>
                   </Grid>
+
+                  {/* Yeni: Boru Çapı (sadece boru içeren bağlantılarda) */}
+                  {wpsData.connectionType && CONNECTION_TYPES.find(c => c.code === wpsData.connectionType)?.needsDiameter && (
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Çap (mm)"
+                        type="number"
+                        required
+                        value={wpsData.pipeDiameter || ''}
+                        onChange={(e) => updateWpsData('pipeDiameter', parseFloat(e.target.value) || 0)}
+                        helperText="Kaynak edilecek borunun dış çapı"
+                      />
+                    </Grid>
+                  )}
                 </Grid>
               </SectionCard>
 
@@ -1609,65 +1745,65 @@ const WpsGenerator: React.FC = () => {
               >
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Kaynak Yöntemi</InputLabel>
-                      <Select value={wpsData.process || ''} onChange={(e) => updateWpsData('process', e.target.value)}>
-                        {WELDING_PROCESSES.map(process => (
-                          <MenuItem key={process.code} value={process.code}>{process.name}</MenuItem>
-                        ))}
-                      </Select>
+                  <FormControl fullWidth required>
+                    <InputLabel>Kaynak Yöntemi</InputLabel>
+                    <Select value={wpsData.process || ''} onChange={(e) => updateWpsData('process', e.target.value)}>
+                      {WELDING_PROCESSES.map(process => (
+                        <MenuItem key={process.code} value={process.code}>{process.name}</MenuItem>
+                      ))}
+                    </Select>
                       <FormHelperText>Malzeme türüne uygun kaynak yöntemini seçin</FormHelperText>
-                    </FormControl>
+                  </FormControl>
                   </Grid>
-                  
+
                   <Grid item xs={12} md={6}>
                     <FormControl fullWidth required>
-                      <InputLabel>Kaynak Pozisyonu</InputLabel>
-                      <Select value={wpsData.position || ''} onChange={(e) => updateWpsData('position', e.target.value)}>
+                    <InputLabel>Kaynak Pozisyonu</InputLabel>
+                    <Select value={wpsData.position || ''} onChange={(e) => updateWpsData('position', e.target.value)}>
                         {WELDING_POSITIONS.map(pos => (
                           <MenuItem key={pos.code} value={pos.code}>{pos.name}</MenuItem>
                         ))}
-                      </Select>
-                      <FormHelperText>EN ISO 6947 standardına uygun pozisyonlar</FormHelperText>
-                    </FormControl>
+                    </Select>
+                    <FormHelperText>EN ISO 6947 standardına uygun pozisyonlar</FormHelperText>
+                  </FormControl>
                   </Grid>
-                  
+
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Tel/Elektrod Çapı</InputLabel>
-                      <Select 
-                        value={wpsData.wireSize || ''} 
-                        onChange={(e) => updateWpsData('wireSize', Number(e.target.value))}
-                        disabled={!wpsData.process}
-                      >
+                  <FormControl fullWidth>
+                    <InputLabel>Tel/Elektrod Çapı</InputLabel>
+                    <Select 
+                      value={wpsData.wireSize || ''} 
+                      onChange={(e) => updateWpsData('wireSize', Number(e.target.value))}
+                      disabled={!wpsData.process}
+                    >
                         {(wpsData.process ? WIRE_SIZES[wpsData.process as keyof typeof WIRE_SIZES] || [] : []).map(size => (
                           <MenuItem key={size} value={size}>{size} mm</MenuItem>
-                        ))}
-                      </Select>
-                      <FormHelperText>
-                        {wpsData.process ? `${wpsData.process} için standart çaplar` : 'Önce kaynak yöntemini seçin'}
-                      </FormHelperText>
-                    </FormControl>
+                      ))}
+                    </Select>
+                    <FormHelperText>
+                      {wpsData.process ? `${wpsData.process} için standart çaplar` : 'Önce kaynak yöntemini seçin'}
+                    </FormHelperText>
+                  </FormControl>
                   </Grid>
-                  
+
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Gaz Bileşimi</InputLabel>
-                      <Select 
-                        value={wpsData.gasComposition || ''} 
-                        onChange={(e) => updateWpsData('gasComposition', e.target.value)}
-                        disabled={!wpsData.process}
-                      >
+                  <FormControl fullWidth>
+                    <InputLabel>Gaz Bileşimi</InputLabel>
+                    <Select 
+                      value={wpsData.gasComposition || ''} 
+                      onChange={(e) => updateWpsData('gasComposition', e.target.value)}
+                      disabled={!wpsData.process}
+                    >
                         {(wpsData.process ? GAS_COMPOSITIONS[wpsData.process as keyof typeof GAS_COMPOSITIONS] || [] : []).map(gas => (
-                          <MenuItem key={gas} value={gas}>{gas}</MenuItem>
-                        ))}
-                      </Select>
-                      <FormHelperText>
-                        {wpsData.process === 'MMA' ? 'El arkı kaynağı gaz kullanmaz' : 
-                         wpsData.process ? `${wpsData.process} için EN 14175 standart gazları` : 
-                         'Önce kaynak yöntemini seçin'}
-                      </FormHelperText>
-                    </FormControl>
+                        <MenuItem key={gas} value={gas}>{gas}</MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText>
+                      {wpsData.process === 'MMA' ? 'El arkı kaynağı gaz kullanmaz' : 
+                       wpsData.process ? `${wpsData.process} için EN 14175 standart gazları` : 
+                       'Önce kaynak yöntemini seçin'}
+                    </FormHelperText>
+                  </FormControl>
                   </Grid>
                 </Grid>
               </SectionCard>
@@ -1682,44 +1818,44 @@ const WpsGenerator: React.FC = () => {
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={8}>
                     <FormControl fullWidth>
-                      <InputLabel>Kaynak Ağzı Türü</InputLabel>
+                    <InputLabel>Kaynak Ağzı Türü</InputLabel>
                       <Select 
                         value={wpsData.grooveType || ''} 
                         onChange={(e) => updateWpsData('grooveType', e.target.value)}
                         disabled={!wpsData.jointType}
                       >
-                        {GROOVE_TYPES.filter(groove => 
-                          groove.jointTypes.includes(wpsData.jointType || '') &&
-                          (!wpsData.thickness || 
-                           (wpsData.thickness >= groove.minThickness && wpsData.thickness <= groove.maxThickness))
-                        ).map(groove => (
-                          <MenuItem key={groove.code} value={groove.code}>
+                      {GROOVE_TYPES.filter(groove => 
+                        groove.jointTypes.includes(wpsData.jointType || '') &&
+                        (!wpsData.thickness || 
+                         (wpsData.thickness >= groove.minThickness && wpsData.thickness <= groove.maxThickness))
+                      ).map(groove => (
+                        <MenuItem key={groove.code} value={groove.code}>
                             <Box>
                               <Typography variant="body1" fontWeight="500">{groove.name}</Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {groove.minThickness}-{groove.maxThickness}mm | {groove.description}
                               </Typography>
                             </Box>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                   </Grid>
-                  
+
                   <Grid item xs={12} md={4}>
-                    <TextField
-                      fullWidth
-                      label="Ağız Açısı"
-                      type="number"
-                      value={wpsData.grooveAngle || ''}
-                      onChange={(e) => updateWpsData('grooveAngle', parseFloat(e.target.value) || 0)}
-                      InputProps={{ endAdornment: <InputAdornment position="end">°</InputAdornment> }}
-                      helperText={
-                        wpsData.grooveType ? 
+                  <TextField
+                    fullWidth
+                    label="Ağız Açısı"
+                    type="number"
+                    value={wpsData.grooveAngle || ''}
+                    onChange={(e) => updateWpsData('grooveAngle', parseFloat(e.target.value) || 0)}
+                    InputProps={{ endAdornment: <InputAdornment position="end">°</InputAdornment> }}
+                    helperText={
+                      wpsData.grooveType ? 
                           `Önerilen: ${GROOVE_TYPES.find(g => g.code === wpsData.grooveType)?.recommendedAngle}°` :
-                          'Önce kaynak ağzı türünü seçin'
-                      }
-                    />
+                        'Önce kaynak ağzı türünü seçin'
+                    }
+                  />
                   </Grid>
                 </Grid>
               </SectionCard>
@@ -1733,71 +1869,71 @@ const WpsGenerator: React.FC = () => {
               >
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      label="Akım"
-                      type="number"
-                      value={wpsData.current || ''}
-                      onChange={(e) => updateWpsData('current', parseFloat(e.target.value) || 0)}
-                      InputProps={{
+                  <TextField
+                    fullWidth
+                    label="Akım"
+                    type="number"
+                    value={wpsData.current || ''}
+                    onChange={(e) => updateWpsData('current', parseFloat(e.target.value) || 0)}
+                    InputProps={{
                         endAdornment: <InputAdornment position="end">A</InputAdornment>
                       }}
                     />
                   </Grid>
                   
                   <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      label="Voltaj"
-                      type="number"
-                      value={wpsData.voltage || ''}
-                      onChange={(e) => updateWpsData('voltage', parseFloat(e.target.value) || 0)}
-                      InputProps={{
+                  <TextField
+                    fullWidth
+                    label="Voltaj"
+                    type="number"
+                    value={wpsData.voltage || ''}
+                    onChange={(e) => updateWpsData('voltage', parseFloat(e.target.value) || 0)}
+                    InputProps={{
                         endAdornment: <InputAdornment position="end">V</InputAdornment>
                       }}
                     />
                   </Grid>
                   
                   <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      label="Gaz Debisi"
-                      type="number"
-                      value={wpsData.gasFlow || ''}
-                      onChange={(e) => updateWpsData('gasFlow', parseFloat(e.target.value) || 0)}
-                      InputProps={{
+                  <TextField
+                    fullWidth
+                    label="Gaz Debisi"
+                    type="number"
+                    value={wpsData.gasFlow || ''}
+                    onChange={(e) => updateWpsData('gasFlow', parseFloat(e.target.value) || 0)}
+                    InputProps={{
                         endAdornment: <InputAdornment position="end">L/dk</InputAdornment>
                       }}
                     />
                   </Grid>
                   
                   <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      label="Ön Isıtma"
-                      type="number"
-                      value={wpsData.preheatTemp || ''}
-                      onChange={(e) => updateWpsData('preheatTemp', parseFloat(e.target.value) || 0)}
-                      InputProps={{
+                  <TextField
+                    fullWidth
+                    label="Ön Isıtma"
+                    type="number"
+                    value={wpsData.preheatTemp || ''}
+                    onChange={(e) => updateWpsData('preheatTemp', parseFloat(e.target.value) || 0)}
+                    InputProps={{
                         endAdornment: <InputAdornment position="end">°C</InputAdornment>
                       }}
                     />
                   </Grid>
                 </Grid>
               </SectionCard>
-            </Box>
+                </Box>
           </Grid>
 
-          {/* Recommendations Panel */}
-          {showRecommendations && (
+        {/* Recommendations Panel */}
+        {showRecommendations && (
             <Grid item xs={12} lg={4}>
               <Card sx={{ position: 'sticky', top: 24 }}>
-                <CardHeader
+              <CardHeader
                   avatar={<Avatar sx={{ bgcolor: 'secondary.main' }}><RecommendIcon /></Avatar>}
                   title="Akıllı Öneriler"
                   subheader="EN ISO 15609-1 standardına uygun parametreler"
-                />
-                <CardContent>
+              />
+              <CardContent>
                   {recommendations.length === 0 ? (
                     <Alert severity="info">
                       Öneriler için malzeme ve kaynak yöntemi bilgilerini doldurun
@@ -1805,60 +1941,66 @@ const WpsGenerator: React.FC = () => {
                   ) : (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          onClick={() => {/* applyAllRecommendations */}}
-                          startIcon={<PlaylistAddCheckIcon />}
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={applyAllRecommendations}
+                              startIcon={<PlaylistAddCheckIcon />}
                           fullWidth
-                        >
-                          Tümünü Uygula
-                        </Button>
+                            >
+                              Tümünü Uygula
+                            </Button>
                       </Box>
                       
-                      {recommendations.map((rec, index) => (
+                    {recommendations.map((rec, index) => (
                         <Card key={index} variant="outlined" sx={{ p: 2 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="subtitle2" fontWeight={600}>
-                              {rec.parameter === 'current' && 'Akım (A)'}
-                              {rec.parameter === 'voltage' && 'Voltaj (V)'}
-                              {rec.parameter === 'gasFlow' && 'Gaz Debisi (L/dk)'}
-                              {rec.parameter === 'process' && 'Kaynak Yöntemi'}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                                  <Typography variant="subtitle2" fontWeight={600}>
+                          {rec.parameter === 'current' && 'Akım (A)'}
+                          {rec.parameter === 'voltage' && 'Voltaj (V)'}
+                          {rec.parameter === 'gasFlow' && 'Gaz Debisi (L/dk)'}
+                          {rec.parameter === 'gasComposition' && 'Gaz Bileşimi'}
+                          {rec.parameter === 'wireSpeed' && 'Tel Hızı (m/dk)'}
+                          {rec.parameter === 'travelSpeed' && 'Kaynak Hızı (mm/dk)'}
+                          {rec.parameter === 'preheatTemp' && 'Ön Isıtma (°C)'}
+                          {rec.parameter === 'process' && 'Kaynak Yöntemi'}
+                          {rec.parameter === 'position' && 'Kaynak Pozisyonu'}
                               {rec.parameter === 'wireSize' && 'Tel Çapı (mm)'}
-                            </Typography>
-                            <Chip 
+                          {rec.parameter === 'grooveType' && 'Kaynak Ağzı Türü'}
+                        </Typography>
+                          <Chip 
                               label={rec.confidence === 'high' ? 'Yüksek' : 'Orta'} 
-                              size="small"
-                              color={rec.confidence === 'high' ? 'success' : 'warning'}
-                            />
-                          </Box>
-                          
-                          <Typography variant="h6" color="primary" gutterBottom>
-                            {typeof rec.value === 'number' ? rec.value : rec.value}
-                            {rec.min > 0 && ` (${rec.min}–${rec.max})`}
-                          </Typography>
-                          
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                            {rec.reason}
-                          </Typography>
-                          
+                            size="small"
+                            color={rec.confidence === 'high' ? 'success' : 'warning'}
+                          />
+                        </Box>
+                        
+                        <Typography variant="h6" color="primary" gutterBottom>
+                          {typeof rec.value === 'number' ? rec.value : rec.value}
+                          {rec.min > 0 && ` (${rec.min}–${rec.max})`}
+                        </Typography>
+                        
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          {rec.reason}
+                        </Typography>
+                        
                           <Button
                             size="small"
                             variant="outlined"
-                            onClick={() => {/* applyRecommendation(rec) */}}
+                            onClick={() => applyRecommendation(rec)}
                             startIcon={<CheckCircleIcon />}
                             fullWidth
                           >
                             Uygula
                           </Button>
-                        </Card>
-                      ))}
-                    </Box>
-                  )}
+                      </Card>
+                    ))}
+                  </Box>
+                )}
                 </CardContent>
               </Card>
             </Grid>
-          )}
+            )}
         </Grid>
       </Container>
 

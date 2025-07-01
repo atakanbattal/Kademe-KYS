@@ -85,7 +85,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import 'jspdf-autotable';
 
 // ============================================
 // ENHANCED INTERFACES & TYPES
@@ -1770,7 +1770,7 @@ const QuarantineManagement: React.FC = () => {
     const summaryStats = calculateStats(data);
     
     // İstatistik tablosu
-    autoTable(doc, {
+    (doc as any).autoTable( {
       startY: startY,
       head: [[fixTurkishChars('Istatistik'), fixTurkishChars('Deger')]],
       body: [
@@ -1799,7 +1799,7 @@ const QuarantineManagement: React.FC = () => {
     
     // Detaylı veriler
     if (data.length > 0) {
-      autoTable(doc, {
+      (doc as any).autoTable( {
         startY: (doc as any).lastAutoTable.finalY + 15,
         head: [[
           fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
@@ -1859,7 +1859,7 @@ const QuarantineManagement: React.FC = () => {
     }, {} as Record<string, { count: number; cost: number; items: QuarantineRecord[] }>);
     
     // Birim özet tablosu
-    autoTable(doc, {
+    (doc as any).autoTable( {
       startY: startY,
       head: [[
         fixTurkishChars('Birim'), fixTurkishChars('Kayit Sayisi'), 
@@ -1900,7 +1900,7 @@ const QuarantineManagement: React.FC = () => {
       doc.setFontSize(12);
       doc.text(fixTurkishChars('Kritik parca bulunamadi.'), 15, startY + 20);
     } else {
-      autoTable(doc, {
+      (doc as any).autoTable( {
         startY: startY,
         head: [[
           fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
@@ -1950,7 +1950,7 @@ const QuarantineManagement: React.FC = () => {
       return acc;
     }, {} as Record<string, { count: number; cost: number }>);
     
-    autoTable(doc, {
+    (doc as any).autoTable( {
       startY: startY,
       head: [[
         fixTurkishChars('Ay'), fixTurkishChars('Kayit Sayisi'), 
@@ -2001,7 +2001,7 @@ const QuarantineManagement: React.FC = () => {
     const reworkRate = (data.filter(item => item.status === 'YENIDEN_ISLEM').length / (data.length || 1)) * 100;
     const scrapRate = (data.filter(item => item.status === 'HURDA').length / (data.length || 1)) * 100;
     
-    autoTable(doc, {
+    (doc as any).autoTable( {
       startY: startY,
       head: [[fixTurkishChars('Performans Metrigi'), fixTurkishChars('Deger')]],
       body: [
@@ -2046,7 +2046,7 @@ const QuarantineManagement: React.FC = () => {
       '10,000 TL+': data.filter(item => item.estimatedCost >= 10000).length
     };
     
-    autoTable(doc, {
+    (doc as any).autoTable( {
       startY: startY,
       head: [[
         fixTurkishChars('Maliyet Araligi'), fixTurkishChars('Kayit Sayisi'), fixTurkishChars('Yuzde')
@@ -2103,7 +2103,7 @@ const QuarantineManagement: React.FC = () => {
       doc.setFontSize(12);
       doc.text(fixTurkishChars('Bu tarih araliginda kayit bulunamadi.'), 15, startY + 20);
     } else {
-      autoTable(doc, {
+      (doc as any).autoTable( {
         startY: startY,
         head: [[
           fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Durum'), 
@@ -2145,7 +2145,7 @@ const QuarantineManagement: React.FC = () => {
       doc.setFontSize(12);
       doc.text(fixTurkishChars('Tabloda goruntulenecek kayit bulunamadi.'), 15, startY + 20);
     } else {
-      autoTable(doc, {
+      (doc as any).autoTable( {
         startY: startY,
         head: [[
           fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
@@ -2209,7 +2209,7 @@ const QuarantineManagement: React.FC = () => {
       doc.text(fixTurkishChars(`Toplam ${activeQuarantineData.length} Urun Karantinada`), 15, yPosition);
       
       // Standard tablo formatı - günlük rapor gibi
-      autoTable(doc, {
+      (doc as any).autoTable( {
         startY: yPosition + 10,
         head: [[
           fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
