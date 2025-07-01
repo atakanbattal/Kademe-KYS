@@ -2969,36 +2969,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         </Tooltip>
                       </Box>
                       
-                      {/* Üretici Arama */}
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="Üretici ara veya yönet..."
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <SearchIcon />
-                            </InputAdornment>
-                          ),
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton 
-                                size="small" 
-                                onClick={() => setOpenManufacturerManagementDialog(true)}
-                                title="Üretici yönet"
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </InputAdornment>
-                          )
-                        }}
-                        sx={{ 
-                          '& .MuiOutlinedInput-root': { 
-                            bgcolor: 'info.50',
-                            '&:hover': { bgcolor: 'info.100' }
-                          }
-                        }}
-                      />
+                      {/* Üretici Yönetimi */}
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Tooltip title="Üretici yönet">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setOpenManufacturerManagementDialog(true)}
+                            startIcon={<EditIcon />}
+                            color="info"
+                          >
+                            Üretici Yönet
+                          </Button>
+                        </Tooltip>
+                      </Box>
                     </Box>
                     
                     {/* Model Seçimi */}
@@ -3047,36 +3031,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         </Tooltip>
                       </Box>
                       
-                      {/* Model Arama */}
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="Model ara veya yönet..."
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <SearchIcon />
-                            </InputAdornment>
-                          ),
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton 
-                                size="small" 
-                                onClick={() => setOpenModelManagementDialog(true)}
-                                title="Model yönet"
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </InputAdornment>
-                          )
-                        }}
-                        sx={{ 
-                          '& .MuiOutlinedInput-root': { 
-                            bgcolor: 'info.50',
-                            '&:hover': { bgcolor: 'info.100' }
-                          }
-                        }}
-                      />
+                      {/* Model Yönetimi */}
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Tooltip title="Model yönet">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setOpenModelManagementDialog(true)}
+                            startIcon={<EditIcon />}
+                            color="info"
+                          >
+                            Model Yönet
+                          </Button>
+                        </Tooltip>
+                      </Box>
                     </Box>
                   </Box>
                 </Paper>
@@ -3466,36 +3434,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         </Tooltip>
                       </Box>
                       
-                      {/* Laboratuvar Arama */}
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="Laboratuvar ara veya yönet..."
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <SearchIcon />
-                            </InputAdornment>
-                          ),
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton 
-                                size="small" 
-                                onClick={() => setOpenCalibrationCompanyDialog(true)}
-                                title="Laboratuvar yönet"
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </InputAdornment>
-                          )
-                        }}
-                        sx={{ 
-                          '& .MuiOutlinedInput-root': { 
-                            bgcolor: 'secondary.50',
-                            '&:hover': { bgcolor: 'secondary.100' }
-                          }
-                        }}
-                      />
+                      {/* Laboratuvar Yönetimi */}
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Tooltip title="Laboratuvar yönet">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setOpenCalibrationCompanyDialog(true)}
+                            startIcon={<EditIcon />}
+                            color="secondary"
+                          >
+                            Laboratuvar Yönet
+                          </Button>
+                        </Tooltip>
+                      </Box>
                     </Box>
                   </Box>
                   
