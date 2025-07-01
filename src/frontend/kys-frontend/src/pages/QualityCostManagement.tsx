@@ -7022,6 +7022,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         {currentTab === 6 && <MaterialPricingManagementComponent />}
                     {currentTab === 7 && <CategoryProductionManagementComponent 
             onTabChange={setCurrentTab} 
+            globalFilters={globalFilters}
+            setGlobalFilters={setGlobalFilters}
           />}
         </Box>
 
@@ -13991,8 +13993,10 @@ const SmartTargetManagementComponent: React.FC<{
 };
 // CategoryProductionManagementComponent ekleniyor...
 const CategoryProductionManagementComponent: React.FC<{ 
-  onTabChange?: (tabIndex: number) => void 
-}> = ({ onTabChange }) => {
+  onTabChange?: (tabIndex: number) => void,
+  globalFilters?: any,
+  setGlobalFilters?: (filters: any) => void
+}> = ({ onTabChange, globalFilters, setGlobalFilters }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -14002,7 +14006,7 @@ const CategoryProductionManagementComponent: React.FC<{
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<VehicleCategory | ''>('');
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>(globalFilters?.selectedMonth || '');
 
   // ✅ Optimize edilmiş search handler fonksiyonu
   const handleSearchChange = useCallback((newSearchTerm: string) => {
@@ -14044,6 +14048,21 @@ const CategoryProductionManagementComponent: React.FC<{
   useEffect(() => {
     applyFilters();
   }, [categoryProductions, searchTerm, selectedCategory, selectedMonth]);
+
+  // GlobalFilters ile senkronizasyon
+  useEffect(() => {
+    if (globalFilters?.selectedMonth !== selectedMonth) {
+      setSelectedMonth(globalFilters?.selectedMonth || '');
+    }
+  }, [globalFilters?.selectedMonth]);
+
+  // SelectedMonth değiştiğinde globalFilters'ı güncelle
+  const handleMonthChange = (newMonth: string) => {
+    setSelectedMonth(newMonth);
+    if (setGlobalFilters && globalFilters) {
+      setGlobalFilters({...globalFilters, selectedMonth: newMonth});
+    }
+  };
 
   // Event listeners
   useEffect(() => {
@@ -14458,7 +14477,7 @@ const CategoryProductionManagementComponent: React.FC<{
               type="month"
               label="Ay Seçin"
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
+              onChange={(e) => handleMonthChange(e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
@@ -14469,7 +14488,7 @@ const CategoryProductionManagementComponent: React.FC<{
               onClick={() => {
                 setSearchTerm('');
                 setSelectedCategory('');
-                setSelectedMonth('');
+                handleMonthChange('');
               }}
             >
               Temizle
@@ -14479,8 +14498,8 @@ const CategoryProductionManagementComponent: React.FC<{
       </Paper>
 
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={3}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={2.4}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -14493,7 +14512,7 @@ const CategoryProductionManagementComponent: React.FC<{
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2.4}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -14606,7 +14625,73 @@ const CategoryProductionManagementComponent: React.FC<{
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2.4}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <DateRangeIcon sx={{ mr: 1, color: 'info.main' }} />
+                <Typography variant="h6">Seçilen Ay</Typography>
+                {(() => {
+                  const hasSelectedMonth = selectedMonth && selectedMonth.trim() !== '';
+                  const hasData = hasSelectedMonth && filteredProductions.some(p => p.donem === selectedMonth);
+                  
+                  if (hasSelectedMonth && !hasData) {
+                    return (
+                      <Tooltip title={`${selectedMonth} ayı için henüz veri girilmemiş. Veri ekleyin veya farklı ay seçin.`}>
+                        <WarningIcon sx={{ ml: 1, color: 'warning.main', fontSize: 16 }} />
+                      </Tooltip>
+                    );
+                  }
+                  if (!hasSelectedMonth) {
+                    return (
+                      <Tooltip title="Yukarıdaki filtreden ay seçin">
+                        <InfoIcon sx={{ ml: 1, color: 'info.main', fontSize: 16 }} />
+                      </Tooltip>
+                    );
+                  }
+                  return null;
+                })()}
+              </Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                {(() => {
+                  if (!selectedMonth || selectedMonth.trim() === '') {
+                    return '-';
+                  }
+                  
+                  // Seçili ay için üretim verilerini hesapla
+                  const selectedMonthData = filteredProductions.filter(p => p.donem === selectedMonth);
+                  const selectedMonthTotal = selectedMonthData.reduce((sum, p) => sum + (p.uretilenAracSayisi || 0), 0);
+                  
+                  // Eğer kategori verisi yoksa vehicle verilerini kontrol et
+                  let vehicleTotal = 0;
+                  if (selectedMonthTotal === 0) {
+                    try {
+                      const vehicleData = JSON.parse(localStorage.getItem('monthly_vehicle_productions') || '[]');
+                      const selectedMonthVehicleData = vehicleData.filter(p => p.donem === selectedMonth && p.isActive !== false);
+                      vehicleTotal = selectedMonthVehicleData.reduce((sum, p) => sum + (p.uretilenAracSayisi || p.uretilen || p.quantity || p.adet || 0), 0);
+                    } catch (error) {
+                      console.warn('Vehicle production verileri okunamadı:', error);
+                    }
+                  }
+                  
+                  const finalTotal = selectedMonthTotal > 0 ? selectedMonthTotal : vehicleTotal;
+                  
+                  console.log('📅 Seçilen Ay Üretilen Kartı Debug:', {
+                    selectedMonth,
+                    selectedMonthData: selectedMonthData.length,
+                    selectedMonthTotal,
+                    vehicleTotal,
+                    finalTotal,
+                    filterApplied: true
+                  });
+                  
+                  return finalTotal;
+                })()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={2.4}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -14621,7 +14706,7 @@ const CategoryProductionManagementComponent: React.FC<{
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2.4}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
