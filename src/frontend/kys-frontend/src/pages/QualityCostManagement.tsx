@@ -6794,49 +6794,38 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={6} md={4} lg={2.2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Maliyet Türü</InputLabel>
+                <InputLabel>Araç Kategorisi</InputLabel>
                 <Select
                   value={globalFilters.maliyetTuru}
                   onChange={(e) => setGlobalFilters({...globalFilters, maliyetTuru: e.target.value})}
-                  label="Maliyet Türü"
+                  label="Araç Kategorisi"
                 >
-                  <MenuItem value="">Tümü</MenuItem>
-                  <MenuItem value="hurda">Hurda Maliyeti</MenuItem>
-                  <MenuItem value="yeniden_islem">Yeniden İşlem Maliyeti</MenuItem>
-                  <MenuItem value="fire">Fire Maliyeti</MenuItem>
-                  <MenuItem value="garanti">Garanti Maliyeti</MenuItem>
-                  <MenuItem value="iade">İade Maliyeti</MenuItem>
-                  <MenuItem value="sikayet">Şikayet Maliyeti</MenuItem>
-                  <MenuItem value="denetim">Denetim Maliyeti</MenuItem>
-                  <MenuItem value="test">Test Maliyeti</MenuItem>
-                  <MenuItem value="egitim">Eğitim Maliyeti</MenuItem>
-                  <MenuItem value="onleme">Önleme Maliyeti</MenuItem>
+                  <MenuItem value="">Tüm Kategoriler</MenuItem>
+                  {Object.keys(VEHICLE_CATEGORIES).map(category => (
+                    <MenuItem key={category} value={category}>{category}</MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
             
             <Grid item xs={12} sm={6} md={4} lg={2.2}>
               <FormControl fullWidth size="small">
-                <InputLabel>Birim</InputLabel>
+                <InputLabel>Üretim Durumu</InputLabel>
                 <Select
                   value={globalFilters.birim}
                   onChange={(e) => setGlobalFilters({...globalFilters, birim: e.target.value})}
-                  label="Birim"
+                  label="Üretim Durumu"
                 >
-                  <MenuItem value="">Tümü</MenuItem>
-                  <MenuItem value="arge">Ar-Ge</MenuItem>
-                  <MenuItem value="boyahane">Boyahane</MenuItem>
-                  <MenuItem value="bukum">Büküm</MenuItem>
-                  <MenuItem value="depo">Depo</MenuItem>
-                  <MenuItem value="elektrikhane">Elektrikhane</MenuItem>
-                  <MenuItem value="kalite_kontrol">Kalite Kontrol</MenuItem>
-                  <MenuItem value="kaynakhane">Kaynakhane</MenuItem>
-                  <MenuItem value="kesim">Kesim</MenuItem>
-                  <MenuItem value="mekanik_montaj">Mekanik Montaj</MenuItem>
-                  <MenuItem value="satin_alma">Satın Alma</MenuItem>
-                  <MenuItem value="satis">Satış</MenuItem>
-                  <MenuItem value="ssh">SSH</MenuItem>
-                  <MenuItem value="uretim_planlama">Üretim Planlama</MenuItem>
+                  <MenuItem value="">Tüm Durumlar</MenuItem>
+                  <MenuItem value="hedef_ustu">Hedef Üstü (&ge;100%)</MenuItem>
+                  <MenuItem value="hedef_yakın">Hedefe Yakın (80-99%)</MenuItem>
+                  <MenuItem value="hedef_alti">Hedef Altı (&lt;80%)</MenuItem>
+                  <MenuItem value="yuksek_uretim">Yüksek Üretim (&gt;50 adet)</MenuItem>
+                  <MenuItem value="orta_uretim">Orta Üretim (20-50 adet)</MenuItem>
+                  <MenuItem value="dusuk_uretim">Düşük Üretim (&lt;20 adet)</MenuItem>
+                  <MenuItem value="aktif">Aktif Üretim</MenuItem>
+                  <MenuItem value="planlanan">Sadece Planlanan</MenuItem>
+                  <MenuItem value="geciken">Gecikmeli Üretim</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -6894,7 +6883,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 defaultValue={globalFilters.searchTerm}
                 onChange={handleSearchTermChange}
                 label="Gelişmiş Arama"
-                placeholder="Parça kodu, açıklama..."
+                placeholder="Araç modeli, kategori, açıklama..."
                 size="small"
                 fullWidth
               />
@@ -6908,8 +6897,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 fullWidth
                 onClick={() => {
                   setGlobalFilters({
-                    maliyetTuru: '',
-                    birim: '',
+                    maliyetTuru: '', // Araç kategorisi
+                    birim: '', // Üretim durumu
                     arac: '',
                     searchTerm: '',
                     selectedMonth: '',
@@ -14041,10 +14030,76 @@ const CategoryProductionManagementComponent: React.FC<{
     loadProductionData();
   }, []);
 
-  // Filtreleme
+  // Filtreleme - GlobalFilters ile entegre
   useEffect(() => {
-    setFilteredProductions(categoryProductions);
-  }, [categoryProductions]);
+    if (!globalFilters) {
+      setFilteredProductions(categoryProductions);
+      return;
+    }
+
+    let filtered = [...categoryProductions];
+
+    // Araç Kategorisi filtresi (eski maliyetTuru)
+    if (globalFilters.maliyetTuru) {
+      filtered = filtered.filter(prod => prod.kategori === globalFilters.maliyetTuru);
+    }
+
+    // Üretim Durumu filtresi (eski birim)
+    if (globalFilters.birim) {
+      filtered = filtered.filter(prod => {
+        switch (globalFilters.birim) {
+          case 'hedef_ustu':
+            return prod.gerceklesmeOrani >= 100;
+          case 'hedef_yakın':
+            return prod.gerceklesmeOrani >= 80 && prod.gerceklesmeOrani < 100;
+          case 'hedef_alti':
+            return prod.gerceklesmeOrani < 80;
+          case 'yuksek_uretim':
+            return prod.uretilenAracSayisi > 50;
+          case 'orta_uretim':
+            return prod.uretilenAracSayisi >= 20 && prod.uretilenAracSayisi <= 50;
+          case 'dusuk_uretim':
+            return prod.uretilenAracSayisi < 20;
+          case 'aktif':
+            return prod.isActive;
+          case 'planlanan':
+            return prod.planlanmisUretim > 0;
+          case 'geciken':
+            return prod.gerceklesmeOrani < 90 && prod.planlanmisUretim > 0;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Ay filtresi
+    if (globalFilters.selectedMonth) {
+      filtered = filtered.filter(prod => prod.donem === globalFilters.selectedMonth);
+    }
+
+    // Arama filtresi
+    if (globalFilters.searchTerm) {
+      const searchLower = globalFilters.searchTerm.toLowerCase();
+      filtered = filtered.filter(prod =>
+        prod.kategori.toLowerCase().includes(searchLower) ||
+        prod.displayName.toLowerCase().includes(searchLower) ||
+        prod.donem.includes(searchLower) ||
+        (prod.aciklama && prod.aciklama.toLowerCase().includes(searchLower)) ||
+        prod.categoryModels.some(model => 
+          model.toLowerCase().includes(searchLower)
+        )
+      );
+    }
+
+    // Aktif olanlar önce
+    filtered.sort((a, b) => {
+      if (a.isActive && !b.isActive) return -1;
+      if (!a.isActive && b.isActive) return 1;
+      return new Date(b.donem).getTime() - new Date(a.donem).getTime();
+    });
+
+    setFilteredProductions(filtered);
+  }, [categoryProductions, globalFilters]);
 
   // Event listeners
   useEffect(() => {
