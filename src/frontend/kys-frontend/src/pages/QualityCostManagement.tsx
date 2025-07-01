@@ -14006,7 +14006,15 @@ const CategoryProductionManagementComponent: React.FC<{
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<VehicleCategory | ''>('');
-  const [selectedMonth, setSelectedMonth] = useState<string>(globalFilters?.selectedMonth || '');
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const initial = globalFilters?.selectedMonth || '';
+    console.log('🔄 selectedMonth başlangıç değeri:', {
+      globalFilters,
+      globalFiltersSelectedMonth: globalFilters?.selectedMonth,
+      initialValue: initial
+    });
+    return initial;
+  });
 
   // ✅ Optimize edilmiş search handler fonksiyonu
   const handleSearchChange = useCallback((newSearchTerm: string) => {
@@ -14051,16 +14059,43 @@ const CategoryProductionManagementComponent: React.FC<{
 
   // GlobalFilters ile senkronizasyon
   useEffect(() => {
+    console.log('🔄 GlobalFilters senkronizasyon useEffect:', {
+      globalFiltersSelectedMonth: globalFilters?.selectedMonth,
+      currentSelectedMonth: selectedMonth,
+      needsUpdate: globalFilters?.selectedMonth !== selectedMonth
+    });
+    
     if (globalFilters?.selectedMonth !== selectedMonth) {
-      setSelectedMonth(globalFilters?.selectedMonth || '');
+      const newValue = globalFilters?.selectedMonth || '';
+      console.log('🔄 selectedMonth güncelleniyor:', {
+        from: selectedMonth,
+        to: newValue
+      });
+      setSelectedMonth(newValue);
     }
   }, [globalFilters?.selectedMonth]);
 
   // SelectedMonth değiştiğinde globalFilters'ı güncelle
   const handleMonthChange = (newMonth: string) => {
+    console.log('📅 handleMonthChange çağrıldı:', {
+      newMonth,
+      currentSelectedMonth: selectedMonth,
+      globalFiltersExists: !!globalFilters,
+      setGlobalFiltersExists: !!setGlobalFilters,
+      globalFilters: globalFilters
+    });
+    
     setSelectedMonth(newMonth);
+    
     if (setGlobalFilters && globalFilters) {
-      setGlobalFilters({...globalFilters, selectedMonth: newMonth});
+      const updatedFilters = {...globalFilters, selectedMonth: newMonth};
+      console.log('🔄 GlobalFilters güncelleniyor:', updatedFilters);
+      setGlobalFilters(updatedFilters);
+    } else {
+      console.warn('⚠️ GlobalFilters güncellenemedi:', {
+        setGlobalFiltersExists: !!setGlobalFilters,
+        globalFiltersExists: !!globalFilters
+      });
     }
   };
 
@@ -14109,11 +14144,20 @@ const CategoryProductionManagementComponent: React.FC<{
         data = JSON.parse(stored);
       }
       
+      // Eğer hiç veri yoksa test verisi oluştur
+      if (data.length === 0) {
+        console.log('⚠️ Hiç veri bulunamadı, test verisi oluşturuluyor...');
+        data = generateSampleCategoryProductionData();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        console.log('✅ Test verisi oluşturuldu ve kaydedildi');
+      }
+      
       console.log('📊 Gerçek Veri Yükleme Debug:', {
         storageKey: STORAGE_KEY,
         totalDataCount: data.length,
         allData: data,
-        currentMonth: new Date().toISOString().substring(0, 7)
+        currentMonth: new Date().toISOString().substring(0, 7),
+        availableMonths: [...new Set(data.map(p => p.donem))].sort()
       });
       
       setCategoryProductions(data);
@@ -14164,7 +14208,21 @@ const CategoryProductionManagementComponent: React.FC<{
   };
 
   const applyFilters = useCallback(() => {
+    console.log('🔍 applyFilters çağrıldı:', {
+      categoryProductionsLength: categoryProductions.length,
+      searchTerm,
+      selectedCategory,
+      selectedMonth,
+      categoryProductions: categoryProductions.map(p => ({
+        id: p.id,
+        kategori: p.kategori,
+        donem: p.donem,
+        uretilen: p.uretilenAracSayisi
+      }))
+    });
+    
     let filtered = [...categoryProductions];
+    const originalLength = filtered.length;
 
     // Arama terimi
     if (searchTerm) {
@@ -14174,16 +14232,24 @@ const CategoryProductionManagementComponent: React.FC<{
         prod.donem.includes(searchTerm) ||
         (prod.aciklama && prod.aciklama.toLowerCase().includes(searchTerm.toLowerCase()))
       );
+      console.log(`🔍 Arama filtresi sonrası: ${filtered.length} kayıt`);
     }
 
     // Kategori filtresi
     if (selectedCategory) {
       filtered = filtered.filter(prod => prod.kategori === selectedCategory);
+      console.log(`🔍 Kategori filtresi sonrası: ${filtered.length} kayıt`);
     }
 
     // Ay filtresi
     if (selectedMonth) {
-      filtered = filtered.filter(prod => prod.donem === selectedMonth);
+      const beforeMonthFilter = filtered.length;
+      filtered = filtered.filter(prod => {
+        const matches = prod.donem === selectedMonth;
+        console.log(`📅 Ay filtre kontrolü: ${prod.donem} === ${selectedMonth} = ${matches}`);
+        return matches;
+      });
+      console.log(`📅 Ay filtresi sonrası: ${beforeMonthFilter} -> ${filtered.length} kayıt`);
     }
 
     // Aktif olanlar önce
@@ -14191,6 +14257,17 @@ const CategoryProductionManagementComponent: React.FC<{
       if (a.isActive && !b.isActive) return -1;
       if (!a.isActive && b.isActive) return 1;
       return new Date(b.donem).getTime() - new Date(a.donem).getTime();
+    });
+
+    console.log('🔍 Final filtrelenmiş veri:', {
+      originalLength,
+      finalLength: filtered.length,
+      filteredData: filtered.map(p => ({
+        id: p.id,
+        kategori: p.kategori,
+        donem: p.donem,
+        uretilen: p.uretilenAracSayisi
+      }))
     });
 
     setFilteredProductions(filtered);
@@ -14477,8 +14554,16 @@ const CategoryProductionManagementComponent: React.FC<{
               type="month"
               label="Ay Seçin"
               value={selectedMonth}
-              onChange={(e) => handleMonthChange(e.target.value)}
+              onChange={(e) => {
+                console.log('📅 Ay seçme input onChange:', {
+                  newValue: e.target.value,
+                  currentValue: selectedMonth
+                });
+                handleMonthChange(e.target.value);
+              }}
               InputLabelProps={{ shrink: true }}
+              placeholder="YYYY-MM"
+              helperText={selectedMonth ? `Seçili: ${selectedMonth}` : 'Ay seçiniz'}
             />
           </Grid>
           <Grid item xs={12} md={2}>
