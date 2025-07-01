@@ -2443,13 +2443,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         />
                       </Box>
                                             {/* Üretici ve Model Satırı */}
-                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2, alignItems: 'start' }}>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2, alignItems: 'stretch' }}>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch', height: 56 }}>
                           <FormControl fullWidth sx={{ flex: 1 }}>
                             <InputLabel>Üretici</InputLabel>
                             <Select
-                              value={formData.manufacturer || ''}
-                              onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
+                          value={formData.manufacturer || ''}
+                          onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
                               sx={{ height: 56 }}
                             >
                               {manufacturersList.map((manufacturer) => (
@@ -2468,12 +2468,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           </Button>
                         </Box>
                         
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch', height: 56 }}>
                           <FormControl fullWidth sx={{ flex: 1 }}>
                             <InputLabel>Model</InputLabel>
                             <Select
-                              value={formData.model || ''}
-                              onChange={(e) => setFormData({...formData, model: e.target.value})}
+                          value={formData.model || ''}
+                          onChange={(e) => setFormData({...formData, model: e.target.value})}
                               sx={{ height: 56 }}
                             >
                               {modelsList.map((model) => (
@@ -2559,10 +2559,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 2, mb: 2 }}>
                                                     <FormControl fullWidth required>
                             <InputLabel>Sorumlu Personel</InputLabel>
-                            <Select
+                              <Select
                               value={formData.responsiblePersonSicilNo || ''}
-                              onChange={(e) => {
-                                const sicilNo = e.target.value as string;
+                                onChange={(e) => {
+                                  const sicilNo = e.target.value as string;
                                 const person = personnelList.find(p => p.sicilNo === sicilNo);
                                 setFormData({
                                   ...formData,
@@ -2570,16 +2570,16 @@ const EquipmentCalibrationManagement: React.FC = () => {
                                   responsiblePersonName: person?.name || ''
                                 });
                               }}
-                            >
-                              {personnelList
+                              >
+                                {personnelList
                                 .filter(p => p.isActive)
-                                .map((person) => (
-                                  <MenuItem key={person.sicilNo} value={person.sicilNo}>
+                                  .map((person) => (
+                                    <MenuItem key={person.sicilNo} value={person.sicilNo}>
                                     {person.name} ({person.sicilNo}) - {person.department}
-                                  </MenuItem>
-                                ))}
-                            </Select>
-                          </FormControl>
+                                    </MenuItem>
+                                  ))}
+                              </Select>
+                            </FormControl>
                           
                             <Button
                               variant="contained"
@@ -2604,10 +2604,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       <Box sx={{ mt: 4, p: 3, border: '2px solid', borderColor: 'success.main', borderRadius: 2, bgcolor: 'success.50' }}>
                         <Typography variant="h6" sx={{ mb: 3, color: 'success.main', fontWeight: 600 }}>
                           Cihazın Teknik Özellikleri
-                        </Typography>
+                            </Typography>
                         
-                                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2, alignItems: 'start' }}>
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
+                                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2, alignItems: 'stretch' }}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch', height: 56 }}>
                             <FormControl fullWidth required sx={{ flex: 1 }}>
                               <InputLabel>Ölçüm Aralığı</InputLabel>
                               <Select
@@ -2620,14 +2620,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
                                   <MenuItem key={range} value={range}>{range}</MenuItem>
                                 ))}
                               </Select>
-                              {!formData.category && (
-                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                  Önce kategori seçiniz
-                                </Typography>
-                              )}
                             </FormControl>
-                            <Button 
-                              variant="outlined" 
+                              <Button
+                                variant="outlined"
                               onClick={() => {
                                 const newRange = prompt('Yeni ölçüm aralığı giriniz (örn: 0-750 mm):');
                                 if (newRange) {
@@ -2640,10 +2635,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                               disabled={!formData.category}
                             >
                               +
-                            </Button>
+                              </Button>
                           </Box>
                           
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch', height: 56 }}>
                             <FormControl fullWidth required sx={{ flex: 1 }}>
                               <InputLabel>Ölçüm Belirsizliği</InputLabel>
                               <Select
@@ -2656,14 +2651,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
                                   <MenuItem key={uncertainty} value={uncertainty}>{uncertainty}</MenuItem>
                                 ))}
                               </Select>
-                              {!formData.category && (
-                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                  Önce kategori seçiniz
-                                </Typography>
-                              )}
                             </FormControl>
                             <Button 
-                              variant="outlined" 
+                                    variant="outlined"
                               onClick={() => {
                                 const newUncertainty = prompt('Yeni ölçüm belirsizliği giriniz (örn: ±0.03 mm):');
                                 if (newUncertainty) {
@@ -2676,9 +2666,18 @@ const EquipmentCalibrationManagement: React.FC = () => {
                               disabled={!formData.category}
                             >
                               +
-                            </Button>
+                        </Button>
+                      </Box>
+                    </Box>
+                          
+                        {/* Önce kategori seçiniz uyarı mesajları için alan */}
+                        {!formData.category && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', fontStyle: 'italic' }}>
+                              Önce kategori seçiniz
+                            </Typography>
                           </Box>
-                        </Box>
+                        )}
                           
                         {/* Diğer seçeneği için özel input alanları */}
                         {(formData.measurementRange === 'Diğer' || formData.measurementUncertainty === 'Diğer') && (
@@ -2695,8 +2694,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             )}
                             
                             {formData.measurementUncertainty === 'Diğer' && (
-                              <TextField
-                                fullWidth
+                          <TextField
+                            fullWidth
                                 label="Özel Ölçüm Belirsizliği *"
                                 value={formData.customMeasurementUncertainty || ''}
                                 onChange={(e) => setFormData({...formData, customMeasurementUncertainty: e.target.value})}
@@ -2704,9 +2703,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
                                 required
                               />
                             )}
-                          </Box>
-                        )}
-                        
+                        </Box>
+                      )}
+
                         {/* Detaylı Teknik Özellikler */}
                         <Box sx={{ mb: 2 }}>
                           <TextField
@@ -2756,12 +2755,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             inputProps={{ min: 1, max: 60 }}
                             helperText="Kaç ayda bir kalibre edilecek"
                           />
-                            </Box>
+                        </Box>
                         
                         {/* Hedef Tarih ve Laboratuvar */}
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2 }}>
-                          <TextField
-                            fullWidth
+                      <TextField
+                        fullWidth
                             label="Bir Sonraki Hedef Kalibre Tarihi"
                             type="date"
                             value={formData.nextCalibrationDate || ''}
@@ -2799,8 +2798,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         
                         {/* Sertifika Numarası */}
                         <Box sx={{ mb: 3 }}>
-                          <TextField
-                            fullWidth
+                      <TextField
+                        fullWidth
                             label="Kalibrasyon Sertifika Numarası"
                             value={formData.lastCalibrationCertificateNumber || ''}
                             onChange={(e) => setFormData({...formData, lastCalibrationCertificateNumber: e.target.value})}
@@ -2841,7 +2840,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           Ekipmanı Kaydet
                         </Button>
                       </Box>
-                </Box>
+                    </Box>
           ) : dialogMode === 'view' ? (
             <Box sx={{ p: 3 }}>
               <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 600, mb: 3 }}>
