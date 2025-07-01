@@ -1850,15 +1850,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
     }, 300); // 300ms throttle
   }, []);
 
-  // Optimized filterOptions for autocomplete - memoized
+  // 🚀 PERFORMANCE: Enhanced filterOptions for autocomplete with virtualization
   const optimizedFilterOptions = useCallback((options: string[], params: any) => {
     const inputValue = params.inputValue.toLowerCase().trim();
-    if (!inputValue) return options;
     
-    return options.filter(option => {
-      const optionLower = option.toLowerCase();
-      return optionLower.includes(inputValue);
+    // Limit initial display for performance with large datasets (94 equipment)
+    if (!inputValue) {
+      return options.slice(0, 100); // Limit initial display to 100 items
+    }
+    
+    // Fast string matching with early return for performance
+    const filtered = options.filter(option => {
+      return option.toLowerCase().includes(inputValue);
     });
+    
+    // Limit results to 50 items for optimal performance
+    return filtered.slice(0, 50);
   }, []);
   
   // Personnel management states
@@ -1911,6 +1918,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
   };
+
+  // 🚀 PERFORMANCE: Memoized form handlers to prevent unnecessary re-renders
+  const handleFormChange = useCallback((field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
 
   // Ölçüm aralığı seçimi için memoized helper fonksiyon
   const getMeasurementRangeOptions = useMemo(() => {
@@ -3712,7 +3727,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     fullWidth
                       label="Ekipman Kodu"
                     value={formData.equipmentCode || ''}
-                    onChange={(e) => setFormData({...formData, equipmentCode: e.target.value})}
+                    onChange={(e) => handleFormChange('equipmentCode', e.target.value)}
                     required
                       error={!formData.equipmentCode?.trim()}
                       helperText={!formData.equipmentCode?.trim() ? "Ekipman kodu zorunludur" : ""}
@@ -3767,7 +3782,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     fullWidth
                     label="Seri Numarası"
                     value={formData.serialNumber || ''}
-                    onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
+                    onChange={(e) => handleFormChange('serialNumber', e.target.value)}
                     required
                     error={!formData.serialNumber?.trim()}
                     helperText={!formData.serialNumber?.trim() ? "Seri numarası zorunludur" : ""}
@@ -3803,7 +3818,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <Autocomplete
                       options={LOCATIONS}
                       value={formData.location || ''}
-                      onChange={(_, newValue) => setFormData({...formData, location: newValue || ''})}
+                      onChange={(_, newValue) => handleFormChange('location', newValue || '')}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -3827,7 +3842,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <Autocomplete
                       options={DEPARTMENTS}
                       value={formData.department || ''}
-                      onChange={(_, newValue) => setFormData({...formData, department: newValue || ''})}
+                      onChange={(_, newValue) => handleFormChange('department', newValue || '')}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -3867,7 +3882,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           fullWidth
                           options={manufacturersList}
                           value={formData.manufacturer || ''}
-                          onChange={(_, newValue) => setFormData({...formData, manufacturer: newValue || ''})}
+                          onChange={(_, newValue) => handleFormChange('manufacturer', newValue || '')}
                           renderInput={(params) => (
                             <TextField
                               {...params}
