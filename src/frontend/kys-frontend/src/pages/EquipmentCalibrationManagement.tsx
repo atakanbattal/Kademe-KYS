@@ -3150,37 +3150,19 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </Alert>
                   )}
 
-                  {/* Personel Arama ve Yönetimi */}
-                  <Box sx={{ mb: 3 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      placeholder="Personel ara veya yönet..."
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SearchIcon />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton 
-                              size="small" 
-                              onClick={() => setOpenPersonnelManagementDialog(true)}
-                              title="Personel yönet"
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </InputAdornment>
-                        )
-                      }}
-                      sx={{ 
-                        '& .MuiOutlinedInput-root': { 
-                          bgcolor: 'success.50',
-                          '&:hover': { bgcolor: 'success.100' }
-                        }
-                      }}
-                    />
+                  {/* Personel Yönetimi */}
+                  <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Tooltip title="Personel yönet">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setOpenPersonnelManagementDialog(true)}
+                        startIcon={<EditIcon />}
+                        color="success"
+                      >
+                        Personel Yönet
+                      </Button>
+                    </Tooltip>
                   </Box>
 
 
@@ -3270,28 +3252,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           </Button>
                         </Tooltip>
                       </Box>
-                      
-                      {/* Ölçüm Aralığı Arama */}
-                      <TextField
-                        fullWidth
-                        size="small"
-                        placeholder={formData.category ? `${formData.category} aralığı ara...` : "Önce kategori seçin"}
-                        disabled={!formData.category}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <SearchIcon />
-                            </InputAdornment>
-                          ),
-                          endAdornment: null
-                        }}
-                        sx={{ 
-                          '& .MuiOutlinedInput-root': { 
-                            bgcolor: formData.category ? 'warning.50' : 'grey.200',
-                            '&:hover': { bgcolor: formData.category ? 'warning.100' : 'grey.200' }
-                          }
-                        }}
-                      />
                     </Box>
                     
                     {/* Ölçüm Belirsizliği */}
