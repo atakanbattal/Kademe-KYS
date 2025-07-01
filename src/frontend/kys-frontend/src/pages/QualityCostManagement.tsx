@@ -170,7 +170,7 @@ const ProfessionalMonthPicker: React.FC<ProfessionalMonthPickerProps> = ({ value
   };
 
   const getCurrentMonthName = () => {
-    if (!value) return 'Ay Seçin';
+    if (!value) return '';
     const [year, month] = value.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1);
     return date.toLocaleDateString('tr-TR', { 
@@ -201,6 +201,10 @@ const ProfessionalMonthPicker: React.FC<ProfessionalMonthPickerProps> = ({ value
         label="Ay Seçin"
         value={getCurrentMonthName()}
         onClick={handleClick}
+        placeholder="Ay seçiniz"
+        InputLabelProps={{ 
+          shrink: true
+        }}
         InputProps={{
           readOnly: true,
           endAdornment: (
@@ -14762,34 +14766,57 @@ const CategoryProductionManagementComponent: React.FC<{
             />
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
-            <Button
-              fullWidth
-              variant="outlined"
-              size="small"
-              sx={{ 
-                height: 40,
-                minHeight: 40
-              }}
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('');
-                handleMonthChange('');
-              }}
-            >
-              Temizle
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={1.5}>
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'center',
               alignItems: 'center',
               height: 40
             }}>
-              <Typography variant="caption" color="text.secondary">
-                {selectedMonth ? `Seçili: ${selectedMonth}` : 'Filtreler'}
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ 
+                  textAlign: 'center',
+                  fontStyle: 'italic'
+                }}
+              >
+                {(() => {
+                  const filters = [];
+                  if (searchTerm) filters.push('Arama');
+                  if (selectedCategory) filters.push('Kategori');
+                  if (selectedMonth) filters.push('Ay');
+                  
+                  if (filters.length === 0) return 'Filtre yok';
+                  return `${filters.join(', ')} aktif`;
+                })()}
               </Typography>
             </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={1.5}>
+            <Button
+              fullWidth
+              variant="text"
+              size="small"
+              color="secondary"
+              startIcon={<FilterListIcon />}
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('');
+                handleMonthChange('');
+              }}
+              sx={{ 
+                height: 40,
+                minHeight: 40,
+                textTransform: 'none',
+                fontWeight: 500,
+                '&:hover': {
+                  backgroundColor: 'secondary.light',
+                  color: 'secondary.contrastText'
+                }
+              }}
+            >
+              Filtreleri Temizle
+            </Button>
           </Grid>
         </Grid>
       </Paper>
