@@ -50,6 +50,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   ListSubheader,
+  Popover,
 } from '@mui/material';
 import {
   Assessment as AssessmentIcon,
@@ -132,6 +133,193 @@ import {
 
 // DÖF/8D Integration Import
 import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
+
+// ✅ PROFESSIONAL MONTH PICKER COMPONENT
+interface ProfessionalMonthPickerProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+const ProfessionalMonthPicker: React.FC<ProfessionalMonthPickerProps> = ({ value, onChange }) => {
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [selectedYear, setSelectedYear] = useState(() => {
+    if (value) {
+      return parseInt(value.split('-')[0]);
+    }
+    return new Date().getFullYear();
+  });
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleMonthSelect = (month: number) => {
+    const monthStr = month.toString().padStart(2, '0');
+    const newValue = `${selectedYear}-${monthStr}`;
+    onChange(newValue);
+    handleClose();
+  };
+
+  const handleClear = () => {
+    onChange('');
+    handleClose();
+  };
+
+  const getCurrentMonthName = () => {
+    if (!value) return 'Ay Seçin';
+    const [year, month] = value.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString('tr-TR', { 
+      year: 'numeric', 
+      month: 'long' 
+    });
+  };
+
+  const isCurrentMonth = (month: number) => {
+    if (!value) return false;
+    const [year, selectedMonth] = value.split('-');
+    return parseInt(year) === selectedYear && parseInt(selectedMonth) === month;
+  };
+
+  const monthNames = [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const availableYears = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
+  return (
+    <>
+      <TextField
+        fullWidth
+        size="small"
+        label="Ay Seçin"
+        value={getCurrentMonthName()}
+        onClick={handleClick}
+        InputProps={{
+          readOnly: true,
+          endAdornment: (
+            <InputAdornment position="end">
+              <CalendarTodayIcon sx={{ color: 'action.active', cursor: 'pointer' }} />
+            </InputAdornment>
+          )
+        }}
+        sx={{
+          '& .MuiInputBase-root': {
+            height: 40,
+            cursor: 'pointer'
+          },
+          '& .MuiInputBase-input': {
+            cursor: 'pointer'
+          }
+        }}
+      />
+      
+      <Dialog
+        open={Boolean(anchorEl)}
+        onClose={handleClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            maxWidth: 400
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          textAlign: 'center', 
+          pb: 1,
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+          color: 'white'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <IconButton 
+              onClick={() => setSelectedYear(prev => prev - 1)}
+              sx={{ color: 'white' }}
+            >
+              <ExpandLessIcon sx={{ transform: 'rotate(-90deg)' }} />
+            </IconButton>
+            
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              {selectedYear}
+            </Typography>
+            
+            <IconButton 
+              onClick={() => setSelectedYear(prev => prev + 1)}
+              sx={{ color: 'white' }}
+            >
+              <ExpandLessIcon sx={{ transform: 'rotate(90deg)' }} />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 3 }}>
+          <Grid container spacing={1}>
+            {monthNames.map((monthName, index) => {
+              const monthNumber = index + 1;
+              const isSelected = isCurrentMonth(monthNumber);
+              const isCurrentActualMonth = selectedYear === currentYear && monthNumber === new Date().getMonth() + 1;
+              
+              return (
+                <Grid item xs={4} key={monthNumber}>
+                  <Button
+                    fullWidth
+                    variant={isSelected ? "contained" : "outlined"}
+                    onClick={() => handleMonthSelect(monthNumber)}
+                    sx={{
+                      height: 48,
+                      borderRadius: 2,
+                      fontWeight: isSelected ? 'bold' : 'normal',
+                      backgroundColor: isSelected 
+                        ? 'primary.main' 
+                        : isCurrentActualMonth 
+                          ? 'action.hover' 
+                          : 'transparent',
+                      borderColor: isCurrentActualMonth && !isSelected 
+                        ? 'primary.main' 
+                        : undefined,
+                      '&:hover': {
+                        backgroundColor: isSelected 
+                          ? 'primary.dark'
+                          : 'action.hover'
+                      }
+                    }}
+                  >
+                    {monthName}
+                  </Button>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </DialogContent>
+        
+        <DialogActions sx={{ justifyContent: 'space-between', p: 2 }}>
+          <Button 
+            onClick={handleClear}
+            color="warning"
+            variant="outlined"
+            startIcon={<CloseIcon />}
+          >
+            Temizle
+          </Button>
+          <Button 
+            onClick={handleClose}
+            variant="contained"
+            startIcon={<CheckCircleIcon />}
+          >
+            Tamam
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
 
 // 🔥 ULTIMATE STABLE SEARCH INPUT - Kesinlikle focus kaybı yok!
 const UltimateStableSearchInput = memo<{
@@ -14568,53 +14756,10 @@ const CategoryProductionManagementComponent: React.FC<{
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={6} md={2.5}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Ay Seçin</InputLabel>
-              <Select
-                value={selectedMonth}
-                onChange={(e) => {
-                  console.log('📅 Ay seçme Select onChange:', {
-                    newValue: e.target.value,
-                    currentValue: selectedMonth
-                  });
-                  handleMonthChange(e.target.value as string);
-                }}
-                label="Ay Seçin"
-                displayEmpty
-                sx={{
-                  height: 40,
-                  '& .MuiSelect-select': {
-                    height: 40,
-                    display: 'flex',
-                    alignItems: 'center',
-                    py: 0
-                  }
-                }}
-              >
-                <MenuItem value="">Tüm Aylar</MenuItem>
-                {(() => {
-                  // Son 12 ay + gelecek 6 ay seçenekleri oluştur
-                  const months = [];
-                  const now = new Date();
-                  
-                  for (let i = -12; i <= 6; i++) {
-                    const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
-                    const monthValue = date.toISOString().substring(0, 7);
-                    const monthName = date.toLocaleDateString('tr-TR', { 
-                      year: 'numeric', 
-                      month: 'long' 
-                    });
-                    months.push({ value: monthValue, label: monthName });
-                  }
-                  
-                  return months.map(month => (
-                    <MenuItem key={month.value} value={month.value}>
-                      {month.label}
-                    </MenuItem>
-                  ));
-                })()}
-              </Select>
-            </FormControl>
+            <ProfessionalMonthPicker
+              value={selectedMonth}
+              onChange={handleMonthChange}
+            />
           </Grid>
           <Grid item xs={12} sm={6} md={2}>
             <Button
