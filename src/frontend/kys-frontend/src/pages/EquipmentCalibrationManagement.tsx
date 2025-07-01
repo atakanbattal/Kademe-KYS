@@ -127,6 +127,15 @@ interface Equipment {
   images: string[];
   certificates: CalibrationCertificate[];
   maintenanceRecords: MaintenanceRecord[];
+  // Yeni eklenen alanlar
+  measurementRange?: string; // Hangi değerler arasında ölçüm yaptığı
+  measurementUncertainty?: string; // Ölçüm belirsizliği ±
+  customMeasurementRange?: string; // Özel ölçüm aralığı
+  customMeasurementUncertainty?: string; // Özel ölçüm belirsizliği
+  calibrationCompany?: string; // Nereye kalibre ettirdiğimiz yer
+  lastCalibrationCertificateNumber?: string; // En son kalibrasyon sertifika numarası
+  responsiblePersonName?: string; // Ana sorumlu kişinin adı
+  responsiblePersonSicilNo?: string; // Ana sorumlu kişinin sicil numarası
 }
 
 interface CalibrationCertificate {
@@ -293,7 +302,161 @@ const getPersonnelData = (): Personnel[] => {
   return samplePersonnel;
 };
 
-// Removed unused constant CALIBRATION_STANDARDS
+// Dinamik ölçüm aralıkları - cihaz kategorisine göre
+const MEASUREMENT_RANGES_BY_CATEGORY = {
+  'Ölçüm Cihazları': [
+    '0-25 mm', '0-50 mm', '0-100 mm', '0-150 mm', '0-200 mm', 
+    '0-300 mm', '0-500 mm', '0-1000 mm', '0-2000 mm', 'Diğer'
+  ],
+  'Test Ekipmanları': [
+    '0-10 V', '0-100 V', '0-1000 V', '0-10 A', '0-100 A', 
+    '0-1000 A', '0-1 kHz', '0-100 kHz', '0-1 MHz', 'Diğer'
+  ],
+  'Üretim Makineleri': [
+    '0-100 kN', '0-500 kN', '0-1000 kN', '0-5000 kN',
+    '0-100 Nm', '0-500 Nm', '0-1000 Nm', 'Diğer'
+  ],
+  'Kalite Kontrol Cihazları': [
+    '0-25 mm', '0-50 mm', '0-100 mm', '0-200 mm',
+    '0-500 mm', '0-1000 mm', 'Diğer'
+  ],
+  'Kaynak Ekipmanları': [
+    '0-300 A', '0-500 A', '0-1000 A', '10-50 V',
+    '20-80 V', '0-100%', 'Diğer'
+  ],
+  'Elektrikli Cihazlar': [
+    '0-12 V', '0-24 V', '0-110 V', '0-220 V', '0-380 V',
+    '0-1000 V', '0-10 A', '0-100 A', '0-1000 A', 'Diğer'
+  ],
+  'Pnömatik Sistemler': [
+    '0-6 bar', '0-10 bar', '0-16 bar', '0-25 bar',
+    '0-100 bar', '0-300 bar', 'Diğer'
+  ],
+  'Hidrolik Sistemler': [
+    '0-100 bar', '0-250 bar', '0-400 bar', '0-630 bar',
+    '0-1000 bar', '0-2000 bar', 'Diğer'
+  ],
+  'Bilgisayar ve IT': [
+    'Digital', 'Analog', '0-5 V', '0-10 V', '0-24 V', 'Diğer'
+  ],
+  'Güvenlik Ekipmanları': [
+    'Açık/Kapalı', '0-100%', '0-1000 ppm', 'Diğer'
+  ],
+  'Çevre Ölçüm Cihazları': [
+    '-50°C - +150°C', '-100°C - +300°C', '0-100% RH',
+    '0-2000 ppm', '0-10000 lux', 'Diğer'
+  ],
+  'Laboratuvar Ekipmanları': [
+    '0.1-1000 mg', '0.01-100 g', '0.1-10 kg', 
+    '-80°C - +200°C', '0-14 pH', 'Diğer'
+  ],
+  'Diğer': ['Diğer']
+};
+
+// Dinamik ölçüm belirsizlikleri - cihaz kategorisine göre
+const MEASUREMENT_UNCERTAINTIES_BY_CATEGORY = {
+  'Ölçüm Cihazları': [
+    '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', 
+    '±0.2 mm', '±0.5 mm', '±1 mm', 'Diğer'
+  ],
+  'Test Ekipmanları': [
+    '±0.01 V', '±0.1 V', '±1 V', '±0.01 A', '±0.1 A', 
+    '±1 A', '±0.1%', '±0.5%', '±1%', 'Diğer'
+  ],
+  'Üretim Makineleri': [
+    '±0.5%', '±1%', '±2%', '±5%', '±0.1 kN', '±1 kN', 'Diğer'
+  ],
+  'Kalite Kontrol Cihazları': [
+    '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', 
+    '±0.2 mm', '±0.5 mm', 'Diğer'
+  ],
+  'Kaynak Ekipmanları': [
+    '±1 A', '±5 A', '±10 A', '±0.5 V', '±1 V', '±2%', 'Diğer'
+  ],
+  'Elektrikli Cihazlar': [
+    '±0.1 V', '±0.5 V', '±1 V', '±0.1 A', '±0.5 A', 
+    '±1 A', '±0.5%', '±1%', 'Diğer'
+  ],
+  'Pnömatik Sistemler': [
+    '±0.01 bar', '±0.05 bar', '±0.1 bar', '±0.2 bar', 
+    '±0.5 bar', '±1%', '±2%', 'Diğer'
+  ],
+  'Hidrolik Sistemler': [
+    '±0.1 bar', '±0.5 bar', '±1 bar', '±2 bar', 
+    '±0.5%', '±1%', '±2%', 'Diğer'
+  ],
+  'Bilgisayar ve IT': [
+    '±0.1%', '±0.5%', '±1%', '±1 bit', 'Diğer'
+  ],
+  'Güvenlik Ekipmanları': [
+    '±1%', '±2%', '±5%', '±10 ppm', 'Diğer'
+  ],
+  'Çevre Ölçüm Cihazları': [
+    '±0.1°C', '±0.5°C', '±1°C', '±2°C', '±2% RH', 
+    '±5% RH', '±10 ppm', '±5%', 'Diğer'
+  ],
+  'Laboratuvar Ekipmanları': [
+    '±0.1 mg', '±1 mg', '±0.01 g', '±0.1 g', 
+    '±0.1°C', '±0.5°C', '±0.01 pH', 'Diğer'
+  ],
+  'Diğer': ['Diğer']
+};
+
+// Üretici firmaları (kayıt eklenebilir)
+const getManufacturers = (): string[] => {
+  const stored = localStorage.getItem('manufacturers_list');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  
+  const defaultManufacturers = [
+    'Mitutoyo', 'Starrett', 'Tesa', 'Mahr', 'Zeiss', 'Fluke', 'Keysight',
+    'Yokogawa', 'Endress+Hauser', 'Siemens', 'Bosch', 'Festo', 'SMC',
+    'Parker', 'Rexroth', 'Danfoss', 'Schneider Electric', 'ABB', 'WIKA',
+    'Kimo', 'Testo', 'Omega', 'Honeywell', 'Emerson', 'Rosemount'
+  ];
+  
+  localStorage.setItem('manufacturers_list', JSON.stringify(defaultManufacturers));
+  return defaultManufacturers;
+};
+
+// Model listesi (üreticiye göre dinamik olabilir)
+const getModels = (): string[] => {
+  const stored = localStorage.getItem('models_list');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  return []; // Boş başlat, kullanıcı ekleyecek
+};
+
+// Kalibrasyon laboratuvarları (kayıt eklenebilir/silinebilir)
+const getCalibrationCompanies = (): string[] => {
+  const stored = localStorage.getItem('calibration_companies_list');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  
+  const defaultCompanies = [
+    'TÜBITAK UME',
+    'TSE Kalibrasyon Laboratuvarı',
+    'TURKAK Akredite Laboratuvar',
+    'Bosch Kalibrasyon',
+    'Siemens Kalibrasyon',
+    'Mitutoyo Kalibrasyon',
+    'Fluke Kalibrasyon',
+    'Mettler Toledo Kalibrasyon',
+    'Sartorius Kalibrasyon',
+    'Endress+Hauser Kalibrasyon',
+    'Testo Kalibrasyon',
+    'Yokogawa Kalibrasyon',
+    'Omega Kalibrasyon',
+    'Kimo Kalibrasyon',
+    'WIKA Kalibrasyon'
+  ];
+  
+  localStorage.setItem('calibration_companies_list', JSON.stringify(defaultCompanies));
+  return defaultCompanies;
+};
 
 // Styled Components
 const StyledAccordion = styled(Accordion)(() => ({
@@ -686,6 +849,21 @@ const EquipmentCalibrationManagement: React.FC = () => {
     position: ''
   });
 
+  // Yeni eklenen state'ler - Dinamik yönetim için
+  const [manufacturersList, setManufacturersList] = useState<string[]>(() => getManufacturers());
+  const [modelsList, setModelsList] = useState<string[]>(() => getModels());
+  const [calibrationCompaniesList, setCalibrationCompaniesList] = useState<string[]>(() => getCalibrationCompanies());
+  
+  // Dialog state'leri
+  const [openManufacturerDialog, setOpenManufacturerDialog] = useState(false);
+  const [openModelDialog, setOpenModelDialog] = useState(false);
+  const [openCalibrationCompanyDialog, setOpenCalibrationCompanyDialog] = useState(false);
+  
+  // Yeni ekleme için input state'leri
+  const [newManufacturer, setNewManufacturer] = useState('');
+  const [newModel, setNewModel] = useState('');
+  const [newCalibrationCompany, setNewCalibrationCompany] = useState('');
+
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
   };
@@ -930,6 +1108,124 @@ const EquipmentCalibrationManagement: React.FC = () => {
     
     // Eğer bu personel seçili personeller arasındaysa onu da kaldır
     setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo));
+  };
+
+  // Yeni eklenen yönetim fonksiyonları
+  const handleSaveManufacturer = () => {
+    if (newManufacturer.trim()) {
+      const updatedList = [...manufacturersList, newManufacturer.trim()];
+      setManufacturersList(updatedList);
+      localStorage.setItem('manufacturers_list', JSON.stringify(updatedList));
+      setNewManufacturer('');
+      setOpenManufacturerDialog(false);
+    }
+  };
+
+  const handleSaveModel = () => {
+    if (newModel.trim()) {
+      const updatedList = [...modelsList, newModel.trim()];
+      setModelsList(updatedList);
+      localStorage.setItem('models_list', JSON.stringify(updatedList));
+      setNewModel('');
+      setOpenModelDialog(false);
+    }
+  };
+
+  const handleSaveCalibrationCompany = () => {
+    if (newCalibrationCompany.trim()) {
+      const updatedList = [...calibrationCompaniesList, newCalibrationCompany.trim()];
+      setCalibrationCompaniesList(updatedList);
+      localStorage.setItem('calibration_companies_list', JSON.stringify(updatedList));
+      setNewCalibrationCompany('');
+      setOpenCalibrationCompanyDialog(false);
+    }
+  };
+
+  const handleDeleteCalibrationCompany = (company: string) => {
+    if (window.confirm(`${company} firmasını listeden çıkarmak istediğinize emin misiniz?`)) {
+      const updatedList = calibrationCompaniesList.filter(c => c !== company);
+      setCalibrationCompaniesList(updatedList);
+      localStorage.setItem('calibration_companies_list', JSON.stringify(updatedList));
+    }
+  };
+
+  // Form kaydetme fonksiyonu
+  const handleSave = () => {
+    const newEquipment: Equipment = {
+      id: dialogMode === 'edit' ? selectedEquipment?.id || Date.now().toString() : Date.now().toString(),
+      equipmentCode: formData.equipmentCode || '',
+      name: formData.name || '',
+      manufacturer: formData.manufacturer || '',
+      model: formData.model || '',
+      serialNumber: formData.serialNumber || '',
+      category: formData.category || '',
+      location: formData.location || '',
+      department: formData.department || '',
+      responsiblePersons: formData.responsiblePersonSicilNo ? [formData.responsiblePersonSicilNo] : [],
+      purchaseDate: new Date().toISOString().split('T')[0],
+      installationDate: new Date().toISOString().split('T')[0],
+      warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'active',
+      calibrationRequired: true,
+      calibrationFrequency: formData.calibrationFrequency || 12,
+      lastCalibrationDate: formData.lastCalibrationDate || new Date().toISOString().split('T')[0],
+      nextCalibrationDate: formData.nextCalibrationDate || '',
+      calibrationStatus: 'valid',
+      maintenanceRequired: true,
+      maintenanceFrequency: 6,
+      lastMaintenanceDate: new Date().toISOString().split('T')[0],
+      nextMaintenanceDate: new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      maintenanceStatus: 'good',
+      criticalEquipment: formData.criticalEquipment || false,
+      specifications: formData.specifications || '',
+      operatingManual: '',
+      notes: formData.notes || '',
+      images: [],
+      certificates: [],
+      maintenanceRecords: [],
+      // Yeni alanlar
+      measurementRange: formData.measurementRange === 'Diğer' ? formData.customMeasurementRange : formData.measurementRange,
+      measurementUncertainty: formData.measurementUncertainty === 'Diğer' ? formData.customMeasurementUncertainty : formData.measurementUncertainty,
+      calibrationCompany: formData.calibrationCompany || '',
+      lastCalibrationCertificateNumber: formData.lastCalibrationCertificateNumber || '',
+      responsiblePersonName: formData.responsiblePersonName || '',
+      responsiblePersonSicilNo: formData.responsiblePersonSicilNo || ''
+    };
+
+    if (dialogMode === 'edit') {
+      // Güncelleme
+      const updatedList = equipmentList.map(eq => eq.id === newEquipment.id ? newEquipment : eq);
+      setEquipmentList(updatedList);
+      localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedList));
+    } else {
+      // Yeni ekleme
+      const updatedList = [...equipmentList, newEquipment];
+      setEquipmentList(updatedList);
+      localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedList));
+    }
+
+    // Dialog'u kapat ve formu temizle
+    setOpenDialog(false);
+    setFormData({
+      equipmentCode: '',
+      name: '',
+      manufacturer: '',
+      model: '',
+      serialNumber: '',
+      category: '',
+      location: '',
+      department: '',
+      responsiblePersons: [],
+      status: 'active',
+      calibrationRequired: false,
+      calibrationFrequency: 12,
+      maintenanceRequired: true,
+      maintenanceFrequency: 6,
+      criticalEquipment: false,
+      specifications: '',
+      notes: ''
+    });
+    setSelectedPersonnel([]);
   };
 
   return (
@@ -1306,11 +1602,24 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       fontWeight: 600,
                       fontSize: '0.8rem',
                       padding: '12px 8px',
-                      width: '120px',
-                      minWidth: '120px'
+                      width: '140px',
+                      minWidth: '140px'
                     }}
                   >
-                    Sorumlu
+                    Zimmet / Sorumlu
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      padding: '12px 8px',
+                      width: '180px',
+                      minWidth: '180px'
+                    }}
+                  >
+                    Ölçüm Aralığı / Belirsizlik
                   </TableCell>
                   <TableCell 
                     sx={{ 
@@ -1475,21 +1784,68 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                       <Typography 
                         variant="body2" 
+                          fontWeight={600}
                         sx={{ 
                           fontSize: '0.75rem',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
-                          maxWidth: '100px'
+                            maxWidth: '120px',
+                            color: 'primary.main'
                         }}
                       >
-                        {equipment.responsiblePersons.map(sicil => {
-                          const person = personnelList.find(p => p.sicilNo === sicil);
-                          return person ? person.name : sicil;
-                        }).join(', ')}
+                          {equipment.responsiblePersonName || 'Belirtilmemiş'}
                       </Typography>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary"
+                          sx={{ 
+                            fontSize: '0.65rem',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '120px'
+                          }}
+                        >
+                          Sicil: {equipment.responsiblePersonSicilNo || 'N/A'}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ padding: '8px' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Tooltip title={equipment.measurementRange || 'Belirtilmemiş'} placement="top">
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '160px',
+                              fontWeight: 500
+                            }}
+                          >
+                            {equipment.measurementRange || 'Belirtilmemiş'}
+                          </Typography>
+                        </Tooltip>
+                        <Typography 
+                          variant="caption" 
+                          color="warning.main"
+                          sx={{ 
+                            fontSize: '0.65rem',
+                            fontWeight: 600,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '160px'
+                          }}
+                        >
+                          ± {equipment.measurementUncertainty || 'N/A'}
+                        </Typography>
+                      </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
                       <StatusChip
@@ -2068,14 +2424,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           {dialogMode === 'create' || dialogMode === 'edit' ? (
-            <Box sx={{ mt: 2 }}>
-              <Stepper activeStep={activeStep} orientation="vertical">
-                {/* Step 1: Temel Bilgiler */}
-                <Step>
-                  <StepLabel>Temel Bilgiler</StepLabel>
-                  <StepContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {/* Temel Bilgiler */}
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2 }}>
                         <TextField
                           fullWidth
                           label="Ekipman Kodu *"
@@ -2085,44 +2436,96 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         />
                         <TextField
                           fullWidth
-                          label="Ekipman Adı *"
+                          label="Cihazın Adı *"
                           value={formData.name || ''}
                           onChange={(e) => setFormData({...formData, name: e.target.value})}
                           required
                         />
                       </Box>
-                      <Box sx={{ display: 'flex', gap: 2 }}>
+                                            {/* Üretici ve Model Satırı */}
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2, alignItems: 'start' }}>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
+                          <FormControl fullWidth sx={{ flex: 1 }}>
+                            <InputLabel>Üretici</InputLabel>
+                            <Select
+                              value={formData.manufacturer || ''}
+                              onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
+                              sx={{ height: 56 }}
+                            >
+                              {manufacturersList.map((manufacturer) => (
+                                <MenuItem key={manufacturer} value={manufacturer}>{manufacturer}</MenuItem>
+                              ))}
+                              <MenuItem value="Diğer">Diğer</MenuItem>
+                            </Select>
+                          </FormControl>
+                          <Button 
+                            variant="outlined" 
+                            onClick={() => setOpenManufacturerDialog(true)}
+                            sx={{ minWidth: 50, height: 56 }}
+                            title="Yeni Üretici Ekle"
+                          >
+                            +
+                          </Button>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
+                          <FormControl fullWidth sx={{ flex: 1 }}>
+                            <InputLabel>Model</InputLabel>
+                            <Select
+                              value={formData.model || ''}
+                              onChange={(e) => setFormData({...formData, model: e.target.value})}
+                              sx={{ height: 56 }}
+                            >
+                              {modelsList.map((model) => (
+                                <MenuItem key={model} value={model}>{model}</MenuItem>
+                              ))}
+                              <MenuItem value="Diğer">Diğer</MenuItem>
+                            </Select>
+                          </FormControl>
+                          <Button 
+                            variant="outlined" 
+                            onClick={() => setOpenModelDialog(true)}
+                            sx={{ minWidth: 50, height: 56 }}
+                            title="Yeni Model Ekle"
+                          >
+                            +
+                          </Button>
+                        </Box>
+                      </Box>
+                      
+                      {/* Seri Numarası */}
+                      <Box sx={{ mb: 2 }}>
                         <TextField
                           fullWidth
-                          label="Üretici"
-                          value={formData.manufacturer || ''}
-                          onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Model"
-                          value={formData.model || ''}
-                          onChange={(e) => setFormData({...formData, model: e.target.value})}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Seri Numarası"
+                          label="Cihaz Seri Numarası *"
                           value={formData.serialNumber || ''}
                           onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
+                          required
                         />
                       </Box>
-                      <Box sx={{ display: 'flex', gap: 2 }}>
+                      {/* Kategori, Lokasyon, Departman */}
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 2, mb: 3 }}>
                         <FormControl fullWidth required>
                           <InputLabel>Kategori</InputLabel>
                           <Select
                             value={formData.category || ''}
-                            onChange={(e) => setFormData({...formData, category: e.target.value})}
+                            onChange={(e) => {
+                              const newCategory = e.target.value as string;
+                              setFormData({
+                                ...formData, 
+                                category: newCategory,
+                                // Kategori değiştiğinde mevcut ölçüm değerlerini temizle
+                                measurementRange: '',
+                                measurementUncertainty: ''
+                              });
+                            }}
                           >
                             {EQUIPMENT_CATEGORIES.map((category) => (
                               <MenuItem key={category} value={category}>{category}</MenuItem>
                             ))}
                           </Select>
                         </FormControl>
+                        
                         <FormControl fullWidth required>
                           <InputLabel>Lokasyon</InputLabel>
                           <Select
@@ -2134,6 +2537,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             ))}
                           </Select>
                         </FormControl>
+                        
                         <FormControl fullWidth required>
                           <InputLabel>Departman</InputLabel>
                           <Select
@@ -2146,252 +2550,471 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           </Select>
                         </FormControl>
                       </Box>
-                      {/* Sorumlu Personel Yönetimi */}
-                      <Box sx={{ mt: 4, p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                      {/* Zimmet Bilgileri */}
+                      <Box sx={{ mt: 4, p: 3, border: '2px solid', borderColor: 'primary.main', borderRadius: 2, bgcolor: 'primary.50' }}>
                         <Typography variant="h6" sx={{ mb: 3, color: 'primary.main', fontWeight: 600 }}>
-                          Sorumlu Personel Yönetimi
+                          Zimmet Bilgileri
                         </Typography>
                         
-                        {/* Personel Ekleme Alanı */}
-                        <Box sx={{ mb: 3 }}>
-                          <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 500 }}>
-                            Personel Ekle:
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 2 }}>
-                            <FormControl sx={{ flex: 1 }}>
-                              <InputLabel>Personel Seç</InputLabel>
-                              <Select
-                                value=""
-                                onChange={(e) => {
-                                  const sicilNo = e.target.value as string;
-                                  if (sicilNo && !selectedPersonnel.includes(sicilNo)) {
-                                    setSelectedPersonnel(prev => [...prev, sicilNo]);
-                                  }
-                                }}
-                                displayEmpty
-                              >
-                                {personnelList
-                                  .filter(p => p.isActive && !selectedPersonnel.includes(p.sicilNo))
-                                  .map((person) => (
-                                    <MenuItem key={person.sicilNo} value={person.sicilNo}>
-                                      {person.name} ({person.sicilNo})
-                                    </MenuItem>
-                                  ))}
-                              </Select>
-                            </FormControl>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 2, mb: 2 }}>
+                                                    <FormControl fullWidth required>
+                            <InputLabel>Sorumlu Personel</InputLabel>
+                            <Select
+                              value={formData.responsiblePersonSicilNo || ''}
+                              onChange={(e) => {
+                                const sicilNo = e.target.value as string;
+                                const person = personnelList.find(p => p.sicilNo === sicilNo);
+                                setFormData({
+                                  ...formData,
+                                  responsiblePersonSicilNo: sicilNo,
+                                  responsiblePersonName: person?.name || ''
+                                });
+                              }}
+                            >
+                              {personnelList
+                                .filter(p => p.isActive)
+                                .map((person) => (
+                                  <MenuItem key={person.sicilNo} value={person.sicilNo}>
+                                    {person.name} ({person.sicilNo}) - {person.department}
+                                  </MenuItem>
+                                ))}
+                            </Select>
+                          </FormControl>
+                          
                             <Button
                               variant="contained"
                               onClick={() => setOpenPersonnelDialog(true)}
-                              sx={{ minWidth: 120, height: 56 }}
+                            sx={{ height: 56 }}
                               startIcon={<PersonAddIcon />}
                             >
-                              Yeni Ekle
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              onClick={() => setOpenPersonnelManagementDialog(true)}
-                              sx={{ minWidth: 120, height: 56 }}
-                              startIcon={<EditIcon />}
-                            >
-                              Yönetim
+                            Yeni Personel
                             </Button>
                           </Box>
+                        
+                        {formData.responsiblePersonName && (
+                          <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.8)', borderRadius: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Seçilen Personel: <strong>{formData.responsiblePersonName}</strong> (Sicil: {formData.responsiblePersonSicilNo})
+                            </Typography>
+                          </Box>
+                        )}
                         </Box>
 
-                        {/* Seçili Personeller Listesi */}
-                        <Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
-                              Seçili Personeller ({selectedPersonnel.length}):
-                            </Typography>
-                            {selectedPersonnel.length > 0 && (
-                              <Button
-                                variant="outlined"
-                                color="error"
-                                size="small"
-                                onClick={() => setSelectedPersonnel([])}
-                                startIcon={<DeleteIcon />}
+                      {/* Teknik Özellikler */}
+                      <Box sx={{ mt: 4, p: 3, border: '2px solid', borderColor: 'success.main', borderRadius: 2, bgcolor: 'success.50' }}>
+                        <Typography variant="h6" sx={{ mb: 3, color: 'success.main', fontWeight: 600 }}>
+                          Cihazın Teknik Özellikleri
+                        </Typography>
+                        
+                                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2, alignItems: 'start' }}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
+                            <FormControl fullWidth required sx={{ flex: 1 }}>
+                              <InputLabel>Ölçüm Aralığı</InputLabel>
+                              <Select
+                                value={formData.measurementRange || ''}
+                                onChange={(e) => setFormData({...formData, measurementRange: e.target.value})}
+                                disabled={!formData.category}
+                                sx={{ height: 56 }}
                               >
-                                Tümünü Temizle
-                              </Button>
-                            )}
+                                {formData.category && (MEASUREMENT_RANGES_BY_CATEGORY[formData.category] || MEASUREMENT_RANGES_BY_CATEGORY['Diğer']).map((range) => (
+                                  <MenuItem key={range} value={range}>{range}</MenuItem>
+                                ))}
+                              </Select>
+                              {!formData.category && (
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                                  Önce kategori seçiniz
+                                </Typography>
+                              )}
+                            </FormControl>
+                            <Button 
+                              variant="outlined" 
+                              onClick={() => {
+                                const newRange = prompt('Yeni ölçüm aralığı giriniz (örn: 0-750 mm):');
+                                if (newRange) {
+                                  const category = formData.category || 'Diğer';
+                                  MEASUREMENT_RANGES_BY_CATEGORY[category] = [...(MEASUREMENT_RANGES_BY_CATEGORY[category] || []), newRange.trim()];
+                                }
+                              }}
+                              sx={{ minWidth: 50, height: 56 }}
+                              title="Yeni Ölçüm Aralığı Ekle"
+                              disabled={!formData.category}
+                            >
+                              +
+                            </Button>
                           </Box>
                           
-                          {selectedPersonnel.length === 0 ? (
-                            <Box sx={{ 
-                              p: 3, 
-                              textAlign: 'center', 
-                              bgcolor: 'grey.50', 
-                              borderRadius: 1,
-                              border: '1px dashed',
-                              borderColor: 'grey.300'
-                            }}>
-                              <Typography variant="body2" color="text.secondary">
-                                Henüz personel seçilmedi. Yukarıdan personel ekleyebilirsiniz.
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                              {selectedPersonnel.map((sicilNo) => {
-                                const person = personnelList.find(p => p.sicilNo === sicilNo);
-                                return (
-                                  <Chip
-                                    key={sicilNo}
-                                    label={person ? `${person.name} (${sicilNo})` : sicilNo}
-                                    onDelete={() => setSelectedPersonnel(prev => prev.filter(s => s !== sicilNo))}
-                                    color="primary"
-                                    variant="outlined"
-                                    size="medium"
-                                    sx={{ 
-                                      '& .MuiChip-deleteIcon': { 
-                                        fontSize: '18px',
-                                        '&:hover': { color: 'error.main' }
-                                      }
-                                    }}
-                                  />
-                                );
-                              })}
-                            </Box>
-                          )}
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'stretch' }}>
+                            <FormControl fullWidth required sx={{ flex: 1 }}>
+                              <InputLabel>Ölçüm Belirsizliği</InputLabel>
+                              <Select
+                                value={formData.measurementUncertainty || ''}
+                                onChange={(e) => setFormData({...formData, measurementUncertainty: e.target.value})}
+                                disabled={!formData.category}
+                                sx={{ height: 56 }}
+                              >
+                                {formData.category && (MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[formData.category] || MEASUREMENT_UNCERTAINTIES_BY_CATEGORY['Diğer']).map((uncertainty) => (
+                                  <MenuItem key={uncertainty} value={uncertainty}>{uncertainty}</MenuItem>
+                                ))}
+                              </Select>
+                              {!formData.category && (
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                                  Önce kategori seçiniz
+                                </Typography>
+                              )}
+                            </FormControl>
+                            <Button 
+                              variant="outlined" 
+                              onClick={() => {
+                                const newUncertainty = prompt('Yeni ölçüm belirsizliği giriniz (örn: ±0.03 mm):');
+                                if (newUncertainty) {
+                                  const category = formData.category || 'Diğer';
+                                  MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] = [...(MEASUREMENT_UNCERTAINTIES_BY_CATEGORY[category] || []), newUncertainty.trim()];
+                                }
+                              }}
+                              sx={{ minWidth: 50, height: 56 }}
+                              title="Yeni Ölçüm Belirsizliği Ekle"
+                              disabled={!formData.category}
+                            >
+                              +
+                            </Button>
+                          </Box>
                         </Box>
-                      </Box>
-                      <Box sx={{ mt: 2 }}>
-                        <Button
-                          variant="contained"
-                          onClick={() => setActiveStep(1)}
-                          disabled={!formData.equipmentCode || !formData.name || !formData.category}
-                        >
-                          Sonraki
-                        </Button>
-                      </Box>
-                    </Box>
-                  </StepContent>
-                </Step>
-
-                {/* Step 2: Kalibrasyon ve Bakım Ayarları */}
-                <Step>
-                  <StepLabel>Kalibrasyon ve Bakım Ayarları</StepLabel>
-                  <StepContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={formData.calibrationRequired || false}
-                            onChange={(e) => setFormData({...formData, calibrationRequired: e.target.checked})}
-                          />
-                        }
-                        label="Kalibrasyon Gerekli"
-                      />
-                      
-                      {formData.calibrationRequired && (
-                        <Box sx={{ display: 'flex', gap: 2 }}>
+                          
+                        {/* Diğer seçeneği için özel input alanları */}
+                        {(formData.measurementRange === 'Diğer' || formData.measurementUncertainty === 'Diğer') && (
+                          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2 }}>
+                            {formData.measurementRange === 'Diğer' && (
+                              <TextField
+                                fullWidth
+                                label="Özel Ölçüm Aralığı *"
+                                value={formData.customMeasurementRange || ''}
+                                onChange={(e) => setFormData({...formData, customMeasurementRange: e.target.value})}
+                                placeholder="Örn: 0-500 µm, -20°C / +80°C"
+                                required
+                              />
+                            )}
+                            
+                            {formData.measurementUncertainty === 'Diğer' && (
+                              <TextField
+                                fullWidth
+                                label="Özel Ölçüm Belirsizliği *"
+                                value={formData.customMeasurementUncertainty || ''}
+                                onChange={(e) => setFormData({...formData, customMeasurementUncertainty: e.target.value})}
+                                placeholder="Örn: ±0.005 mm, ±0.15% rdg"
+                                required
+                              />
+                            )}
+                          </Box>
+                        )}
+                        
+                        {/* Detaylı Teknik Özellikler */}
+                        <Box sx={{ mb: 2 }}>
                           <TextField
                             fullWidth
-                            label="Kalibrasyon Periyodu (Ay)"
+                            label="Detaylı Teknik Özellikler"
+                            multiline
+                            rows={3}
+                            value={formData.specifications || ''}
+                            onChange={(e) => setFormData({...formData, specifications: e.target.value})}
+                            placeholder="Cihazın tüm teknik özelliklerini detaylı şekilde giriniz..."
+                          />
+                        </Box>
+                      </Box>
+
+                      {/* Kalibrasyon Bilgileri */}
+                      <Box sx={{ mt: 4, p: 3, border: '2px solid', borderColor: 'warning.main', borderRadius: 2, bgcolor: 'warning.50' }}>
+                        <Typography variant="h6" sx={{ mb: 3, color: 'warning.main', fontWeight: 600 }}>
+                          Kalibrasyon Bilgileri
+                              </Typography>
+                        
+                        {/* Kalibrasyon Tarihleri */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2 }}>
+                          <TextField
+                            fullWidth
+                            label="En Son Kalibre Edildiği Tarih"
+                            type="date"
+                            value={formData.lastCalibrationDate || new Date().toISOString().split('T')[0]}
+                            onChange={(e) => setFormData({...formData, lastCalibrationDate: e.target.value})}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                          <TextField
+                            fullWidth
+                            label="Kalibrasyon Periyodu (Ay) *"
                             type="number"
                             value={formData.calibrationFrequency || 12}
-                            onChange={(e) => setFormData({...formData, calibrationFrequency: parseInt(e.target.value) || 12})}
+                            onChange={(e) => {
+                              const months = parseInt(e.target.value) || 12;
+                              const nextDate = new Date();
+                              nextDate.setMonth(nextDate.getMonth() + months);
+                              setFormData({
+                                ...formData, 
+                                calibrationFrequency: months,
+                                nextCalibrationDate: nextDate.toISOString().split('T')[0]
+                              });
+                            }}
+                            required
                             inputProps={{ min: 1, max: 60 }}
+                            helperText="Kaç ayda bir kalibre edilecek"
                           />
-                        </Box>
-                      )}
-
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={formData.maintenanceRequired || false}
-                            onChange={(e) => setFormData({...formData, maintenanceRequired: e.target.checked})}
-                          />
-                        }
-                        label="Bakım Gerekli"
-                      />
-                      
-                      {formData.maintenanceRequired && (
-                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            </Box>
+                        
+                        {/* Hedef Tarih ve Laboratuvar */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 2 }}>
                           <TextField
                             fullWidth
-                            label="Bakım Periyodu (Ay)"
-                            type="number"
-                            value={formData.maintenanceFrequency || 6}
-                            onChange={(e) => setFormData({...formData, maintenanceFrequency: parseInt(e.target.value) || 6})}
-                            inputProps={{ min: 1, max: 36 }}
+                            label="Bir Sonraki Hedef Kalibre Tarihi"
+                            type="date"
+                            value={formData.nextCalibrationDate || ''}
+                            InputLabelProps={{ shrink: true }}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            helperText="Otomatik olarak hesaplanır"
                           />
+                          
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <FormControl fullWidth required>
+                              <InputLabel>Kalibrasyon Laboratuvarı</InputLabel>
+                              <Select
+                                value={formData.calibrationCompany || ''}
+                                onChange={(e) => setFormData({...formData, calibrationCompany: e.target.value})}
+                              >
+                                {calibrationCompaniesList.map((company) => (
+                                  <MenuItem key={company} value={company}>{company}</MenuItem>
+                                ))}
+                                <MenuItem value="Diğer">Diğer</MenuItem>
+                              </Select>
+                            </FormControl>
+                            <Button 
+                              variant="outlined" 
+                              size="small"
+                              onClick={() => setOpenCalibrationCompanyDialog(true)}
+                              sx={{ minWidth: 50, height: 56 }}
+                              title="Yeni Kalibrasyon Firması Ekle"
+                            >
+                              +
+                            </Button>
+                            </Box>
                         </Box>
-                      )}
-
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={formData.criticalEquipment || false}
-                            onChange={(e) => setFormData({...formData, criticalEquipment: e.target.checked})}
+                        
+                        {/* Sertifika Numarası */}
+                        <Box sx={{ mb: 3 }}>
+                          <TextField
+                            fullWidth
+                            label="Kalibrasyon Sertifika Numarası"
+                            value={formData.lastCalibrationCertificateNumber || ''}
+                            onChange={(e) => setFormData({...formData, lastCalibrationCertificateNumber: e.target.value})}
+                            placeholder="Örn: CAL-2024-001234"
+                            helperText="En son kalibrasyon sertifika numarası"
                           />
-                        }
-                        label="Kritik Ekipman"
-                      />
-
-                      <TextField
-                        fullWidth
-                        label="Teknik Özellikler"
-                        multiline
-                        rows={3}
-                        value={formData.specifications || ''}
-                        onChange={(e) => setFormData({...formData, specifications: e.target.value})}
-                        placeholder="Ekipmanın teknik özelliklerini giriniz..."
-                      />
-
-                      <TextField
-                        fullWidth
-                        label="Notlar"
-                        multiline
-                        rows={3}
-                        value={formData.notes || ''}
-                        onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                        placeholder="Ek bilgiler ve notlar..."
-                      />
-
-                      <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-                        <Button onClick={() => setActiveStep(0)}>
-                          Geri
+                      </Box>
+                      </Box>
+                      
+                      {/* Kaydet Buton */}
+                      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+                        <Button
+                          variant="outlined"
+                          size="large"
+                          onClick={() => setOpenDialog(false)}
+                          sx={{ px: 4, py: 1.5 }}
+                        >
+                          İptal
                         </Button>
                         <Button
                           variant="contained"
-                          color="success"
-                          startIcon={<SaveIcon />}
-                          onClick={() => {
-                            // Save logic here
-                            const newEquipment: Equipment = {
-                              ...formData,
-                              id: `EQ-${new Date().getFullYear()}-${String(equipmentList.length + 1).padStart(3, '0')}`,
-                              responsiblePersons: selectedPersonnel,
-                              purchaseDate: new Date().toISOString().split('T')[0],
-                              installationDate: new Date().toISOString().split('T')[0],
-                              warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 2).toISOString().split('T')[0],
-                              lastCalibrationDate: new Date().toISOString().split('T')[0],
-                              nextCalibrationDate: new Date(Date.now() + (formData.calibrationFrequency || 12) * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                              calibrationStatus: 'valid' as const,
-                              lastMaintenanceDate: new Date().toISOString().split('T')[0],
-                              nextMaintenanceDate: new Date(Date.now() + (formData.maintenanceFrequency || 6) * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                              maintenanceStatus: 'good' as const,
-                              images: [],
-                              certificates: [],
-                              maintenanceRecords: []
-                            } as Equipment;
-                            
-                            const updatedList = [...equipmentList, newEquipment];
-                            setEquipmentList(updatedList);
-                            localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedList));
-                            setOpenDialog(false);
-                            setActiveStep(0);
-                            setSelectedPersonnel([]);
-                          }}
+                          size="large"
+                          onClick={handleSave}
+                          disabled={
+                            !formData.equipmentCode || 
+                            !formData.name || 
+                            !formData.category ||
+                            !formData.serialNumber ||
+                            !formData.responsiblePersonSicilNo ||
+                            !formData.measurementRange ||
+                            !formData.measurementUncertainty ||
+                            !formData.calibrationCompany ||
+                            (formData.measurementRange === 'Diğer' && !formData.customMeasurementRange) ||
+                            (formData.measurementUncertainty === 'Diğer' && !formData.customMeasurementUncertainty)
+                          }
+                          sx={{ px: 4, py: 1.5 }}
                         >
-                          Kaydet
+                          Ekipmanı Kaydet
                         </Button>
                       </Box>
+                </Box>
+          ) : dialogMode === 'view' ? (
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 600, mb: 3 }}>
+                Ekipman Detayları - {selectedEquipment?.name}
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {/* Temel Bilgiler */}
+                <Card sx={{ border: '2px solid', borderColor: 'primary.main', borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600, mb: 2 }}>
+                      Temel Bilgiler
+                    </Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Ekipman Kodu:</Typography>
+                        <Typography variant="body1" fontWeight={500}>{selectedEquipment?.equipmentCode}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Cihaz Seri Numarası:</Typography>
+                        <Typography variant="body1" fontWeight={500}>{selectedEquipment?.serialNumber}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Kategori:</Typography>
+                        <Chip label={selectedEquipment?.category} color="primary" size="small" />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Lokasyon:</Typography>
+                        <Typography variant="body1">{selectedEquipment?.location}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Departman:</Typography>
+                        <Typography variant="body1">{selectedEquipment?.department}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Durum:</Typography>
+                        <Chip 
+                          label={
+                            selectedEquipment?.status === 'active' ? 'Aktif' :
+                            selectedEquipment?.status === 'maintenance' ? 'Bakımda' :
+                            selectedEquipment?.status === 'calibration' ? 'Kalibrasyon' :
+                            selectedEquipment?.status === 'inactive' ? 'Pasif' : 'Devre Dışı'
+                          }
+                          color={selectedEquipment?.status === 'active' ? 'success' : 'warning'}
+                          size="small"
+                        />
+                      </Box>
                     </Box>
-                  </StepContent>
-                </Step>
-              </Stepper>
+                  </CardContent>
+                </Card>
+
+                {/* Zimmet Bilgileri */}
+                <Card sx={{ border: '2px solid', borderColor: 'success.main', borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ color: 'success.main', fontWeight: 600, mb: 2 }}>
+                      Zimmet Bilgileri
+                    </Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Zimmetlenecek Personelin Adı:</Typography>
+                        <Typography variant="body1" fontWeight={600} color="primary.main">
+                          {selectedEquipment?.responsiblePersonName || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Sicil Numarası:</Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {selectedEquipment?.responsiblePersonSicilNo || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+
+                {/* Teknik Özellikler */}
+                <Card sx={{ border: '2px solid', borderColor: 'info.main', borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ color: 'info.main', fontWeight: 600, mb: 2 }}>
+                      Cihazın Teknik Özellikleri
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Ölçüm Aralığı (Değer Aralığı):</Typography>
+                        <Typography variant="body1" fontWeight={500} color="info.main">
+                          {selectedEquipment?.measurementRange || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Ölçüm Belirsizliği:</Typography>
+                        <Typography variant="body1" fontWeight={600} color="warning.main">
+                          ± {selectedEquipment?.measurementUncertainty || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Detaylı Teknik Özellikler:</Typography>
+                        <Typography variant="body2" sx={{ mt: 1, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                          {selectedEquipment?.specifications || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+
+                {/* Kalibrasyon Bilgileri */}
+                <Card sx={{ border: '2px solid', borderColor: 'warning.main', borderRadius: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ color: 'warning.main', fontWeight: 600, mb: 2 }}>
+                      Kalibrasyon Bilgileri
+                    </Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Kalibrasyon Periyodu:</Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {selectedEquipment?.calibrationFrequency} Ay
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">En Son Kalibre Edildiği Tarih:</Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {formatDate(selectedEquipment?.lastCalibrationDate || '')}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Bir Sonraki Hedef Kalibre Tarihi:</Typography>
+                        <Typography variant="body1" fontWeight={600} color="error.main">
+                          {formatDate(selectedEquipment?.nextCalibrationDate || '')}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Kalibrasyon Laboratuvarı:</Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {selectedEquipment?.calibrationCompany || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Kalibrasyon Sertifika Numarası:</Typography>
+                        <Typography variant="body1" fontWeight={500}>
+                          {selectedEquipment?.lastCalibrationCertificateNumber || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">Kalibrasyon Durumu:</Typography>
+                        <Chip 
+                          label={
+                            selectedEquipment?.calibrationStatus === 'valid' ? 'Geçerli' :
+                            selectedEquipment?.calibrationStatus === 'due' ? 'Yaklaşan' :
+                            selectedEquipment?.calibrationStatus === 'overdue' ? 'Geciken' : 'Geçersiz'
+                          }
+                          color={
+                            selectedEquipment?.calibrationStatus === 'valid' ? 'success' :
+                            selectedEquipment?.calibrationStatus === 'due' ? 'warning' : 'error'
+                          }
+                          size="small"
+                        />
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+
+                {/* Notlar */}
+                {selectedEquipment?.notes && (
+                  <Card sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                    <CardContent>
+                                          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600, mb: 2 }}>
+                      Notlar
+                    </Typography>
+                      <Typography variant="body2" sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                        {selectedEquipment.notes}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                )}
+              </Box>
             </Box>
           ) : dialogMode === 'calibration' ? (
             <Box sx={{ p: 3 }}>
@@ -2753,6 +3376,111 @@ const EquipmentCalibrationManagement: React.FC = () => {
           >
             Yeni Personel Ekle
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Üretici Ekleme Dialogi */}
+      <Dialog open={openManufacturerDialog} onClose={() => setOpenManufacturerDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Yeni Üretici Ekle</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Üretici Adı"
+            value={newManufacturer}
+            onChange={(e) => setNewManufacturer(e.target.value)}
+            margin="dense"
+            placeholder="Örn: Mitutoyo, Starrett, Tesa..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenManufacturerDialog(false)}>İptal</Button>
+          <Button 
+            onClick={handleSaveManufacturer} 
+            variant="contained"
+            disabled={!newManufacturer.trim()}
+          >
+            Ekle
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Model Ekleme Dialogi */}
+      <Dialog open={openModelDialog} onClose={() => setOpenModelDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Yeni Model Ekle</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Model Adı"
+            value={newModel}
+            onChange={(e) => setNewModel(e.target.value)}
+            margin="dense"
+            placeholder="Örn: CD-15APX, 799-1234, HD-2000..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenModelDialog(false)}>İptal</Button>
+          <Button 
+            onClick={handleSaveModel} 
+            variant="contained"
+            disabled={!newModel.trim()}
+          >
+            Ekle
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Kalibrasyon Firması Ekleme/Yönetme Dialogi */}
+      <Dialog open={openCalibrationCompanyDialog} onClose={() => setOpenCalibrationCompanyDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Kalibrasyon Laboratuvarları Yönetimi</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Yeni Kalibrasyon Firması"
+              value={newCalibrationCompany}
+              onChange={(e) => setNewCalibrationCompany(e.target.value)}
+              margin="dense"
+              placeholder="Örn: ABC Kalibrasyon Ltd., Teknik Ölçüm A.Ş..."
+            />
+            <Button 
+              variant="contained" 
+              onClick={handleSaveCalibrationCompany}
+              disabled={!newCalibrationCompany.trim()}
+              sx={{ mt: 1 }}
+            >
+              Ekle
+            </Button>
+          </Box>
+
+          <Typography variant="h6" sx={{ mb: 2 }}>Mevcut Kalibrasyon Firmaları:</Typography>
+          <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+            {calibrationCompaniesList.map((company, index) => (
+              <Box 
+                key={index}
+                sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  p: 1,
+                  borderBottom: '1px solid #eee'
+                }}
+              >
+                <Typography>{company}</Typography>
+                {!['TÜBITAK UME', 'TSE Kalibrasyon Laboratuvarı', 'TURKAK Akredite Laboratuvar'].includes(company) && (
+                  <Button 
+                    size="small" 
+                    color="error"
+                    onClick={() => handleDeleteCalibrationCompany(company)}
+                  >
+                    Sil
+                  </Button>
+                )}
+              </Box>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenCalibrationCompanyDialog(false)}>Kapat</Button>
         </DialogActions>
       </Dialog>
     </Box>
