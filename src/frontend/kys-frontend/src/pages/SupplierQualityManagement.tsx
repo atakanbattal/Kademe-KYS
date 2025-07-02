@@ -1471,9 +1471,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       supplySubcategories: [],
       contact: { email: '', phone: '', address: '', contactPerson: '' },
       materialTypes: [],
-      performanceScore: 0,
-      qualityScore: 0,
-      deliveryScore: 0,
+      performanceScore: 88,
+      qualityScore: 88,
+      deliveryScore: 90,
       riskLevel: 'düşük',
       status: 'aktif'
     });
@@ -1567,8 +1567,41 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   const handleEditItem = (item: any, type: string) => {
     setDialogType(type as any);
     setSelectedItem(item);
-    setFormData(item);
+    
+    // Düzenleme için form data'yı doğru şekilde hazırla
+    let editFormData = { ...item };
+    
+    // Tedarikçi düzenlemesi için özel hazırlama
+    if (type === 'supplier') {
+      editFormData = {
+        ...item,
+        // Contact bilgilerini güvence altına al
+        contact: {
+          email: item.contact?.email || '',
+          phone: item.contact?.phone || '',
+          address: item.contact?.address || '',
+          contactPerson: item.contact?.contactPerson || ''
+        },
+        // Array alanlarını güvence altına al
+        materialTypes: item.materialTypes || [],
+        supplySubcategories: item.supplySubcategories || [],
+        // Skorları güvence altına al
+        qualityScore: item.qualityScore || 0,
+        deliveryScore: item.deliveryScore || 0,
+        performanceScore: item.performanceScore || 0,
+        // Diğer alanları güvence altına al
+        supplyType: item.supplyType || 'malzeme',
+        type: item.type || 'onaylı',
+        category: item.category || 'genel',
+        riskLevel: item.riskLevel || 'düşük',
+        status: item.status || 'aktif'
+      };
+    }
+    
+    setFormData(editFormData);
     setDialogOpen(true);
+    
+    console.log('🔧 Düzenleme için form hazırlandı:', { type, original: item, prepared: editFormData });
   };
 
   const handleDeleteItem = (id: string, type: string) => {
@@ -5377,10 +5410,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       fullWidth
                       label="Kalite Skoru"
                       type="number"
-                      value={formData.qualityScore !== undefined ? formData.qualityScore : (selectedItem ? selectedItem.qualityScore : 88)}
+                      value={formData.qualityScore ?? 88}
                       onChange={(e) => {
                         const newQualityScore = e.target.value === '' ? 0 : Math.max(0, Math.min(100, Number(e.target.value)));
-                        const currentDeliveryScore = formData.deliveryScore !== undefined ? formData.deliveryScore : (selectedItem ? selectedItem.deliveryScore : 90);
+                        const currentDeliveryScore = formData.deliveryScore ?? 90;
                         const calculatedPerformance = calculatePerformanceScore(newQualityScore, currentDeliveryScore);
                         
                         setFormData({ 
@@ -5408,10 +5441,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       fullWidth
                       label="Teslimat Skoru"
                       type="number"
-                      value={formData.deliveryScore !== undefined ? formData.deliveryScore : (selectedItem ? selectedItem.deliveryScore : 90)}
+                      value={formData.deliveryScore ?? 90}
                       onChange={(e) => {
                         const newDeliveryScore = e.target.value === '' ? 0 : Math.max(0, Math.min(100, Number(e.target.value)));
-                        const currentQualityScore = formData.qualityScore !== undefined ? formData.qualityScore : (selectedItem ? selectedItem.qualityScore : 88);
+                        const currentQualityScore = formData.qualityScore ?? 88;
                         const calculatedPerformance = calculatePerformanceScore(currentQualityScore, newDeliveryScore);
                         
                         setFormData({ 
