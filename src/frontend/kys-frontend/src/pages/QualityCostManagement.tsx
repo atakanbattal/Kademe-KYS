@@ -51,6 +51,7 @@ import {
   AccordionDetails,
   ListSubheader,
   Popover,
+  Avatar,
 } from '@mui/material';
 import {
   Assessment as AssessmentIcon,
@@ -110,6 +111,7 @@ import {
   Save as SaveIcon,
   TableView as TableViewIcon,
   ViewModule as ViewModuleIcon,
+  HelpOutline as HelpOutlineIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -6148,42 +6150,23 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
 
         {/* Görünüm Modu Butonları */}
-        <Box sx={{ mb: 3, display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            Araç Performans Takibi
-            <Chip 
-              label={`${vehicleAnalysis.length} araç`} 
-              size="small" 
-              sx={{ ml: 2 }}
-              color="primary"
-            />
-            <Chip 
-              label={`${globalFilters.selectedMonth || 'Tüm aylar'} dönemi`} 
-              size="small" 
-              sx={{ ml: 1 }}
-              color="secondary"
-              variant="outlined"
-            />
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant={viewMode === 'table' ? 'contained' : 'outlined'}
-              onClick={() => setViewMode('table')}
-              startIcon={<TableViewIcon />}
-              size="small"
-            >
-              Tablo
-            </Button>
-            <Button
-              variant={viewMode === 'cards' ? 'contained' : 'outlined'}
-              onClick={() => setViewMode('cards')}
-              startIcon={<ViewModuleIcon />}
-              size="small"
-            >
-              Kartlar
-            </Button>
-          </Box>
+        <Box sx={{ mb: 3, display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
+          <Button
+            variant={viewMode === 'table' ? 'contained' : 'outlined'}
+            onClick={() => setViewMode('table')}
+            startIcon={<TableViewIcon />}
+            size="small"
+          >
+            Tablo
+          </Button>
+          <Button
+            variant={viewMode === 'cards' ? 'contained' : 'outlined'}
+            onClick={() => setViewMode('cards')}
+            startIcon={<ViewModuleIcon />}
+            size="small"
+          >
+            Kartlar
+          </Button>
         </Box>
 
         {/* Ana İçerik Alanı */}
@@ -6209,32 +6192,192 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         )}
 
         {viewMode === 'table' && (
-          <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-            <TableContainer>
-              <Table>
+          <Paper sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+            {/* Tablo Başlığı */}
+            <Box sx={{ p: 3, bgcolor: 'primary.main', color: 'white' }}>
+              <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <DirectionsCarIcon />
+                Araç Performans Analizi - Detaylı Görünüm
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+                Kategori bazlı performans takibi ve maliyet analizi
+              </Typography>
+            </Box>
+            
+            <TableContainer 
+              sx={{ 
+                maxHeight: '70vh',
+                overflowX: 'auto',
+                overflowY: 'auto',
+                '&::-webkit-scrollbar': {
+                  height: 8,
+                  width: 8,
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: 'rgba(0,0,0,0.1)',
+                  borderRadius: 4,
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: 'rgba(0,0,0,0.3)',
+                  borderRadius: 4,
+                  '&:hover': {
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                  },
+                },
+              }}
+            >
+              <Table stickyHeader sx={{ minWidth: 1400 }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
-                    <TableCell sx={{ fontWeight: 'bold', minWidth: 60 }}>Sıra</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', minWidth: 200 }}>Araç Kategorisi</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', minWidth: 120, textAlign: 'center' }}>Üretim Adedi</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', minWidth: 130, textAlign: 'center' }}>Ret Performansı</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', minWidth: 130, textAlign: 'center' }}>Hurda Performansı</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', minWidth: 130, textAlign: 'center' }}>Fire Performansı</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', minWidth: 140, textAlign: 'center' }}>Toplam Maliyet</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', minWidth: 120, textAlign: 'center' }}>Durum</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', minWidth: 100, textAlign: 'center' }}>İşlemler</TableCell>
+                  <TableRow>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        width: 60,
+                        maxWidth: 60,
+                        bgcolor: 'grey.50',
+                        borderRight: '1px solid',
+                        borderColor: 'grey.200'
+                      }}
+                    >
+                      #
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        width: 280,
+                        maxWidth: 280,
+                        bgcolor: 'grey.50',
+                        borderRight: '1px solid',
+                        borderColor: 'grey.200'
+                      }}
+                    >
+                      Araç Kategorisi / Model
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        width: 120,
+                        maxWidth: 120,
+                        textAlign: 'center',
+                        bgcolor: 'grey.50',
+                        borderRight: '1px solid',
+                        borderColor: 'grey.200'
+                      }}
+                    >
+                      Üretim
+                      <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
+                        (Adet)
+                      </Typography>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        width: 180,
+                        maxWidth: 180,
+                        textAlign: 'center',
+                        bgcolor: 'error.50',
+                        color: 'error.main',
+                        borderRight: '1px solid',
+                        borderColor: 'grey.200'
+                      }}
+                    >
+                      Ret Kayıpları
+                      <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem', opacity: 0.8 }}>
+                        Toplam / Araç Başı
+                      </Typography>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        width: 180,
+                        maxWidth: 180,
+                        textAlign: 'center',
+                        bgcolor: 'warning.50',
+                        color: 'warning.main',
+                        borderRight: '1px solid',
+                        borderColor: 'grey.200'
+                      }}
+                    >
+                      Hurda Kayıpları
+                      <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem', opacity: 0.8 }}>
+                        Toplam / Araç Başı
+                      </Typography>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        width: 180,
+                        maxWidth: 180,
+                        textAlign: 'center',
+                        bgcolor: 'info.50',
+                        color: 'info.main',
+                        borderRight: '1px solid',
+                        borderColor: 'grey.200'
+                      }}
+                    >
+                      Fire Kayıpları
+                      <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem', opacity: 0.8 }}>
+                        Toplam / Araç Başı
+                      </Typography>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        width: 150,
+                        maxWidth: 150,
+                        textAlign: 'center',
+                        bgcolor: 'grey.50',
+                        borderRight: '1px solid',
+                        borderColor: 'grey.200'
+                      }}
+                    >
+                      Toplam Maliyet
+                      <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
+                        (₺)
+                      </Typography>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        width: 140,
+                        maxWidth: 140,
+                        textAlign: 'center',
+                        bgcolor: 'grey.50',
+                        borderRight: '1px solid',
+                        borderColor: 'grey.200'
+                      }}
+                    >
+                      Genel Performans
+                      <Typography variant="caption" display="block" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
+                        (%)
+                      </Typography>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        width: 120,
+                        maxWidth: 120,
+                        textAlign: 'center',
+                        bgcolor: 'grey.50'
+                      }}
+                    >
+                      İşlemler
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {vehicleAnalysis.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} sx={{ textAlign: 'center', py: 4 }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="h6" color="text.secondary">
-                            Veri Bulunamadı
+                      <TableCell colSpan={9} sx={{ textAlign: 'center', py: 6 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <DirectionsCarIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                          <Typography variant="h6" color="text.secondary" fontWeight="bold">
+                            Araç Verisi Bulunamadı
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Seçilen filtrelere uygun araç verisi bulunmuyor.
+                            Seçilen filtrelere uygun araç performans verisi bulunmuyor.
+                            <br />
+                            Lütfen filtre ayarlarını kontrol edin veya veri girişi yapın.
                           </Typography>
                         </Box>
                       </TableCell>
@@ -6242,6 +6385,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   ) : (
                     vehicleAnalysis.map((vehicle, index) => {
                       const productionData = getProductionDataForVehicle(vehicle);
+                      const productionCount = productionData.uretilenAdet || 1;
                       const categoryTarget = vehicleTargets.find(target => 
                         target.kategori === vehicle.kategori && 
                         target.isActive !== false
@@ -6255,25 +6399,30 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         return Math.max(0, Math.round((totalTarget - actual) / totalTarget * 100));
                       };
 
+                      // Araç başı değerleri hesapla
+                      const retPerVehicle = productionCount > 0 ? (vehicle.atikTuruDagilim.ret.adet / productionCount).toFixed(2) : '0';
+                      const hurdaPerVehicle = productionCount > 0 ? (vehicle.atikTuruDagilim.hurda.kg / productionCount).toFixed(2) : '0';
+                      const firePerVehicle = productionCount > 0 ? (vehicle.atikTuruDagilim.fire.kg / productionCount).toFixed(2) : '0';
+
                       const retPerformance = categoryTarget ? 
                         calculatePerformanceScore(
                           vehicle.atikTuruDagilim.ret.adet,
                           categoryTarget.hedefler.maksRetAdet,
-                          productionData.uretilenAdet || 1
+                          productionCount
                         ) : null;
 
                       const hurdaPerformance = categoryTarget ? 
                         calculatePerformanceScore(
                           vehicle.atikTuruDagilim.hurda.kg,
                           categoryTarget.hedefler.maksHurdaKg,
-                          productionData.uretilenAdet || 1
+                          productionCount
                         ) : null;
 
                       const firePerformance = categoryTarget ? 
                         calculatePerformanceScore(
                           vehicle.atikTuruDagilim.fire.kg,
                           categoryTarget.hedefler.maksFireKg,
-                          productionData.uretilenAdet || 1
+                          productionCount
                         ) : null;
 
                       const overallPerformance = categoryTarget && retPerformance !== null && hurdaPerformance !== null && firePerformance !== null ? 
@@ -6281,23 +6430,23 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
                       const getPerformanceColor = (performance: number | null) => {
                         if (performance === null) return 'default';
-                        if (performance >= 80) return 'success';
-                        if (performance >= 60) return 'warning';
+                        if (performance >= 85) return 'success';
+                        if (performance >= 70) return 'warning';
                         return 'error';
                       };
 
-                      const getStatusColor = () => {
+                      const getOverallColor = () => {
                         if (overallPerformance === null) return 'default';
-                        if (overallPerformance >= 80) return 'success';
-                        if (overallPerformance >= 60) return 'warning';
+                        if (overallPerformance >= 85) return 'success';
+                        if (overallPerformance >= 70) return 'warning';
                         return 'error';
                       };
 
-                      const getStatusText = () => {
-                        if (overallPerformance === null) return 'Hedef Yok';
-                        if (overallPerformance >= 80) return 'Excellent';
-                        if (overallPerformance >= 60) return 'İyileştirme Gerekli';
-                        return 'Kritik Durum';
+                      const getPerformanceIcon = (performance: number | null) => {
+                        if (performance === null) return <HelpOutlineIcon fontSize="small" />;
+                        if (performance >= 85) return <TrendingUpIcon fontSize="small" color="success" />;
+                        if (performance >= 70) return <TrendingFlatIcon fontSize="small" color="warning" />;
+                        return <TrendingDownIcon fontSize="small" color="error" />;
                       };
 
                       return (
@@ -6305,141 +6454,442 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                           key={vehicle.kategori || vehicle.aracModeli || index}
                           hover
                           sx={{ 
-                            '&:hover': { backgroundColor: theme.palette.action.hover },
-                            cursor: 'pointer'
+                            '&:hover': { 
+                              backgroundColor: 'primary.50',
+                              transform: 'scale(1.01)',
+                              transition: 'all 0.2s ease-in-out'
+                            },
+                            cursor: 'pointer',
+                            borderLeft: '4px solid',
+                            borderLeftColor: getOverallColor() === 'success' ? 'success.main' : 
+                                           getOverallColor() === 'warning' ? 'warning.main' : 
+                                           getOverallColor() === 'error' ? 'error.main' : 'grey.300'
                           }}
                           onClick={() => setVehicleDetailModal({ open: true, vehicle })}
                         >
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="h6" fontWeight="bold" color="primary.main">
-                                #{index + 1}
-                              </Typography>
+                          {/* Sıra */}
+                          <TableCell sx={{ 
+                            fontWeight: 'bold', 
+                            borderRight: '1px solid', 
+                            borderColor: 'grey.200',
+                            width: 60,
+                            maxWidth: 60,
+                            textAlign: 'center'
+                          }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Chip 
+                                label={index + 1} 
+                                size="small" 
+                                color="primary" 
+                                sx={{ fontWeight: 'bold', fontSize: '0.9rem' }}
+                              />
                             </Box>
                           </TableCell>
                           
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              <VehicleIcon color="primary" />
-                              <Box>
-                                <Typography variant="subtitle1" fontWeight="bold">
-                                  {vehicle.displayName || vehicle.kategori || vehicle.aracModeli}
-                                </Typography>
-                                {vehicle.categoryModels && vehicle.categoryModels.length > 0 && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    {vehicle.categoryModels.join(', ')}
+                          {/* Araç Kategorisi */}
+                          <TableCell sx={{ 
+                            borderRight: '1px solid', 
+                            borderColor: 'grey.200',
+                            width: 280,
+                            maxWidth: 280,
+                            overflow: 'hidden'
+                          }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36, flexShrink: 0 }}>
+                                <DirectionsCarIcon fontSize="small" />
+                              </Avatar>
+                              <Box sx={{ minWidth: 0, flex: 1 }}>
+                                <Tooltip 
+                                  title={vehicle.displayName || vehicle.kategori || vehicle.aracModeli}
+                                  placement="top"
+                                  arrow
+                                >
+                                  <Typography 
+                                    variant="subtitle2" 
+                                    fontWeight="bold" 
+                                    sx={{ 
+                                      lineHeight: 1.3,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                      maxWidth: '100%'
+                                    }}
+                                  >
+                                    {vehicle.displayName || vehicle.kategori || vehicle.aracModeli}
                                   </Typography>
+                                </Tooltip>
+                                {vehicle.categoryModels && vehicle.categoryModels.length > 0 && (
+                                  <Tooltip 
+                                    title={vehicle.categoryModels.join(', ')}
+                                    placement="bottom"
+                                    arrow
+                                  >
+                                    <Typography 
+                                      variant="caption" 
+                                      color="text.secondary" 
+                                      sx={{ 
+                                        display: 'block', 
+                                        mt: 0.5,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        maxWidth: '100%'
+                                      }}
+                                    >
+                                      {vehicle.categoryModels.slice(0, 2).join(', ')}{vehicle.categoryModels.length > 2 && ' ...'}
+                                    </Typography>
+                                  </Tooltip>
                                 )}
+                                <Typography 
+                                  variant="caption" 
+                                  color="primary.main" 
+                                  sx={{ 
+                                    display: 'block', 
+                                    fontWeight: 'bold',
+                                    fontSize: '0.65rem'
+                                  }}
+                                >
+                                  Kategori
+                                </Typography>
                               </Box>
                             </Box>
                           </TableCell>
 
-                          <TableCell sx={{ textAlign: 'center' }}>
+                          {/* Üretim */}
+                          <TableCell sx={{ 
+                            textAlign: 'center', 
+                            borderRight: '1px solid', 
+                            borderColor: 'grey.200',
+                            width: 120,
+                            maxWidth: 120
+                          }}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <Typography variant="h6" fontWeight="bold" color="info.main">
-                                {productionData.uretilenAdet || 0}
+                              <Typography variant="h5" fontWeight="bold" color="info.main">
+                                {productionCount}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                adet
+                              <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                                Adet Üretim
                               </Typography>
+                                                             {productionData.planlanmisAdet && (
+                                 <Typography variant="caption" color="warning.main" sx={{ fontSize: '0.7rem' }}>
+                                   Hedef: {productionData.planlanmisAdet}
+                                 </Typography>
+                               )}
                             </Box>
                           </TableCell>
 
-                          <TableCell sx={{ textAlign: 'center' }}>
+                          {/* Ret Kayıpları */}
+                          <TableCell sx={{ 
+                            textAlign: 'center', 
+                            borderRight: '1px solid', 
+                            borderColor: 'grey.200',
+                            width: 180,
+                            maxWidth: 180
+                          }}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                               {retPerformance !== null ? (
                                 <>
-                                  <Chip
-                                    label={`%${retPerformance}`}
-                                    color={getPerformanceColor(retPerformance)}
-                                    size="small"
-                                    sx={{ fontWeight: 'bold', minWidth: 50 }}
-                                  />
-                                  <Typography variant="caption" color="text.secondary">
-                                    {vehicle.atikTuruDagilim.ret.adet} / {(categoryTarget!.hedefler.maksRetAdet * (productionData.uretilenAdet || 1)).toFixed(1)} adet
-                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    {getPerformanceIcon(retPerformance)}
+                                    <Chip
+                                      label={`%${retPerformance}`}
+                                      color={getPerformanceColor(retPerformance)}
+                                      size="small"
+                                      sx={{ fontWeight: 'bold', minWidth: 60 }}
+                                    />
+                                  </Box>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="body2" fontWeight="bold" color="error.dark">
+                                      {vehicle.atikTuruDagilim.ret.adet} adet
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Toplam
+                                    </Typography>
+                                  </Box>
+                                  <Divider sx={{ width: '80%' }} />
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="body2" fontWeight="bold" color="error.main">
+                                      {retPerVehicle} adet/araç
+                                    </Typography>
+                                    <Tooltip 
+                                      title={`Araç Başı Hedef: ${categoryTarget!.hedefler.maksRetAdet} adet`}
+                                      placement="bottom"
+                                      arrow
+                                    >
+                                      <Typography 
+                                        variant="caption" 
+                                        color="text.secondary"
+                                        sx={{
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          display: 'block',
+                                          maxWidth: '100%'
+                                        }}
+                                      >
+                                        Hedef: {categoryTarget!.hedefler.maksRetAdet}
+                                      </Typography>
+                                    </Tooltip>
+                                  </Box>
                                 </>
                               ) : (
-                                <Chip label="Hedef Yok" color="default" size="small" />
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                  <Chip label="Hedef Yok" color="default" size="small" />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {vehicle.atikTuruDagilim.ret.adet} adet
+                                  </Typography>
+                                </Box>
                               )}
                             </Box>
                           </TableCell>
 
-                          <TableCell sx={{ textAlign: 'center' }}>
+                          {/* Hurda Kayıpları */}
+                          <TableCell sx={{ 
+                            textAlign: 'center', 
+                            borderRight: '1px solid', 
+                            borderColor: 'grey.200',
+                            width: 180,
+                            maxWidth: 180
+                          }}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                               {hurdaPerformance !== null ? (
                                 <>
-                                  <Chip
-                                    label={`%${hurdaPerformance}`}
-                                    color={getPerformanceColor(hurdaPerformance)}
-                                    size="small"
-                                    sx={{ fontWeight: 'bold', minWidth: 50 }}
-                                  />
-                                  <Typography variant="caption" color="text.secondary">
-                                    {vehicle.atikTuruDagilim.hurda.kg.toFixed(1)} / {(categoryTarget!.hedefler.maksHurdaKg * (productionData.uretilenAdet || 1)).toFixed(1)} kg
-                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    {getPerformanceIcon(hurdaPerformance)}
+                                    <Chip
+                                      label={`%${hurdaPerformance}`}
+                                      color={getPerformanceColor(hurdaPerformance)}
+                                      size="small"
+                                      sx={{ fontWeight: 'bold', minWidth: 60 }}
+                                    />
+                                  </Box>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="body2" fontWeight="bold" color="warning.dark">
+                                      {vehicle.atikTuruDagilim.hurda.kg.toFixed(1)} kg
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Toplam
+                                    </Typography>
+                                  </Box>
+                                  <Divider sx={{ width: '80%' }} />
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="body2" fontWeight="bold" color="warning.main">
+                                      {hurdaPerVehicle} kg/araç
+                                    </Typography>
+                                    <Tooltip 
+                                      title={`Araç Başı Hedef: ${categoryTarget!.hedefler.maksHurdaKg} kg`}
+                                      placement="bottom"
+                                      arrow
+                                    >
+                                      <Typography 
+                                        variant="caption" 
+                                        color="text.secondary"
+                                        sx={{
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          display: 'block',
+                                          maxWidth: '100%'
+                                        }}
+                                      >
+                                        Hedef: {categoryTarget!.hedefler.maksHurdaKg}
+                                      </Typography>
+                                    </Tooltip>
+                                  </Box>
                                 </>
                               ) : (
-                                <Chip label="Hedef Yok" color="default" size="small" />
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                  <Chip label="Hedef Yok" color="default" size="small" />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {vehicle.atikTuruDagilim.hurda.kg.toFixed(1)} kg
+                                  </Typography>
+                                </Box>
                               )}
                             </Box>
                           </TableCell>
 
-                          <TableCell sx={{ textAlign: 'center' }}>
+                          {/* Fire Kayıpları */}
+                          <TableCell sx={{ 
+                            textAlign: 'center', 
+                            borderRight: '1px solid', 
+                            borderColor: 'grey.200',
+                            width: 180,
+                            maxWidth: 180
+                          }}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                               {firePerformance !== null ? (
                                 <>
-                                  <Chip
-                                    label={`%${firePerformance}`}
-                                    color={getPerformanceColor(firePerformance)}
-                                    size="small"
-                                    sx={{ fontWeight: 'bold', minWidth: 50 }}
-                                  />
-                                  <Typography variant="caption" color="text.secondary">
-                                    {vehicle.atikTuruDagilim.fire.kg.toFixed(1)} / {(categoryTarget!.hedefler.maksFireKg * (productionData.uretilenAdet || 1)).toFixed(1)} kg
-                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    {getPerformanceIcon(firePerformance)}
+                                    <Chip
+                                      label={`%${firePerformance}`}
+                                      color={getPerformanceColor(firePerformance)}
+                                      size="small"
+                                      sx={{ fontWeight: 'bold', minWidth: 60 }}
+                                    />
+                                  </Box>
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="body2" fontWeight="bold" color="info.dark">
+                                      {vehicle.atikTuruDagilim.fire.kg.toFixed(1)} kg
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      Toplam
+                                    </Typography>
+                                  </Box>
+                                  <Divider sx={{ width: '80%' }} />
+                                  <Box sx={{ textAlign: 'center' }}>
+                                    <Typography variant="body2" fontWeight="bold" color="info.main">
+                                      {firePerVehicle} kg/araç
+                                    </Typography>
+                                    <Tooltip 
+                                      title={`Araç Başı Hedef: ${categoryTarget!.hedefler.maksFireKg} kg`}
+                                      placement="bottom"
+                                      arrow
+                                    >
+                                      <Typography 
+                                        variant="caption" 
+                                        color="text.secondary"
+                                        sx={{
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          display: 'block',
+                                          maxWidth: '100%'
+                                        }}
+                                      >
+                                        Hedef: {categoryTarget!.hedefler.maksFireKg}
+                                      </Typography>
+                                    </Tooltip>
+                                  </Box>
                                 </>
                               ) : (
-                                <Chip label="Hedef Yok" color="default" size="small" />
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                  <Chip label="Hedef Yok" color="default" size="small" />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {vehicle.atikTuruDagilim.fire.kg.toFixed(1)} kg
+                                  </Typography>
+                                </Box>
                               )}
                             </Box>
                           </TableCell>
 
-                          <TableCell sx={{ textAlign: 'center' }}>
+                          {/* Toplam Maliyet */}
+                          <TableCell sx={{ 
+                            textAlign: 'center', 
+                            borderRight: '1px solid', 
+                            borderColor: 'grey.200',
+                            width: 150,
+                            maxWidth: 150
+                          }}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                               <Typography variant="h6" fontWeight="bold" color="error.main">
                                 ₺{(vehicle.toplam.toplamMaliyet / 1000).toFixed(0)}K
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" color="text.secondary" fontWeight="bold" sx={{ fontSize: '0.7rem' }}>
+                                Toplam Maliyet
+                              </Typography>
+                              <Typography variant="caption" color="info.main" sx={{ mt: 0.5, fontSize: '0.65rem' }}>
                                 {vehicle.toplam.kayitSayisi} kayıt
                               </Typography>
+                              <Tooltip 
+                                title={`Araç Başı Maliyet: ₺${(vehicle.toplam.toplamMaliyet / productionCount / 1000).toFixed(1)}K`}
+                                placement="bottom"
+                                arrow
+                              >
+                                <Typography 
+                                  variant="caption" 
+                                  color="warning.main" 
+                                  sx={{ 
+                                    fontSize: '0.65rem',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: '100%'
+                                  }}
+                                >
+                                  ₺{(vehicle.toplam.toplamMaliyet / productionCount / 1000).toFixed(1)}K/araç
+                                </Typography>
+                              </Tooltip>
                             </Box>
                           </TableCell>
 
-                          <TableCell sx={{ textAlign: 'center' }}>
-                            <Chip
-                              label={getStatusText()}
-                              color={getStatusColor()}
-                              variant="filled"
-                              sx={{ 
-                                fontWeight: 'bold',
-                                minWidth: 100
-                              }}
-                            />
+                          {/* Genel Performans */}
+                          <TableCell sx={{ 
+                            textAlign: 'center', 
+                            borderRight: '1px solid', 
+                            borderColor: 'grey.200',
+                            width: 140,
+                            maxWidth: 140
+                          }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                              {overallPerformance !== null ? (
+                                <>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    {getPerformanceIcon(overallPerformance)}
+                                    <Typography variant="h5" fontWeight="bold" color={getOverallColor() + '.main'}>
+                                      %{overallPerformance}
+                                    </Typography>
+                                  </Box>
+                                  <Chip
+                                    label={
+                                      overallPerformance >= 85 ? 'Mükemmel' :
+                                      overallPerformance >= 70 ? 'İyi' : 'Geliştirilmeli'
+                                    }
+                                    color={getOverallColor()}
+                                    variant="filled"
+                                    sx={{ fontWeight: 'bold' }}
+                                  />
+                                  <Typography variant="caption" color="text.secondary">
+                                    Ortalama Performans
+                                  </Typography>
+                                </>
+                              ) : (
+                                <Box>
+                                  <Chip label="Hedef Belirlenmemiş" color="default" size="small" />
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                                    Performans hesaplanamıyor
+                                  </Typography>
+                                </Box>
+                              )}
+                            </Box>
                           </TableCell>
 
-                          <TableCell sx={{ textAlign: 'center' }}>
-                            <Tooltip title="Detayları Görüntüle">
-                              <IconButton 
-                                color="primary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setVehicleDetailModal({ open: true, vehicle });
-                                }}
-                              >
-                                <VisibilityIcon />
-                              </IconButton>
-                            </Tooltip>
+                          {/* İşlemler */}
+                          <TableCell sx={{ 
+                            textAlign: 'center',
+                            width: 120,
+                            maxWidth: 120
+                          }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                              <Tooltip title="Detaylı Analiz">
+                                <IconButton 
+                                  color="primary"
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setVehicleDetailModal({ open: true, vehicle });
+                                  }}
+                                  sx={{ 
+                                    bgcolor: 'primary.50',
+                                    '&:hover': { bgcolor: 'primary.100' }
+                                  }}
+                                >
+                                  <AssessmentIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Performans Grafiği">
+                                <IconButton 
+                                  color="info"
+                                  size="small"
+                                  sx={{ 
+                                    bgcolor: 'info.50',
+                                    '&:hover': { bgcolor: 'info.100' }
+                                  }}
+                                >
+                                  <BarChartIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
                           </TableCell>
                         </TableRow>
                       );
@@ -6448,87 +6898,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 </TableBody>
               </Table>
             </TableContainer>
-            
-            {/* Tablo Özet Bilgileri */}
-            {vehicleAnalysis.length > 0 && (
-              <Box sx={{ p: 3, borderTop: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Typography variant="h4" fontWeight="bold" color="primary.main">
-                        {vehicleAnalysis.length}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Toplam Araç Kategorisi
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Typography variant="h4" fontWeight="bold" color="success.main">
-                        {vehicleAnalysis.filter(v => {
-                          const categoryTarget = vehicleTargets.find(target => 
-                            target.kategori === v.kategori && target.isActive !== false
-                          );
-                          if (!categoryTarget) return false;
-                          const productionData = getProductionDataForVehicle(v);
-                          const retPerf = Math.max(0, Math.round(((categoryTarget.hedefler.maksRetAdet * (productionData.uretilenAdet || 1)) - v.atikTuruDagilim.ret.adet) / (categoryTarget.hedefler.maksRetAdet * (productionData.uretilenAdet || 1)) * 100));
-                          const hurdaPerf = Math.max(0, Math.round(((categoryTarget.hedefler.maksHurdaKg * (productionData.uretilenAdet || 1)) - v.atikTuruDagilim.hurda.kg) / (categoryTarget.hedefler.maksHurdaKg * (productionData.uretilenAdet || 1)) * 100));
-                          const firePerf = Math.max(0, Math.round(((categoryTarget.hedefler.maksFireKg * (productionData.uretilenAdet || 1)) - v.atikTuruDagilim.fire.kg) / (categoryTarget.hedefler.maksFireKg * (productionData.uretilenAdet || 1)) * 100));
-                          const overall = Math.round((retPerf + hurdaPerf + firePerf) / 3);
-                          return overall >= 80;
-                        }).length}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Başarılı Performans
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Typography variant="h4" fontWeight="bold" color="warning.main">
-                        {vehicleAnalysis.filter(v => {
-                          const categoryTarget = vehicleTargets.find(target => 
-                            target.kategori === v.kategori && target.isActive !== false
-                          );
-                          if (!categoryTarget) return false;
-                          const productionData = getProductionDataForVehicle(v);
-                          const retPerf = Math.max(0, Math.round(((categoryTarget.hedefler.maksRetAdet * (productionData.uretilenAdet || 1)) - v.atikTuruDagilim.ret.adet) / (categoryTarget.hedefler.maksRetAdet * (productionData.uretilenAdet || 1)) * 100));
-                          const hurdaPerf = Math.max(0, Math.round(((categoryTarget.hedefler.maksHurdaKg * (productionData.uretilenAdet || 1)) - v.atikTuruDagilim.hurda.kg) / (categoryTarget.hedefler.maksHurdaKg * (productionData.uretilenAdet || 1)) * 100));
-                          const firePerf = Math.max(0, Math.round(((categoryTarget.hedefler.maksFireKg * (productionData.uretilenAdet || 1)) - v.atikTuruDagilim.fire.kg) / (categoryTarget.hedefler.maksFireKg * (productionData.uretilenAdet || 1)) * 100));
-                          const overall = Math.round((retPerf + hurdaPerf + firePerf) / 3);
-                          return overall >= 60 && overall < 80;
-                        }).length}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        İyileştirme Gerekli
-                      </Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Typography variant="h4" fontWeight="bold" color="error.main">
-                        {vehicleAnalysis.filter(v => {
-                          const categoryTarget = vehicleTargets.find(target => 
-                            target.kategori === v.kategori && target.isActive !== false
-                          );
-                          if (!categoryTarget) return true; // Hedefi olmayanlar da kritik sayılır
-                          const productionData = getProductionDataForVehicle(v);
-                          const retPerf = Math.max(0, Math.round(((categoryTarget.hedefler.maksRetAdet * (productionData.uretilenAdet || 1)) - v.atikTuruDagilim.ret.adet) / (categoryTarget.hedefler.maksRetAdet * (productionData.uretilenAdet || 1)) * 100));
-                          const hurdaPerf = Math.max(0, Math.round(((categoryTarget.hedefler.maksHurdaKg * (productionData.uretilenAdet || 1)) - v.atikTuruDagilim.hurda.kg) / (categoryTarget.hedefler.maksHurdaKg * (productionData.uretilenAdet || 1)) * 100));
-                          const firePerf = Math.max(0, Math.round(((categoryTarget.hedefler.maksFireKg * (productionData.uretilenAdet || 1)) - v.atikTuruDagilim.fire.kg) / (categoryTarget.hedefler.maksFireKg * (productionData.uretilenAdet || 1)) * 100));
-                          const overall = Math.round((retPerf + hurdaPerf + firePerf) / 3);
-                          return overall < 60;
-                        }).length}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Kritik Durum
-                      </Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Box>
-            )}
+
           </Paper>
         )}
 
@@ -13549,7 +13919,7 @@ const VehiclePerformanceDataComponent: React.FC<{
     const totalData = newPerformanceData.length;
     const periodText = selectedPeriod === 'ay' ? 'aylık performans verisi' : 
                       selectedPeriod === 'ceyrek' ? 'çeyreklik performans verisi' : 'yıllık performans verisi';
-    alert(`✅ ${selectedCategories.length} kategori için ${periodText} başarıyla oluşturuldu!\n\n📊 Toplam ${totalData} araç performans verisi aktif\n\n📋 Performans Veri Sistemi:\n• Aylık: Araç başı aylık gerçekleşen veriler\n• Çeyreklik: Araç başı çeyreklik gerçekleşen veriler\n• Yıllık: Araç başı yıllık gerçekleşen veriler\n\n💡 Bu veriler Araç Bazlı Takip kartlarında gerçek performans metrikleri olarak gösterilecek.`);
+    alert(`${selectedCategories.length} kategori için ${periodText} başarıyla oluşturuldu!\n\nToplam ${totalData} araç performans verisi aktif\n\nPerformans Veri Sistemi:\n• Aylık: Araç başı aylık gerçekleşen veriler\n• Çeyreklik: Araç başı çeyreklik gerçekleşen veriler\n• Yıllık: Araç başı yıllık gerçekleşen veriler\n\nBu veriler Araç Bazlı Takip kartlarında gerçek performans metrikleri olarak gösterilecek.`);
   };
 
 
@@ -14491,7 +14861,7 @@ const VehiclePerformanceDataComponent: React.FC<{
                 {/* Ret Performans Göstergesi */}
                 <Box sx={{ mt: 3, p: 2, bgcolor: 'error.50', borderRadius: 1 }}>
                   <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-                    🔴 Ret Performansı Bilgisi
+                    Ret Performansı Bilgisi
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Ret miktarı ne kadar düşükse performans o kadar yüksek olur. 
@@ -14561,7 +14931,7 @@ const VehiclePerformanceDataComponent: React.FC<{
                 {/* Hurda Performans Göstergesi */}
                 <Box sx={{ mt: 3, p: 2, bgcolor: 'warning.50', borderRadius: 1 }}>
                   <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-                    🟡 Hurda Performansı Bilgisi
+                    Hurda Performansı Bilgisi
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Hurda miktarı azaldıkça performans artar. 
@@ -14631,7 +15001,7 @@ const VehiclePerformanceDataComponent: React.FC<{
                 {/* Fire Performans Göstergesi */}
                 <Box sx={{ mt: 3, p: 2, bgcolor: 'info.50', borderRadius: 1 }}>
                   <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-                    🔵 Fire Performansı Bilgisi
+                    Fire Performansı Bilgisi
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Fire oranı düştükçe kalite performansı yükselir. 
@@ -14688,9 +15058,9 @@ const VehiclePerformanceDataComponent: React.FC<{
                         }))}
                         label="Dönem Türü"
                       >
-                        <MenuItem value="ay">📅 Aylık</MenuItem>
-                        <MenuItem value="ceyrek">📆 Çeyreklik</MenuItem>
-                        <MenuItem value="yil">🗓️ Yıllık</MenuItem>
+                        <MenuItem value="ay">Aylık</MenuItem>
+                        <MenuItem value="ceyrek">Çeyreklik</MenuItem>
+                        <MenuItem value="yil">Yıllık</MenuItem>
                       </Select>
                       <FormHelperText>Performans takip periyodu</FormHelperText>
                     </FormControl>
@@ -14713,7 +15083,7 @@ const VehiclePerformanceDataComponent: React.FC<{
                 {/* Toplam Performans Özeti */}
                 <Box sx={{ mt: 3, p: 3, bgcolor: 'primary.50', borderRadius: 2 }}>
                   <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-                    📊 Hedef Performans Özeti
+                    Hedef Performans Özeti
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={3}>
