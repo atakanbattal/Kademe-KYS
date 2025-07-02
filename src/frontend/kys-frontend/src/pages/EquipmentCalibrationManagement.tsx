@@ -1046,6 +1046,156 @@ const getMeasurementRangesBySubCategory = () => {
       '32-392°F', '32-932°F', '32-1832°F', '32-2732°F'
     ],
 
+    // Ek Kaynaklı İmalat Ölçüm Cihazları
+    'Kaynak Kumpası - Digital': [
+      '0-150 mm', '0-200 mm', '0-300 mm', '0-500 mm',
+      '0-6 inch', '0-8 inch', '0-12 inch', '0-20 inch',
+      '10-150 mm', '20-200 mm', '50-300 mm'
+    ],
+    'Kaynak Kumpası - Analog': [
+      '0-150 mm', '0-200 mm', '0-300 mm',
+      '0-6 inch', '0-8 inch', '0-12 inch'
+    ],
+    'Kaynak Kumpası - V-Groove': [
+      '0-100 mm', '0-150 mm', '0-200 mm', '0-300 mm',
+      '0-4 inch', '0-6 inch', '0-8 inch', '0-12 inch',
+      'Φ5-100 mm', 'Φ10-150 mm', 'Φ20-200 mm'
+    ],
+    'Torkmetre - Mekanik': [
+      '5-50 Nm', '10-100 Nm', '20-200 Nm', '50-500 Nm', '100-1000 Nm',
+      '200-2000 Nm', '500-5000 Nm', '1000-10000 Nm',
+      '45-440 in-lb', '90-880 in-lb', '180-1770 in-lb',
+      '15-150 ft-lb', '75-750 ft-lb', '150-1500 ft-lb'
+    ],
+    'Torkmetre - Elektronik': [
+      '1-20 Nm', '2-50 Nm', '5-100 Nm', '10-200 Nm', '20-500 Nm',
+      '50-1000 Nm', '100-2000 Nm', '200-5000 Nm',
+      '9-177 in-lb', '18-442 in-lb', '44-885 in-lb'
+    ],
+    'Torkmetre - Pneumatik': [
+      '10-100 Nm', '20-200 Nm', '50-500 Nm', '100-1000 Nm',
+      '200-2000 Nm', '500-5000 Nm'
+    ],
+    'Gönye - Çelik': [
+      '90°', '45°', '30°', '60°', '120°', '135°',
+      '0-90°', '0-180°', '0-360°'
+    ],
+    'Gönye - Alüminyum': [
+      '90°', '45°', '30°', '60°', '120°', '135°'
+    ],
+    'Gönye - Ayarlanabilir': [
+      '0-90°', '0-180°', '0-270°', '0-360°',
+      '±45°', '±90°', '±180°'
+    ],
+    'Gönye - Digital': [
+      '0-360°', '±180°', '±90°', '±45°',
+      '0.1° Çözünürlük', '0.05° Çözünürlük', '0.01° Çözünürlük'
+    ],
+    'Terazi - Hassas': [
+      '0-200 g ±0.1 mg', '0-500 g ±0.1 mg', '0-1000 g ±1 mg',
+      '0-2000 g ±10 mg', '0-5000 g ±100 mg',
+      '0-7 oz ±0.000004 oz', '0-18 oz ±0.000004 oz'
+    ],
+    'Terazi - Endüstriyel': [
+      '0-30 kg ±1 g', '0-60 kg ±10 g', '0-150 kg ±50 g',
+      '0-300 kg ±100 g', '0-600 kg ±500 g',
+      '0-66 lb ±0.002 lb', '0-132 lb ±0.02 lb', '0-330 lb ±0.1 lb'
+    ],
+    'Terazi - Analitik': [
+      '0-220 g ±0.01 mg', '0-320 g ±0.01 mg', '0-520 g ±0.1 mg',
+      '0-120 g ±0.001 mg', '0-210 g ±0.01 mg'
+    ],
+    'Terazi - Platform': [
+      '0-50 kg ±10 g', '0-100 kg ±20 g', '0-300 kg ±50 g',
+      '0-500 kg ±100 g', '0-1000 kg ±200 g', '0-3000 kg ±500 g',
+      '0-110 lb ±0.02 lb', '0-660 lb ±0.2 lb', '0-6600 lb ±1 lb'
+    ],
+    'Desibelmetre - Digital': [
+      '30-130 dB', '30-140 dB', '25-140 dB', '20-140 dB',
+      'A-Weighted', 'C-Weighted', 'Z-Weighted',
+      'Fast/Slow Response', 'Peak Hold'
+    ],
+    'Desibelmetre - Analog': [
+      '40-120 dB', '50-130 dB', '30-130 dB',
+      'A-Weighted', 'C-Weighted'
+    ],
+    'Desibelmetre - Integrating': [
+      '20-140 dB', '30-140 dB', '25-135 dB',
+      'LAeq', 'LAFmax', 'LAFmin', 'LA90', 'LA10'
+    ],
+    'Sertlik Ölçüm Cihazı - Rockwell': [
+      '20-88 HRA', '20-100 HRB', '20-70 HRC', '80-100 HRD',
+      '70-100 HRE', '60-100 HRF', '30-94 HRG', '80-100 HRH'
+    ],
+    'Sertlik Ölçüm Cihazı - Shore': [
+      '0-100 Shore A', '0-100 Shore D', '0-100 Shore O',
+      '20-90 Shore A', '30-95 Shore D'
+    ],
+    'Sertlik Ölçüm Cihazı - Leeb': [
+      '170-960 HLD', '80-1000 HLD', '200-800 HLD',
+      'HV 80-940', 'HRC 17-68', 'HRB 13-95'
+    ],
+    'Mihengir - Granit': [
+      '300x200 mm', '500x300 mm', '630x400 mm', '1000x630 mm',
+      '1250x800 mm', '1600x1000 mm', '2000x1250 mm',
+      'Grade 0', 'Grade 1', 'Grade 2', 'Grade 3'
+    ],
+    'Mihengir - Döküm': [
+      '300x200 mm', '500x300 mm', '630x400 mm', '1000x630 mm',
+      '1250x800 mm', 'Grade 1', 'Grade 2', 'Grade 3'
+    ],
+    'Mihengir - Çelik': [
+      '300x200 mm', '500x300 mm', '630x400 mm', '1000x630 mm',
+      'Grade 1', 'Grade 2', 'Sertleştirilmiş'
+    ],
+    'Boya Kalınlık Ölçüm Cihazı - Manyetik': [
+      '0-1000 μm', '0-2000 μm', '0-5000 μm', '0-10000 μm',
+      '0-40 mils', '0-80 mils', '0-200 mils', '0-400 mils'
+    ],
+    'Boya Kalınlık Ölçüm Cihazı - Eddy Current': [
+      '0-500 μm', '0-1000 μm', '0-2000 μm', '0-5000 μm',
+      '0-20 mils', '0-40 mils', '0-80 mils', '0-200 mils'
+    ],
+    'Kızıl Ötesi Termometre': [
+      '-50°C - +550°C', '-30°C - +400°C', '-18°C - +1650°C',
+      '0°C - +500°C', '0°C - +1000°C', '0°C - +1800°C',
+      '-58°F - +1022°F', '-22°F - +752°F', '32°F - +3002°F'
+    ],
+    'İnfrared Termometre - Lazer': [
+      '-50°C - +800°C', '-30°C - +600°C', '0°C - +1200°C',
+      '-58°F - +1472°F', '-22°F - +1112°F', '32°F - +2192°F',
+      'Dual Laser', 'Circle Laser', 'Cross Laser'
+    ],
+    'İnfrared Termometre - Probsuz': [
+      '-40°C - +500°C', '-20°C - +350°C', '0°C - +800°C',
+      '-40°F - +932°F', '-4°F - +662°F', '32°F - +1472°F'
+    ],
+    'Mercekli Açı Ölçer': [
+      '0-90°', '0-180°', '0-360°', '±90°', '±180°',
+      '±1°', '±0.5°', '±0.1°', '±0.05°', '±0.01°'
+    ],
+    'Mercekli Gönye': [
+      '90° ±0.01°', '45° ±0.01°', '30° ±0.01°', '60° ±0.01°',
+      '120° ±0.02°', '135° ±0.02°'
+    ],
+    'Optik Açı Ölçer': [
+      '0-360° ±0.001°', '0-180° ±0.001°', '0-90° ±0.0005°',
+      '±180° ±0.001°', '±90° ±0.0005°', '±45° ±0.0002°'
+    ],
+    'Ölçüm Plate\'i - Granit': [
+      '300x200 mm', '500x300 mm', '630x400 mm', '800x500 mm',
+      '1000x630 mm', '1250x800 mm', '1600x1000 mm', '2000x1250 mm',
+      'Grade 0', 'Grade 1', 'Grade 2', 'Grade 3'
+    ],
+    'Ölçüm Plate\'i - Çelik': [
+      '300x200 mm', '500x300 mm', '630x400 mm', '1000x630 mm',
+      'Grade 1', 'Grade 2', 'Sertleştirilmiş'
+    ],
+    'Ölçüm Plate\'i - Döküm': [
+      '300x200 mm', '500x300 mm', '630x400 mm', '1000x630 mm',
+      '1250x800 mm', 'Grade 1', 'Grade 2'
+    ],
+
     // Varsayılan değerler
     'Diğer': ['0-100', '0-1000', 'Özel Aralık']
   };
@@ -2110,12 +2260,162 @@ const getMeasurementUncertaintiesBySubCategory = () => {
       '±2°F', '±5°F', '±10°F', '±20°F'
     ],
 
+    // Ek Kaynaklı İmalat Ölçüm Cihazları Belirsizlikleri
+    'Kaynak Kumpası - Digital': [
+      '±0.02 mm', '±0.03 mm', '±0.05 mm', '±0.1 mm',
+      '±0.001 inch', '±0.002 inch', '±0.004 inch',
+      '±0.01% rdg ±0.02 mm'
+    ],
+    'Kaynak Kumpası - Analog': [
+      '±0.05 mm', '±0.1 mm', '±0.2 mm', '±0.3 mm',
+      '±0.002 inch', '±0.004 inch', '±0.008 inch'
+    ],
+    'Kaynak Kumpası - V-Groove': [
+      '±0.05 mm', '±0.1 mm', '±0.2 mm', '±0.3 mm',
+      '±0.002 inch', '±0.004 inch', '±0.008 inch',
+      '±0.02 mm (Çap Ölçümü)'
+    ],
+    'Torkmetre - Mekanik': [
+      '±3% FS', '±4% FS', '±5% FS', '±6% FS',
+      '±2% rdg', '±3% rdg', '±4% rdg', '±5% rdg'
+    ],
+    'Torkmetre - Elektronik': [
+      '±0.5% FS', '±1% FS', '±1.5% FS', '±2% FS',
+      '±0.5% rdg ±1 dgt', '±1% rdg ±2 dgt'
+    ],
+    'Torkmetre - Pneumatik': [
+      '±2% FS', '±3% FS', '±4% FS', '±5% FS',
+      '±1.5% rdg', '±2% rdg', '±3% rdg'
+    ],
+    'Gönye - Çelik': [
+      '±0.02°', '±0.05°', '±0.1°', '±0.2°',
+      '±2 arcmin', '±5 arcmin', '±10 arcmin'
+    ],
+    'Gönye - Alüminyum': [
+      '±0.05°', '±0.1°', '±0.2°', '±0.3°',
+      '±3 arcmin', '±6 arcmin', '±12 arcmin'
+    ],
+    'Gönye - Ayarlanabilir': [
+      '±0.1°', '±0.2°', '±0.3°', '±0.5°',
+      '±6 arcmin', '±12 arcmin', '±30 arcmin'
+    ],
+    'Gönye - Digital': [
+      '±0.01°', '±0.02°', '±0.05°', '±0.1°',
+      '±0.6 arcmin', '±1.2 arcmin', '±3 arcmin'
+    ],
+    'Terazi - Hassas': [
+      '±0.1 mg', '±0.2 mg', '±0.5 mg', '±1 mg',
+      '±0.01 g', '±0.02 g', '±0.05 g', '±0.1 g'
+    ],
+    'Terazi - Endüstriyel': [
+      '±1 g', '±2 g', '±5 g', '±10 g', '±20 g',
+      '±0.002 lb', '±0.005 lb', '±0.01 lb', '±0.02 lb'
+    ],
+    'Terazi - Analitik': [
+      '±0.01 mg', '±0.02 mg', '±0.05 mg', '±0.1 mg',
+      '±0.001 g', '±0.002 g', '±0.005 g'
+    ],
+    'Terazi - Platform': [
+      '±10 g', '±20 g', '±50 g', '±100 g', '±200 g',
+      '±0.02 lb', '±0.05 lb', '±0.1 lb', '±0.2 lb'
+    ],
+    'Desibelmetre - Digital': [
+      '±0.1 dB', '±0.2 dB', '±0.5 dB', '±1 dB',
+      '±1.5 dB', '±2 dB', '±0.7 dB (IEC 61672-1)'
+    ],
+    'Desibelmetre - Analog': [
+      '±1 dB', '±1.5 dB', '±2 dB', '±2.5 dB', '±3 dB'
+    ],
+    'Desibelmetre - Integrating': [
+      '±0.2 dB', '±0.5 dB', '±1 dB', '±1.5 dB',
+      '±0.3 dB (LAeq)', '±0.5 dB (LAFmax)'
+    ],
+    'Sertlik Ölçüm Cihazı - Rockwell': [
+      '±0.5 HR', '±1 HR', '±1.5 HR', '±2 HR',
+      '±0.3 HRC', '±0.5 HRC', '±1 HRC'
+    ],
+    'Sertlik Ölçüm Cihazı - Shore': [
+      '±0.5 Shore', '±1 Shore', '±1.5 Shore', '±2 Shore',
+      '±0.3 Shore A', '±0.5 Shore D'
+    ],
+    'Sertlik Ölçüm Cihazı - Leeb': [
+      '±4 HLD', '±6 HLD', '±9 HLD', '±12 HLD',
+      '±3% HV', '±4% HV', '±5% HV'
+    ],
+    'Mihengir - Granit': [
+      '±0.002 mm/m', '±0.003 mm/m', '±0.005 mm/m',
+      '±0.001 mm (Düzlük)', '±0.002 mm (Düzlük)'
+    ],
+    'Mihengir - Döküm': [
+      '±0.005 mm/m', '±0.008 mm/m', '±0.01 mm/m',
+      '±0.003 mm (Düzlük)', '±0.005 mm (Düzlük)'
+    ],
+    'Mihengir - Çelik': [
+      '±0.003 mm/m', '±0.005 mm/m', '±0.008 mm/m',
+      '±0.002 mm (Düzlük)', '±0.003 mm (Düzlük)'
+    ],
+    'Boya Kalınlık Ölçüm Cihazı - Manyetik': [
+      '±1 μm', '±2 μm', '±3 μm', '±5 μm',
+      '±0.04 mils', '±0.08 mils', '±0.12 mils', '±0.2 mils',
+      '±1% rdg ±1 μm', '±2% rdg ±2 μm'
+    ],
+    'Boya Kalınlık Ölçüm Cihazı - Eddy Current': [
+      '±1 μm', '±2 μm', '±3 μm', '±5 μm',
+      '±0.04 mils', '±0.08 mils', '±0.2 mils',
+      '±1% rdg ±1 μm', '±2% rdg ±2 μm'
+    ],
+    'Kızıl Ötesi Termometre': [
+      '±1°C', '±1.5°C', '±2°C', '±3°C', '±5°C',
+      '±2°F', '±3°F', '±4°F', '±6°F', '±9°F',
+      '±1% rdg ±1°C', '±2% rdg ±2°C'
+    ],
+    'İnfrared Termometre - Lazer': [
+      '±0.75°C', '±1°C', '±1.5°C', '±2°C', '±3°C',
+      '±1.5°F', '±2°F', '±3°F', '±4°F', '±5°F',
+      '±0.75% rdg ±1°C', '±1% rdg ±1°C'
+    ],
+    'İnfrared Termometre - Probsuz': [
+      '±1°C', '±2°C', '±3°C', '±5°C',
+      '±2°F', '±4°F', '±6°F', '±9°F',
+      '±1% rdg ±1°C', '±2% rdg ±2°C'
+    ],
+    'Mercekli Açı Ölçer': [
+      '±0.005°', '±0.01°', '±0.02°', '±0.05°',
+      '±0.3 arcmin', '±0.6 arcmin', '±1.2 arcmin', '±3 arcmin',
+      '±18 arcsec', '±36 arcsec', '±72 arcsec'
+    ],
+    'Mercekli Gönye': [
+      '±0.005°', '±0.01°', '±0.02°', '±0.03°',
+      '±0.3 arcmin', '±0.6 arcmin', '±1.2 arcmin',
+      '±18 arcsec', '±36 arcsec'
+    ],
+    'Optik Açı Ölçer': [
+      '±0.001°', '±0.002°', '±0.005°', '±0.01°',
+      '±0.06 arcmin', '±0.12 arcmin', '±0.3 arcmin',
+      '±3.6 arcsec', '±7.2 arcsec', '±18 arcsec'
+    ],
+    'Ölçüm Plate\'i - Granit': [
+      '±0.002 mm/m', '±0.003 mm/m', '±0.005 mm/m',
+      '±0.001 mm (Düzlük)', '±0.002 mm (Düzlük)',
+      '±0.003 mm (Düzlük)', '±0.005 mm (Düzlük)'
+    ],
+    'Ölçüm Plate\'i - Çelik': [
+      '±0.003 mm/m', '±0.005 mm/m', '±0.008 mm/m',
+      '±0.002 mm (Düzlük)', '±0.003 mm (Düzlük)',
+      '±0.005 mm (Düzlük)'
+    ],
+    'Ölçüm Plate\'i - Döküm': [
+      '±0.005 mm/m', '±0.008 mm/m', '±0.01 mm/m',
+      '±0.003 mm (Düzlük)', '±0.005 mm (Düzlük)',
+      '±0.008 mm (Düzlük)'
+    ],
+
     // Varsayılan değerler
     'Diğer': ['±0.1%', '±0.2%', '±0.5%', '±1%', '±2%', '±5%', 'Özel Belirsizlik']
   };
   
   localStorage.setItem('measurement_uncertainties_by_sub_category', JSON.stringify(defaultUncertainties));
-  localStorage.setItem('measurement_uncertainties_version', '2.3');
+  localStorage.setItem('measurement_uncertainties_version', '2.4');
   console.log('✅ Yeni belirsizlik değerleri yüklendi:', Object.keys(defaultUncertainties).length, 'cihaz tipi');
   return defaultUncertainties;
 };
@@ -2300,15 +2600,15 @@ const getEquipmentNamesByCategory = () => {
   const version = localStorage.getItem('equipment_names_version');
   
   // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
-  if (stored && version === '2.3') {
+  if (stored && version === '2.4') {
     try {
       const data = JSON.parse(stored);
       // Ölçüm Cihazları kategorisinde yeni cihazların varlığını kontrol et
       const olcumCihazlari = data['Ölçüm Cihazları'] || [];
-      if (olcumCihazlari.includes('Kaynak Akım Ölçer - Digital') && 
-          olcumCihazlari.includes('Tork Ölçer - Digital') && 
-          olcumCihazlari.includes('Plazma Kesim Güç Ölçer') && 
-          olcumCihazlari.includes('Yaş Film Kalınlığı Ölçer')) {
+      if (olcumCihazlari.includes('Kaynak Kumpası - Digital') && 
+          olcumCihazlari.includes('Torkmetre - Mekanik') && 
+          olcumCihazlari.includes('Gönye - Digital') && 
+          olcumCihazlari.includes('Terazi - Hassas')) {
         return data;
       }
     } catch (e) {
@@ -2402,7 +2702,19 @@ const getEquipmentNamesByCategory = () => {
       'Kontinüite Test Cihazı', 'Megger - İzolasyon Test',
       'ELCB Test Cihazı', 'Faz Sırası Test Cihazı',
       'Motor Test Cihazı', 'Transformatör Test Cihazı',
-      'Kablo Test Cihazı', 'Termik Test Cihazı'
+      'Kablo Test Cihazı', 'Termik Test Cihazı',
+      // Ek Kaynaklı İmalat Ölçüm Cihazları
+      'Kaynak Kumpası - Digital', 'Kaynak Kumpası - Analog', 'Kaynak Kumpası - V-Groove',
+      'Torkmetre - Mekanik', 'Torkmetre - Elektronik', 'Torkmetre - Pneumatik',
+      'Gönye - Çelik', 'Gönye - Alüminyum', 'Gönye - Ayarlanabilir', 'Gönye - Digital',
+      'Terazi - Hassas', 'Terazi - Endüstriyel', 'Terazi - Analitik', 'Terazi - Platform',
+      'Desibelmetre - Digital', 'Desibelmetre - Analog', 'Desibelmetre - Integrating',
+      'Sertlik Ölçüm Cihazı - Rockwell', 'Sertlik Ölçüm Cihazı - Shore', 'Sertlik Ölçüm Cihazı - Leeb',
+      'Mihengir - Granit', 'Mihengir - Döküm', 'Mihengir - Çelik',
+      'Boya Kalınlık Ölçüm Cihazı - Manyetik', 'Boya Kalınlık Ölçüm Cihazı - Eddy Current',
+      'Kızıl Ötesi Termometre', 'İnfrared Termometre - Lazer', 'İnfrared Termometre - Probsuz',
+      'Mercekli Açı Ölçer', 'Mercekli Gönye', 'Optik Açı Ölçer',
+      'Ölçüm Plate\'i - Granit', 'Ölçüm Plate\'i - Çelik', 'Ölçüm Plate\'i - Döküm'
     ],
 
     'Açı Ölçüm Cihazları': [
@@ -2561,7 +2873,7 @@ const getEquipmentNamesByCategory = () => {
   };
   
   localStorage.setItem('equipment_names_by_category', JSON.stringify(defaultEquipmentNames));
-  localStorage.setItem('equipment_names_version', '2.3');
+  localStorage.setItem('equipment_names_version', '2.4');
   console.log('✅ Yeni ekipman adları yüklendi - Ölçüm Cihazları:', defaultEquipmentNames['Ölçüm Cihazları'].length, 'adet');
   return defaultEquipmentNames;
 };
