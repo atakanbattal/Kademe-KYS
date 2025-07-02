@@ -3260,7 +3260,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Box>
 
       <TableContainer component={Paper} sx={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: 2 }}>
-        <Table sx={{ minWidth: 1380 }}>
+        <Table sx={{ minWidth: 1420 }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'primary.50', '& .MuiTableCell-head': { borderBottom: '2px solid', borderColor: 'primary.200' } }}>
               <TableCell 
@@ -3302,28 +3302,15 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '280px',
+                  width: '320px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
                   fontSize: '0.9rem'
                 }}
               >
-                <Box display="flex" alignItems="center" gap={1}>
-                  <Typography variant="subtitle2" fontWeight={700}>
-                    Alt Kategoriler
-                  </Typography>
-                  <Chip 
-                    size="small" 
-                    label="Hover" 
-                    color="info" 
-                    variant="outlined"
-                    sx={{ 
-                      fontSize: '0.65rem', 
-                      height: '18px',
-                      opacity: 0.7
-                    }} 
-                  />
-                </Box>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Alt Kategoriler
+                </Typography>
               </TableCell>
               <TableCell 
                 sx={{ 
@@ -3482,7 +3469,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   />
                 </TableCell>
-                <TableCell sx={{ width: '280px', verticalAlign: 'top', padding: '12px 8px' }}>
+                <TableCell sx={{ width: '320px', verticalAlign: 'top', padding: '12px 8px' }}>
                   <Box sx={{ 
                     maxHeight: '100px', 
                     overflow: 'auto',
@@ -3502,8 +3489,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       <Box display="flex" flexWrap="wrap" gap={0.75}>
                         {supplier.supplySubcategories.map((subcategory, index) => {
                           // Alt kategori ismini kısalt
-                          const shortLabel = subcategory.length > 25 
-                            ? subcategory.substring(0, 25) + '...' 
+                          const shortLabel = subcategory.length > 35 
+                            ? subcategory.substring(0, 35) + '...' 
                             : subcategory;
                           
                           return (
@@ -3521,7 +3508,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                 sx={{ 
                                   fontSize: '0.75rem', 
                                   height: '26px',
-                                  maxWidth: '140px',
+                                  maxWidth: '180px',
                                   fontWeight: 500,
                                   cursor: 'help',
                                   border: '1.5px solid',
