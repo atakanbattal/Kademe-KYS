@@ -108,6 +108,8 @@ import {
   Update as UpdateIcon,
   Work as WorkIcon,
   Save as SaveIcon,
+  EmojiEvents as EmojiEventsIcon,
+  Calculate as CalculateIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -6170,6 +6172,60 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
 
 
+        {/* ✨ View Mode Kontrolcüleri */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: 3,
+          p: 2,
+          bgcolor: 'grey.50',
+          borderRadius: 2
+        }}>
+          <Typography variant="h5" fontWeight={600}>
+            Araç Performans Görünümü
+          </Typography>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant={viewMode === 'cards' ? 'contained' : 'outlined'}
+              startIcon={<VehicleIcon />}
+              onClick={() => setViewMode('cards')}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600 
+              }}
+            >
+              Kartlar
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'contained' : 'outlined'}
+              startIcon={<EmojiEventsIcon />}
+              onClick={() => setViewMode('table')}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600 
+              }}
+            >
+              Liderlik Tablosu
+            </Button>
+            <Button
+              variant={viewMode === 'charts' ? 'contained' : 'outlined'}
+              startIcon={<BarChartIcon />}
+              onClick={() => setViewMode('charts')}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600 
+              }}
+            >
+              Grafik
+            </Button>
+          </Box>
+        </Box>
+
         {/* Ana İçerik Alanı */}
         {viewMode === 'cards' && (
           <>
@@ -6210,27 +6266,472 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         )}
 
         {viewMode === 'table' && (
-          <Paper sx={{ p: 3, borderRadius: 2 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-              Detaylı Araç Performans Tablosu
-            </Typography>
-            {/* Tablo implementasyonu buraya gelecek */}
-            <Typography variant="body2" color="text.secondary">
-              Tablo görünümü yakında eklenecek...
-            </Typography>
-          </Paper>
+          <Box>
+            {/* 🏆 Performans Leaderboard */}
+            <Paper sx={{ p: 0, borderRadius: 3, overflow: 'hidden', mb: 3 }}>
+              {/* Header */}
+              <Box sx={{ 
+                background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+                color: 'white',
+                p: 3,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <EmojiEventsIcon sx={{ fontSize: 32 }} />
+                  <Box>
+                    <Typography variant="h5" fontWeight={700}>
+                      Araç Performans Liderlik Tablosu
+                    </Typography>
+                    <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+                      Maliyet bazında sıralama ve hedef karşılaştırması
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h4" fontWeight={700}>
+                    {vehicleAnalysis.length}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                    Aktif Kategori
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Leaderboard List */}
+              <Box sx={{ maxHeight: '70vh', overflow: 'auto' }}>
+                {vehicleAnalysis.map((vehicle, index) => {
+                  const productionData = getProductionDataForVehicle(vehicle);
+                  const perVehicleCosts = calculatePerVehicleCosts(vehicle, productionData.uretilenAdet);
+                  const isTopPerformer = index < 3;
+                  const isCritical = vehicle.hedefKarsilastirma?.durum === 'kritik';
+                  const isWarning = vehicle.hedefKarsilastirma?.durum === 'dikkat';
+                  
+                  // Podyum renkleri
+                  const getRankColor = (rank: number) => {
+                    switch(rank) {
+                      case 0: return '#FFD700'; // Altın
+                      case 1: return '#C0C0C0'; // Gümüş
+                      case 2: return '#CD7F32'; // Bronz
+                      default: return '#666';
+                    }
+                  };
+
+                  return (
+                    <Box 
+                      key={vehicle.kategori || vehicle.aracModeli}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        p: 2,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        backgroundColor: isCritical ? 'error.light' : 
+                                      isWarning ? 'warning.light' : 
+                                      isTopPerformer ? 'success.light' : 'transparent',
+                        '&:hover': {
+                          backgroundColor: isCritical ? 'error.main' : 
+                                          isWarning ? 'warning.main' : 
+                                          'action.hover',
+                          cursor: 'pointer'
+                        },
+                        transition: 'all 0.2s ease'
+                      }}
+                      onClick={() => setVehicleDetailModal({ open: true, vehicle })}
+                    >
+                      {/* Sıra Numarası ve Podyum */}
+                      <Box sx={{ 
+                        minWidth: 80, 
+                        textAlign: 'center',
+                        mr: 2
+                      }}>
+                        {index < 3 ? (
+                          <Box sx={{ 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 0.5 
+                          }}>
+                            <EmojiEventsIcon 
+                              sx={{ 
+                                fontSize: 28,
+                                color: getRankColor(index)
+                              }} 
+                            />
+                            <Typography 
+                              variant="h6" 
+                              fontWeight={700}
+                              sx={{ color: getRankColor(index) }}
+                            >
+                              #{index + 1}
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography 
+                            variant="h5" 
+                            fontWeight={600}
+                            color="text.secondary"
+                          >
+                            #{index + 1}
+                          </Typography>
+                        )}
+                      </Box>
+
+                      {/* Araç Bilgileri */}
+                      <Box sx={{ flex: 1, mr: 2 }}>
+                        <Typography 
+                          variant="h6" 
+                          fontWeight={600}
+                          color={isCritical ? 'error.dark' : isWarning ? 'warning.dark' : 'text.primary'}
+                        >
+                          {vehicle.displayName || vehicle.kategori || vehicle.aracModeli}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {vehicle.toplam.kayitSayisi} kayıt • {vehicle.categoryModels?.length || 0} model
+                        </Typography>
+                      </Box>
+
+                      {/* Performans Metrikleri Grid */}
+                      <Grid container spacing={2} sx={{ flex: 2 }}>
+                        {/* Toplam Maliyet */}
+                        <Grid item xs={6} sm={3}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="h6" fontWeight={700} color="error.main">
+                              ₺{vehicle.toplam.toplamMaliyet.toLocaleString()}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Toplam Maliyet
+                            </Typography>
+                          </Box>
+                        </Grid>
+
+                        {/* Hedef Durumu */}
+                        <Grid item xs={6} sm={3}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Chip
+                              label={`%${vehicle.hedefKarsilastirma?.sapmaYuzdesi?.toFixed(1) || '0'}`}
+                              color={
+                                vehicle.hedefKarsilastirma?.durum === 'basarili' ? 'success' :
+                                vehicle.hedefKarsilastirma?.durum === 'dikkat' ? 'warning' : 'error'
+                              }
+                              sx={{ fontWeight: 'bold', minWidth: 70 }}
+                            />
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              Hedef Sapması
+                            </Typography>
+                          </Box>
+                        </Grid>
+
+                        {/* Üretim Verisi */}
+                        <Grid item xs={6} sm={3}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="h6" fontWeight={700} color="primary.main">
+                              {productionData.uretilenAdet || 0}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Üretilen Adet
+                            </Typography>
+                          </Box>
+                        </Grid>
+
+                        {/* Birim Maliyet */}
+                        <Grid item xs={6} sm={3}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <Typography variant="h6" fontWeight={700} color="warning.main">
+                              ₺{perVehicleCosts.totalPerVehicle.toLocaleString()}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Araç Başı
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+
+                      {/* Trend ve Detay Göstergeleri */}
+                      <Box sx={{ 
+                        minWidth: 120, 
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 1
+                      }}>
+                        {/* Trend İkonu */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {vehicle.trend.trendYonu === 'yukselis' && 
+                            <TrendingUpIcon color="error" sx={{ fontSize: 20 }} />
+                          }
+                          {vehicle.trend.trendYonu === 'dususte' && 
+                            <TrendingDownIcon color="success" sx={{ fontSize: 20 }} />
+                          }
+                          {vehicle.trend.trendYonu === 'stabil' && 
+                            <TrendingFlatIcon color="info" sx={{ fontSize: 20 }} />
+                          }
+                          <Typography variant="caption" color="text.secondary">
+                            {vehicle.trend.trendYonu === 'yukselis' ? 'Artan' :
+                             vehicle.trend.trendYonu === 'dususte' ? 'Azalan' : 'Stabil'}
+                          </Typography>
+                        </Box>
+
+                        {/* Detay İkonu */}
+                        <IconButton size="small" color="primary">
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  );
+                                 })}
+               </Box>
+
+               {/* Alt Özet Dashboard */}
+               <Box sx={{ 
+                 p: 2,
+                 backgroundColor: 'grey.50',
+                 borderTop: '1px solid',
+                 borderColor: 'divider'
+               }}>
+                 <Grid container spacing={2} alignItems="center">
+                   <Grid item xs={12} sm={6} md={3}>
+                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                       <MoneyIcon color="error" />
+                       <Box>
+                         <Typography variant="h6" fontWeight={700}>
+                           ₺{summaryStats.totalCost.toLocaleString()}
+                         </Typography>
+                         <Typography variant="caption" color="text.secondary">
+                           Toplam COPQ
+                         </Typography>
+                       </Box>
+                     </Box>
+                   </Grid>
+                   
+                   <Grid item xs={12} sm={6} md={3}>
+                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                       <TrendingUpIcon color="success" />
+                       <Box>
+                         <Typography variant="h6" fontWeight={700} color="success.main">
+                           {summaryStats.improvingVehicles}
+                         </Typography>
+                         <Typography variant="caption" color="text.secondary">
+                           İyileşen Kategori
+                         </Typography>
+                       </Box>
+                     </Box>
+                   </Grid>
+                   
+                   <Grid item xs={12} sm={6} md={3}>
+                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                       <WarningIcon color="error" />
+                       <Box>
+                         <Typography variant="h6" fontWeight={700} color="error.main">
+                           {summaryStats.criticalVehicles}
+                         </Typography>
+                         <Typography variant="caption" color="text.secondary">
+                           Kritik Kategori
+                         </Typography>
+                       </Box>
+                     </Box>
+                   </Grid>
+                   
+                   <Grid item xs={12} sm={6} md={3}>
+                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                       <CalculateIcon color="primary" />
+                       <Box>
+                         <Typography variant="h6" fontWeight={700} color="primary.main">
+                           ₺{summaryStats.avgCostPerVehicle.toLocaleString()}
+                         </Typography>
+                         <Typography variant="caption" color="text.secondary">
+                           Ort. Kategori Maliyet
+                         </Typography>
+                       </Box>
+                     </Box>
+                   </Grid>
+                 </Grid>
+               </Box>
+             </Paper>
+
+             {/* 📊 Hızlı Karşılaştırma Grafik */}
+             <Paper sx={{ p: 3, borderRadius: 3 }}>
+               <Typography variant="h6" fontWeight={600} gutterBottom>
+                 Hızlı Performans Karşılaştırması
+               </Typography>
+               <Box sx={{ height: 400, mt: 2 }}>
+                 <ResponsiveContainer width="100%" height="100%">
+                   <BarChart data={vehicleAnalysis.slice(0, 10)} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                     <CartesianGrid strokeDasharray="3 3" />
+                     <XAxis 
+                       dataKey="displayName" 
+                       angle={-45}
+                       textAnchor="end"
+                       height={100}
+                       fontSize={11}
+                     />
+                     <YAxis tickFormatter={(value) => `₺${(value/1000).toFixed(0)}K`} />
+                     <ChartTooltip 
+                       formatter={(value, name) => [`₺${value.toLocaleString()}`, 'Toplam Maliyet']}
+                       labelStyle={{ fontWeight: 'bold' }}
+                     />
+                     <Bar 
+                       dataKey="toplam.toplamMaliyet" 
+                       fill="#8884d8"
+                       name="Toplam Maliyet"
+                     >
+                       {vehicleAnalysis.slice(0, 10).map((entry, index) => (
+                         <Cell 
+                           key={`cell-${index}`} 
+                           fill={
+                             entry.hedefKarsilastirma?.durum === 'kritik' ? '#f44336' :
+                             entry.hedefKarsilastirma?.durum === 'dikkat' ? '#ff9800' : '#4caf50'
+                           } 
+                         />
+                       ))}
+                     </Bar>
+                   </BarChart>
+                 </ResponsiveContainer>
+               </Box>
+             </Paper>
+           </Box>
         )}
 
         {viewMode === 'charts' && (
-          <Paper sx={{ p: 3, borderRadius: 2 }}>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-              Araç Performans Grafikleri
-            </Typography>
-            {/* Grafik implementasyonu buraya gelecek */}
-            <Typography variant="body2" color="text.secondary">
-              Grafik görünümü yakında eklenecek...
-            </Typography>
-          </Paper>
+          <Grid container spacing={3}>
+            {/* 📊 Toplam Maliyet Karşılaştırması */}
+            <Grid item xs={12} lg={6}>
+              <Paper sx={{ p: 3, borderRadius: 3 }}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  Kategori Maliyet Karşılaştırması
+                </Typography>
+                <Box sx={{ height: 400, mt: 2 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={vehicleAnalysis.slice(0, 8)} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="displayName" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        fontSize={10}
+                      />
+                      <YAxis tickFormatter={(value) => `₺${(value/1000).toFixed(0)}K`} />
+                      <ChartTooltip 
+                        formatter={(value, name) => [`₺${value.toLocaleString()}`, 'Toplam Maliyet']}
+                        labelStyle={{ fontWeight: 'bold' }}
+                      />
+                      <Bar 
+                        dataKey="toplam.toplamMaliyet" 
+                        name="Toplam Maliyet"
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {vehicleAnalysis.slice(0, 8).map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={
+                              entry.hedefKarsilastirma?.durum === 'kritik' ? '#f44336' :
+                              entry.hedefKarsilastirma?.durum === 'dikkat' ? '#ff9800' : '#4caf50'
+                            } 
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* 🎯 Hedef Başarım Dağılımı */}
+            <Grid item xs={12} lg={6}>
+              <Paper sx={{ p: 3, borderRadius: 3 }}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  Hedef Başarım Dağılımı
+                </Typography>
+                <Box sx={{ height: 400, mt: 2 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { 
+                            name: 'Başarılı', 
+                            value: vehicleAnalysis.filter(v => v.hedefKarsilastirma?.durum === 'basarili').length,
+                            fill: '#4caf50'
+                          },
+                          { 
+                            name: 'Dikkat', 
+                            value: vehicleAnalysis.filter(v => v.hedefKarsilastirma?.durum === 'dikkat').length,
+                            fill: '#ff9800'
+                          },
+                          { 
+                            name: 'Kritik', 
+                            value: vehicleAnalysis.filter(v => v.hedefKarsilastirma?.durum === 'kritik').length,
+                            fill: '#f44336'
+                          }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={120}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(1)}%)`}
+                      />
+                      <ChartTooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* 📈 Trend Analizi */}
+            <Grid item xs={12}>
+              <Paper sx={{ p: 3, borderRadius: 3 }}>
+                <Typography variant="h6" fontWeight={600} gutterBottom>
+                  Araç Başı Maliyet Detayları
+                </Typography>
+                <Box sx={{ height: 500, mt: 2 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={vehicleAnalysis.slice(0, 10)} margin={{ top: 20, right: 30, left: 20, bottom: 100 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="displayName" 
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        fontSize={10}
+                      />
+                      <YAxis yAxisId="left" tickFormatter={(value) => `₺${(value/1000).toFixed(0)}K`} />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <ChartTooltip 
+                        formatter={(value, name) => [
+                          typeof value === 'number' && typeof name === 'string' && name.includes('Maliyet') 
+                            ? `₺${value.toLocaleString()}` 
+                            : value, 
+                          name
+                        ]}
+                        labelStyle={{ fontWeight: 'bold' }}
+                      />
+                      <Legend />
+                      <Bar 
+                        yAxisId="left"
+                        dataKey="toplam.toplamMaliyet" 
+                        name="Toplam Maliyet"
+                        fill="#8884d8"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Line 
+                        yAxisId="right"
+                        type="monotone" 
+                        dataKey="toplam.kayitSayisi" 
+                        name="Kayıt Sayısı"
+                        stroke="#ff7300"
+                        strokeWidth={3}
+                        dot={{ fill: '#ff7300', strokeWidth: 2, r: 4 }}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
         )}
 
         {/* 📊 Araç Detay Modal */}
