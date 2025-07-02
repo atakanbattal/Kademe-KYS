@@ -1452,21 +1452,30 @@ export default function QualityCostManagement() {
   // 📊 YENİ: SAMPLE DATA GENERATION FOR UNIFIED SYSTEM
   // ============================================
 
-  // ✅ HEDEF YÖNETİMİ: Akıllı Hedef Yönetimi sekmesinden hedefleri çek
+  // ✅ PERFORMANS VERİLERİ: Araç Başı Performans Girişi sekmesinden performans verilerini çek
   const loadVehicleTargetsFromStorage = useCallback((): VehicleTarget[] => {
     try {
+      // Önce yeni performans veri sistemini kontrol et
+      const savedPerformanceData = localStorage.getItem('vehicle-performance-data');
+      if (savedPerformanceData) {
+        const parsedData = JSON.parse(savedPerformanceData);
+        console.log('🚗 Performans verileri Araç Başı Performans Girişi\'nden yüklendi:', parsedData.length);
+        return parsedData;
+      }
+      
+      // Eski sistemle uyumluluk için vehicle-targets kontrolü
       const savedTargets = localStorage.getItem('vehicle-targets');
       if (savedTargets) {
         const parsedTargets = JSON.parse(savedTargets);
-        console.log('🎯 Hedefler Akıllı Hedef Yönetimi\'nden yüklendi:', parsedTargets.length);
+        console.log('🔄 Eski hedef verileri performans verileri olarak yüklendi:', parsedTargets.length);
         return parsedTargets;
       }
     } catch (error) {
-      console.error('Hedefler yüklenirken hata:', error);
+      console.error('Performans verileri yüklenirken hata:', error);
     }
     
-    // Eğer hiç hedef yoksa boş array döndür (otomatik hedef oluşturma)
-    console.log('⚠️ Henüz hedef belirlenmemiş. Akıllı Hedef Yönetimi sekmesinden hedef oluşturun.');
+    // Eğer hiç performans verisi yoksa boş array döndür
+    console.log('⚠️ Henüz performans verisi girilmemiş. Araç Başı Performans Girişi sekmesinden veri girin.');
     return [];
   }, []);
 
@@ -5688,7 +5697,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     </Box>
                     
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3, fontStyle: 'italic' }}>
-                      Bu kategorinin performansını ölçebilmek için önce "Hedef Yönetimi" sekmesinden hedefler belirlemelisiniz.
+                      Bu kategorinin performansını görebilmek için önce "Araç Başı Performans Girişi" sekmesinden gerçekleşen performans verilerini girmelisiniz.
                     </Typography>
                     
                     <Button
@@ -5698,7 +5707,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       fullWidth
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Hedef Yönetimi sekmesine geç (tab index 4)
+                        // Araç Başı Performans Girişi sekmesine geç (tab index 4)
                         setCurrentTab(4);
                         // Scroll to top
                         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -5714,12 +5723,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         }
                       }}
                     >
-                      🎯 Hedef Yönetimi Sekmesine Git
+                      🚗 Araç Başı Performans Girişi Sekmesine Git
                     </Button>
                     
                     <Box sx={{ mt: 2, p: 1.5, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
                       <Typography variant="caption" color="info.dark" sx={{ fontWeight: 500 }}>
-                        💡 İpucu: Hedef Yönetimi sekmesinde bu kategori için Ret, Hurda ve Fire hedeflerini adet/kg cinsinden belirleyebilirsiniz.
+                        💡 İpucu: Araç Başı Performans Girişi sekmesinde bu kategori için gerçekleşen Ret, Hurda ve Fire verilerini adet/kg cinsinden girebilirsiniz.
                     </Typography>
                     </Box>
                   </Box>
@@ -6943,8 +6952,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             iconPosition="start"
           />
           <Tab 
-            icon={<TargetIcon />} 
-                            label="Hedef Yönetimi" 
+            icon={<DirectionsCarIcon />} 
+            label="Araç Başı Performans Girişi" 
             iconPosition="start"
           />
           <Tab 
@@ -6989,7 +6998,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           realTimeData={realTimeAnalytics} 
           filteredData={globalFilteredData}
           vehicleTargets={vehicleTargets}
-          onAddTarget={() => setCurrentTab(4)} // Akıllı Hedef Yönetimi sekmesine yönlendir
+          onAddTarget={() => setCurrentTab(4)} // Araç Başı Performans Girişi sekmesine yönlendir
           onEditTarget={(target) => {
             // Hedef düzenleme modalını aç
             console.log('Hedef düzenle:', target);
@@ -6997,12 +7006,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           onVehiclePerformanceClick={handleVehiclePerformanceClick}
         />}
         {currentTab === 3 && <AnalyticsDashboard realTimeData={realTimeAnalytics} filteredData={globalFilteredData} />}
-        {currentTab === 4 &&             <SmartTargetManagementComponent 
+        {currentTab === 4 &&             <VehiclePerformanceDataComponent 
               realTimeData={realTimeAnalytics}
               filteredData={globalFilteredData}
               onDataRefresh={() => {
                 setDataRefreshTrigger(prev => prev + 1);
-                // Hedefler güncellendiğinde araç bazlı takip modülünü de güncelle
+                // Performans verileri güncellendiğinde araç bazlı takip modülünü de güncelle
                 const updatedTargets = loadVehicleTargetsFromStorage();
                 setVehicleTargets(updatedTargets);
               }}
@@ -12951,68 +12960,80 @@ const MaterialPricingManagementComponent: React.FC = () => {
 };
 
 // ✅ Context7: Professional Cost Settings System - Centralized Management
-// 🎯 Akıllı Hedef Yönetimi Komponenti
-const SmartTargetManagementComponent: React.FC<{ 
+// 🚗 Araç Başı Performans Veri Girişi Komponenti
+const VehiclePerformanceDataComponent: React.FC<{ 
   realTimeData?: any, 
   filteredData?: any[],
   onDataRefresh?: () => void
 }> = ({ realTimeData, filteredData = [], onDataRefresh }) => {
-  const [vehicleTargets, setVehicleTargets] = useState<VehicleTarget[]>([]);
+  const [vehiclePerformanceData, setVehiclePerformanceData] = useState<VehicleTarget[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<'ay' | 'ceyrek' | 'yil'>('ay');
   const [selectedVehicles, setSelectedVehicles] = useState<VehicleModel[]>([]);
-  const [bulkTargetDialogOpen, setBulkTargetDialogOpen] = useState(false);
-  const [targetFormData, setTargetFormData] = useState<Partial<VehicleTarget>>({});
-  const [editingTarget, setEditingTarget] = useState<VehicleTarget | null>(null);
-  const [editTargetDialogOpen, setEditTargetDialogOpen] = useState(false);
+  const [bulkDataDialogOpen, setBulkDataDialogOpen] = useState(false);
+  const [performanceFormData, setPerformanceFormData] = useState<Partial<VehicleTarget>>({});
+  const [editingPerformanceData, setEditingPerformanceData] = useState<VehicleTarget | null>(null);
+  const [editPerformanceDialogOpen, setEditPerformanceDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
-  // localStorage'dan hedefleri yükle ve eski formatları güncelle
+  // localStorage'dan performans verilerini yükle ve eski formatları güncelle
   useEffect(() => {
-    const savedTargets = localStorage.getItem('vehicle-targets');
-    if (savedTargets) {
+    const savedPerformanceData = localStorage.getItem('vehicle-performance-data');
+    if (savedPerformanceData) {
       try {
-        const parsedTargets = JSON.parse(savedTargets);
+        const parsedData = JSON.parse(savedPerformanceData);
         
         // Eski formatları yeni formata dönüştür
-        const updatedTargets = parsedTargets.map((target: VehicleTarget) => {
-          if (target.donem.includes('MONTHLY')) {
+        const updatedData = parsedData.map((item: VehicleTarget) => {
+          if (item.donem.includes('MONTHLY')) {
             return {
-              ...target,
-              donem: target.donem.replace('-MONTHLY', ' Yılı Aylık Hedef')
+              ...item,
+              donem: item.donem.replace('-MONTHLY', ' Yılı Aylık Performans').replace('Hedef', 'Performans')
             };
-          } else if (target.donem.includes('QUARTERLY')) {
+          } else if (item.donem.includes('QUARTERLY')) {
             return {
-              ...target,
-              donem: target.donem.replace('-QUARTERLY', ' Yılı Çeyreklik Hedef')
+              ...item,
+              donem: item.donem.replace('-QUARTERLY', ' Yılı Çeyreklik Performans').replace('Hedef', 'Performans')
             };
-          } else if (target.donem.match(/^\d{4}$/)) {
+          } else if (item.donem.match(/^\d{4}$/)) {
             return {
-              ...target,
-              donem: `${target.donem} Yılı Hedef`
+              ...item,
+              donem: `${item.donem} Yılı Performans`
             };
           }
-          return target;
+          return item;
         });
         
-        // Güncellenen hedefleri kaydet
-        if (JSON.stringify(parsedTargets) !== JSON.stringify(updatedTargets)) {
-          localStorage.setItem('vehicle-targets', JSON.stringify(updatedTargets));
-          console.log('🔄 Hedef formatları güncellendi');
+        // Güncellenen performans verilerini kaydet
+        if (JSON.stringify(parsedData) !== JSON.stringify(updatedData)) {
+          localStorage.setItem('vehicle-performance-data', JSON.stringify(updatedData));
+          console.log('🔄 Performans veri formatları güncellendi');
         }
         
-        setVehicleTargets(updatedTargets);
+        setVehiclePerformanceData(updatedData);
       } catch (error) {
-        console.error('Hedefler yüklenirken hata:', error);
+        console.error('Performans verileri yüklenirken hata:', error);
+      }
+    } else {
+      // Eski sisteme uyumluluk: vehicle-targets'dan yükle
+      const oldTargets = localStorage.getItem('vehicle-targets');
+      if (oldTargets) {
+        try {
+          const parsedOldData = JSON.parse(oldTargets);
+          setVehiclePerformanceData(parsedOldData);
+          console.log('🔄 Eski hedef verileri performans verileri olarak yüklendi');
+        } catch (error) {
+          console.error('Eski veri yüklemede hata:', error);
+        }
       }
     }
   }, []);
 
-  // Hedefleri localStorage'a kaydet
+  // Performans verilerini localStorage'a kaydet
   useEffect(() => {
-    if (vehicleTargets.length > 0) {
-      localStorage.setItem('vehicle-targets', JSON.stringify(vehicleTargets));
+    if (vehiclePerformanceData.length > 0) {
+      localStorage.setItem('vehicle-performance-data', JSON.stringify(vehiclePerformanceData));
     }
-  }, [vehicleTargets]);
+  }, [vehiclePerformanceData]);
 
   // 🚗 KATEGORİ BAZLI hedef yönetimi 
   const vehicleCategories: VehicleCategory[] = [
@@ -13027,43 +13048,79 @@ const SmartTargetManagementComponent: React.FC<{
 
   const [selectedCategories, setSelectedCategories] = useState<VehicleCategory[]>([]);
 
-  // 🔄 ESKİ HEDEFLERİ TEMİZLEME FONKSİYONU
-  const clearOldTargetsAndReset = () => {
-    if (window.confirm('⚠️ Eski hedef sistemi temizlenecek ve yeni template sistemi aktif edilecek.\n\nBu işlem geri alınamaz. Devam etmek istiyor musunuz?')) {
-      // localStorage'daki eski hedefleri temizle
-      localStorage.removeItem('vehicle-targets');
+  // 🔄 ESKİ PERFORMANS VERİLERİNİ TEMİZLEME FONKSİYONU
+  const clearOldPerformanceDataAndReset = () => {
+    if (window.confirm('⚠️ Eski performans verileri temizlenecek ve yeni veri girişi sistemi aktif edilecek.\n\nBu işlem geri alınamaz. Devam etmek istiyor musunuz?')) {
+      // localStorage'daki eski verileri temizle
+      localStorage.removeItem('vehicle-performance-data');
+      localStorage.removeItem('vehicle-targets'); // Eski sistem uyumluluğu
       
       // State'i sıfırla
-      setVehicleTargets([]);
+      setVehiclePerformanceData([]);
       
       // Veri yenileme tetikle
       if (onDataRefresh) {
         onDataRefresh();
       }
       
-      alert('✅ Eski hedefler temizlendi! Artık yeni template sistemi ile hedef oluşturabilirsiniz.');
+      alert('✅ Eski performans verileri temizlendi! Artık yeni veri girişi sistemi ile araç performanslarını girebilirsiniz.');
     }
   };
 
-  // 🚗 KATEGORİ BAZLI toplu hedef belirleme - DÜZELTME: Her dönem için geçerli hedefler
-  const handleBulkTargetSet = () => {
+  // Performans verisi düzenleme
+  const handleEditPerformanceData = (performanceData: VehicleTarget) => {
+    setEditingPerformanceData(performanceData);
+    setPerformanceFormData(performanceData);
+    setEditPerformanceDialogOpen(true);
+  };
+
+  // Performans verisi güncelleme kaydetme
+  const handleSaveEditedPerformanceData = () => {
+    if (!editingPerformanceData || !performanceFormData) return;
+
+    const updatedData: VehicleTarget = {
+      ...editingPerformanceData,
+      ...performanceFormData,
+      updatedDate: new Date().toISOString()
+    };
+
+    setVehiclePerformanceData(prev => 
+      prev.map(data => 
+        data.id === editingPerformanceData.id ? updatedData : data
+      )
+    );
+
+    setEditPerformanceDialogOpen(false);
+    setEditingPerformanceData(null);
+    setPerformanceFormData({});
+  };
+
+  // Performans verisi silme
+  const handleDeletePerformanceData = (dataId: string) => {
+    if (window.confirm('Bu performans verisini silmek istediğinizden emin misiniz?')) {
+      setVehiclePerformanceData(prev => prev.filter(t => t.id !== dataId));
+    }
+  };
+
+  // 🚗 KATEGORİ BAZLI toplu performans verisi girişi - Gerçekleşen araç başı performans verileri
+  const handleBulkPerformanceDataSet = () => {
     if (selectedCategories.length === 0) {
       alert('Lütfen en az bir kategori seçin');
       return;
     }
 
     const currentYear = new Date().getFullYear();
-    const newTargets: VehicleTarget[] = [];
+    const newPerformanceData: VehicleTarget[] = [];
 
     selectedCategories.forEach(kategori => {
       const currentDate = new Date().toISOString();
       
       if (selectedPeriod === 'ay') {
-        // 🗓️ AYLIK HEDEF: Tek aylık hedef template'i - tüm aylar için aynı hedef geçerli
-        newTargets.push({
-          id: `target-${kategori}-${currentYear}-monthly-${Date.now()}`,
+        // 🗓️ AYLIK PERFORMANS: Gerçekleşen aylık araç başı performans verileri
+        newPerformanceData.push({
+          id: `performance-${kategori}-${currentYear}-monthly-${Date.now()}`,
           kategori,
-          donem: `${currentYear} Yılı Aylık Hedef`, // Profesyonel görünüm
+          donem: `${currentYear} Yılı Aylık Performans`, // Gerçekleşen veri
           donemTuru: 'ay',
           hedefler: {
             maksRetAdet: 5,        // Aylık hedef
@@ -13098,11 +13155,11 @@ const SmartTargetManagementComponent: React.FC<{
           isActive: true
         });
       } else if (selectedPeriod === 'ceyrek') {
-        // 🗓️ ÇEYREKLİK HEDEF: Tek çeyreklik hedef template'i
-        newTargets.push({
-          id: `target-${kategori}-${currentYear}-quarterly-${Date.now()}`,
+        // 🗓️ ÇEYREKLİK PERFORMANS: Gerçekleşen çeyreklik araç başı performans verileri
+        newPerformanceData.push({
+          id: `performance-${kategori}-${currentYear}-quarterly-${Date.now()}`,
           kategori,
-          donem: `${currentYear} Yılı Çeyreklik Hedef`, // Profesyonel görünüm
+          donem: `${currentYear} Yılı Çeyreklik Performans`, // Gerçekleşen veri
           donemTuru: 'ceyrek',
           hedefler: {
             maksRetAdet: 15,      // Çeyreklik hedef (3 aylık)
@@ -13137,11 +13194,11 @@ const SmartTargetManagementComponent: React.FC<{
           isActive: true
         });
       } else {
-        // 🗓️ YILLIK HEDEF: Tek yıllık hedef
-        newTargets.push({
-          id: `target-${kategori}-${currentYear}-yearly-${Date.now()}`,
+        // 🗓️ YILLIK PERFORMANS: Gerçekleşen yıllık araç başı performans verileri
+        newPerformanceData.push({
+          id: `performance-${kategori}-${currentYear}-yearly-${Date.now()}`,
           kategori,
-          donem: `${currentYear} Yılı Hedef`,
+          donem: `${currentYear} Yılı Performans`,
           donemTuru: 'yil',
           hedefler: {
             maksRetAdet: 60,      // Yıllık hedef (12 aylık)
@@ -13178,59 +13235,26 @@ const SmartTargetManagementComponent: React.FC<{
       }
     });
 
-    setVehicleTargets(prev => [...prev, ...newTargets]);
-    setBulkTargetDialogOpen(false);
+    setVehiclePerformanceData(prev => [...prev, ...newPerformanceData]);
+    setBulkDataDialogOpen(false);
     setSelectedCategories([]);
     
-    // ✅ REAL-TIME UPDATE: Hedef oluşturulduktan sonra araç bazlı takip modülünü güncelle
+    // ✅ REAL-TIME UPDATE: Performans verileri girildikten sonra araç bazlı takip modülünü güncelle
     if (onDataRefresh) {
       onDataRefresh();
     }
     
     // Bilgilendirme mesajı
-    const totalTargets = newTargets.length;
-    const periodText = selectedPeriod === 'ay' ? 'aylık hedef şablonu' : 
-                      selectedPeriod === 'ceyrek' ? 'çeyreklik hedef şablonu' : 'yıllık hedef';
-    alert(`✅ ${selectedCategories.length} kategori için ${periodText} başarıyla oluşturuldu!\n\n📊 Toplam ${totalTargets} hedef şablonu aktif\n\n📋 Hedef Şablonu Sistemi:\n• Aylık: Tüm aylar için aynı hedef değerleri\n• Çeyreklik: Tüm çeyrekler için aynı hedef değerleri\n• Yıllık: Tüm yıl için tek hedef`);
+    const totalData = newPerformanceData.length;
+    const periodText = selectedPeriod === 'ay' ? 'aylık performans verisi' : 
+                      selectedPeriod === 'ceyrek' ? 'çeyreklik performans verisi' : 'yıllık performans verisi';
+    alert(`✅ ${selectedCategories.length} kategori için ${periodText} başarıyla oluşturuldu!\n\n📊 Toplam ${totalData} araç performans verisi aktif\n\n📋 Performans Veri Sistemi:\n• Aylık: Araç başı aylık gerçekleşen veriler\n• Çeyreklik: Araç başı çeyreklik gerçekleşen veriler\n• Yıllık: Araç başı yıllık gerçekleşen veriler\n\n💡 Bu veriler Araç Bazlı Takip kartlarında gerçek performans metrikleri olarak gösterilecek.`);
   };
 
-  // Hedef düzenleme
-  const handleEditTarget = (target: VehicleTarget) => {
-    setEditingTarget(target);
-    setTargetFormData(target);
-    setEditTargetDialogOpen(true);
-  };
 
-  // Hedef güncelleme kaydetme
-  const handleSaveEditedTarget = () => {
-    if (!editingTarget || !targetFormData) return;
 
-    const updatedTarget: VehicleTarget = {
-      ...editingTarget,
-      ...targetFormData,
-      updatedDate: new Date().toISOString()
-    };
-
-    setVehicleTargets(prev => 
-      prev.map(target => 
-        target.id === editingTarget.id ? updatedTarget : target
-      )
-    );
-
-    setEditTargetDialogOpen(false);
-    setEditingTarget(null);
-    setTargetFormData({});
-  };
-
-  // Hedef silme
-  const handleDeleteTarget = (targetId: string) => {
-    if (window.confirm('Bu hedefi silmek istediğinizden emin misiniz?')) {
-      setVehicleTargets(prev => prev.filter(t => t.id !== targetId));
-    }
-  };
-
-  // Hedef güncelleme
-  const updateTargetPerformance = useCallback((target: VehicleTarget) => {
+  // Performans verilerini araç bazlı takip için hazırla
+  const updatePerformanceDataForTracking = useCallback((performanceData: VehicleTarget) => {
     // Gerçek verilerden güncel performansı hesapla
     const vehicleData = filteredData.filter(item => {
       const allTextFields = [
@@ -13239,8 +13263,8 @@ const SmartTargetManagementComponent: React.FC<{
       ].join(' ').toLowerCase();
       
       // Kategori bazlı hedef için kategorideki tüm modelleri kontrol et
-      if (target.kategori) {
-        const categoryModels = VEHICLE_CATEGORIES[target.kategori] || [];
+      if (performanceData.kategori) {
+        const categoryModels = VEHICLE_CATEGORIES[performanceData.kategori] || [];
         return categoryModels.some(model => {
           const modelKeywords = {
             'FTH-240': ['fth', 'fth-240', 'fth240'],
@@ -13265,10 +13289,10 @@ const SmartTargetManagementComponent: React.FC<{
       }
       
       // Eski sistem uyumluluğu - spesifik model hedefi
-      if (target.aracModeli) {
-        const keywords = [target.aracModeli.toLowerCase()];
+      if (performanceData.aracModeli) {
+        const keywords = [performanceData.aracModeli.toLowerCase()];
         return keywords.some(keyword => allTextFields.includes(keyword)) || 
-               item.aracModeli === target.aracModeli;
+               item.aracModeli === performanceData.aracModeli;
       }
       
       return false;
@@ -13277,24 +13301,24 @@ const SmartTargetManagementComponent: React.FC<{
     // Dönem filtreleme - Template sistemi ile uyumlu
     const periodData = vehicleData.filter(item => {
       const itemDate = new Date(item.tarih);
-      const targetYear = parseInt(target.donem.split('-')[0]);
+      const targetYear = parseInt(performanceData.donem.split('-')[0]);
       
-      if (target.donemTuru === 'ay') {
+      if (performanceData.donemTuru === 'ay') {
         // Aylık template sistemi: Belirtilen yılın mevcut ayı için filtrele
-        if (target.donem.includes('Aylık Hedef')) {
+        if (performanceData.donem.includes('Aylık Hedef')) {
           // Template sistem: Mevcut ayın verilerini göster
           const currentMonth = new Date().getMonth() + 1;
           return itemDate.getFullYear() === targetYear && 
                  itemDate.getMonth() + 1 === currentMonth;
         } else {
           // Eski sistem: Belirli ay için
-          const targetMonth = parseInt(target.donem.split('-')[1]);
+          const targetMonth = parseInt(performanceData.donem.split('-')[1]);
           return itemDate.getFullYear() === targetYear && 
                  itemDate.getMonth() + 1 === targetMonth;
         }
-      } else if (target.donemTuru === 'ceyrek') {
+      } else if (performanceData.donemTuru === 'ceyrek') {
         // Çeyreklik template sistemi: Belirtilen yılın mevcut çeyreği için filtrele
-        if (target.donem.includes('Çeyreklik Hedef')) {
+        if (performanceData.donem.includes('Çeyreklik Hedef')) {
           // Template sistem: Mevcut çeyreğin verilerini göster
           const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
           const itemQuarter = Math.ceil((itemDate.getMonth() + 1) / 3);
@@ -13302,7 +13326,7 @@ const SmartTargetManagementComponent: React.FC<{
                  itemQuarter === currentQuarter;
         } else {
           // Eski sistem: Belirli çeyrek için
-          const targetQuarter = parseInt(target.donem.split('Q')[1]);
+          const targetQuarter = parseInt(performanceData.donem.split('Q')[1]);
           const itemQuarter = Math.ceil((itemDate.getMonth() + 1) / 3);
           return itemDate.getFullYear() === targetYear && 
                  itemQuarter === targetQuarter;
@@ -13335,12 +13359,12 @@ const SmartTargetManagementComponent: React.FC<{
       guncelFireKg: fireData.reduce((sum, item) => sum + (item.agirlik || 0), 0),
       guncelFireMaliyet: fireData.reduce((sum, item) => sum + item.maliyet, 0),
       toplamMaliyet: periodData.reduce((sum, item) => sum + item.maliyet, 0),
-      mevcutVerimlilik: 100 - (periodData.reduce((sum, item) => sum + item.maliyet, 0) / target.hedefler.toplamMaksimumMaliyet * 100)
+      mevcutVerimlilik: 100 - (periodData.reduce((sum, item) => sum + item.maliyet, 0) / performanceData.hedefler.toplamMaksimumMaliyet * 100)
     };
 
     // Performans hesaplama - Düşük değerler iyi olduğu için ters mantık
-    const calculateInversePerformance = (actual: number, target: number) => {
-      if (target === 0) return 100; // Hedef sıfırsa tam performans
+    const calculateInversePerformance = (actual: number, targetValue: number) => {
+      if (targetValue === 0) return 100; // Hedef sıfırsa tam performans
       if (actual === 0) return 100; // Gerçekleşen sıfırsa mükemmel performans
       
       // Hedef altında kalma oranı = ne kadar iyi olduğu
@@ -13348,21 +13372,21 @@ const SmartTargetManagementComponent: React.FC<{
       // Örnek: Fire hedefi 40, gerçekleşen 30 ise → (40-30)/40 * 100 = %25 performans
       // Örnek: Fire hedefi 40, gerçekleşen 50 ise → (40-50)/40 * 100 = -%25 (0'a çekiliyor)
       
-      const performanceRatio = Math.max(0, (target - actual) / target * 100);
+      const performanceRatio = Math.max(0, (targetValue - actual) / targetValue * 100);
       return Math.round(performanceRatio);
     };
 
     const performans = {
-      retPerformans: calculateInversePerformance(gerceklesme.guncelRetAdet, target.hedefler.maksRetAdet),
-      hurdaPerformans: calculateInversePerformance(gerceklesme.guncelHurdaKg, target.hedefler.maksHurdaKg),
-      firePerformans: calculateInversePerformance(gerceklesme.guncelFireKg, target.hedefler.maksFireKg),
-      toplamPerformans: calculateInversePerformance(gerceklesme.toplamMaliyet, target.hedefler.toplamMaksimumMaliyet),
-      status: gerceklesme.toplamMaliyet <= target.hedefler.toplamMaksimumMaliyet ? 'hedef_altinda' :
-              gerceklesme.toplamMaliyet <= target.hedefler.toplamMaksimumMaliyet * 1.1 ? 'hedefte' : 'hedef_ustunde'
+      retPerformans: calculateInversePerformance(gerceklesme.guncelRetAdet, performanceData.hedefler.maksRetAdet),
+      hurdaPerformans: calculateInversePerformance(gerceklesme.guncelHurdaKg, performanceData.hedefler.maksHurdaKg),
+      firePerformans: calculateInversePerformance(gerceklesme.guncelFireKg, performanceData.hedefler.maksFireKg),
+      toplamPerformans: calculateInversePerformance(gerceklesme.toplamMaliyet, performanceData.hedefler.toplamMaksimumMaliyet),
+      status: gerceklesme.toplamMaliyet <= performanceData.hedefler.toplamMaksimumMaliyet ? 'hedef_altinda' :
+              gerceklesme.toplamMaliyet <= performanceData.hedefler.toplamMaksimumMaliyet * 1.1 ? 'hedefte' : 'hedef_ustunde'
     } as const;
 
     return {
-      ...target,
+      ...performanceData,
       gerceklesme,
       performans,
       updatedDate: new Date().toISOString()
@@ -13370,9 +13394,9 @@ const SmartTargetManagementComponent: React.FC<{
   }, [filteredData]);
 
   useEffect(() => {
-    // Mevcut hedeflerin performansını güncelle
-    setVehicleTargets(prev => prev.map(target => updateTargetPerformance(target)));
-  }, [filteredData, updateTargetPerformance]);
+    // Mevcut performans verilerini güncelle
+    setVehiclePerformanceData(prev => prev.map(data => updatePerformanceDataForTracking(data)));
+  }, [filteredData, updatePerformanceDataForTracking]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -13384,21 +13408,21 @@ const SmartTargetManagementComponent: React.FC<{
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setBulkTargetDialogOpen(true)}
+            onClick={() => setBulkDataDialogOpen(true)}
             sx={{ fontWeight: 600 }}
           >
-            Toplu Hedef Belirle
+            Toplu Performans Verisi Gir
           </Button>
           
-          {vehicleTargets.length > 0 && (
+          {vehiclePerformanceData.length > 0 && (
             <Button
               variant="outlined"
               color="warning"
-              onClick={clearOldTargetsAndReset}
+              onClick={clearOldPerformanceDataAndReset}
               size="small"
               sx={{ fontWeight: 600 }}
             >
-              Hedef Sistemini Sıfırla
+              Performans Veri Sistemini Sıfırla
             </Button>
           )}
 
@@ -13409,25 +13433,25 @@ const SmartTargetManagementComponent: React.FC<{
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={3}>
           <Card sx={{ p: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-            <Typography variant="h6" fontWeight="bold">Toplam Hedef</Typography>
-            <Typography variant="h3" fontWeight="bold">{vehicleTargets.length}</Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>Aktif hedef sayısı</Typography>
+            <Typography variant="h6" fontWeight="bold">Toplam Veri</Typography>
+            <Typography variant="h3" fontWeight="bold">{vehiclePerformanceData.length}</Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>Aktif performans verisi sayısı</Typography>
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
           <Card sx={{ p: 3, background: 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)', color: 'white' }}>
-            <Typography variant="h6" fontWeight="bold">Başarılı</Typography>
+            <Typography variant="h6" fontWeight="bold">İyi Performans</Typography>
             <Typography variant="h3" fontWeight="bold">
-              {vehicleTargets.filter(t => t.performans.status === 'hedef_altinda').length}
+              {vehiclePerformanceData.filter(t => t.performans && t.performans.status === 'hedef_altinda').length}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>Hedef altında kalan</Typography>
           </Card>
         </Grid>
         <Grid item xs={12} md={3}>
           <Card sx={{ p: 3, background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', color: 'white' }}>
-            <Typography variant="h6" fontWeight="bold">Dikkat</Typography>
+            <Typography variant="h6" fontWeight="bold">Orta Performans</Typography>
             <Typography variant="h3" fontWeight="bold">
-              {vehicleTargets.filter(t => t.performans.status === 'hedefte').length}
+              {vehiclePerformanceData.filter(t => t.performans && t.performans.status === 'hedefte').length}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>Hedef seviyesinde</Typography>
           </Card>
@@ -13436,7 +13460,7 @@ const SmartTargetManagementComponent: React.FC<{
           <Card sx={{ p: 3, background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)', color: 'white' }}>
             <Typography variant="h6" fontWeight="bold">Kritik</Typography>
             <Typography variant="h3" fontWeight="bold">
-              {vehicleTargets.filter(t => t.performans.status === 'hedef_ustunde').length}
+              {vehiclePerformanceData.filter(t => t.performans && t.performans.status === 'hedef_ustunde').length}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>Hedef üstünde</Typography>
           </Card>
@@ -13445,11 +13469,11 @@ const SmartTargetManagementComponent: React.FC<{
 
 
 
-      {/* Mevcut Hedefler */}
+      {/* Mevcut Performans Verileri */}
       <Paper sx={{ p: 3, borderRadius: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h6" fontWeight="bold">
-            Mevcut Hedefler ve Performans
+            Mevcut Performans Verileri
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
@@ -13469,34 +13493,34 @@ const SmartTargetManagementComponent: React.FC<{
           </Box>
         </Box>
 
-        {vehicleTargets.length === 0 ? (
+        {vehiclePerformanceData.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 6 }}>
             <Typography variant="h6" color="text.secondary" gutterBottom>
-              Henüz hedef belirlenmemiş
+              Henüz performans verisi girilmemiş
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Araçlarınız için hedef belirleyerek performans takibine başlayın
+              Araçlarınız için performans verisi girerek takibe başlayın
             </Typography>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => setBulkTargetDialogOpen(true)}
+              onClick={() => setBulkDataDialogOpen(true)}
             >
-              İlk Hedefi Belirle
+              İlk Performans Verisini Gir
             </Button>
           </Box>
         ) : viewMode === 'cards' ? (
           <Grid container spacing={2}>
-            {vehicleTargets.map((target) => (
-              <Grid item xs={12} sm={6} lg={4} key={target.id}>
+            {vehiclePerformanceData.map((performanceData) => (
+              <Grid item xs={12} sm={6} lg={4} key={performanceData.id}>
                 <Card sx={{ 
                   height: '100%',
                   border: '1px solid',
-                  borderColor: target.performans.status === 'hedef_ustunde' ? 'error.main' :
-                              target.performans.status === 'hedefte' ? 'warning.main' : 'success.main',
+                  borderColor: performanceData.performans && performanceData.performans.status === 'hedef_ustunde' ? 'error.main' :
+                              performanceData.performans && performanceData.performans.status === 'hedefte' ? 'warning.main' : 'success.main',
                   borderLeft: '4px solid',
-                  borderLeftColor: target.performans.status === 'hedef_ustunde' ? 'error.main' :
-                                  target.performans.status === 'hedefte' ? 'warning.main' : 'success.main',
+                  borderLeftColor: performanceData.performans && performanceData.performans.status === 'hedef_ustunde' ? 'error.main' :
+                                  performanceData.performans && performanceData.performans.status === 'hedefte' ? 'warning.main' : 'success.main',
                   borderRadius: 2,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   transition: 'all 0.2s ease-in-out',
@@ -13512,10 +13536,10 @@ const SmartTargetManagementComponent: React.FC<{
                         lineHeight: 1.3,
                         mb: 1
                       }}>
-                        {target.kategori || target.aracModeli}
+                        {performanceData.kategori || performanceData.aracModeli}
                       </Typography>
                       <Chip 
-                        label={target.donem}
+                        label={performanceData.donem}
                         size="small"
                         color="primary"
                         sx={{ 
@@ -13529,7 +13553,7 @@ const SmartTargetManagementComponent: React.FC<{
                     </Box>
                     
                     {/* Kategori detayları */}
-                    {target.kategori && (
+                    {performanceData.kategori && (
                       <Box sx={{ 
                         bgcolor: 'grey.50', 
                         p: 1.5, 
@@ -13545,12 +13569,12 @@ const SmartTargetManagementComponent: React.FC<{
                           <Box component="span" sx={{ fontWeight: 600, color: 'primary.main' }}>İçerir:</Box>
                           <br />
                           <Box component="span" sx={{ fontWeight: 500 }}>
-                            {target.kategori === 'Kompakt Araçlar' && 'Aga2100, Aga3000, Aga6000'}
-                            {target.kategori === 'Araç Üstü Vakumlu' && 'KDM80, KDM70, KDM35, Çay Toplama Makinesi'}
-                            {target.kategori === 'Çekilir Tip Mekanik Süpürgeler' && 'FTH-240, Çelik-2000, Ural'}
-                            {target.kategori === 'Kompost Makinesi' && 'Kompost Makinesi'}
-                            {target.kategori === 'Rusya Motor Odası' && 'Rusya Motor Odası'}
-                            {target.kategori === 'HSCK' && 'HSCK'}
+                            {performanceData.kategori === 'Kompakt Araçlar' && 'Aga2100, Aga3000, Aga6000'}
+                            {performanceData.kategori === 'Araç Üstü Vakumlu' && 'KDM80, KDM70, KDM35, Çay Toplama Makinesi'}
+                            {performanceData.kategori === 'Çekilir Tip Mekanik Süpürgeler' && 'FTH-240, Çelik-2000, Ural'}
+                            {performanceData.kategori === 'Kompost Makinesi' && 'Kompost Makinesi'}
+                            {performanceData.kategori === 'Rusya Motor Odası' && 'Rusya Motor Odası'}
+                            {performanceData.kategori === 'HSCK' && 'HSCK'}
                           </Box>
                         </Typography>
                       </Box>
@@ -13558,37 +13582,37 @@ const SmartTargetManagementComponent: React.FC<{
 
                     {/* Performans Özeti */}
                     <Box sx={{ 
-                      bgcolor: target.performans.status === 'hedef_ustunde' ? 'error.50' :
-                               target.performans.status === 'hedefte' ? 'warning.50' : 'success.50',
+                      bgcolor: performanceData.performans && performanceData.performans.status === 'hedef_ustunde' ? 'error.50' :
+                               performanceData.performans && performanceData.performans.status === 'hedefte' ? 'warning.50' : 'success.50',
                       p: 2, 
                       borderRadius: 2, 
                       mb: 2,
                       border: '1px solid',
-                      borderColor: target.performans.status === 'hedef_ustunde' ? 'error.200' :
-                                  target.performans.status === 'hedefte' ? 'warning.200' : 'success.200'
+                      borderColor: performanceData.performans && performanceData.performans.status === 'hedef_ustunde' ? 'error.200' :
+                                  performanceData.performans && performanceData.performans.status === 'hedefte' ? 'warning.200' : 'success.200'
                     }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                         <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.9rem' }}>
                           Genel Performans
                         </Typography>
                         <Typography variant="h6" fontWeight="bold" sx={{ 
-                          color: target.performans.status === 'hedef_ustunde' ? 'error.main' :
-                                 target.performans.status === 'hedefte' ? 'warning.main' : 'success.main',
+                          color: performanceData.performans && performanceData.performans.status === 'hedef_ustunde' ? 'error.main' :
+                                 performanceData.performans && performanceData.performans.status === 'hedefte' ? 'warning.main' : 'success.main',
                           fontSize: '1rem'
                         }}>
-                          %{target.performans.toplamPerformans.toFixed(1)}
+                          %{performanceData.performans ? performanceData.performans.toplamPerformans.toFixed(1) : '0.0'}
                         </Typography>
                       </Box>
                       <LinearProgress 
                         variant="determinate" 
-                        value={Math.min(100, target.performans.toplamPerformans)}
+                        value={Math.min(100, performanceData.performans ? performanceData.performans.toplamPerformans : 0)}
                         sx={{ 
                           height: 8, 
                           borderRadius: 4,
                           bgcolor: 'rgba(255,255,255,0.7)',
                           '& .MuiLinearProgress-bar': {
-                            bgcolor: target.performans.status === 'hedef_ustunde' ? 'error.main' :
-                                    target.performans.status === 'hedefte' ? 'warning.main' : 'success.main'
+                            bgcolor: performanceData.performans && performanceData.performans.status === 'hedef_ustunde' ? 'error.main' :
+                                    performanceData.performans && performanceData.performans.status === 'hedefte' ? 'warning.main' : 'success.main'
                           }
                         }}
                       />
@@ -13610,7 +13634,7 @@ const SmartTargetManagementComponent: React.FC<{
                               RET
                             </Typography>
                             <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
-                              {target.gerceklesme.guncelRetAdet}/{target.hedefler.maksRetAdet}
+                              {performanceData.gerceklesme ? performanceData.gerceklesme.guncelRetAdet : 0}/{performanceData.hedefler ? performanceData.hedefler.maksRetAdet : 0}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                               adet
@@ -13630,7 +13654,7 @@ const SmartTargetManagementComponent: React.FC<{
                               HURDA
                             </Typography>
                             <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
-                              {target.gerceklesme.guncelHurdaKg.toFixed(1)}/{target.hedefler.maksHurdaKg}
+                              {performanceData.gerceklesme ? performanceData.gerceklesme.guncelHurdaKg.toFixed(1) : '0.0'}/{performanceData.hedefler ? performanceData.hedefler.maksHurdaKg : 0}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                               kg
@@ -13650,7 +13674,7 @@ const SmartTargetManagementComponent: React.FC<{
                               FIRE
                             </Typography>
                             <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
-                              {target.gerceklesme.guncelFireKg.toFixed(1)}/{target.hedefler.maksFireKg}
+                              {performanceData.gerceklesme ? performanceData.gerceklesme.guncelFireKg.toFixed(1) : '0.0'}/{performanceData.hedefler ? performanceData.hedefler.maksFireKg : 0}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                               kg
@@ -13670,10 +13694,10 @@ const SmartTargetManagementComponent: React.FC<{
                               TOPLAM
                             </Typography>
                             <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.8rem', color: 'primary.main' }}>
-                              ₺{target.gerceklesme.toplamMaliyet.toLocaleString()}
+                              ₺{performanceData.gerceklesme ? performanceData.gerceklesme.toplamMaliyet.toLocaleString() : '0'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                              /₺{target.hedefler.toplamMaksimumMaliyet.toLocaleString()}
+                              /₺{performanceData.hedefler ? performanceData.hedefler.toplamMaksimumMaliyet.toLocaleString() : '0'}
                             </Typography>
                           </Box>
                         </Grid>
@@ -13684,7 +13708,7 @@ const SmartTargetManagementComponent: React.FC<{
                       <Button
                         size="small"
                         variant="outlined"
-                        onClick={() => handleEditTarget(target)}
+                        onClick={() => handleEditPerformanceData(performanceData)}
                         startIcon={<EditIcon />}
                         sx={{ 
                           flex: 1,
@@ -13698,7 +13722,7 @@ const SmartTargetManagementComponent: React.FC<{
                         size="small"
                         variant="outlined"
                         color="error"
-                        onClick={() => handleDeleteTarget(target.id)}
+                        onClick={() => handleDeletePerformanceData(performanceData.id)}
                         startIcon={<DeleteIcon />}
                         sx={{ 
                           flex: 1,
@@ -13720,15 +13744,15 @@ const SmartTargetManagementComponent: React.FC<{
         )}
       </Paper>
 
-      {/* Toplu Hedef Belirleme Dialog */}
+      {/* Toplu Performans Veri Girişi Dialog */}
       <Dialog 
-        open={bulkTargetDialogOpen} 
-        onClose={() => setBulkTargetDialogOpen(false)}
+        open={bulkDataDialogOpen} 
+        onClose={() => setBulkDataDialogOpen(false)}
         maxWidth="md"
         fullWidth
       >
                  <DialogTitle>
-           Toplu Hedef Belirleme
+           Toplu Performans Veri Girişi
          </DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -13748,7 +13772,7 @@ const SmartTargetManagementComponent: React.FC<{
             </Grid>
             <Grid item xs={12}>
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-                Hedef Belirlenecek Araç Kategorileri:
+                Performans Verisi Girilecek Araç Kategorileri:
               </Typography>
               <Grid container spacing={1}>
                 {vehicleCategories.map((category) => (
@@ -13790,45 +13814,45 @@ const SmartTargetManagementComponent: React.FC<{
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setBulkTargetDialogOpen(false)}>
+          <Button onClick={() => setBulkDataDialogOpen(false)}>
             İptal
           </Button>
           <Button 
             variant="contained" 
-            onClick={handleBulkTargetSet}
+            onClick={handleBulkPerformanceDataSet}
             disabled={selectedCategories.length === 0}
           >
-            Hedefleri Belirle ({selectedCategories.length} kategori)
+            Performans Verilerini Gir ({selectedCategories.length} kategori)
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Hedef Düzenleme Dialog */}
+      {/* Performans Verisi Düzenleme Dialog */}
       <Dialog 
-        open={editTargetDialogOpen} 
-        onClose={() => setEditTargetDialogOpen(false)}
+        open={editPerformanceDialogOpen} 
+        onClose={() => setEditPerformanceDialogOpen(false)}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>
-          Hedef Düzenle - {editingTarget?.kategori || editingTarget?.aracModeli}
+          Performans Verisi Düzenle - {editingPerformanceData?.kategori || editingPerformanceData?.aracModeli}
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-                Hedef Değerleri
+                Performans Değerleri
               </Typography>
             </Grid>
             
-            {/* Ret Hedefleri */}
+            {/* Ret Performansı */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Maksimum Ret Adet"
                 type="number"
-                value={targetFormData.hedefler?.maksRetAdet || ''}
-                onChange={(e) => setTargetFormData(prev => ({
+                value={performanceFormData.hedefler?.maksRetAdet || ''}
+                onChange={(e) => setPerformanceFormData(prev => ({
                   ...prev,
                   hedefler: {
                     ...prev.hedefler!,
@@ -13842,8 +13866,8 @@ const SmartTargetManagementComponent: React.FC<{
                 fullWidth
                 label="Maksimum Ret Maliyet (₺)"
                 type="number"
-                value={targetFormData.hedefler?.maksRetMaliyet || ''}
-                onChange={(e) => setTargetFormData(prev => ({
+                value={performanceFormData.hedefler?.maksRetMaliyet || ''}
+                onChange={(e) => setPerformanceFormData(prev => ({
                   ...prev,
                   hedefler: {
                     ...prev.hedefler!,
@@ -13853,14 +13877,14 @@ const SmartTargetManagementComponent: React.FC<{
               />
             </Grid>
 
-            {/* Hurda Hedefleri */}
+            {/* Hurda Performansı */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Maksimum Hurda (kg)"
                 type="number"
-                value={targetFormData.hedefler?.maksHurdaKg || ''}
-                onChange={(e) => setTargetFormData(prev => ({
+                value={performanceFormData.hedefler?.maksHurdaKg || ''}
+                onChange={(e) => setPerformanceFormData(prev => ({
                   ...prev,
                   hedefler: {
                     ...prev.hedefler!,
@@ -13874,8 +13898,8 @@ const SmartTargetManagementComponent: React.FC<{
                 fullWidth
                 label="Maksimum Hurda Maliyet (₺)"
                 type="number"
-                value={targetFormData.hedefler?.maksHurdaMaliyet || ''}
-                onChange={(e) => setTargetFormData(prev => ({
+                value={performanceFormData.hedefler?.maksHurdaMaliyet || ''}
+                onChange={(e) => setPerformanceFormData(prev => ({
                   ...prev,
                   hedefler: {
                     ...prev.hedefler!,
@@ -13885,14 +13909,14 @@ const SmartTargetManagementComponent: React.FC<{
               />
             </Grid>
 
-            {/* Fire Hedefleri */}
+            {/* Fire Performansı */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
                 label="Maksimum Fire (kg)"
                 type="number"
-                value={targetFormData.hedefler?.maksFireKg || ''}
-                onChange={(e) => setTargetFormData(prev => ({
+                value={performanceFormData.hedefler?.maksFireKg || ''}
+                onChange={(e) => setPerformanceFormData(prev => ({
                   ...prev,
                   hedefler: {
                     ...prev.hedefler!,
@@ -13906,8 +13930,8 @@ const SmartTargetManagementComponent: React.FC<{
                 fullWidth
                 label="Maksimum Fire Maliyet (₺)"
                 type="number"
-                value={targetFormData.hedefler?.maksFireMaliyet || ''}
-                onChange={(e) => setTargetFormData(prev => ({
+                value={performanceFormData.hedefler?.maksFireMaliyet || ''}
+                onChange={(e) => setPerformanceFormData(prev => ({
                   ...prev,
                   hedefler: {
                     ...prev.hedefler!,
@@ -13917,14 +13941,14 @@ const SmartTargetManagementComponent: React.FC<{
               />
             </Grid>
 
-            {/* Toplam Hedef */}
+            {/* Toplam Performans */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Toplam Maksimum Maliyet (₺)"
                 type="number"
-                value={targetFormData.hedefler?.toplamMaksimumMaliyet || ''}
-                onChange={(e) => setTargetFormData(prev => ({
+                value={performanceFormData.hedefler?.toplamMaksimumMaliyet || ''}
+                onChange={(e) => setPerformanceFormData(prev => ({
                   ...prev,
                   hedefler: {
                     ...prev.hedefler!,
@@ -13939,8 +13963,8 @@ const SmartTargetManagementComponent: React.FC<{
               <FormControl fullWidth>
                 <InputLabel>Dönem Türü</InputLabel>
                 <Select
-                  value={targetFormData.donemTuru || 'ay'}
-                  onChange={(e) => setTargetFormData(prev => ({
+                  value={performanceFormData.donemTuru || 'ay'}
+                  onChange={(e) => setPerformanceFormData(prev => ({
                     ...prev,
                     donemTuru: e.target.value as 'ay' | 'ceyrek' | 'yil'
                   }))}
@@ -13956,8 +13980,8 @@ const SmartTargetManagementComponent: React.FC<{
               <TextField
                 fullWidth
                 label="Dönem"
-                value={targetFormData.donem || ''}
-                onChange={(e) => setTargetFormData(prev => ({
+                value={performanceFormData.donem || ''}
+                onChange={(e) => setPerformanceFormData(prev => ({
                   ...prev,
                   donem: e.target.value
                 }))}
@@ -13967,13 +13991,13 @@ const SmartTargetManagementComponent: React.FC<{
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditTargetDialogOpen(false)}>
+          <Button onClick={() => setEditPerformanceDialogOpen(false)}>
             İptal
           </Button>
           <Button 
             variant="contained" 
-            onClick={handleSaveEditedTarget}
-            disabled={!targetFormData.hedefler}
+            onClick={handleSaveEditedPerformanceData}
+            disabled={!performanceFormData.hedefler}
           >
             Kaydet
           </Button>
@@ -15383,3 +15407,5 @@ const CategoryProductionManagementComponent: React.FC<{
     </Box>
   );
 };
+
+export default QualityCostManagement;
