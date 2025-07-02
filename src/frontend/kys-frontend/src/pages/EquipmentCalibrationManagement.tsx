@@ -309,7 +309,9 @@ const getPersonnelData = (): Personnel[] => {
 // Alt kategoriye göre ölçüm aralıkları
 const getMeasurementRangesBySubCategory = () => {
   const stored = localStorage.getItem('measurement_ranges_by_sub_category');
-  if (stored) {
+  const version = localStorage.getItem('measurement_ranges_version');
+  // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
+  if (stored && version === '2.0') {
     return JSON.parse(stored);
   }
   
@@ -514,11 +516,105 @@ const getMeasurementRangesBySubCategory = () => {
       '0-8 oz', '0-11 oz', '0-18 oz', '0-29 oz', '0-42 oz', '0-78 oz', '0-113 oz', '0-184 oz'
     ],
 
+    // Yeni Ölçüm Cihazları - Genişletilmiş Kategori
+    'Takometre - Digital': [
+      '0-1000 RPM', '0-2000 RPM', '0-5000 RPM', '0-10000 RPM', '0-15000 RPM', 
+      '0-20000 RPM', '0-30000 RPM', '0-50000 RPM', '0-100000 RPM',
+      '50-1000 RPM', '100-5000 RPM', '500-10000 RPM', '1000-20000 RPM',
+      '5-1000 RPM', '10-5000 RPM', '20-10000 RPM', '100-50000 RPM'
+    ],
+    'Takometre - Laser': [
+      '0-999999 RPM', '1-999999 RPM', '5-999999 RPM', '10-999999 RPM',
+      '0-100000 RPM', '0-200000 RPM', '0-500000 RPM',
+      '10-100000 RPM', '50-500000 RPM', '100-999999 RPM'
+    ],
+    'Takometre - Optik': [
+      '0-50000 RPM', '0-100000 RPM', '0-200000 RPM', '0-500000 RPM',
+      '5-50000 RPM', '10-100000 RPM', '50-200000 RPM', '100-500000 RPM'
+    ],
+
+    'Sentil Çakısı - 0.001mm': [
+      '0-13 mm', '0-25 mm', '0-30 mm', '0-50 mm', '0-75 mm', '0-100 mm',
+      '0-0.5 inch', '0-1 inch', '0-1.2 inch', '0-2 inch', '0-3 inch', '0-4 inch',
+      '3-13 mm', '5-25 mm', '10-50 mm', '20-75 mm', '25-100 mm'
+    ],
+    'Sentil Çakısı - 0.002mm': [
+      '0-13 mm', '0-25 mm', '0-50 mm', '0-100 mm', '0-150 mm',
+      '0-0.5 inch', '0-1 inch', '0-2 inch', '0-4 inch', '0-6 inch',
+      '5-25 mm', '10-50 mm', '25-100 mm', '50-150 mm'
+    ],
+    'Sentil Çakısı - 0.005mm': [
+      '0-25 mm', '0-50 mm', '0-100 mm', '0-150 mm', '0-200 mm',
+      '0-1 inch', '0-2 inch', '0-4 inch', '0-6 inch', '0-8 inch',
+      '10-50 mm', '25-100 mm', '50-150 mm', '75-200 mm'
+    ],
+
+    'Radius Mastar - İç R': [
+      'R 1-7 mm', 'R 2-12 mm', 'R 3-17 mm', 'R 7-14 mm', 'R 8-15 mm',
+      'R 1-25 mm', 'R 3.5-17 mm', 'R 7-14.5 mm', 'R 15-25 mm',
+      'R 0.5-2.5 mm', 'R 1-6 mm', 'R 2.5-12.5 mm', 'R 6-25 mm',
+      'R 0.04-0.28 inch', 'R 0.08-0.47 inch', 'R 0.12-0.67 inch',
+      'R 0.28-0.55 inch', 'R 0.31-0.59 inch', 'R 0.04-0.98 inch'
+    ],
+    'Radius Mastar - Dış R': [
+      'R 1-7 mm', 'R 2-12 mm', 'R 3-17 mm', 'R 7-14 mm', 'R 8-15 mm',
+      'R 1-25 mm', 'R 3.5-17 mm', 'R 7-14.5 mm', 'R 15-25 mm',
+      'R 0.5-2.5 mm', 'R 1-6 mm', 'R 2.5-12.5 mm', 'R 6-25 mm',
+      'R 0.04-0.28 inch', 'R 0.08-0.47 inch', 'R 0.12-0.67 inch',
+      'R 0.28-0.55 inch', 'R 0.31-0.59 inch', 'R 0.04-0.98 inch'
+    ],
+    'Radius Mastar - Universal': [
+      'R 0.5-25 mm', 'R 1-15 mm', 'R 2-20 mm', 'R 3-25 mm', 'R 5-30 mm',
+      'R 0.02-0.98 inch', 'R 0.04-0.59 inch', 'R 0.08-0.79 inch',
+      'R 0.12-0.98 inch', 'R 0.2-1.18 inch'
+    ],
+
+    'Dijital Isı Ölçer - İnfrared': [
+      '-50°C - +380°C', '-50°C - +500°C', '-50°C - +800°C', '-50°C - +1000°C',
+      '-32°C - +760°C', '-32°C - +1350°C', '-18°C - +1650°C',
+      '-60°C - +500°C', '-80°C - +1000°C', '-100°C - +1500°C',
+      '-58°F - +716°F', '-58°F - +932°F', '-58°F - +1472°F', '-58°F - +1832°F',
+      '-25°F - +1382°F', '-25°F - +2462°F', '0°F - +3002°F'
+    ],
+    'Dijital Isı Ölçer - Temaslı': [
+      '-50°C - +300°C', '-100°C - +500°C', '-200°C - +1000°C', '-250°C - +1200°C',
+      '-40°C - +200°C', '-80°C - +400°C', '-150°C - +800°C', '-200°C - +1100°C',
+      '-58°F - +572°F', '-148°F - +932°F', '-328°F - +1832°F', '-418°F - +2192°F',
+      '-40°F - +392°F', '-112°F - +752°F', '-238°F - +1472°F'
+    ],
+    'Dijital Isı Ölçer - Problu': [
+      '-50°C - +300°C', '-100°C - +400°C', '-200°C - +800°C', '-250°C - +1000°C',
+      '-40°C - +150°C', '-60°C - +250°C', '-150°C - +600°C', '-200°C - +900°C',
+      '-58°F - +572°F', '-148°F - +752°F', '-328°F - +1472°F', '-418°F - +1832°F',
+      '-40°F - +302°F', '-76°F - +482°F', '-238°F - +1112°F'
+    ],
+
+    // Su Terazisi Çeşitleri
+    'Su Terazisi - Standart': [
+      '0-90°', '±45°', '±30°', '±15°', '±10°', '±5°', 
+      '0-180°', '±90°', '±60°', '±20°', '±1°', '±0.5°',
+      '200mm uzunluk', '300mm uzunluk', '400mm uzunluk', '500mm uzunluk',
+      '600mm uzunluk', '800mm uzunluk', '1000mm uzunluk', '1200mm uzunluk'
+    ],
+    'Su Terazisi - Hassas': [
+      '±1°', '±0.5°', '±0.2°', '±0.1°', '±0.05°', '±0.02°', '±0.01°',
+      '±0.5 mm/m', '±0.2 mm/m', '±0.1 mm/m', '±0.05 mm/m', '±0.02 mm/m',
+      '150mm uzunluk', '200mm uzunluk', '250mm uzunluk', '300mm uzunluk',
+      '400mm uzunluk', '500mm uzunluk', '600mm uzunluk'
+    ],
+    'Su Terazisi - Digital': [
+      '±90°', '±45°', '±30°', '±15°', '±10°', '±5°', '±1°', '±0.5°',
+      '±0.1°', '±0.05°', '±0.02°', '±0.01°', '±0.005°', '±0.002°', '±0.001°',
+      '0-360°', '±180°', '±120°', '±60°', '±20°',
+      '200mm uzunluk', '300mm uzunluk', '400mm uzunluk', '600mm uzunluk', '800mm uzunluk'
+    ],
+
     // Varsayılan değerler
     'Diğer': ['0-100', '0-1000', 'Özel Aralık']
   };
   
   localStorage.setItem('measurement_ranges_by_sub_category', JSON.stringify(defaultRanges));
+  localStorage.setItem('measurement_ranges_version', '2.0');
   return defaultRanges;
 };
 
@@ -622,7 +718,9 @@ const getMeasurementRangesByCategory = () => {
 // Alt kategoriye göre ölçüm belirsizlikleri
 const getMeasurementUncertaintiesBySubCategory = () => {
   const stored = localStorage.getItem('measurement_uncertainties_by_sub_category');
-  if (stored) {
+  const version = localStorage.getItem('measurement_uncertainties_version');
+  // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
+  if (stored && version === '2.0') {
     return JSON.parse(stored);
   }
   
@@ -937,11 +1035,150 @@ const getMeasurementUncertaintiesBySubCategory = () => {
       '±0.0003 oz', '±0.0004 oz', '±0.0005 oz', '±0.0007 oz'
     ],
 
+    // Yeni Ölçüm Cihazları Belirsizlikleri - Genişletilmiş
+    'Takometre - Digital': [
+      '±0.01 RPM', '±0.02 RPM', '±0.05 RPM', '±0.1 RPM', '±0.2 RPM', '±0.5 RPM',
+      '±1 RPM', '±2 RPM', '±5 RPM', '±10 RPM', '±20 RPM', '±50 RPM',
+      '±0.01%', '±0.02%', '±0.05%', '±0.1%', '±0.2%', '±0.5%',
+      '±0.01% + 1d', '±0.02% + 1d', '±0.05% + 1d', '±0.1% + 1d',
+      '±(0.01% FS + 1 RPM)', '±(0.02% FS + 2 RPM)', '±(0.05% FS + 5 RPM)',
+      '±1 sayım', '±2 sayım', '±5 sayım', '±10 sayım'
+    ],
+    'Takometre - Laser': [
+      '±0.01 RPM', '±0.02 RPM', '±0.05 RPM', '±0.1 RPM', '±0.2 RPM',
+      '±0.5 RPM', '±1 RPM', '±2 RPM', '±5 RPM', '±10 RPM',
+      '±0.01%', '±0.02%', '±0.05%', '±0.1%', '±0.2%',
+      '±(0.01% FS + 0.1 RPM)', '±(0.02% FS + 0.2 RPM)', '±(0.05% FS + 0.5 RPM)',
+      '±1 sayım', '±2 sayım', '±5 sayım'
+    ],
+    'Takometre - Optik': [
+      '±0.02 RPM', '±0.05 RPM', '±0.1 RPM', '±0.2 RPM', '±0.5 RPM',
+      '±1 RPM', '±2 RPM', '±5 RPM', '±10 RPM', '±20 RPM',
+      '±0.02%', '±0.05%', '±0.1%', '±0.2%', '±0.5%',
+      '±(0.02% FS + 1 RPM)', '±(0.05% FS + 2 RPM)', '±(0.1% FS + 5 RPM)',
+      '±1 sayım', '±2 sayım', '±5 sayım', '±10 sayım'
+    ],
+
+    'Sentil Çakısı - 0.001mm': [
+      '±0.001 mm', '±0.0015 mm', '±0.002 mm', '±0.0025 mm', '±0.003 mm',
+      '±0.004 mm', '±0.005 mm', '±0.006 mm', '±0.008 mm', '±0.01 mm',
+      '±0.00004 inch', '±0.00006 inch', '±0.00008 inch', '±0.0001 inch',
+      '±0.00012 inch', '±0.00015 inch', '±0.0002 inch', '±0.00024 inch',
+      '±0.0003 inch', '±0.0004 inch'
+    ],
+    'Sentil Çakısı - 0.002mm': [
+      '±0.002 mm', '±0.003 mm', '±0.004 mm', '±0.005 mm', '±0.006 mm',
+      '±0.008 mm', '±0.01 mm', '±0.012 mm', '±0.015 mm', '±0.02 mm',
+      '±0.00008 inch', '±0.00012 inch', '±0.00015 inch', '±0.0002 inch',
+      '±0.00024 inch', '±0.0003 inch', '±0.0004 inch', '±0.0005 inch',
+      '±0.0006 inch', '±0.0008 inch'
+    ],
+    'Sentil Çakısı - 0.005mm': [
+      '±0.005 mm', '±0.006 mm', '±0.008 mm', '±0.01 mm', '±0.012 mm',
+      '±0.015 mm', '±0.02 mm', '±0.025 mm', '±0.03 mm', '±0.04 mm',
+      '±0.0002 inch', '±0.00024 inch', '±0.0003 inch', '±0.0004 inch',
+      '±0.0005 inch', '±0.0006 inch', '±0.0008 inch', '±0.001 inch',
+      '±0.0012 inch', '±0.0015 inch'
+    ],
+
+    'Radius Mastar - İç R': [
+      '±0.002 mm', '±0.003 mm', '±0.004 mm', '±0.005 mm', '±0.006 mm',
+      '±0.008 mm', '±0.01 mm', '±0.012 mm', '±0.015 mm', '±0.02 mm',
+      '±0.025 mm', '±0.03 mm', '±0.04 mm', '±0.05 mm',
+      '±0.00008 inch', '±0.00012 inch', '±0.00015 inch', '±0.0002 inch',
+      '±0.00024 inch', '±0.0003 inch', '±0.0004 inch', '±0.0005 inch',
+      '±0.0006 inch', '±0.0008 inch', '±0.001 inch', '±0.0012 inch',
+      '±0.0015 inch', '±0.002 inch'
+    ],
+    'Radius Mastar - Dış R': [
+      '±0.002 mm', '±0.003 mm', '±0.004 mm', '±0.005 mm', '±0.006 mm',
+      '±0.008 mm', '±0.01 mm', '±0.012 mm', '±0.015 mm', '±0.02 mm',
+      '±0.025 mm', '±0.03 mm', '±0.04 mm', '±0.05 mm',
+      '±0.00008 inch', '±0.00012 inch', '±0.00015 inch', '±0.0002 inch',
+      '±0.00024 inch', '±0.0003 inch', '±0.0004 inch', '±0.0005 inch',
+      '±0.0006 inch', '±0.0008 inch', '±0.001 inch', '±0.0012 inch',
+      '±0.0015 inch', '±0.002 inch'
+    ],
+    'Radius Mastar - Universal': [
+      '±0.003 mm', '±0.004 mm', '±0.005 mm', '±0.006 mm', '±0.008 mm',
+      '±0.01 mm', '±0.012 mm', '±0.015 mm', '±0.02 mm', '±0.025 mm',
+      '±0.03 mm', '±0.04 mm', '±0.05 mm', '±0.06 mm', '±0.08 mm',
+      '±0.00012 inch', '±0.00015 inch', '±0.0002 inch', '±0.00024 inch',
+      '±0.0003 inch', '±0.0004 inch', '±0.0005 inch', '±0.0006 inch',
+      '±0.0008 inch', '±0.001 inch', '±0.0012 inch', '±0.0015 inch',
+      '±0.002 inch', '±0.0024 inch', '±0.003 inch'
+    ],
+
+    'Dijital Isı Ölçer - İnfrared': [
+      '±0.1°C', '±0.2°C', '±0.3°C', '±0.5°C', '±0.8°C', '±1°C',
+      '±1.5°C', '±2°C', '±3°C', '±5°C', '±8°C', '±10°C', '±15°C',
+      '±0.2°F', '±0.4°F', '±0.5°F', '±1°F', '±1.5°F', '±2°F',
+      '±3°F', '±4°F', '±5°F', '±9°F', '±15°F', '±18°F', '±27°F',
+      // Yüzde tabanlı belirsizlikler
+      '±0.5% FS', '±1% FS', '±1.5% FS', '±2% FS', '±3% FS', '±5% FS',
+      // Kombinasyon belirsizlikler
+      '±(0.5% FS + 1°C)', '±(1% FS + 1°C)', '±(1% FS + 2°C)',
+      '±(1.5% FS + 3°C)', '±(2% FS + 5°C)'
+    ],
+    'Dijital Isı Ölçer - Temaslı': [
+      '±0.05°C', '±0.1°C', '±0.15°C', '±0.2°C', '±0.3°C', '±0.5°C',
+      '±0.8°C', '±1°C', '±1.5°C', '±2°C', '±3°C', '±5°C',
+      '±0.1°F', '±0.2°F', '±0.3°F', '±0.4°F', '±0.5°F', '±1°F',
+      '±1.5°F', '±2°F', '±3°F', '±4°F', '±5°F', '±9°F',
+      // Standart tip sensörler için
+      '±(0.1% FS + 0.1°C)', '±(0.2% FS + 0.2°C)', '±(0.3% FS + 0.3°C)',
+      '±(0.5% FS + 0.5°C)', '±(1% FS + 1°C)'
+    ],
+    'Dijital Isı Ölçer - Problu': [
+      '±0.1°C', '±0.15°C', '±0.2°C', '±0.3°C', '±0.5°C', '±0.8°C',
+      '±1°C', '±1.5°C', '±2°C', '±3°C', '±5°C', '±8°C',
+      '±0.2°F', '±0.3°F', '±0.4°F', '±0.5°F', '±1°F', '±1.5°F',
+      '±2°F', '±3°F', '±4°F', '±5°F', '±9°F', '±15°F',
+      // Prob tipine göre belirsizlikler
+      '±(0.2% FS + 0.2°C)', '±(0.3% FS + 0.3°C)', '±(0.5% FS + 0.5°C)',
+      '±(0.8% FS + 0.8°C)', '±(1% FS + 1°C)', '±(1.5% FS + 1.5°C)'
+    ],
+
+    // Su Terazisi Belirsizlikleri
+    'Su Terazisi - Standart': [
+      '±1°', '±0.5°', '±0.2°', '±0.1°', '±0.05°', '±0.02°', '±0.01°',
+      '±2°', '±1.5°', '±0.8°', '±0.3°', '±0.15°', '±0.08°', '±0.03°',
+      // mm/m cinsinden
+      '±1 mm/m', '±0.5 mm/m', '±0.2 mm/m', '±0.1 mm/m', '±0.05 mm/m',
+      '±0.02 mm/m', '±0.01 mm/m', '±0.005 mm/m', '±0.002 mm/m',
+      // Kabarcık hassasiyeti
+      '±1 bölme', '±0.5 bölme', '±0.2 bölme', '±0.1 bölme',
+      // İnç birimler
+      '±0.04 inch/ft', '±0.02 inch/ft', '±0.008 inch/ft', '±0.004 inch/ft'
+    ],
+    'Su Terazisi - Hassas': [
+      '±0.1°', '±0.05°', '±0.02°', '±0.01°', '±0.005°', '±0.002°', '±0.001°',
+      '±0.08°', '±0.03°', '±0.015°', '±0.008°', '±0.003°', '±0.0015°', '±0.0008°',
+      // mm/m cinsinden - Hassas Teraziler
+      '±0.1 mm/m', '±0.05 mm/m', '±0.02 mm/m', '±0.01 mm/m', '±0.005 mm/m',
+      '±0.002 mm/m', '±0.001 mm/m', '±0.0005 mm/m', '±0.0002 mm/m',
+      // Arcmin/arcsec cinsinden
+      '±6 arcmin', '±3 arcmin', '±1 arcmin', '±30 arcsec', '±15 arcsec',
+      '±10 arcsec', '±5 arcsec', '±2 arcsec', '±1 arcsec'
+    ],
+    'Su Terazisi - Digital': [
+      '±0.01°', '±0.005°', '±0.002°', '±0.001°', '±0.0005°', '±0.0002°', '±0.0001°',
+      '±0.008°', '±0.003°', '±0.0015°', '±0.0008°', '±0.0003°', '±0.00015°', '±0.00008°',
+      // Digital hassasiyet - çok hassas
+      '±0.01% FS', '±0.005% FS', '±0.002% FS', '±0.001% FS', '±0.0005% FS',
+      // Arcsec cinsinden - Digital
+      '±36 arcsec', '±18 arcsec', '±7 arcsec', '±4 arcsec', '±2 arcsec',
+      '±1 arcsec', '±0.5 arcsec', '±0.2 arcsec', '±0.1 arcsec',
+      // mm/m cinsinden - Digital
+      '±0.01 mm/m', '±0.005 mm/m', '±0.002 mm/m', '±0.001 mm/m', '±0.0005 mm/m'
+    ],
+
     // Varsayılan değerler
     'Diğer': ['±0.1%', '±0.2%', '±0.5%', '±1%', '±2%', '±5%', 'Özel Belirsizlik']
   };
   
   localStorage.setItem('measurement_uncertainties_by_sub_category', JSON.stringify(defaultUncertainties));
+  localStorage.setItem('measurement_uncertainties_version', '2.0');
   return defaultUncertainties;
 };
 
@@ -1122,7 +1359,9 @@ const getModels = (): string[] => {
 // Kategoriye göre cihaz adları listesi
 const getEquipmentNamesByCategory = () => {
   const stored = localStorage.getItem('equipment_names_by_category');
-  if (stored) {
+  const version = localStorage.getItem('equipment_names_version');
+  // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
+  if (stored && version === '2.0') {
     return JSON.parse(stored);
   }
   
@@ -1139,6 +1378,11 @@ const getEquipmentNamesByCategory = () => {
       'Komparatör - Digital', 'Komparatör - Analog', 'Komparatör - Pneumatik',
       'Blok Takımı', 'Pin Gauge Takımı', 'Ring Gauge Takımı',
       'Master Ring', 'Master Plug', 'Kalibre Blok',
+      // Yeni Eklenen Ölçüm Cihazları
+      'Takometre - Digital', 'Takometre - Laser', 'Takometre - Optik',
+      'Sentil Çakısı - 0.001mm', 'Sentil Çakısı - 0.002mm', 'Sentil Çakısı - 0.005mm',
+      'Radius Mastar - İç R', 'Radius Mastar - Dış R', 'Radius Mastar - Universal',
+      'Dijital Isı Ölçer - İnfrared', 'Dijital Isı Ölçer - Temaslı', 'Dijital Isı Ölçer - Problu',
       // Hassas Ölçüm Cihazları
       'Koordinat Ölçüm Makinesi (CMM)', 'Optik Komparatör',
       'Projektör - Profil', 'Projektör - Werkstück',
@@ -1150,7 +1394,8 @@ const getEquipmentNamesByCategory = () => {
       'Açı Ölçer - Digital', 'Açı Ölçer - Analog', 
       'Gonyometre - Universal', 'Gonyometre - Ayarlanabilir',
       'İnklinometre - Digital', 'İnklinometre - Analog',
-      'Niveau - Su Terazisi', 'Niveau - Hava Kabarcıklı',
+      'Su Terazisi - Standart', 'Su Terazisi - Hassas', 'Su Terazisi - Digital',
+      'Niveau - Hava Kabarcıklı', 'Niveau - Magnetic',
       'Sinüs Bar', 'Açı Blokları', 'Konik Gauge',
       'Dönüş Masası', 'Endeksli Kafa', 'Açı Dekupatörü'
     ],
@@ -1301,6 +1546,7 @@ const getEquipmentNamesByCategory = () => {
   };
   
   localStorage.setItem('equipment_names_by_category', JSON.stringify(defaultEquipmentNames));
+  localStorage.setItem('equipment_names_version', '2.0');
   return defaultEquipmentNames;
 };
 
