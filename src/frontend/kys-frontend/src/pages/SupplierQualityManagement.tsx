@@ -6,7 +6,7 @@ import {
   TableRow, Tabs, Tab, Avatar, Grid, IconButton, Tooltip, Alert, Snackbar,
   List, ListItem, ListItemText, ListItemIcon, Switch, FormControlLabel,
   Accordion, AccordionSummary, AccordionDetails, Badge, Divider, Checkbox,
-  CircularProgress
+  CircularProgress, Autocomplete
 } from '@mui/material';
 import {
   Business as BusinessIcon, Add as AddIcon, Dashboard as DashboardIcon,
@@ -5548,57 +5548,101 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   
                   {/* Ana Tedarikçi Seçimi */}
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Ana Tedarikçi</InputLabel>
-                      <Select
-                        value={formData.primarySupplierId || ''}
-                        onChange={(e) => {
-                          const selectedSupplierId = e.target.value;
-                          const selectedSupplier = suppliers.find(s => s.id === selectedSupplierId);
-                          
-                          // Seçilen tedarikçinin malzeme türlerinden ilkini otomatik seç
-                          const autoMaterialType = selectedSupplier?.materialTypes?.[0] || '';
-                          
-                          setFormData({ 
-                            ...formData, 
-                            primarySupplierId: selectedSupplierId,
-                            materialType: autoMaterialType
-                          });
-                        }}
-                      >
-                        {suppliers.filter(s => s.type === 'onaylı').map(supplier => (
-                          <MenuItem key={supplier.id} value={supplier.id}>
-                            <Box display="flex" alignItems="center" gap={1}>
-                              <CheckCircleIcon color="success" fontSize="small" />
-                              {supplier.name}
+                    <Autocomplete
+                      fullWidth
+                      options={suppliers.filter(s => s.type === 'onaylı')}
+                      getOptionLabel={(option) => option.name}
+                      value={suppliers.find(s => s.id === formData.primarySupplierId) || null}
+                      onChange={(event, newValue) => {
+                        const selectedSupplierId = newValue?.id || '';
+                        const selectedSupplier = newValue;
+                        
+                        // Seçilen tedarikçinin malzeme türlerinden ilkini otomatik seç
+                        const autoMaterialType = selectedSupplier?.materialTypes?.[0] || '';
+                        
+                        setFormData({ 
+                          ...formData, 
+                          primarySupplierId: selectedSupplierId,
+                          materialType: autoMaterialType
+                        });
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Ana Tedarikçi"
+                          required
+                          helperText="Arama yaparak tedarikçi bulabilirsiniz"
+                        />
+                      )}
+                      renderOption={(props, option) => (
+                        <Box component="li" {...props}>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <CheckCircleIcon color="success" fontSize="small" />
+                            <Box>
+                              <Typography variant="body2" fontWeight="500">
+                                {option.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {option.category} • Puan: {option.performanceScore}
+                              </Typography>
                             </Box>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                          </Box>
+                        </Box>
+                      )}
+                      filterOptions={(options, { inputValue }) =>
+                        options.filter(option =>
+                          option.name.toLowerCase().includes(inputValue.toLowerCase()) ||
+                          option.category.toLowerCase().includes(inputValue.toLowerCase()) ||
+                          option.materialTypes.some(mt => mt.toLowerCase().includes(inputValue.toLowerCase()))
+                        )
+                      }
+                      noOptionsText="Tedarikçi bulunamadı"
+                    />
                   </Grid>
 
                   {/* Alternatif Tedarikçi Seçimi */}
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Alternatif Tedarikçi</InputLabel>
-                      <Select
-                        value={formData.alternativeSupplierId || ''}
-                        onChange={(e) => setFormData({ ...formData, alternativeSupplierId: e.target.value })}
-                      >
-                        {suppliers
-                          .filter(s => (s.type === 'alternatif' || s.type === 'onaylı') && s.id !== formData.primarySupplierId)
-                          .map(supplier => (
-                            <MenuItem key={supplier.id} value={supplier.id}>
-                                                          <Box display="flex" alignItems="center" gap={1}>
-                              <SwapHorizIcon color="warning" fontSize="small" />
-                              {supplier.name}
+                    <Autocomplete
+                      fullWidth
+                      options={suppliers.filter(s => (s.type === 'alternatif' || s.type === 'onaylı') && s.id !== formData.primarySupplierId)}
+                      getOptionLabel={(option) => option.name}
+                      value={suppliers.find(s => s.id === formData.alternativeSupplierId) || null}
+                      onChange={(event, newValue) => {
+                        setFormData({ ...formData, alternativeSupplierId: newValue?.id || '' });
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Alternatif Tedarikçi"
+                          required
+                          helperText="Arama yaparak tedarikçi bulabilirsiniz"
+                        />
+                      )}
+                      renderOption={(props, option) => (
+                        <Box component="li" {...props}>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <SwapHorizIcon color="warning" fontSize="small" />
+                            <Box>
+                              <Typography variant="body2" fontWeight="500">
+                                {option.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {option.type} • {option.category} • Puan: {option.performanceScore}
+                              </Typography>
                             </Box>
-                            </MenuItem>
-                          ))
-                        }
-                      </Select>
-                    </FormControl>
+                          </Box>
+                        </Box>
+                      )}
+                      filterOptions={(options, { inputValue }) =>
+                        options.filter(option =>
+                          option.name.toLowerCase().includes(inputValue.toLowerCase()) ||
+                          option.category.toLowerCase().includes(inputValue.toLowerCase()) ||
+                          option.type.toLowerCase().includes(inputValue.toLowerCase()) ||
+                          option.materialTypes.some(mt => mt.toLowerCase().includes(inputValue.toLowerCase()))
+                        )
+                      }
+                      noOptionsText="Tedarikçi bulunamadı"
+                    />
                   </Grid>
 
                   {/* Malzeme Türü - Otomatik Seçilen */}
