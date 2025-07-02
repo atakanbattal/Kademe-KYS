@@ -2433,7 +2433,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         <Grid item xs={12} md={3}>
           <Card elevation={6} sx={{ 
             borderRadius: 4, 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
             color: 'white',
             position: 'relative',
             overflow: 'hidden'
@@ -2476,7 +2476,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             borderRadius: 4, 
             background: avgPerformance >= 85 ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : 
                         avgPerformance >= 70 ? 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' : 
-                        'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+                        'linear-gradient(135deg, #d32f2f 0%, #c62828 100%)',
             color: 'white',
             position: 'relative',
             overflow: 'hidden'
@@ -2519,7 +2519,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         <Grid item xs={12} md={3}>
           <Card elevation={6} sx={{ 
             borderRadius: 4, 
-            background: openNonconformities.length === 0 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
+            background: openNonconformities.length === 0 ? 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)' :
                         openNonconformities.length <= 5 ? 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' :
                         'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
             color: 'white',
@@ -2561,7 +2561,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         <Grid item xs={12} md={3}>
           <Card elevation={6} sx={{ 
             borderRadius: 4, 
-            background: auditComplianceRate >= 95 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
+            background: auditComplianceRate >= 95 ? 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)' :
                         auditComplianceRate >= 80 ? 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' :
                         'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
             color: 'white',
@@ -2606,7 +2606,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <CardHeader 
               title="Kategori Bazlı Performans" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              sx={{ background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)' }}
+              sx={{ background: 'linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%)' }}
             />
             <CardContent>
               <Box height={280}>
@@ -2648,15 +2648,15 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <CardHeader 
               title="Risk & Aksiyon Matrisi" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              sx={{ background: 'linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%)' }}
+              sx={{ background: 'linear-gradient(135deg, #fff3e0 0%, #ffecb3 100%)' }}
             />
             <CardContent>
               <Grid container spacing={2} sx={{ height: 280 }}>
                 {[
-                  { level: 'Kritik', count: suppliers.filter(s => s.riskLevel === 'kritik').length, color: '#d32f2f', icon: '🔴' },
-                  { level: 'Yüksek', count: suppliers.filter(s => s.riskLevel === 'yüksek').length, color: '#f57c00', icon: '🟠' },
-                  { level: 'Orta', count: suppliers.filter(s => s.riskLevel === 'orta').length, color: '#fbc02d', icon: '🟡' },
-                  { level: 'Düşük', count: suppliers.filter(s => s.riskLevel === 'düşük').length, color: '#388e3c', icon: '🟢' }
+                  { level: 'Kritik', count: suppliers.filter(s => s.riskLevel === 'kritik').length, color: '#d32f2f' },
+                  { level: 'Yüksek', count: suppliers.filter(s => s.riskLevel === 'yüksek').length, color: '#f57c00' },
+                  { level: 'Orta', count: suppliers.filter(s => s.riskLevel === 'orta').length, color: '#fbc02d' },
+                  { level: 'Düşük', count: suppliers.filter(s => s.riskLevel === 'düşük').length, color: '#388e3c' }
                 ].map((risk, index) => (
                   <Grid item xs={6} key={risk.level}>
                     <Card 
@@ -2673,7 +2673,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         justifyContent: 'center'
                       }}
                     >
-                      <Typography variant="h2" sx={{ mb: 1 }}>{risk.icon}</Typography>
+
                       <Typography variant="h4" fontWeight="bold" sx={{ color: risk.color }}>
                         {risk.count}
                       </Typography>
@@ -2694,7 +2694,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <CardHeader 
               title="Tedarikçi Performans Karşılaştırması" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #f3e5f5 100%)' }}
+              sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #e1f5fe 100%)' }}
             />
             <CardContent>
               <Box height={350}>
@@ -2724,7 +2724,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     <Legend />
                     <Bar dataKey="kalite" fill="#2196f3" name="Kalite Skoru" radius={[2, 2, 0, 0]} />
                     <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat Skoru" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="genel" fill="#9c27b0" name="Genel Performans" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="genel" fill="#1976d2" name="Genel Performans" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
@@ -2738,7 +2738,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <CardHeader 
               title="Operasyonel Metrikler" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              sx={{ background: 'linear-gradient(135deg, #fff8e1 0%, #f3e5f5 100%)' }}
+              sx={{ background: 'linear-gradient(135deg, #fff8e1 0%, #f3e5ab 100%)' }}
             />
             <CardContent>
               <Box display="flex" flexDirection="column" gap={3} height={350} justifyContent="space-between">
@@ -2813,7 +2813,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         <Grid item xs={12}>
           <Card elevation={6} sx={{ borderRadius: 4, background: 'linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%)' }}>
             <CardHeader 
-              title="🎯 Akıllı Analizler ve Öneriler" 
+              title="Akıllı Analizler ve Öneriler" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600, color: 'primary.main' }}
             />
             <CardContent>
@@ -2822,7 +2822,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 <Grid item xs={12} md={4}>
                   <Box p={2} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
                     <Typography variant="h6" gutterBottom color="primary">
-                      📈 Performans Önerileri
+                      Performans Önerileri
                     </Typography>
                     {avgPerformance < 80 && (
                       <Alert severity="warning" sx={{ mb: 2 }}>
@@ -2858,7 +2858,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 <Grid item xs={12} md={4}>
                   <Box p={2} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
                     <Typography variant="h6" gutterBottom color="error">
-                      ⚠️ Risk Uyarıları
+                      Risk Uyarıları
                     </Typography>
                     {criticalSuppliers.length > 0 && (
                       <Alert severity="error" sx={{ mb: 2 }}>
@@ -2894,7 +2894,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 <Grid item xs={12} md={4}>
                   <Box p={2} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
                     <Typography variant="h6" gutterBottom color="success.main">
-                      ✅ Önerilen Aksiyonlar
+                      Önerilen Aksiyonlar
                     </Typography>
                     <List dense>
                       {criticalSuppliers.length > 0 && (
