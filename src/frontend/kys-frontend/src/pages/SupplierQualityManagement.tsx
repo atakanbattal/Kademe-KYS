@@ -1767,8 +1767,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         };
         
         // Form validasyonu
-        if (!formData.name || !formData.code || !formData.type) {
-          showSnackbar('Tedarikçi adı, kodu ve türü zorunludur', 'error');
+        if (!formData.name || !formData.type) {
+          showSnackbar('Tedarikçi adı ve türü zorunludur', 'error');
           return;
         }
 
