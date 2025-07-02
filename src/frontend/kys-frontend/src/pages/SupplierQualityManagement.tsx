@@ -3011,7 +3011,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Box>
 
       <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 1200 }}>
+        <Table sx={{ minWidth: 1300 }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'primary.50' }}>
               <TableCell 
@@ -3027,7 +3027,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '100px',
+                  width: '130px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
                   textAlign: 'center'
@@ -3038,7 +3038,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '100px',
+                  width: '110px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
                   textAlign: 'center'
@@ -3059,7 +3059,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '200px',
+                  width: '180px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
                   textAlign: 'center'
@@ -3070,7 +3070,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '120px',
+                  width: '140px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
                   textAlign: 'center'
@@ -3081,7 +3081,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '100px',
+                  width: '110px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
                   textAlign: 'center'
@@ -3115,18 +3115,20 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     </Typography>
                   </Box>
                 </TableCell>
-                <TableCell sx={{ width: '100px', textAlign: 'center', verticalAlign: 'middle' }}>
+                <TableCell sx={{ width: '130px', textAlign: 'center', verticalAlign: 'middle' }}>
                   <Chip 
                     label={supplier.type.charAt(0).toUpperCase() + supplier.type.slice(1)} 
                     color={supplier.type === 'onaylı' ? 'success' : 'warning'}
                     size="small"
+                    sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   />
                 </TableCell>
-                <TableCell sx={{ width: '100px', textAlign: 'center', verticalAlign: 'middle' }}>
+                <TableCell sx={{ width: '110px', textAlign: 'center', verticalAlign: 'middle' }}>
                   <Chip 
                     label={supplier.category.charAt(0).toUpperCase() + supplier.category.slice(1)} 
                     variant="outlined"
                     size="small"
+                    sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   />
                 </TableCell>
                 <TableCell sx={{ width: '250px', verticalAlign: 'top' }}>
@@ -3151,7 +3153,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     )}
                   </Box>
                 </TableCell>
-                <TableCell sx={{ width: '200px', textAlign: 'center', verticalAlign: 'middle' }}>
+                <TableCell sx={{ width: '180px', textAlign: 'center', verticalAlign: 'middle' }}>
                   <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
                     {/* Grade Badge */}
                     <Box
@@ -3185,19 +3187,20 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     </Box>
                   </Box>
                 </TableCell>
-                <TableCell sx={{ width: '120px', textAlign: 'center', verticalAlign: 'middle' }}>
-                  <Typography variant="body2" textAlign="center">
+                <TableCell sx={{ width: '140px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <Typography variant="body2" textAlign="center" fontSize="0.8rem">
                     {new Date(supplier.lastAuditDate).toLocaleDateString('tr-TR')}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
+                  <Typography variant="caption" color="text.secondary" textAlign="center" display="block" fontSize="0.7rem">
                     Sonraki: {new Date(supplier.nextAuditDate).toLocaleDateString('tr-TR')}
                   </Typography>
                 </TableCell>
-                <TableCell sx={{ width: '100px', textAlign: 'center', verticalAlign: 'middle' }}>
+                <TableCell sx={{ width: '110px', textAlign: 'center', verticalAlign: 'middle' }}>
                   <Chip 
                     label={supplier.status.charAt(0).toUpperCase() + supplier.status.slice(1)}
                     color={supplier.status === 'aktif' ? 'success' : 'error'}
                     size="small"
+                    sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   />
                 </TableCell>
                 <TableCell sx={{ width: '130px', textAlign: 'center', verticalAlign: 'middle' }}>
