@@ -5702,37 +5702,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       Bu kategorinin performansını görebilmek için önce "Araç Başı Performans Girişi" sekmesinden gerçekleşen performans verilerini girmelisiniz.
                     </Typography>
                     
-                    <Button
-                      variant="contained"
-                      color="warning"
-                      size="large"
-                      fullWidth
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Araç Başı Performans Girişi sekmesine geç (tab index 4)
-                        setCurrentTab(4);
-                        // Scroll to top
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      sx={{ 
-                        fontWeight: 700,
-                        fontSize: '1rem',
-                        py: 1.5,
-                        boxShadow: 3,
-                        '&:hover': {
-                          boxShadow: 6,
-                          transform: 'translateY(-1px)'
-                        }
-                      }}
-                    >
-                      🚗 Araç Başı Performans Girişi Sekmesine Git
-                    </Button>
-                    
-                    <Box sx={{ mt: 2, p: 1.5, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
-                      <Typography variant="caption" color="info.dark" sx={{ fontWeight: 500 }}>
-                        💡 İpucu: Araç Başı Performans Girişi sekmesinde bu kategori için gerçekleşen Ret, Hurda ve Fire verilerini adet/kg cinsinden girebilirsiniz.
-                    </Typography>
-                    </Box>
+                    <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+                      <Typography variant="body2" fontWeight={500}>
+                        💡 Bu kategori için performans verisi henüz girilmemiş. 
+                        Performans takibi için önce veri girişi yapılması gerekiyor.
+                      </Typography>
+                    </Alert>
                   </Box>
                 );
               }
@@ -7287,11 +7262,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             label="Kalitesizlik Maliyetleri" 
             iconPosition="start"
           />
-          <Tab 
-            icon={<DirectionsCarIcon />} 
-            label="Araç Başı Performans Girişi" 
-            iconPosition="start"
-          />
+
           <Tab 
             icon={<TuneIcon />} 
             label="Birim Maliyet Ayarları" 
@@ -7334,7 +7305,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           realTimeData={realTimeAnalytics} 
           filteredData={globalFilteredData}
           vehicleTargets={vehicleTargets}
-          onAddTarget={() => setCurrentTab(4)} // Araç Başı Performans Girişi sekmesine yönlendir
+          onAddTarget={() => {
+            // Araç bazlı takip sekmesinde kalmaya devam et
+            console.log('Araç hedef ekleme özelliği kaldırıldı');
+          }}
           onEditTarget={(target) => {
             // Hedef düzenleme modalını aç
             console.log('Hedef düzenle:', target);
@@ -7342,21 +7316,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           onVehiclePerformanceClick={handleVehiclePerformanceClick}
         />}
         {currentTab === 3 && <AnalyticsDashboard realTimeData={realTimeAnalytics} filteredData={globalFilteredData} />}
-        {currentTab === 4 &&             <VehiclePerformanceDataComponent 
-              realTimeData={realTimeAnalytics}
-              filteredData={globalFilteredData}
-              onDataRefresh={() => {
-                setDataRefreshTrigger(prev => prev + 1);
-                // Performans verileri güncellendiğinde araç bazlı takip modülünü de güncelle
-                const updatedTargets = loadVehicleTargetsFromStorage();
-                setVehicleTargets(updatedTargets);
-              }}
-            />}
-        {currentTab === 5 && <CostSettingsComponent 
+
+        {currentTab === 4 && <CostSettingsComponent 
           filteredData={globalFilteredData}
         />}
-        {currentTab === 6 && <MaterialPricingManagementComponent />}
-                    {currentTab === 7 && <CategoryProductionManagementComponent 
+        {currentTab === 5 && <MaterialPricingManagementComponent />}
+                    {currentTab === 6 && <CategoryProductionManagementComponent 
             onTabChange={setCurrentTab} 
             globalFilters={globalFilters}
             setGlobalFilters={setGlobalFilters}
@@ -7377,15 +7342,15 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             // Veri yönetimi sekmesindeyse yeni kayıt ekle
             const event = new CustomEvent('addNewCostEntry');
             window.dispatchEvent(event);
-          } else if (currentTab === 5) {
+          } else if (currentTab === 4) {
             // Birim maliyet ayarları sekmesindeyse yeni ayar ekle
             const event = new CustomEvent('addNewCostSetting');
             window.dispatchEvent(event);
-          } else if (currentTab === 6) {
+          } else if (currentTab === 5) {
             // Malzeme maliyet ayarları sekmesindeyse yeni malzeme ekle
             const event = new CustomEvent('addNewMaterial');
             window.dispatchEvent(event);
-          } else if (currentTab === 7) {
+          } else if (currentTab === 6) {
             // Aylık üretim sayıları sekmesindeyse yeni üretim kaydı ekle
             const event = new CustomEvent('addNewProductionRecord');
             window.dispatchEvent(event);
