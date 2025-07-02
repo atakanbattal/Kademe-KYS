@@ -30,6 +30,8 @@ interface Supplier {
   code: string;
   type: 'onaylı' | 'alternatif' | 'potansiyel' | 'bloklu';
   category: 'stratejik' | 'kritik' | 'rutin' | 'genel';
+  // A/B/C/D Tedarikçi Gruplandırması
+  supplierGrade: 'A' | 'B' | 'C' | 'D';
   // Yeni tedarik türü alanları
   supplyType: 'malzeme' | 'hizmet' | 'hibrit';
   supplySubcategories: string[];
@@ -74,13 +76,19 @@ interface AuditRecord {
   id: string;
   supplierId: string;
   auditDate: string;
+  plannedDate?: string; // Planlandığı tarih
   auditType: 'planlı' | 'ani' | 'takip' | 'acil';
   auditorName: string;
   score: number;
   findings: string[];
-  status: 'planlı' | 'tamamlandı' | 'iptal';
+  status: 'planlı' | 'devam_ediyor' | 'tamamlandı' | 'iptal' | 'gecikmiş';
   nextAuditDate: string;
   isAutoScheduled: boolean;
+  // Denetim sapması için yeni alanlar
+  delayReason?: string; // Gecikme nedeni
+  delayDays?: number; // Gecikme gün sayısı
+  isDelayed: boolean; // Gecikmiş mi?
+  actualCompletionDate?: string; // Gerçekleşme tarihi
 }
 
 interface NonconformityRecord {
@@ -419,6 +427,7 @@ const SupplierQualityManagement: React.FC = () => {
         code: 'SM001',
         type: 'onaylı',
         category: 'stratejik',
+        supplierGrade: 'A',
         supplyType: 'malzeme',
         supplySubcategories: ['Ham Madde (Çelik, Alüminyum, Plastik)', 'Yarı Mamul (Profil, Sac, Boru)'],
         contact: {
@@ -449,6 +458,7 @@ const SupplierQualityManagement: React.FC = () => {
         code: 'PM005',
         type: 'onaylı',
         category: 'kritik',
+        supplierGrade: 'C',
         supplyType: 'malzeme',
         supplySubcategories: ['Ham Madde (Çelik, Alüminyum, Plastik)'],
         contact: {
@@ -478,6 +488,7 @@ const SupplierQualityManagement: React.FC = () => {
         code: 'KU006',
         type: 'onaylı',
         category: 'kritik',
+        supplierGrade: 'D',
         supplyType: 'malzeme',
         supplySubcategories: ['Yarı Mamul (Profil, Sac, Boru)'],
         contact: {
@@ -507,6 +518,7 @@ const SupplierQualityManagement: React.FC = () => {
         code: 'NM002',
         type: 'alternatif',
         category: 'stratejik',
+        supplierGrade: 'B',
         supplyType: 'hizmet',
         supplySubcategories: ['Taşeron İşçilik (Kaynak, Montaj)', 'Bakım ve Onarım Hizmetleri'],
         contact: {
@@ -555,49 +567,61 @@ const SupplierQualityManagement: React.FC = () => {
         id: 'AUDIT-001',
         supplierId: 'SUP-001',
         auditDate: '2024-12-25',
+        plannedDate: '2024-12-25',
         auditType: 'planlı',
         auditorName: 'Kalite Müdürü - Ahmet Yılmaz',
         score: 0,
         findings: [],
         status: 'planlı',
         nextAuditDate: '2025-12-25',
-        isAutoScheduled: false
+        isAutoScheduled: false,
+        isDelayed: false
       },
       {
         id: 'AUDIT-002',
         supplierId: 'SUP-002',
         auditDate: '2024-12-28',
+        plannedDate: '2024-12-28',
         auditType: 'takip',
         auditorName: 'Denetim Uzmanı - Fatma Demir',
         score: 0,
         findings: [],
         status: 'planlı',
         nextAuditDate: '2025-06-28',
-        isAutoScheduled: false
+        isAutoScheduled: false,
+        isDelayed: false
       },
       {
         id: 'AUDIT-003',
         supplierId: 'SUP-005',
         auditDate: '2024-12-20',
+        plannedDate: '2024-12-15',
         auditType: 'acil',
         auditorName: 'Baş Denetçi - Mehmet Öztürk',
         score: 0,
         findings: [],
-        status: 'planlı',
+        status: 'gecikmiş',
         nextAuditDate: '2025-03-20',
-        isAutoScheduled: true
+        isAutoScheduled: true,
+        isDelayed: true,
+        delayReason: 'Tedarikçi hazırlık süresi uzadı',
+        delayDays: 5
       },
       {
         id: 'AUDIT-004',
         supplierId: 'SUP-006',
         auditDate: '2024-12-15',
+        plannedDate: '2024-12-10',
         auditType: 'ani',
         auditorName: 'Kalite Kontrol - Ayşe Kaya',
         score: 0,
         findings: [],
-        status: 'planlı',
+        status: 'gecikmiş',
         nextAuditDate: '2025-02-15',
-        isAutoScheduled: true
+        isAutoScheduled: true,
+        isDelayed: true,
+        delayReason: 'Denetçi müsaitlik sorunu',
+        delayDays: 5
       }
     ];
 
@@ -2187,9 +2211,45 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   );
 
   // Audit Tracking Component
-  const renderAuditTracking = () => (
+  const renderAuditTracking = () => {
+    // A/B/C/D gruplarına göre tedarikçileri gruplandır
+    const groupedSuppliers = {
+      'A': suppliers.filter(s => s.supplierGrade === 'A'),
+      'B': suppliers.filter(s => s.supplierGrade === 'B'), 
+      'C': suppliers.filter(s => s.supplierGrade === 'C'),
+      'D': suppliers.filter(s => s.supplierGrade === 'D')
+    };
+
+    const getGradeColor = (grade: string) => {
+      switch (grade) {
+        case 'A': return '#4caf50'; // Yeşil
+        case 'B': return '#2196f3'; // Mavi  
+        case 'C': return '#ff9800'; // Turuncu
+        case 'D': return '#f44336'; // Kırmızı
+        default: return '#757575';
+      }
+    };
+
+    const getDelayedAudits = () => {
+      return audits.filter(audit => audit.isDelayed && audit.status === 'gecikmiş');
+    };
+
+    const getUpcomingAudits = () => {
+      const today = new Date();
+      return audits.filter(audit => {
+        const auditDate = new Date(audit.auditDate);
+        const daysDiff = Math.ceil((auditDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+        return audit.status === 'planlı' && daysDiff <= 30;
+      });
+    };
+
+    return (
     <Box>
-      <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
+      {/* Header */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h5" fontWeight="bold">
+          Profesyonel Denetim Takibi
+        </Typography>
         <Box display="flex" gap={2}>
           <Button 
             variant="outlined" 
@@ -2204,6 +2264,81 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           </Button>
         </Box>
       </Box>
+
+      {/* Özet Kartları */}
+      <Grid container spacing={3} mb={4}>
+        <Grid item xs={12} md={3}>
+          <Card sx={{ bgcolor: '#e3f2fd', border: '1px solid #2196f3' }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={2}>
+                <ScheduleIcon sx={{ color: '#1976d2', fontSize: 40 }} />
+                <Box>
+                  <Typography variant="h4" fontWeight="bold" color="#1976d2">
+                    {getUpcomingAudits().length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Yaklaşan Denetim (30 gün)
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <Card sx={{ bgcolor: '#ffebee', border: '1px solid #f44336' }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={2}>
+                <WarningIcon sx={{ color: '#d32f2f', fontSize: 40 }} />
+                <Box>
+                  <Typography variant="h4" fontWeight="bold" color="#d32f2f">
+                    {getDelayedAudits().length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Gecikmiş Denetim
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={3}>
+          <Card sx={{ bgcolor: '#e8f5e8', border: '1px solid #4caf50' }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={2}>
+                <CheckCircleIcon sx={{ color: '#388e3c', fontSize: 40 }} />
+                <Box>
+                  <Typography variant="h4" fontWeight="bold" color="#388e3c">
+                    {audits.filter(a => a.status === 'tamamlandı').length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Tamamlanan Denetim
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={3}>
+          <Card sx={{ bgcolor: '#fff3e0', border: '1px solid #ff9800' }}>
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={2}>
+                <BusinessIcon sx={{ color: '#f57c00', fontSize: 40 }} />
+                <Box>
+                  <Typography variant="h4" fontWeight="bold" color="#f57c00">
+                    {suppliers.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Toplam Tedarikçi
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       {/* Otomatik Denetim Önerileri */}
       {autoAuditRecommendations.length > 0 && (
@@ -2327,66 +2462,265 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <Typography variant="body2" color="primary.main" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
                 +{autoAuditRecommendations.length - 3} öneri daha (aşağıdaki detaylı tabloda görüntülenebilir)
               </Typography>
-            </Box>
-          )}
-        </Paper>
-      )}
+      {/* A/B/C/D Tedarikçi Gruplandırması */}
+      <Typography variant="h6" fontWeight="bold" mb={3} sx={{ color: '#1976d2' }}>
+        Tedarikçi Grupları (A/B/C/D)
+      </Typography>
 
-      <Grid container spacing={3}>
-        {/* Yaklaşan Denetimler - DÜZELTME: audits array'inden veriler çekiliyor */}
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardHeader title="Yaklaşan Denetimler" />
-            <CardContent>
-              <List>
-                {audits
-                  .filter(a => {
-                    const auditDate = new Date(a.auditDate);
-                    const today = new Date();
-                    const daysDiff = Math.ceil((auditDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
-                    return a.status === 'planlı' && daysDiff <= 90;
-                  })
-                  .sort((a, b) => new Date(a.auditDate).getTime() - new Date(b.auditDate).getTime())
-                  .map(audit => {
-                    const auditDate = new Date(audit.auditDate);
-                    const today = new Date();
-                    const daysDiff = Math.ceil((auditDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+      <Grid container spacing={3} mb={4}>
+        {(['A', 'B', 'C', 'D'] as const).map(grade => (
+          <Grid item xs={12} md={3} key={grade}>
+            <Card sx={{ 
+              border: `2px solid ${getGradeColor(grade)}`,
+              borderRadius: 2,
+              height: '100%'
+            }}>
+              <CardHeader
+                avatar={
+                  <Avatar sx={{ bgcolor: getGradeColor(grade), fontWeight: 'bold' }}>
+                    {grade}
+                  </Avatar>
+                }
+                title={`Grup ${grade}`}
+                subheader={`${groupedSuppliers[grade].length} Tedarikçi`}
+                titleTypographyProps={{ fontWeight: 'bold' }}
+              />
+              <CardContent>
+                <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
+                  {groupedSuppliers[grade].length > 0 ? (
+                    groupedSuppliers[grade].map(supplier => {
+                      const supplierAudits = audits.filter(a => a.supplierId === supplier.id);
+                      const nextAudit = supplierAudits.find(a => a.status === 'planlı');
+                      const delayedAudit = supplierAudits.find(a => a.isDelayed);
+                      
+                      return (
+                        <Box key={supplier.id} sx={{ 
+                          p: 1.5, 
+                          mb: 1, 
+                          bgcolor: '#f9f9f9', 
+                          borderRadius: 1,
+                          border: delayedAudit ? '1px solid #f44336' : '1px solid #e0e0e0'
+                        }}>
+                          <Typography variant="body2" fontWeight="bold">
+                            {supplier.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Performans: {supplier.performanceScore}
+                          </Typography>
+                          {nextAudit && (
+                            <Typography variant="caption" display="block" color="primary.main">
+                              Sonraki: {new Date(nextAudit.auditDate).toLocaleDateString('tr-TR')}
+                            </Typography>
+                          )}
+                          {delayedAudit && (
+                            <Chip 
+                              size="small" 
+                              label="Gecikmiş" 
+                              color="error" 
+                              sx={{ mt: 0.5, fontSize: '0.7rem' }}
+                            />
+                          )}
+                        </Box>
+                      );
+                    })
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" style={{ fontStyle: 'italic' }}>
+                      Bu grupta tedarikçi bulunmamaktadır
+                    </Typography>
+                  )}
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Gecikmiş Denetimler */}
+      {getDelayedAudits().length > 0 && (
+        <Card sx={{ mb: 3, border: '1px solid #f44336' }}>
+          <CardHeader 
+            title="Gecikmiş Denetimler" 
+            titleTypographyProps={{ color: '#d32f2f', fontWeight: 'bold' }}
+            avatar={<WarningIcon sx={{ color: '#d32f2f' }} />}
+          />
+          <CardContent>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Tedarikçi</TableCell>
+                    <TableCell>Planlandığı Tarih</TableCell>
+                    <TableCell>Gecikme (Gün)</TableCell>
+                    <TableCell>Gecikme Nedeni</TableCell>
+                    <TableCell>İşlemler</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {getDelayedAudits().map(audit => {
                     const supplier = suppliers.find(s => s.id === audit.supplierId);
-                    
                     return (
-                      <ListItem key={audit.id} divider>
-                        <ListItemIcon>
-                          <ScheduleIcon color={daysDiff <= 30 ? 'error' : 'warning'} />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={supplier ? supplier.name : 'Bilinmiyor'}
-                          secondary={
-                            <Box>
-                              <Typography variant="body2">
-                                Denetim Tarihi: {auditDate.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Denetçi: {audit.auditorName || 'Atanmadı'}
-                              </Typography>
-                              <Chip 
-                                size="small" 
-                                label={daysDiff <= 0 ? 'Gecikmiş' : `${daysDiff} gün kaldı`}
-                                color={daysDiff <= 0 ? 'error' : daysDiff <= 30 ? 'warning' : 'info'}
-                              />
-                            </Box>
-                          }
-                        />
-                        <Box display="flex" gap={1}>
+                      <TableRow key={audit.id}>
+                        <TableCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Avatar sx={{ 
+                              bgcolor: getGradeColor(supplier?.supplierGrade || 'D'), 
+                              width: 24, 
+                              height: 24, 
+                              fontSize: '0.8rem' 
+                            }}>
+                              {supplier?.supplierGrade || 'D'}
+                            </Avatar>
+                            {supplier?.name || 'Bilinmiyor'}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          {audit.plannedDate ? new Date(audit.plannedDate).toLocaleDateString('tr-TR') : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={`${audit.delayDays || 0} gün`} 
+                            color="error" 
+                            size="small" 
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ maxWidth: 200, wordWrap: 'break-word' }}>
+                            {audit.delayReason || 'Belirtilmemiş'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
                           <Button 
                             size="small" 
-                            variant="outlined"
-                            color="primary"
+                            variant="contained" 
+                            color="error"
                             onClick={() => {
-                              if (supplier) {
-                                scheduleAutoAudit(supplier);
-                                showSnackbar(`${supplier.name} denetimi başlatıldı`, 'success');
-                              }
+                              // Gecikmiş denetime müdahale
+                              showSnackbar('Denetim acil olarak yeniden planlandı', 'success');
                             }}
+                          >
+                            Acil Planla
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Denetim Takvimi */}
+      <Card>
+        <CardHeader 
+          title="Denetim Takvimi" 
+          subheader="Tüm denetim planları ve durumları"
+        />
+        <CardContent>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Tedarikçi</TableCell>
+                  <TableCell>Grup</TableCell>
+                  <TableCell>Denetim Tarihi</TableCell>
+                  <TableCell>Denetim Türü</TableCell>
+                  <TableCell>Denetçi</TableCell>
+                  <TableCell>Durum</TableCell>
+                  <TableCell>İşlemler</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {audits.map(audit => {
+                  const supplier = suppliers.find(s => s.id === audit.supplierId);
+                  return (
+                    <TableRow key={audit.id}>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Avatar sx={{ 
+                            bgcolor: getGradeColor(supplier?.supplierGrade || 'D'), 
+                            width: 24, 
+                            height: 24, 
+                            fontSize: '0.8rem' 
+                          }}>
+                            {supplier?.supplierGrade || 'D'}
+                          </Avatar>
+                          {supplier?.name || 'Bilinmiyor'}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={`Grup ${supplier?.supplierGrade || 'D'}`}
+                          sx={{ bgcolor: getGradeColor(supplier?.supplierGrade || 'D'), color: 'white' }}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {new Date(audit.auditDate).toLocaleDateString('tr-TR')}
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={
+                            audit.auditType === 'planlı' ? 'Planlı' :
+                            audit.auditType === 'ani' ? 'Ani' :
+                            audit.auditType === 'takip' ? 'Takip' : 'Acil'
+                          }
+                          variant="outlined"
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {audit.auditorName}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={
+                            audit.status === 'planlı' ? 'Planlı' :
+                            audit.status === 'devam_ediyor' ? 'Devam Ediyor' :
+                            audit.status === 'tamamlandı' ? 'Tamamlandı' :
+                            audit.status === 'gecikmiş' ? 'Gecikmiş' : 'İptal'
+                          }
+                          color={
+                            audit.status === 'tamamlandı' ? 'success' :
+                            audit.status === 'devam_ediyor' ? 'info' :
+                            audit.status === 'gecikmiş' ? 'error' :
+                            audit.status === 'iptal' ? 'default' : 'warning'
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" gap={1}>
+                          <IconButton 
+                            size="small" 
+                            color="primary"
+                            onClick={() => handleEditItem(audit, 'audit')}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            color="error"
+                            onClick={() => handleDeleteItem(audit.id, 'audit')}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+    </Box>
+    );
+  };
                           >
                             Denetle
                           </Button>
@@ -3885,7 +4219,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <Tab icon={<BusinessIcon />} label="Tedarikçi Listesi" />
             <Tab icon={<ScheduleIcon />} label="Denetim Takibi" />
             <Tab icon={<BugReportIcon />} label="Uygunsuzluk Yönetimi" />
-            <Tab icon={<WarningIcon />} label="Hata Takibi" />
             <Tab icon={<AssessmentIcon />} label="Performans Analizi" />
           </Tabs>
         </Paper>
@@ -3906,8 +4239,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                    console.log('🎯 Uygunsuzluk Yönetimi tab\'ı render ediliyor...');
                    return renderNonconformityManagement();
                  case 5:
-                   return renderDefectTracking();
-                 case 6:
                    return renderPerformanceAnalysis();
                  default:
                    return renderDashboard();
@@ -4013,6 +4344,20 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         <MenuItem value="kritik">Kritik</MenuItem>
                         <MenuItem value="rutin">Rutin</MenuItem>
                         <MenuItem value="genel">Genel</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Tedarikçi Grubu</InputLabel>
+                      <Select
+                        value={formData.supplierGrade || 'B'}
+                        onChange={(e) => setFormData({ ...formData, supplierGrade: e.target.value })}
+                      >
+                        <MenuItem value="A">A Grubu - En İyi Performans</MenuItem>
+                        <MenuItem value="B">B Grubu - İyi Performans</MenuItem>
+                        <MenuItem value="C">C Grubu - Orta Performans</MenuItem>
+                        <MenuItem value="D">D Grubu - Düşük Performans</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
