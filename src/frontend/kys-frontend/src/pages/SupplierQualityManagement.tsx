@@ -2648,7 +2648,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <CardHeader 
               title="Risk & Aksiyon Matrisi" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              sx={{ background: 'linear-gradient(135deg, #fff3e0 0%, #ffecb3 100%)' }}
+              sx={{ background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)' }}
             />
             <CardContent>
               <Grid container spacing={2} sx={{ height: 280 }}>
@@ -2738,7 +2738,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <CardHeader 
               title="Operasyonel Metrikler" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              sx={{ background: 'linear-gradient(135deg, #fff8e1 0%, #f3e5ab 100%)' }}
+              sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%)' }}
             />
             <CardContent>
               <Box display="flex" flexDirection="column" gap={3} height={350} justifyContent="space-between">
@@ -2809,131 +2809,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           </Card>
         </Grid>
 
-        {/* Akıllı Öneriler ve Aksiyonlar */}
-        <Grid item xs={12}>
-          <Card elevation={6} sx={{ borderRadius: 4, background: 'linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%)' }}>
-            <CardHeader 
-              title="Akıllı Analizler ve Öneriler" 
-              titleTypographyProps={{ variant: 'h6', fontWeight: 600, color: 'primary.main' }}
-            />
-            <CardContent>
-              <Grid container spacing={3}>
-                {/* Performans Önerileri */}
-                <Grid item xs={12} md={4}>
-                  <Box p={2} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
-                    <Typography variant="h6" gutterBottom color="primary">
-                      Performans Önerileri
-                    </Typography>
-                    {avgPerformance < 80 && (
-                      <Alert severity="warning" sx={{ mb: 2 }}>
-                        Ortalama performans düşük ({avgPerformance} puan)
-                      </Alert>
-                    )}
-                    <List dense>
-                      {stratejikAvg < 90 && stratejikSuppliers.length > 0 && (
-                        <ListItem>
-                          <ListItemText 
-                            primary="Stratejik tedarikçilere odaklanın" 
-                            secondary={`Mevcut ort: ${stratejikAvg}, Hedef: 90+`}
-                            primaryTypographyProps={{ fontSize: '0.9rem' }}
-                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
-                          />
-                        </ListItem>
-                      )}
-                      {evaluatedSuppliers.length < suppliers.length && (
-                        <ListItem>
-                          <ListItemText 
-                            primary="Değerlendirilmemiş tedarikçiler var" 
-                            secondary={`${suppliers.length - evaluatedSuppliers.length} tedarikçi henüz değerlendirilmedi`}
-                            primaryTypographyProps={{ fontSize: '0.9rem' }}
-                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
-                          />
-                        </ListItem>
-                      )}
-                    </List>
-                  </Box>
-                </Grid>
 
-                {/* Risk Uyarıları */}
-                <Grid item xs={12} md={4}>
-                  <Box p={2} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
-                    <Typography variant="h6" gutterBottom color="error">
-                      Risk Uyarıları
-                    </Typography>
-                    {criticalSuppliers.length > 0 && (
-                      <Alert severity="error" sx={{ mb: 2 }}>
-                        {criticalSuppliers.length} yüksek riskli tedarikçi
-                      </Alert>
-                    )}
-                    <List dense>
-                      {overdueAudits > 0 && (
-                        <ListItem>
-                          <ListItemText 
-                            primary="Gecikmiş denetimler var" 
-                            secondary={`${overdueAudits} denetim gecikmiş`}
-                            primaryTypographyProps={{ fontSize: '0.9rem' }}
-                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
-                          />
-                        </ListItem>
-                      )}
-                      {openNonconformities.length > 5 && (
-                        <ListItem>
-                          <ListItemText 
-                            primary="Çok sayıda açık uygunsuzluk" 
-                            secondary={`${openNonconformities.length} açık uygunsuzluk`}
-                            primaryTypographyProps={{ fontSize: '0.9rem' }}
-                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
-                          />
-                        </ListItem>
-                      )}
-                    </List>
-                  </Box>
-                </Grid>
-
-                {/* Aksiyon Planı */}
-                <Grid item xs={12} md={4}>
-                  <Box p={2} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
-                    <Typography variant="h6" gutterBottom color="success.main">
-                      Önerilen Aksiyonlar
-                    </Typography>
-                    <List dense>
-                      {criticalSuppliers.length > 0 && (
-                        <ListItem>
-                          <ListItemText 
-                            primary="Acil denetim planla" 
-                            secondary="Yüksek riskli tedarikçiler için"
-                            primaryTypographyProps={{ fontSize: '0.9rem' }}
-                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
-                          />
-                        </ListItem>
-                      )}
-                      {avgPerformance < 80 && (
-                        <ListItem>
-                          <ListItemText 
-                            primary="Performans iyileştirme programı" 
-                            secondary="Genel performansı artırmak için"
-                            primaryTypographyProps={{ fontSize: '0.9rem' }}
-                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
-                          />
-                        </ListItem>
-                      )}
-                      {suppliers.filter(s => s.type === 'alternatif').length < suppliers.filter(s => s.type === 'onaylı').length * 0.3 && (
-                        <ListItem>
-                          <ListItemText 
-                            primary="Alternatif tedarikçi geliştir" 
-                            secondary="Risk azaltma için"
-                            primaryTypographyProps={{ fontSize: '0.9rem' }}
-                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
-                          />
-                        </ListItem>
-                      )}
-                    </List>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
     );
   };
