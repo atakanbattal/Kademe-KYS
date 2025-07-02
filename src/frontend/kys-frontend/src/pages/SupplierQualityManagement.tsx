@@ -458,21 +458,20 @@ const SupplierQualityManagement: React.FC = () => {
         }
       }
       
-      // Hiç veri yoksa mock veri yükle (ilk kullanım)
-      if (!hasAnyData) {
-        console.log('🎲 localStorage boş - İlk kullanım için mock veri yükleniyor...');
-        loadMockData();
+      // Veri yükleme tamamlandığını işaretle (mock veri otomatik yüklenmez)
+      setDataLoaded(true);
+      setIsLoading(false);
+      
+      if (hasAnyData) {
+        console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı - localStorage\'dan veri yüklendi');
       } else {
-        setDataLoaded(true);
-        setIsLoading(false);
-        console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı');
+        console.log('📝 localStorage boş - Kullanıcı veri girebilir (mock veri otomatik yüklenmez)');
       }
       
     } catch (error) {
       console.error('❌ localStorage veri yükleme hatası:', error);
-      // Hata durumunda mock veri yükle
-      console.log('🚨 Hata durumunda mock veri yükleniyor...');
-      loadMockData();
+      console.log('🚨 Hata durumunda boş state bırakılıyor (mock veri yüklenmez)');
+      setDataLoaded(true);
     } finally {
       setIsLoading(false);
     }
@@ -5603,6 +5602,23 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             >
               Yeni Tedarikçi
             </Button>
+            {/* Örnek Veri Yükleme Butonu - sadece veri yoksa göster */}
+            {suppliers.length === 0 && (
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<StarIcon />}
+                onClick={() => {
+                  if (window.confirm('Örnek tedarikçi verileri yüklensin mi? Bu işlem mevcut verileri etkilemez.')) {
+                    loadMockData();
+                    showSnackbar('Örnek veriler başarıyla yüklendi', 'success');
+                  }
+                }}
+                sx={{ borderStyle: 'dashed' }}
+              >
+                Örnek Veri Yükle
+              </Button>
+            )}
           </Box>
         </Box>
 
