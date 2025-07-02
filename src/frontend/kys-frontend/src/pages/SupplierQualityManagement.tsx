@@ -6,7 +6,7 @@ import {
   TableRow, Tabs, Tab, Avatar, Grid, IconButton, Tooltip, Alert, Snackbar,
   List, ListItem, ListItemText, ListItemIcon, Switch, FormControlLabel,
   Accordion, AccordionSummary, AccordionDetails, Badge, Divider, Checkbox,
-  CircularProgress, Autocomplete
+  CircularProgress, Autocomplete, LinearProgress
 } from '@mui/material';
 import {
   Business as BusinessIcon, Add as AddIcon, Dashboard as DashboardIcon,
@@ -2393,260 +2393,551 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   }, [suppliers, selectedSuppliersForRadar]);
 
   // Dashboard component
-  const renderDashboard = () => (
-    <Grid container spacing={3}>
-      {/* KPI Cards */}
-      <Grid item xs={12} md={3}>
-        <Card>
-          <CardContent>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Avatar sx={{ bgcolor: 'primary.main' }}>
-                <BusinessIcon />
-              </Avatar>
-              <Box>
-                <Typography variant="h4" fontWeight="bold">
-                  {suppliers.filter(s => s.type === 'onaylı').length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Onaylı Tedarikçi
-                </Typography>
+  const renderDashboard = () => {
+    // Gelişmiş analizler için hesaplamalar
+    const evaluatedSuppliers = suppliers.filter(s => s.lastAuditDate && s.lastAuditDate !== '');
+    const avgPerformance = evaluatedSuppliers.length > 0 
+      ? Math.round(evaluatedSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / evaluatedSuppliers.length)
+      : 0;
+    
+    const openNonconformities = nonconformities.filter(nc => nc.status === 'açık');
+    const criticalSuppliers = suppliers.filter(s => s.riskLevel === 'kritik' || s.riskLevel === 'yüksek');
+    
+    // Denetim performans analizi
+    const overdueAudits = suppliers.filter(s => new Date(s.nextAuditDate) < new Date()).length;
+    const auditComplianceRate = suppliers.length > 0 
+      ? Math.round(((suppliers.length - overdueAudits) / suppliers.length) * 100) 
+      : 100;
+    
+    // Uygunsuzluk çözüm performansı
+    const totalNonconformities = nonconformities.length;
+    const resolvedNonconformities = nonconformities.filter(nc => nc.status === 'kapalı').length;
+    const resolutionRate = totalNonconformities > 0 
+      ? Math.round((resolvedNonconformities / totalNonconformities) * 100) 
+      : 100;
+    
+    // Kategori bazlı performans
+    const stratejikSuppliers = suppliers.filter(s => s.category === 'stratejik');
+    const kritikSuppliers = suppliers.filter(s => s.category === 'kritik');
+    
+    const stratejikAvg = stratejikSuppliers.length > 0 
+      ? Math.round(stratejikSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / stratejikSuppliers.length)
+      : 0;
+    
+    const kritikAvg = kritikSuppliers.length > 0 
+      ? Math.round(kritikSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / kritikSuppliers.length)
+      : 0;
+
+    return (
+      <Grid container spacing={3}>
+        {/* Enhanced KPI Cards */}
+        <Grid item xs={12} md={3}>
+          <Card elevation={6} sx={{ 
+            borderRadius: 4, 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{
+              position: 'absolute',
+              top: -20,
+              right: -20,
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.1)'
+            }} />
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', width: 56, height: 56 }}>
+                  <BusinessIcon fontSize="large" />
+                </Avatar>
+                <Box flex={1}>
+                  <Typography variant="h3" fontWeight="bold" sx={{ color: 'white' }}>
+                    {suppliers.filter(s => s.type === 'onaylı').length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                    Onaylı Tedarikçi
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={1} mt={1}>
+                    <TrendingUpIcon fontSize="small" sx={{ color: '#4caf50' }} />
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                      {suppliers.filter(s => s.type === 'alternatif').length} alternatif mevcut
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
 
-      <Grid item xs={12} md={3}>
-        <Card>
-          <CardContent>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Avatar sx={{ bgcolor: 'warning.main' }}>
-                <SwapHorizIcon />
-              </Avatar>
-              <Box>
-                <Typography variant="h4" fontWeight="bold">
-                  {suppliers.filter(s => s.type === 'alternatif').length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Alternatif Tedarikçi
-                </Typography>
+        <Grid item xs={12} md={3}>
+          <Card elevation={6} sx={{ 
+            borderRadius: 4, 
+            background: avgPerformance >= 85 ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : 
+                        avgPerformance >= 70 ? 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' : 
+                        'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{
+              position: 'absolute',
+              bottom: -20,
+              left: -20,
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.1)'
+            }} />
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', width: 56, height: 56 }}>
+                  <AssessmentIcon fontSize="large" />
+                </Avatar>
+                <Box flex={1}>
+                  <Typography variant="h3" fontWeight="bold" sx={{ color: 'white' }}>
+                    {avgPerformance}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                    Ortalama Performans
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={1} mt={1}>
+                    {avgPerformance >= 85 ? <TrendingUpIcon fontSize="small" sx={{ color: '#4caf50' }} /> : 
+                     avgPerformance >= 70 ? <TrendingUpIcon fontSize="small" sx={{ color: '#ff9800' }} /> :
+                     <WarningIcon fontSize="small" sx={{ color: '#f44336' }} />}
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                      {evaluatedSuppliers.length} tedarikçi değerlendirildi
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
 
-      <Grid item xs={12} md={3}>
-        <Card>
-          <CardContent>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Avatar sx={{ bgcolor: 'error.main' }}>
-                <WarningIcon />
-              </Avatar>
-              <Box>
-                <Typography variant="h4" fontWeight="bold">
-                  {nonconformities.filter(nc => nc.status === 'açık').length}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Açık Uygunsuzluk
-                </Typography>
+        <Grid item xs={12} md={3}>
+          <Card elevation={6} sx={{ 
+            borderRadius: 4, 
+            background: openNonconformities.length === 0 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
+                        openNonconformities.length <= 5 ? 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' :
+                        'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{
+              position: 'absolute',
+              top: -10,
+              right: -10,
+              width: 60,
+              height: 60,
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.1)'
+            }} />
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', width: 56, height: 56 }}>
+                  <WarningIcon fontSize="large" />
+                </Avatar>
+                <Box flex={1}>
+                  <Typography variant="h3" fontWeight="bold" sx={{ color: 'white' }}>
+                    {openNonconformities.length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                    Açık Uygunsuzluk
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={1} mt={1}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                      %{resolutionRate} çözüm oranı
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
 
-      <Grid item xs={12} md={3}>
-        <Card>
-          <CardContent>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Avatar sx={{ bgcolor: 'success.main' }}>
-                <AssessmentIcon />
-              </Avatar>
-              <Box>
-                <Typography variant="h4" fontWeight="bold">
-                  {(() => {
-                    const evaluatedSuppliers = suppliers.filter(s => s.lastAuditDate && s.lastAuditDate !== '');
-                    return evaluatedSuppliers.length > 0 
-                      ? Math.round(evaluatedSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / evaluatedSuppliers.length)
-                      : 0;
-                  })()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Ortalama Performans
-                </Typography>
+        <Grid item xs={12} md={3}>
+          <Card elevation={6} sx={{ 
+            borderRadius: 4, 
+            background: auditComplianceRate >= 95 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' :
+                        auditComplianceRate >= 80 ? 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' :
+                        'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <Box sx={{
+              position: 'absolute',
+              bottom: -15,
+              right: -15,
+              width: 70,
+              height: 70,
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.1)'
+            }} />
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', width: 56, height: 56 }}>
+                  <ScheduleIcon fontSize="large" />
+                </Avatar>
+                <Box flex={1}>
+                  <Typography variant="h3" fontWeight="bold" sx={{ color: 'white' }}>
+                    %{auditComplianceRate}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                    Denetim Uyum Oranı
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={1} mt={1}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                      {overdueAudits} gecikmiş denetim
+                    </Typography>
+                  </Box>
+                </Box>
               </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
 
-      {/* Performance Chart */}
-      <Grid item xs={12} md={8}>
-        <Card>
-          <CardHeader title="Tedarikçi Performans Karşılaştırması" />
-          <CardContent>
-            <Box height={300}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={suppliers
-                  .filter(s => s.lastAuditDate && s.lastAuditDate !== '') // Sadece değerlendirilen tedarikçiler
-                  .map(s => ({
-                    name: s.name.split(' ')[0],
-                    kalite: s.qualityScore,
-                    teslimat: s.deliveryScore,
-                    genel: s.performanceScore
-                  }))}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis domain={[0, 100]} />
-                  <ChartTooltip />
-                  <Legend />
-                  <Bar dataKey="kalite" fill="#2196f3" name="Kalite" />
-                  <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat" />
-                  <Bar dataKey="genel" fill="#9c27b0" name="Genel Performans" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* Risk Distribution - Professional Chart */}
-      <Grid item xs={12} md={4}>
-        <Card elevation={4} sx={{ borderRadius: 3 }}>
-          <CardHeader 
-            title="Risk Dağılımı" 
-            titleTypographyProps={{ 
-              variant: 'h6', 
-              fontWeight: 600, 
-              color: 'primary.main' 
-            }}
-            sx={{ 
-              background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
-              color: 'primary.main'
-            }}
-          />
-          <CardContent>
-            <Box height={280}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    dataKey="value"
-                    data={[
-                      { name: 'Düşük', shortName: 'D', value: suppliers.filter(s => s.riskLevel === 'düşük').length, fill: '#2e7d32' },
-                      { name: 'Orta', shortName: 'O', value: suppliers.filter(s => s.riskLevel === 'orta').length, fill: '#ed6c02' },
-                      { name: 'Yüksek', shortName: 'Y', value: suppliers.filter(s => s.riskLevel === 'yüksek').length, fill: '#d32f2f' },
-                      { name: 'Kritik', shortName: 'K', value: suppliers.filter(s => s.riskLevel === 'kritik').length, fill: '#b71c1c' }
-                    ].filter(item => item.value > 0)}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ value, percent }) => 
-                      value > 0 ? `${value} (${(percent * 100).toFixed(0)}%)` : null
-                    }
-                    outerRadius={85}
-                    innerRadius={30}
-                    paddingAngle={2}
-                    strokeWidth={2}
-                    stroke="#fff"
-                  >
-                    {[
-                      { fill: '#2e7d32' },
-                      { fill: '#ed6c02' },
-                      { fill: '#d32f2f' },
-                      { fill: '#b71c1c' }
-                    ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip 
-                    formatter={(value: any, name: any) => [`${value} Tedarikçi`, name]}
-                    labelStyle={{ color: '#333', fontWeight: 'bold' }}
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.96)',
-                      border: '1px solid #ddd',
-                      borderRadius: '12px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                    }}
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={30}
-                    formatter={(value) => <span style={{ color: '#444', fontWeight: 500, fontSize: '12px' }}>{value}</span>}
-                    iconType="circle"
-                    wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* Urgent Actions */}
-      <Grid item xs={12}>
-        <Card>
-          <CardHeader title="Acil Aksiyonlar" />
-          <CardContent>
-            <List>
-              {suppliers
-                .filter(s => {
-                  const auditOverdue = new Date(s.nextAuditDate) < new Date();
-                  const lowPerformance = s.performanceScore < 70 && s.lastAuditDate && s.lastAuditDate !== '';
-                  const openNonconformities = nonconformities.filter(nc => nc.supplierId === s.id && nc.status === 'açık').length > 0;
-                  return auditOverdue || lowPerformance || openNonconformities;
-                })
-                .map(supplier => (
-                  <ListItem key={supplier.id} divider>
-                    <ListItemIcon>
-                      <WarningIcon color="error" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={supplier.name}
-                      secondary={
-                        <Box>
-                          {new Date(supplier.nextAuditDate) < new Date() && (
-                            <Chip size="small" color="error" label="Denetim Gecikmiş" sx={{ mr: 1, mb: 0.5 }} />
-                          )}
-                          {supplier.performanceScore < 70 && (
-                            <Chip size="small" color="warning" label="Düşük Performans" sx={{ mr: 1, mb: 0.5 }} />
-                          )}
-                          {nonconformities.filter(nc => nc.supplierId === supplier.id && nc.status === 'açık').length > 0 && (
-                            <Chip size="small" color="error" label="Açık Uygunsuzluk" sx={{ mr: 1, mb: 0.5 }} />
-                          )}
-                        </Box>
-                      }
+        {/* Kategori Bazlı Performans Analizi */}
+        <Grid item xs={12} md={6}>
+          <Card elevation={4} sx={{ borderRadius: 3, height: '100%' }}>
+            <CardHeader 
+              title="Kategori Bazlı Performans" 
+              titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+              sx={{ background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)' }}
+            />
+            <CardContent>
+              <Box height={280}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { category: 'Stratejik', ortalama: stratejikAvg, adet: stratejikSuppliers.length, hedef: 90 },
+                    { category: 'Kritik', ortalama: kritikAvg, adet: kritikSuppliers.length, hedef: 85 },
+                    { category: 'Rutin', ortalama: suppliers.filter(s => s.category === 'rutin').length > 0 ? Math.round(suppliers.filter(s => s.category === 'rutin').reduce((acc, s) => acc + s.performanceScore, 0) / suppliers.filter(s => s.category === 'rutin').length) : 0, adet: suppliers.filter(s => s.category === 'rutin').length, hedef: 80 },
+                    { category: 'Genel', ortalama: suppliers.filter(s => s.category === 'genel').length > 0 ? Math.round(suppliers.filter(s => s.category === 'genel').reduce((acc, s) => acc + s.performanceScore, 0) / suppliers.filter(s => s.category === 'genel').length) : 0, adet: suppliers.filter(s => s.category === 'genel').length, hedef: 75 }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="category" tick={{ fontSize: 12 }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                    <ChartTooltip 
+                      formatter={(value: any, name: any, props: any) => [
+                        name === 'ortalama' ? `${value} puan` : `${value} tedarikçi`,
+                        name === 'ortalama' ? 'Ortalama Performans' : 
+                        name === 'hedef' ? 'Hedef' : 'Tedarikçi Sayısı'
+                      ]}
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        border: '1px solid #ddd',
+                        borderRadius: '8px'
+                      }}
                     />
-                    <Button size="small" color="primary" onClick={() => {
-                      setSelectedItem(supplier);
-                      setDialogType('supplier');
-                      setDialogOpen(true);
-                    }}>
-                      İncele
-                    </Button>
-                  </ListItem>
+                    <Legend />
+                    <Bar dataKey="ortalama" fill="#3f51b5" name="Ortalama Performans" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="hedef" fill="#e0e0e0" name="Hedef" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Risk ve Aksiyon Matrisi */}
+        <Grid item xs={12} md={6}>
+          <Card elevation={4} sx={{ borderRadius: 3, height: '100%' }}>
+            <CardHeader 
+              title="Risk & Aksiyon Matrisi" 
+              titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+              sx={{ background: 'linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%)' }}
+            />
+            <CardContent>
+              <Grid container spacing={2} sx={{ height: 280 }}>
+                {[
+                  { level: 'Kritik', count: suppliers.filter(s => s.riskLevel === 'kritik').length, color: '#d32f2f', icon: '🔴' },
+                  { level: 'Yüksek', count: suppliers.filter(s => s.riskLevel === 'yüksek').length, color: '#f57c00', icon: '🟠' },
+                  { level: 'Orta', count: suppliers.filter(s => s.riskLevel === 'orta').length, color: '#fbc02d', icon: '🟡' },
+                  { level: 'Düşük', count: suppliers.filter(s => s.riskLevel === 'düşük').length, color: '#388e3c', icon: '🟢' }
+                ].map((risk, index) => (
+                  <Grid item xs={6} key={risk.level}>
+                    <Card 
+                      elevation={2} 
+                      sx={{ 
+                        p: 2, 
+                        textAlign: 'center', 
+                        background: `linear-gradient(135deg, ${risk.color}15 0%, ${risk.color}25 100%)`,
+                        border: `2px solid ${risk.color}30`,
+                        borderRadius: 3,
+                        height: '120px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Typography variant="h2" sx={{ mb: 1 }}>{risk.icon}</Typography>
+                      <Typography variant="h4" fontWeight="bold" sx={{ color: risk.color }}>
+                        {risk.count}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: risk.color, fontWeight: 600 }}>
+                        {risk.level} Risk
+                      </Typography>
+                    </Card>
+                  </Grid>
                 ))}
-              {suppliers.filter(s => {
-                const auditOverdue = new Date(s.nextAuditDate) < new Date();
-                const lowPerformance = s.performanceScore < 70 && s.lastAuditDate && s.lastAuditDate !== '';
-                const openNonconformities = nonconformities.filter(nc => nc.supplierId === s.id && nc.status === 'açık').length > 0;
-                return auditOverdue || lowPerformance || openNonconformities;
-              }).length === 0 && (
-                <ListItem>
-                  <ListItemIcon>
-                    <CheckCircleIcon color="success" />
-                  </ListItemIcon>
-                  <ListItemText primary="Acil aksiyon gerektiren durum bulunmuyor" />
-                </ListItem>
-              )}
-            </List>
-          </CardContent>
-        </Card>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Gelişmiş Performans Chart */}
+        <Grid item xs={12} md={8}>
+          <Card elevation={4} sx={{ borderRadius: 3 }}>
+            <CardHeader 
+              title="Tedarikçi Performans Karşılaştırması" 
+              titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+              sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #f3e5f5 100%)' }}
+            />
+            <CardContent>
+              <Box height={350}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={suppliers
+                    .filter(s => s.lastAuditDate && s.lastAuditDate !== '') // Sadece değerlendirilen tedarikçiler
+                    .slice(0, 10) // En fazla 10 tedarikçi göster
+                    .map(s => ({
+                      name: s.name.length > 12 ? s.name.substring(0, 12) + '...' : s.name,
+                      kalite: s.qualityScore,
+                      teslimat: s.deliveryScore,
+                      genel: s.performanceScore
+                    }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                    <ChartTooltip 
+                      formatter={(value: any, name: any) => [`${value} puan`, name]}
+                      labelStyle={{ fontWeight: 'bold' }}
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        border: '1px solid #ddd',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="kalite" fill="#2196f3" name="Kalite Skoru" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat Skoru" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="genel" fill="#9c27b0" name="Genel Performans" radius={[2, 2, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Operasyonel Metrikler */}
+        <Grid item xs={12} md={4}>
+          <Card elevation={4} sx={{ borderRadius: 3, height: '100%' }}>
+            <CardHeader 
+              title="Operasyonel Metrikler" 
+              titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
+              sx={{ background: 'linear-gradient(135deg, #fff8e1 0%, #f3e5f5 100%)' }}
+            />
+            <CardContent>
+              <Box display="flex" flexDirection="column" gap={3} height={350} justifyContent="space-between">
+                {/* Denetim Başarı Oranı */}
+                <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                  <Typography variant="h4" fontWeight="bold" color="primary.main">
+                    %{auditComplianceRate}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Denetim Başarı Oranı
+                  </Typography>
+                  <Box mt={1}>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={auditComplianceRate} 
+                      sx={{ 
+                        height: 8, 
+                        borderRadius: 4,
+                        backgroundColor: '#e0e0e0',
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: auditComplianceRate >= 90 ? '#4caf50' : 
+                                           auditComplianceRate >= 75 ? '#ff9800' : '#f44336'
+                        }
+                      }} 
+                    />
+                  </Box>
+                </Box>
+
+                {/* Uygunsuzluk Çözüm Oranı */}
+                <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                  <Typography variant="h4" fontWeight="bold" color="secondary.main">
+                    %{resolutionRate}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Uygunsuzluk Çözüm Oranı
+                  </Typography>
+                  <Box mt={1}>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={resolutionRate} 
+                      sx={{ 
+                        height: 8, 
+                        borderRadius: 4,
+                        backgroundColor: '#e0e0e0',
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: resolutionRate >= 90 ? '#4caf50' : 
+                                           resolutionRate >= 75 ? '#ff9800' : '#f44336'
+                        }
+                      }} 
+                    />
+                  </Box>
+                </Box>
+
+                {/* Risk Seviyesi */}
+                <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                  <Typography variant="h4" fontWeight="bold" color="error.main">
+                    {criticalSuppliers.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Yüksek Risk Tedarikçi
+                  </Typography>
+                  <Typography variant="caption" color="error.main">
+                    Acil aksiyon gerekli
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Akıllı Öneriler ve Aksiyonlar */}
+        <Grid item xs={12}>
+          <Card elevation={6} sx={{ borderRadius: 4, background: 'linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%)' }}>
+            <CardHeader 
+              title="🎯 Akıllı Analizler ve Öneriler" 
+              titleTypographyProps={{ variant: 'h6', fontWeight: 600, color: 'primary.main' }}
+            />
+            <CardContent>
+              <Grid container spacing={3}>
+                {/* Performans Önerileri */}
+                <Grid item xs={12} md={4}>
+                  <Box p={2} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      📈 Performans Önerileri
+                    </Typography>
+                    {avgPerformance < 80 && (
+                      <Alert severity="warning" sx={{ mb: 2 }}>
+                        Ortalama performans düşük ({avgPerformance} puan)
+                      </Alert>
+                    )}
+                    <List dense>
+                      {stratejikAvg < 90 && stratejikSuppliers.length > 0 && (
+                        <ListItem>
+                          <ListItemText 
+                            primary="Stratejik tedarikçilere odaklanın" 
+                            secondary={`Mevcut ort: ${stratejikAvg}, Hedef: 90+`}
+                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
+                          />
+                        </ListItem>
+                      )}
+                      {evaluatedSuppliers.length < suppliers.length && (
+                        <ListItem>
+                          <ListItemText 
+                            primary="Değerlendirilmemiş tedarikçiler var" 
+                            secondary={`${suppliers.length - evaluatedSuppliers.length} tedarikçi henüz değerlendirilmedi`}
+                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
+                          />
+                        </ListItem>
+                      )}
+                    </List>
+                  </Box>
+                </Grid>
+
+                {/* Risk Uyarıları */}
+                <Grid item xs={12} md={4}>
+                  <Box p={2} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
+                    <Typography variant="h6" gutterBottom color="error">
+                      ⚠️ Risk Uyarıları
+                    </Typography>
+                    {criticalSuppliers.length > 0 && (
+                      <Alert severity="error" sx={{ mb: 2 }}>
+                        {criticalSuppliers.length} yüksek riskli tedarikçi
+                      </Alert>
+                    )}
+                    <List dense>
+                      {overdueAudits > 0 && (
+                        <ListItem>
+                          <ListItemText 
+                            primary="Gecikmiş denetimler var" 
+                            secondary={`${overdueAudits} denetim gecikmiş`}
+                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
+                          />
+                        </ListItem>
+                      )}
+                      {openNonconformities.length > 5 && (
+                        <ListItem>
+                          <ListItemText 
+                            primary="Çok sayıda açık uygunsuzluk" 
+                            secondary={`${openNonconformities.length} açık uygunsuzluk`}
+                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
+                          />
+                        </ListItem>
+                      )}
+                    </List>
+                  </Box>
+                </Grid>
+
+                {/* Aksiyon Planı */}
+                <Grid item xs={12} md={4}>
+                  <Box p={2} sx={{ bgcolor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
+                    <Typography variant="h6" gutterBottom color="success.main">
+                      ✅ Önerilen Aksiyonlar
+                    </Typography>
+                    <List dense>
+                      {criticalSuppliers.length > 0 && (
+                        <ListItem>
+                          <ListItemText 
+                            primary="Acil denetim planla" 
+                            secondary="Yüksek riskli tedarikçiler için"
+                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
+                          />
+                        </ListItem>
+                      )}
+                      {avgPerformance < 80 && (
+                        <ListItem>
+                          <ListItemText 
+                            primary="Performans iyileştirme programı" 
+                            secondary="Genel performansı artırmak için"
+                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
+                          />
+                        </ListItem>
+                      )}
+                      {suppliers.filter(s => s.type === 'alternatif').length < suppliers.filter(s => s.type === 'onaylı').length * 0.3 && (
+                        <ListItem>
+                          <ListItemText 
+                            primary="Alternatif tedarikçi geliştir" 
+                            secondary="Risk azaltma için"
+                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                            secondaryTypographyProps={{ fontSize: '0.8rem' }}
+                          />
+                        </ListItem>
+                      )}
+                    </List>
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
       </Grid>
-
-
-    </Grid>
-  );
+    );
+  };
 
   // Supplier Pairing Component
   const renderSupplierPairing = () => (
