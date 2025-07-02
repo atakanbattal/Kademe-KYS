@@ -795,6 +795,257 @@ const getMeasurementRangesBySubCategory = () => {
       '0-25% Salt', '0-100 g/L', '0-26% Alcohol'
     ],
 
+    // Kaynak İşleri Ölçüm Cihazları
+    'Kaynak Akım Ölçer - Digital': [
+      '0-50 A', '0-100 A', '0-200 A', '0-300 A', '0-500 A', '0-800 A', '0-1000 A',
+      '10-500 A', '20-800 A', '50-1000 A', '100-1500 A', '200-2000 A',
+      '0-100 A DC', '0-300 A DC', '0-500 A DC', '0-1000 A DC'
+    ],
+    'Kaynak Akım Ölçer - Analog': [
+      '0-100 A', '0-200 A', '0-300 A', '0-500 A', '0-800 A',
+      '0-150 A AC', '0-300 A AC', '0-600 A AC'
+    ],
+    'Kaynak Voltaj Ölçer - Digital': [
+      '0-50 V', '0-100 V', '0-150 V', '0-200 V', '0-250 V', '0-300 V',
+      '10-80 V', '15-45 V', '20-60 V', '25-80 V',
+      '0-80 V DC', '0-100 V DC', '0-150 V DC'
+    ],
+    'Kaynak Voltaj Ölçer - RMS': [
+      '0-100 V RMS', '0-150 V RMS', '0-200 V RMS', '0-300 V RMS',
+      '10-80 V RMS', '20-100 V RMS', '30-150 V RMS'
+    ],
+    'Gaz Flow Ölçer - Argon': [
+      '0-10 L/min', '0-20 L/min', '0-30 L/min', '0-50 L/min', '0-100 L/min',
+      '2-15 L/min', '5-25 L/min', '10-50 L/min',
+      '0-2.5 CFH', '0-5 CFH', '0-10 CFH', '0-20 CFH', '0-35 CFH'
+    ],
+    'Gaz Flow Ölçer - CO2': [
+      '0-15 L/min', '0-25 L/min', '0-40 L/min', '0-60 L/min',
+      '5-20 L/min', '10-35 L/min', '15-50 L/min',
+      '0-5 CFH', '0-15 CFH', '0-25 CFH', '0-40 CFH'
+    ],
+    'Gaz Flow Ölçer - Mixed Gas': [
+      '0-20 L/min', '0-35 L/min', '0-50 L/min', '0-80 L/min',
+      '5-30 L/min', '10-40 L/min', '0-10 CFH', '0-25 CFH'
+    ],
+    'Kaynak Penetrasyon Ölçer': [
+      '0-5 mm', '0-10 mm', '0-15 mm', '0-25 mm', '0-50 mm',
+      '1-8 mm', '2-12 mm', '3-20 mm', '5-35 mm',
+      '0-0.2 inch', '0-0.4 inch', '0-0.6 inch', '0-1 inch', '0-2 inch'
+    ],
+    'Ark Voltaj Ölçer': [
+      '10-50 V', '15-80 V', '20-100 V', '25-120 V', '30-150 V',
+      '0-80 V RMS', '0-100 V RMS', '0-150 V RMS'
+    ],
+    'Kaynak Kalitesi Testi': [
+      '0-100% Kalite', '0-10 Hata/cm', '0-5 Porosity/cm²',
+      '0-50 mm Penetrasyon', '0-20 mm Diş Genişliği'
+    ],
+    'Heat Input Hesaplayıcı': [
+      '0-10 kJ/mm', '0-5 kJ/mm', '0-20 kJ/mm', '0-50 kJ/mm',
+      '500-5000 J/mm', '1000-10000 J/mm'
+    ],
+
+    // Büküm ve Şekillendirme Ölçümleri
+    'Tork Ölçer - Digital': [
+      '0-10 Nm', '0-25 Nm', '0-50 Nm', '0-100 Nm', '0-200 Nm', '0-500 Nm', '0-1000 Nm',
+      '0-5000 Nm', '0-10000 Nm', '1-50 Nm', '5-200 Nm', '10-500 Nm',
+      '0-90 in-lb', '0-180 in-lb', '0-450 in-lb', '0-900 in-lb',
+      '0-75 ft-lb', '0-150 ft-lb', '0-370 ft-lb', '0-740 ft-lb'
+    ],
+    'Tork Ölçer - Analog': [
+      '0-50 Nm', '0-100 Nm', '0-200 Nm', '0-500 Nm', '0-1000 Nm',
+      '0-180 in-lb', '0-450 in-lb', '0-75 ft-lb', '0-370 ft-lb'
+    ],
+    'Momentometre': [
+      '5-25 Nm', '10-50 Nm', '20-100 Nm', '40-200 Nm', '80-400 Nm',
+      '100-500 Nm', '200-1000 Nm', '500-2500 Nm',
+      '45-220 in-lb', '90-450 in-lb', '180-900 in-lb'
+    ],
+    'Büküm Açısı Ölçer': [
+      '0-90°', '0-180°', '0-270°', '0-360°', '±90°', '±180°',
+      '±45°', '±30°', '±15°', '±10°', '±5°', '±2°', '±1°'
+    ],
+    'Spring Back Ölçer': [
+      '0-10°', '0-20°', '0-45°', '0-90°', '±5°', '±10°', '±20°',
+      '0-5 mm', '0-10 mm', '0-25 mm', '0-50 mm'
+    ],
+    'Kuvvet Ölçer - Push/Pull': [
+      '0-10 N', '0-50 N', '0-100 N', '0-500 N', '0-1000 N', '0-5000 N', '0-10000 N',
+      '0-2 kg', '0-5 kg', '0-10 kg', '0-50 kg', '0-100 kg', '0-500 kg', '0-1000 kg',
+      '0-2 lbf', '0-10 lbf', '0-50 lbf', '0-100 lbf', '0-500 lbf', '0-1000 lbf', '0-5000 lbf'
+    ],
+    'Gerilim Ölçer - Strain Gauge': [
+      '±500 με', '±1000 με', '±2000 με', '±5000 με', '±10000 με', '±20000 με',
+      '0-3000 με', '0-5000 με', '0-10000 με', '0-50000 με'
+    ],
+    'Elastikiyet Modülü Ölçer': [
+      '0-300 GPa', '0-500 GPa', '50-250 GPa', '100-400 GPa',
+      '0-45000 ksi', '7000-36000 ksi', '15000-60000 ksi'
+    ],
+
+    // Kesim İşleri Ölçüm Cihazları
+    'Plazma Kesim Güç Ölçer': [
+      '0-50 A', '0-100 A', '0-200 A', '0-400 A', '0-600 A', '0-1000 A',
+      '20-130 A', '30-200 A', '50-400 A', '100-800 A'
+    ],
+    'Lazer Kesim Güç Ölçer': [
+      '0-1 kW', '0-2 kW', '0-5 kW', '0-10 kW', '0-20 kW', '0-50 kW',
+      '0.5-6 kW', '1-15 kW', '2-25 kW', '5-50 kW'
+    ],
+    'Su Jeti Basınç Ölçer': [
+      '0-1000 bar', '0-2000 bar', '0-3000 bar', '0-4000 bar', '0-6000 bar',
+      '500-4000 bar', '1000-6000 bar', '2000-8000 bar',
+      '0-14500 psi', '0-30000 psi', '0-60000 psi', '0-87000 psi'
+    ],
+    'Kesit Pürüzlülük Ölçer': [
+      '0-10 μm Ra', '0-25 μm Ra', '0-50 μm Ra', '0-100 μm Ra', '0-200 μm Ra',
+      '0.1-20 μm Ra', '0.5-50 μm Ra', '1-100 μm Ra'
+    ],
+    'Kesim Kenarı Kalitesi Ölçer': [
+      'Grade 1-5', 'ISO 9013 Kalite', '0-5 Kalite Sınıfı',
+      '0-2 mm Kenar Kalitesi', '0-10° Eğiklik'
+    ],
+    'Oksijen Saflık Ölçer': [
+      '90-100% O2', '95-100% O2', '99-100% O2', '99.5-100% O2',
+      '0-25% O2', '0-100% O2', '80-100% O2'
+    ],
+    'Kesim Hızı Ölçer': [
+      '0-10 m/min', '0-50 m/min', '0-100 m/min', '0-500 m/min',
+      '0-500 mm/min', '0-2000 mm/min', '0-5000 mm/min'
+    ],
+    'Kerf Genişliği Ölçer': [
+      '0-5 mm', '0-10 mm', '0-20 mm', '0-50 mm',
+      '0.1-3 mm', '0.5-8 mm', '1-15 mm'
+    ],
+
+    // Boya ve Kaplama Ölçümleri
+    'Yaş Film Kalınlığı Ölçer': [
+      '0-100 μm', '0-300 μm', '0-500 μm', '0-1000 μm', '0-2000 μm',
+      '25-300 μm', '50-500 μm', '100-1000 μm',
+      '0-4 mils', '0-12 mils', '0-20 mils', '0-40 mils', '0-80 mils'
+    ],
+    'Kuru Film Kalınlığı Ölçer': [
+      '0-300 μm', '0-500 μm', '0-1000 μm', '0-2000 μm', '0-5000 μm',
+      '0-12 mils', '0-20 mils', '0-40 mils', '0-80 mils', '0-200 mils'
+    ],
+    'Viskozite Ölçer - Rotasyonel': [
+      '1-100 cP', '10-10000 cP', '100-100000 cP', '1-1000000 cP',
+      '1-200 cP', '10-40000 cP', '100-2000000 cP'
+    ],
+    'Viskozite Ölçer - Kapiler': [
+      '0.3-30000 cSt', '1-100000 cSt', '0.5-20000 cSt',
+      '1-1000 cP', '10-100000 cP'
+    ],
+    'Renk Ölçer - Colorimeter': [
+      'L* 0-100', 'a* ±120', 'b* ±120', 'ΔE* 0-100',
+      'CIE XYZ', 'RGB 0-255', 'LAB Color Space'
+    ],
+    'Parlaklık Ölçer - Gloss Meter': [
+      '0-100 GU (20°)', '0-200 GU (60°)', '0-1000 GU (85°)',
+      '0-100 GU (60°)', '0-1000 GU (20°)', '0-2000 GU (85°)'
+    ],
+    'Adhesion Test Cihazı': [
+      '0-5 MPa', '0-10 MPa', '0-25 MPa', '0-50 MPa',
+      '0-725 psi', '0-1450 psi', '0-3625 psi', '0-7250 psi'
+    ],
+    'Cross Hatch Test Kiti': [
+      'ASTM D3359', 'ISO 2409', '0-5 Sınıf',
+      '1 mm Grid', '2 mm Grid', '3 mm Grid'
+    ],
+    'Boya Sıcaklığı Ölçer': [
+      '0-100°C', '0-200°C', '0-300°C', '0-500°C',
+      '32-212°F', '32-392°F', '32-572°F', '32-932°F'
+    ],
+
+    // Montaj İşleri Ölçüm Cihazları
+    'Cıvata Momentometesi - Digital': [
+      '2-20 Nm', '5-50 Nm', '10-100 Nm', '20-200 Nm', '50-500 Nm',
+      '100-1000 Nm', '200-2000 Nm', '500-5000 Nm',
+      '18-177 in-lb', '44-442 in-lb', '89-885 in-lb',
+      '15-150 ft-lb', '37-370 ft-lb', '74-740 ft-lb'
+    ],
+    'Cıvata Momentometesi - Klik Tipi': [
+      '5-25 Nm', '10-50 Nm', '20-100 Nm', '40-200 Nm', '80-400 Nm',
+      '44-221 in-lb', '89-442 in-lb', '177-885 in-lb'
+    ],
+    'Gap Ölçer - Feeler Gauge': [
+      '0.02-1.00 mm', '0.05-2.00 mm', '0.1-5.0 mm',
+      '0.0008-0.040 inch', '0.002-0.080 inch', '0.004-0.200 inch'
+    ],
+    'Clearance Ölçer': [
+      '0-5 mm', '0-10 mm', '0-25 mm', '0-50 mm',
+      '0-0.2 inch', '0-0.4 inch', '0-1 inch', '0-2 inch'
+    ],
+    'Fitting Testi Cihazı': [
+      '0-1000 N', '0-5000 N', '0-10000 N',
+      '0-100 kg', '0-500 kg', '0-1000 kg'
+    ],
+    'Montaj Toleransı Ölçer': [
+      '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', '±0.2 mm',
+      '±0.0004 inch', '±0.0008 inch', '±0.002 inch', '±0.004 inch'
+    ],
+    'Vida Adım Ölçer': [
+      'M1-M100', '0.25-6 mm pitch', '4-80 TPI',
+      '1/4"-4" UNC/UNF', 'Metric/Imperial'
+    ],
+
+    // NDT Cihazları
+    'Ultrasonik Flaw Detector': [
+      '0-10000 mm (Çelik)', '0-5000 mm (Alüminyum)', '0-2000 mm (Plastik)',
+      '0.1-9999 mm', '1-25000 mm', '0.004-400 inch'
+    ],
+    'Çatlak Derinliği Ölçer': [
+      '0-20 mm', '0-50 mm', '0-100 mm', '0-250 mm',
+      '0.5-50 mm', '1-100 mm', '0.02-4 inch', '0.04-10 inch'
+    ],
+    'Porosity Test Cihazı': [
+      '0-100% Porosity', '0-50% Void Ratio', '0-20 Vol%',
+      '0.1-50% Porozite'
+    ],
+    'Hardness Tester - Portable': [
+      '200-900 HV', '150-650 HB', '20-70 HRC', '80-100 HRA',
+      '100-1000 HV', '80-650 HB', '10-80 HRC'
+    ],
+    'Ferrite Scope': [
+      '0-100% Ferrit', '0-50% Ferrit', '0-20% Delta Ferrit',
+      'FN 0-100', 'FN 0-50'
+    ],
+
+    // Elektrik Montaj Test Cihazları
+    'Kontinüite Test Cihazı': [
+      '0-200 Ω', '0-2000 Ω', '0-20 kΩ', '0-200 kΩ',
+      '0.1-999 Ω', '1-9999 Ω'
+    ],
+    'Megger - İzolasyon Test': [
+      '250V-10 GΩ', '500V-10 GΩ', '1000V-10 GΩ', '2500V-10 GΩ',
+      '5000V-100 GΩ', '10000V-1000 GΩ'
+    ],
+    'ELCB Test Cihazı': [
+      '6-500 mA', '10-1000 mA', '30-300 mA',
+      '0-300 ms', '0-500 ms', '0-1000 ms'
+    ],
+    'Faz Sırası Test Cihazı': [
+      '80-600 V AC', '100-750 V AC', '90-528 V AC',
+      '15-400 Hz', '45-65 Hz', '40-70 Hz'
+    ],
+    'Motor Test Cihazı': [
+      '0-1000 V', '0-200 A', '0-50 Hz', '0-3600 RPM',
+      '0-500 HP', '0-375 kW', '0-1000 kW'
+    ],
+    'Transformatör Test Cihazı': [
+      '0-50 kV', '0-100 kV', '0-200 kV', '0-500 kV',
+      '0-1000 A', '0-5000 A', '50/60 Hz'
+    ],
+    'Kablo Test Cihazı': [
+      '0-10 km', '0-50 km', '0-100 km', '0-500 km',
+      '0-50 MΩ', '0-100 GΩ', '0-1000 GΩ'
+    ],
+    'Termik Test Cihazı': [
+      '0-200°C', '0-500°C', '0-1000°C', '0-1500°C',
+      '32-392°F', '32-932°F', '32-1832°F', '32-2732°F'
+    ],
+
     // Varsayılan değerler
     'Diğer': ['0-100', '0-1000', 'Özel Aralık']
   };
@@ -908,7 +1159,7 @@ const getMeasurementUncertaintiesBySubCategory = () => {
   const version = localStorage.getItem('measurement_uncertainties_version');
   
   // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
-  if (stored && version === '2.2') {
+  if (stored && version === '2.3') {
     try {
       const data = JSON.parse(stored);
       // Yeni eklenen cihazların varlığını kontrol et
@@ -1624,12 +1875,247 @@ const getMeasurementUncertaintiesBySubCategory = () => {
       '±0.1% Salt', '±0.2% Salt', '±0.5% Salt', '±1% Salt'
     ],
 
+    // Kaynak İşleri Ölçüm Cihazları Belirsizlikleri
+    'Kaynak Akım Ölçer - Digital': [
+      '±0.5% rdg ±5 dgt', '±1% rdg ±3 dgt', '±1.5% rdg ±5 dgt',
+      '±0.3% FS', '±0.5% FS', '±1% FS', '±2% FS'
+    ],
+    'Kaynak Akım Ölçer - Analog': [
+      '±2% FS', '±3% FS', '±5% FS', '±1.5% FS', '±2.5% FS'
+    ],
+    'Kaynak Voltaj Ölçer - Digital': [
+      '±0.5% rdg ±2 dgt', '±1% rdg ±2 dgt', '±1.5% rdg ±3 dgt',
+      '±0.3% FS', '±0.5% FS', '±1% FS'
+    ],
+    'Kaynak Voltaj Ölçer - RMS': [
+      '±0.5% rdg ±2 dgt', '±1% rdg ±3 dgt', '±1.5% rdg ±5 dgt',
+      '±0.3% FS RMS', '±0.5% FS RMS'
+    ],
+    'Gaz Flow Ölçer - Argon': [
+      '±2% FS', '±3% FS', '±5% FS', '±1.5% rdg',
+      '±2% rdg ±0.1 L/min', '±3% rdg ±0.2 L/min'
+    ],
+    'Gaz Flow Ölçer - CO2': [
+      '±2% FS', '±3% FS', '±4% FS', '±2% rdg',
+      '±2.5% rdg ±0.15 L/min', '±3% rdg ±0.2 L/min'
+    ],
+    'Gaz Flow Ölçer - Mixed Gas': [
+      '±3% FS', '±4% FS', '±5% FS', '±2.5% rdg',
+      '±3% rdg ±0.2 L/min'
+    ],
+    'Kaynak Penetrasyon Ölçer': [
+      '±0.1 mm', '±0.2 mm', '±0.5 mm', '±1 mm',
+      '±5% rdg ±0.1 mm', '±0.004 inch', '±0.008 inch'
+    ],
+    'Ark Voltaj Ölçer': [
+      '±1% rdg ±2 dgt', '±2% rdg ±3 dgt', '±1.5% FS',
+      '±0.5% rdg RMS ±2 dgt'
+    ],
+    'Kaynak Kalitesi Testi': [
+      '±5% Kalite', '±10% Hata Oranı', '±0.1 Porosity/cm²',
+      '±0.2 mm Penetrasyon', '±0.5 mm Diş Genişliği'
+    ],
+    'Heat Input Hesaplayıcı': [
+      '±2% Hesaplama', '±5% Hesaplama', '±10% Hesaplama',
+      '±50 J/mm', '±100 J/mm', '±0.1 kJ/mm'
+    ],
+
+    // Büküm ve Şekillendirme Ölçümleri Belirsizlikleri
+    'Tork Ölçer - Digital': [
+      '±0.5% rdg ±1 dgt', '±1% rdg ±2 dgt', '±2% rdg ±3 dgt',
+      '±0.3% FS', '±0.5% FS', '±1% FS', '±1.5% FS'
+    ],
+    'Tork Ölçer - Analog': [
+      '±2% FS', '±3% FS', '±4% FS', '±5% FS'
+    ],
+    'Momentometre': [
+      '±3% FS', '±4% FS', '±5% FS', '±6% FS',
+      '±2% rdg', '±3% rdg', '±4% rdg'
+    ],
+    'Büküm Açısı Ölçer': [
+      '±0.1°', '±0.2°', '±0.5°', '±1°', '±2°',
+      '±0.5% rdg ±0.1°', '±1% rdg ±0.2°'
+    ],
+    'Spring Back Ölçer': [
+      '±0.1°', '±0.2°', '±0.5°', '±1°',
+      '±0.05 mm', '±0.1 mm', '±0.2 mm'
+    ],
+    'Kuvvet Ölçer - Push/Pull': [
+      '±0.5% FS', '±1% FS', '±2% FS', '±3% FS',
+      '±0.5% rdg ±1 dgt', '±1% rdg ±2 dgt'
+    ],
+    'Gerilim Ölçer - Strain Gauge': [
+      '±1 με', '±2 με', '±5 με', '±10 με',
+      '±0.5% rdg ±1 με', '±1% rdg ±2 με'
+    ],
+    'Elastikiyet Modülü Ölçer': [
+      '±2% rdg', '±3% rdg', '±5% rdg',
+      '±5 GPa', '±10 GPa', '±500 ksi'
+    ],
+
+    // Kesim İşleri Ölçüm Cihazları Belirsizlikleri
+    'Plazma Kesim Güç Ölçer': [
+      '±1% rdg ±3 dgt', '±2% rdg ±5 dgt', '±3% rdg ±5 dgt',
+      '±1% FS', '±2% FS', '±3% FS'
+    ],
+    'Lazer Kesim Güç Ölçer': [
+      '±1% rdg', '±2% rdg', '±3% rdg', '±5% rdg',
+      '±0.1 kW', '±0.2 kW', '±0.5 kW'
+    ],
+    'Su Jeti Basınç Ölçer': [
+      '±0.5% FS', '±1% FS', '±2% FS', '±3% FS',
+      '±10 bar', '±25 bar', '±50 bar', '±100 psi'
+    ],
+    'Kesit Pürüzlülük Ölçer': [
+      '±5% rdg ±0.02 μm', '±10% rdg ±0.05 μm',
+      '±0.1 μm Ra', '±0.2 μm Ra', '±0.5 μm Ra'
+    ],
+    'Kesim Kenarı Kalitesi Ölçer': [
+      '±0.5 Grade', '±1 Grade', '±0.1 mm Kenar',
+      '±1° Eğiklik', '±2° Eğiklik'
+    ],
+    'Oksijen Saflık Ölçer': [
+      '±0.1% O2', '±0.2% O2', '±0.5% O2', '±1% O2',
+      '±0.5% rdg ±0.1% O2'
+    ],
+    'Kesim Hızı Ölçer': [
+      '±1% rdg', '±2% rdg', '±3% rdg',
+      '±0.1 m/min', '±1 mm/min', '±5 mm/min'
+    ],
+    'Kerf Genişliği Ölçer': [
+      '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm',
+      '±2% rdg ±0.01 mm'
+    ],
+
+    // Boya ve Kaplama Ölçümleri Belirsizlikleri
+    'Yaş Film Kalınlığı Ölçer': [
+      '±2% rdg ±1 μm', '±3% rdg ±2 μm', '±5% rdg ±5 μm',
+      '±1 μm', '±2 μm', '±5 μm', '±0.1 mils'
+    ],
+    'Kuru Film Kalınlığı Ölçer': [
+      '±1% rdg ±1 μm', '±2% rdg ±2 μm', '±3% rdg ±3 μm',
+      '±1 μm', '±2 μm', '±5 μm', '±0.1 mils'
+    ],
+    'Viskozite Ölçer - Rotasyonel': [
+      '±1% FS', '±2% FS', '±3% FS',
+      '±1% rdg', '±2% rdg', '±5% rdg'
+    ],
+    'Viskozite Ölçer - Kapiler': [
+      '±0.5% rdg', '±1% rdg', '±2% rdg',
+      '±0.1 cSt', '±1 cSt', '±5 cSt'
+    ],
+    'Renk Ölçer - Colorimeter': [
+      '±0.1 ΔE*', '±0.2 ΔE*', '±0.5 ΔE*',
+      '±0.5 L*', '±1 a*', '±1 b*'
+    ],
+    'Parlaklık Ölçer - Gloss Meter': [
+      '±1 GU', '±2 GU', '±5 GU',
+      '±1% rdg ±1 GU', '±2% rdg ±2 GU'
+    ],
+    'Adhesion Test Cihazı': [
+      '±0.1 MPa', '±0.2 MPa', '±0.5 MPa',
+      '±15 psi', '±25 psi', '±50 psi'
+    ],
+    'Cross Hatch Test Kiti': [
+      '±0.5 Sınıf', '±1 Sınıf', 'Manuel Değerlendirme',
+      '±0.1 mm Grid'
+    ],
+    'Boya Sıcaklığı Ölçer': [
+      '±0.5°C', '±1°C', '±2°C', '±5°C',
+      '±1°F', '±2°F', '±5°F', '±10°F'
+    ],
+
+    // Montaj İşleri Ölçüm Cihazları Belirsizlikleri
+    'Cıvata Momentometesi - Digital': [
+      '±2% rdg ±1 dgt', '±3% rdg ±2 dgt', '±4% rdg ±3 dgt',
+      '±1% FS', '±2% FS', '±3% FS'
+    ],
+    'Cıvata Momentometesi - Klik Tipi': [
+      '±3% FS', '±4% FS', '±5% FS', '±6% FS'
+    ],
+    'Gap Ölçer - Feeler Gauge': [
+      '±0.005 mm', '±0.01 mm', '±0.02 mm',
+      '±0.0002 inch', '±0.0005 inch', '±0.001 inch'
+    ],
+    'Clearance Ölçer': [
+      '±0.01 mm', '±0.02 mm', '±0.05 mm',
+      '±0.0005 inch', '±0.001 inch', '±0.002 inch'
+    ],
+    'Fitting Testi Cihazı': [
+      '±1% FS', '±2% FS', '±3% FS',
+      '±5 N', '±10 N', '±1 kg'
+    ],
+    'Montaj Toleransı Ölçer': [
+      '±0.002 mm', '±0.005 mm', '±0.01 mm',
+      '±0.0001 inch', '±0.0002 inch', '±0.0005 inch'
+    ],
+    'Vida Adım Ölçer': [
+      '±0.01 mm pitch', '±0.02 mm pitch',
+      '±1 TPI', '±2 TPI', '±0.5% pitch'
+    ],
+
+    // NDT Cihazları Belirsizlikleri
+    'Ultrasonik Flaw Detector': [
+      '±0.1 mm', '±0.2 mm', '±0.5 mm', '±1 mm',
+      '±1% rdg ±0.1 mm', '±0.004 inch'
+    ],
+    'Çatlak Derinliği Ölçer': [
+      '±0.1 mm', '±0.2 mm', '±0.5 mm',
+      '±5% rdg ±0.1 mm', '±0.004 inch'
+    ],
+    'Porosity Test Cihazı': [
+      '±1% Porosity', '±2% Porosity', '±5% Porosity',
+      '±0.5% Void Ratio', '±1% Vol%'
+    ],
+    'Hardness Tester - Portable': [
+      '±2 HV', '±3 HV', '±5 HV',
+      '±1 HRC', '±2 HRC', '±5 HB'
+    ],
+    'Ferrite Scope': [
+      '±0.5% Ferrit', '±1% Ferrit', '±2% Ferrit',
+      '±1 FN', '±2 FN', '±0.1% Delta Ferrit'
+    ],
+
+    // Elektrik Montaj Test Cihazları Belirsizlikleri
+    'Kontinüite Test Cihazı': [
+      '±1% rdg ±3 dgt', '±2% rdg ±5 dgt',
+      '±0.1 Ω', '±1 Ω', '±10 Ω'
+    ],
+    'Megger - İzolasyon Test': [
+      '±3% rdg', '±5% rdg', '±10% rdg',
+      '±50 MΩ', '±100 MΩ', '±1 GΩ'
+    ],
+    'ELCB Test Cihazı': [
+      '±5% rdg ±3 dgt', '±10% rdg ±5 dgt',
+      '±1 mA', '±5 mA', '±10 ms', '±50 ms'
+    ],
+    'Faz Sırası Test Cihazı': [
+      '±2% rdg ±5 dgt', '±3% rdg ±10 dgt',
+      '±5 V', '±1 Hz', '±2 Hz'
+    ],
+    'Motor Test Cihazı': [
+      '±1% rdg ±5 dgt', '±2% rdg ±10 dgt',
+      '±5 V', '±1 A', '±1 Hz', '±10 RPM'
+    ],
+    'Transformatör Test Cihazı': [
+      '±1% rdg', '±2% rdg', '±3% rdg',
+      '±100 V', '±10 A', '±0.1 Hz'
+    ],
+    'Kablo Test Cihazı': [
+      '±1% rdg ±5 m', '±2% rdg ±10 m',
+      '±10 m', '±1 MΩ', '±10 MΩ'
+    ],
+    'Termik Test Cihazı': [
+      '±1°C', '±2°C', '±5°C', '±10°C',
+      '±2°F', '±5°F', '±10°F', '±20°F'
+    ],
+
     // Varsayılan değerler
     'Diğer': ['±0.1%', '±0.2%', '±0.5%', '±1%', '±2%', '±5%', 'Özel Belirsizlik']
   };
   
   localStorage.setItem('measurement_uncertainties_by_sub_category', JSON.stringify(defaultUncertainties));
-  localStorage.setItem('measurement_uncertainties_version', '2.2');
+  localStorage.setItem('measurement_uncertainties_version', '2.3');
   console.log('✅ Yeni belirsizlik değerleri yüklendi:', Object.keys(defaultUncertainties).length, 'cihaz tipi');
   return defaultUncertainties;
 };
@@ -1814,15 +2300,15 @@ const getEquipmentNamesByCategory = () => {
   const version = localStorage.getItem('equipment_names_version');
   
   // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
-  if (stored && version === '2.2') {
+  if (stored && version === '2.3') {
     try {
       const data = JSON.parse(stored);
       // Ölçüm Cihazları kategorisinde yeni cihazların varlığını kontrol et
       const olcumCihazlari = data['Ölçüm Cihazları'] || [];
-      if (olcumCihazlari.includes('Takometre - Digital') && 
-          olcumCihazlari.includes('Sentil Çakısı - 0.001mm') && 
-          olcumCihazlari.includes('Radius Mastar - İç R') && 
-          olcumCihazlari.includes('Dijital Isı Ölçer - İnfrared')) {
+      if (olcumCihazlari.includes('Kaynak Akım Ölçer - Digital') && 
+          olcumCihazlari.includes('Tork Ölçer - Digital') && 
+          olcumCihazlari.includes('Plazma Kesim Güç Ölçer') && 
+          olcumCihazlari.includes('Yaş Film Kalınlığı Ölçer')) {
         return data;
       }
     } catch (e) {
@@ -1878,7 +2364,45 @@ const getEquipmentNamesByCategory = () => {
       'Koordinat Ölçüm Makinesi (CMM)', 'Optik Komparatör',
       'Projektör - Profil', 'Projektör - Werkstück',
       'Form Tester', 'Yüzey Pürüzlülük Cihazı',
-      'Dişli Ölçüm Cihazı', 'Vida Ölçüm Cihazı'
+      'Dişli Ölçüm Cihazı', 'Vida Ölçüm Cihazı',
+      // Kaynak İşleri Ölçüm Cihazları
+      'Kaynak Akım Ölçer - Digital', 'Kaynak Akım Ölçer - Analog',
+      'Kaynak Voltaj Ölçer - Digital', 'Kaynak Voltaj Ölçer - RMS',
+      'Gaz Flow Ölçer - Argon', 'Gaz Flow Ölçer - CO2', 'Gaz Flow Ölçer - Mixed Gas',
+      'Kaynak Penetrasyon Ölçer', 'Ark Voltaj Ölçer', 'Kaynak Kalitesi Testi',
+      'Kaynak Diş Derinliği Ölçer', 'Heat Input Hesaplayıcı',
+      // Büküm ve Şekillendirme Ölçümleri
+      'Tork Ölçer - Digital', 'Tork Ölçer - Analog', 'Momentometre',
+      'Büküm Açısı Ölçer', 'Spring Back Ölçer', 'Kuvvet Ölçer - Push/Pull',
+      'Gerilim Ölçer - Strain Gauge', 'Elastikiyet Modülü Ölçer',
+      'Plastik Deformasyon Ölçer', 'Yay Sabiti Ölçer',
+      // Kesim İşleri Ölçüm Cihazları
+      'Plazma Kesim Güç Ölçer', 'Lazer Kesim Güç Ölçer',
+      'Su Jeti Basınç Ölçer', 'Kesit Pürüzlülük Ölçer',
+      'Kesim Kenarı Kalitesi Ölçer', 'Oksijen Saflık Ölçer',
+      'Kesim Hızı Ölçer', 'Kerf Genişliği Ölçer',
+      // Boya ve Kaplama Ölçümleri
+      'Yaş Film Kalınlığı Ölçer', 'Kuru Film Kalınlığı Ölçer',
+      'Viskozite Ölçer - Rotasyonel', 'Viskozite Ölçer - Kapiler',
+      'Renk Ölçer - Colorimeter', 'Parlaklık Ölçer - Gloss Meter',
+      'Adhesion Test Cihazı', 'Cross Hatch Test Kiti',
+      'Boya Sıcaklığı Ölçer', 'Atomizasyon Kalitesi Ölçer',
+      // Montaj İşleri Ölçüm Cihazları
+      'Cıvata Momentometesi - Digital', 'Cıvata Momentometesi - Klik Tipi',
+      'Gap Ölçer - Feeler Gauge', 'Clearance Ölçer',
+      'Fitting Testi Cihazı', 'Montaj Toleransı Ölçer',
+      'Vida Adım Ölçer', 'Diş Profil Ölçer',
+      // NDT (Non-Destructive Testing) Cihazları
+      'Ultrasonik Flaw Detector', 'Manyetik Partikül Test Cihazı',
+      'Penetrant Test Kiti - Renkli', 'Penetrant Test Kiti - Floresan',
+      'Radyografi Film Densitometresi', 'Kaynak Dikişi Test Cihazı',
+      'Çatlak Derinliği Ölçer', 'Porosity Test Cihazı',
+      'Hardness Tester - Portable', 'Ferrite Scope',
+      // Elektrik Montaj Test Cihazları
+      'Kontinüite Test Cihazı', 'Megger - İzolasyon Test',
+      'ELCB Test Cihazı', 'Faz Sırası Test Cihazı',
+      'Motor Test Cihazı', 'Transformatör Test Cihazı',
+      'Kablo Test Cihazı', 'Termik Test Cihazı'
     ],
 
     'Açı Ölçüm Cihazları': [
@@ -2037,7 +2561,7 @@ const getEquipmentNamesByCategory = () => {
   };
   
   localStorage.setItem('equipment_names_by_category', JSON.stringify(defaultEquipmentNames));
-  localStorage.setItem('equipment_names_version', '2.2');
+  localStorage.setItem('equipment_names_version', '2.3');
   console.log('✅ Yeni ekipman adları yüklendi - Ölçüm Cihazları:', defaultEquipmentNames['Ölçüm Cihazları'].length, 'adet');
   return defaultEquipmentNames;
 };
