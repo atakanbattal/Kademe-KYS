@@ -1679,10 +1679,15 @@ const TankLeakTest: React.FC = () => {
         return;
       }
 
-      if (!testResult.result) {
-        alert('Lütfen test sonucunu seçin');
-        return;
-      }
+      // 🔄 OTOMATİK TEST SONUCU BELİRLEME
+      // Hata kaydı varsa başarısız, yoksa başarılı
+      const automaticTestResult: TestResult = {
+        result: errors.length > 0 ? 'failed' : 'passed',
+        retestRequired: errors.length > 0, // Hata varsa yeniden test gerekli
+        notes: errors.length > 0 
+          ? `Tespit edilen ${errors.length} adet hata nedeniyle test başarısız. Tamir gerekli.`
+          : 'Test başarıyla tamamlandı. Herhangi bir hata tespit edilmedi.'
+      };
 
       // Yeni test kaydı oluştur
       const newTest: TestRecord = {
@@ -1700,7 +1705,7 @@ const TankLeakTest: React.FC = () => {
           testConditions: testParameters.testConditions || undefined
         },
         errors: errors,
-        testResult: testResult,
+        testResult: automaticTestResult, // Otomatik belirlenen sonuç
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -1710,6 +1715,14 @@ const TankLeakTest: React.FC = () => {
       setSavedTests(updatedTests);
       localStorage.setItem('tankLeakTests', JSON.stringify(updatedTests));
       calculateStatistics(updatedTests);
+
+      // 🔧 OTOMATİK TAMİR FORMU OLUŞTURMA
+      let repairCreated = false;
+      if (automaticTestResult.result === 'failed') {
+        // Test başarısız ise otomatik olarak tamir formu oluştur
+        handleCreateRepairFromTest(newTest);
+        repairCreated = true;
+      }
 
       // Formu temizle
       setTankInfo({
@@ -1744,10 +1757,16 @@ const TankLeakTest: React.FC = () => {
         notes: '',
       });
 
-      alert('Test başarıyla kaydedildi!');
-      
-      // Test geçmişi sayfasına geç
-      setActivePage('history');
+      // Sonuç bildirimi
+      if (automaticTestResult.result === 'failed') {
+        alert(`⚠️ Test Başarısız!\n\n${errors.length} adet hata tespit edildi.\n\n✅ Tamir formu otomatik olarak oluşturuldu.\n\nTamir & Tadilat sekmesinde detayları görebilirsiniz.`);
+        // Tamir sayfasına geç
+        setActivePage('repair');
+      } else {
+        alert('✅ Test Başarılı!\n\nTüm kontroller geçti. Tank sızdırmazlık testi başarıyla tamamlandı.');
+        // Test geçmişi sayfasına geç
+        setActivePage('history');
+      }
       
     } catch (error) {
       console.error('Test kaydetme hatası:', error);
@@ -1769,10 +1788,14 @@ const TankLeakTest: React.FC = () => {
         return;
       }
 
-      if (!testResult.result) {
-        alert('PDF oluşturmak için test sonucunu seçin');
-        return;
-      }
+      // 🔄 OTOMATİK TEST SONUCU BELİRLEME (PDF için)
+      const automaticTestResult: TestResult = {
+        result: errors.length > 0 ? 'failed' : 'passed',
+        retestRequired: errors.length > 0,
+        notes: errors.length > 0 
+          ? `Tespit edilen ${errors.length} adet hata nedeniyle test başarısız. Tamir gerekli.`
+          : 'Test başarıyla tamamlandı. Herhangi bir hata tespit edilmedi.'
+      };
 
       // Geçici test kaydı oluştur (sadece PDF için)
       const tempTest: TestRecord = {
@@ -1785,7 +1808,7 @@ const TankLeakTest: React.FC = () => {
           testConditions: testParameters.testConditions || undefined
         },
         errors: errors,
-        testResult: testResult,
+        testResult: automaticTestResult, // Otomatik belirlenen sonuç
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -3221,74 +3244,72 @@ const TankLeakTest: React.FC = () => {
             </CardContent>
           </StyledCard>
 
-          {/* Sonuç ve Onay */}
+          {/* Otomatik Test Sonucu Gösterimi */}
           <StyledCard>
             <CardHeader
               avatar={<CheckCircleIcon color="primary" />}
-              title="Sonuç ve Onay"
+              title="Test Sonucu Önizleme"
               titleTypographyProps={{ variant: 'h6' }}
             />
             <CardContent>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <FormControl component="fieldset">
-                  <Typography variant="subtitle1" gutterBottom>Test Sonucu</Typography>
-                  <RadioGroup
-                    value={testResult.result}
-                    onChange={(e) => setTestResult({ ...testResult, result: e.target.value as 'passed' | 'failed' | 'conditional' })}
-                    row
-                  >
-                    <FormControlLabel
-                      value="passed"
-                      control={<Radio color="success" />}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <CheckCircleIcon color="success" fontSize="small" />
-                          <span>Başarılı</span>
-                        </Box>
-                      }
-                    />
-                    <FormControlLabel
-                      value="failed"
-                      control={<Radio color="error" />}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <ErrorIcon color="error" fontSize="small" />
-                          <span>Başarısız</span>
-                        </Box>
-                      }
-                    />
-                    <FormControlLabel
-                      value="conditional"
-                      control={<Radio color="warning" />}
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <WarningIcon color="warning" fontSize="small" />
-                          <span>Şartlı Kabul</span>
-                        </Box>
-                      }
-                    />
-                  </RadioGroup>
-                </FormControl>
-
-                <FormControlLabel
-                  control={
-                    <Radio
-                      checked={testResult.retestRequired}
-                      onChange={(e) => setTestResult({ ...testResult, retestRequired: e.target.checked })}
-                      color="warning"
-                    />
-                  }
-                  label="Yeniden Test Gerekli"
-                />
+                {/* Otomatik Test Sonucu Gösterimi */}
+                <Box sx={{ 
+                  p: 3, 
+                  border: '2px solid', 
+                  borderRadius: 2,
+                  borderColor: errors.length > 0 ? 'error.main' : 'success.main',
+                  backgroundColor: errors.length > 0 ? 'error.light' : 'success.light',
+                  color: errors.length > 0 ? 'error.dark' : 'success.dark'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                    {errors.length > 0 ? (
+                      <ErrorIcon color="error" sx={{ fontSize: 30 }} />
+                    ) : (
+                      <CheckCircleIcon color="success" sx={{ fontSize: 30 }} />
+                    )}
+                    <Typography variant="h6" fontWeight="bold">
+                      {errors.length > 0 ? 'TEST BAŞARISIZ' : 'TEST BAŞARILI'}
+                    </Typography>
+                  </Box>
+                  
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Durum:</strong> {errors.length > 0 ? 'Başarısız' : 'Başarılı'}
+                  </Typography>
+                  
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Tespit Edilen Hata Sayısı:</strong> {errors.length} adet
+                  </Typography>
+                  
+                  <Typography variant="body1" sx={{ mb: 2 }}>
+                    <strong>Yeniden Test Gerekli:</strong> {errors.length > 0 ? 'Evet' : 'Hayır'}
+                  </Typography>
+                  
+                  {errors.length > 0 && (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        ⚠️ Hata tespit edildi! Test kaydedildikten sonra otomatik olarak <strong>Tamir & Tadilat formu</strong> oluşturulacak.
+                      </Typography>
+                    </Alert>
+                  )}
+                  
+                  <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                    {errors.length > 0 
+                      ? `Tespit edilen ${errors.length} adet hata nedeniyle test başarısız. Tamir gerekli.`
+                      : 'Test başarıyla tamamlandı. Herhangi bir hata tespit edilmedi.'
+                    }
+                  </Typography>
+                </Box>
 
                 <TextField
-                  label="Açıklamalar/Notlar"
+                  label="Ek Açıklamalar/Notlar (İsteğe Bağlı)"
                   multiline
-                  rows={4}
+                  rows={3}
                   value={testResult.notes}
                   onChange={(e) => setTestResult({ ...testResult, notes: e.target.value })}
                   fullWidth
-                  placeholder="Test ile ilgili özel notlar, gözlemler ve açıklamalar..."
+                  placeholder="Test ile ilgili özel notlar, gözlemler ve ek açıklamalar..."
+                  helperText="Bu not test raporuna eklenecektir"
                 />
               </Box>
             </CardContent>
@@ -3300,10 +3321,16 @@ const TankLeakTest: React.FC = () => {
               variant="contained"
               startIcon={<SaveIcon />}
               size="large"
-              sx={{ minWidth: 200 }}
+              sx={{ 
+                minWidth: 250,
+                backgroundColor: errors.length > 0 ? 'error.main' : 'success.main',
+                '&:hover': {
+                  backgroundColor: errors.length > 0 ? 'error.dark' : 'success.dark'
+                }
+              }}
               onClick={handleSaveTest}
             >
-              Testi Kaydet ve Değerlendir
+              {errors.length > 0 ? '⚠️ Testi Kaydet (Başarısız + Tamir Oluştur)' : '✅ Testi Kaydet (Başarılı)'}
             </Button>
             <Button
               variant="outlined"
