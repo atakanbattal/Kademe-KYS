@@ -141,73 +141,62 @@ interface AutoAuditRecommendation {
 // Tedarik türü alt kategorileri
 const SUPPLY_SUBCATEGORIES = {
   malzeme: [
-    // Ham Maddeler
-    'Ham Madde (Çelik, Alüminyum, Plastik)',
-    'Yarı Mamul (Profil, Sac, Boru)',
-    
-    // Otomotiv Parçaları
-    'Şanzıman ve Aktarım Organları',
-    'Motor Parçaları (Piston, Volan, Blok)',
-    'Fren Sistemi Parçaları',
-    'Süspansiyon ve Direksiyon Parçaları',
-    'Egzoz Sistemi Parçaları',
-    'Soğutma Sistemi Parçaları',
-    'Elektrik ve Elektronik Parçalar',
-    'Karoseri ve Şasi Parçaları',
-    'Hidrolik Sistem Parçaları',
-    'Koltuk Sistemleri ve İç Donanım',
-    'Filtre Sistemleri (Hava, Yağ, Yakıt)',
-    'Fırça Sistemleri (Cam Silecek, Temizlik)',
-    'Kilit Sistemleri ve Güvenlik',
-    'Lastik ve Jant',
-    
-    // Makine Parçaları
-    'Yataklar ve Yatak Yuvaları',
-    'Dişli ve Dişli Kutuları',
-    'Kavrama ve Fren Sistemi',
-    'Hidrolik ve Pnömatik Komponentler',
-    'Filtre Sistemleri (Endüstriyel)',
-    'Fırça ve Temizlik Sistemleri',
-    'Kilit ve Güvenlik Sistemleri',
-    'Mil ve Şaft Parçaları',
-    'Kayış ve Zincir Parçaları',
-    
-    // Standart Parçalar
-    'Standart Parçalar (Vida, Somun, Rondela)',
+    'Ambalaj Malzemeleri',
     'Bağlantı Elemanları ve Fittings',
     'Conta ve Sızdırmazlık Elemanları',
-    'Yay ve Amortisör Parçaları',
-    
-    // Elektronik ve Elektrik
+    'Dişli ve Dişli Kutuları',
+    'Egzoz Sistemi Parçaları',
+    'Elektrik ve Elektronik Parçalar',
     'Elektronik Komponentler',
-    'Sensörler ve Aktüatörler',
+    'Filtre Sistemleri (Endüstriyel)',
+    'Filtre Sistemleri (Hava, Yağ, Yakıt)',
+    'Fırça Sistemleri (Cam Silecek, Temizlik)',
+    'Fırça ve Temizlik Sistemleri',
+    'Fren Sistemi Parçaları',
+    'Ham Madde (Çelik, Alüminyum, Plastik)',
+    'Hidrolik Sistem Parçaları',
+    'Hidrolik ve Pnömatik Komponentler',
     'Kablaj ve Elektrik Bağlantıları',
-    'Kontrol Sistemleri',
-    
-    // Kimyasal ve Yardımcı Maddeler
+    'Karoseri ve Şasi Parçaları',
+    'Kavrama ve Fren Sistemi',
+    'Kayış ve Zincir Parçaları',
+    'Kilit Sistemleri ve Güvenlik',
+    'Kilit ve Güvenlik Sistemleri',
     'Kimyasal Maddeler (Boya, Temizlik)',
+    'Koltuk Sistemleri ve İç Donanım',
+    'Kontrol Sistemleri',
+    'Lastik ve Jant',
+    'Mil ve Şaft Parçaları',
+    'Motor Parçaları (Piston, Volan, Blok)',
+    'Sensörler ve Aktüatörler',
+    'Soğutma Sistemi Parçaları',
+    'Standart Parçalar (Vida, Somun, Rondela)',
+    'Süspansiyon ve Direksiyon Parçaları',
+    'Şanzıman ve Aktarım Organları',
     'Yağlama Malzemeleri',
     'Yapıştırıcı ve Sızdırmazlık Malzemeleri',
-    'Ambalaj Malzemeleri'
+    'Yarı Mamul (Profil, Sac, Boru)',
+    'Yataklar ve Yatak Yuvaları',
+    'Yay ve Amortisör Parçaları'
   ],
   hizmet: [
-    'Taşeron İşçilik (Kaynak, Montaj)',
     'Bakım ve Onarım Hizmetleri',
-    'Lojistik ve Nakliye',
-    'Kalibrasyon Hizmetleri',
-    'Test ve Muayene Hizmetleri',
     'Danışmanlık Hizmetleri',
-    'Makine İşleme Hizmetleri',
     'Isıl İşlem Hizmetleri',
-    'Yüzey Kaplama Hizmetleri',
-    'Temizlik ve Bakım Hizmetleri'
+    'Kalibrasyon Hizmetleri',
+    'Lojistik ve Nakliye',
+    'Makine İşleme Hizmetleri',
+    'Taşeron İşçilik (Kaynak, Montaj)',
+    'Temizlik ve Bakım Hizmetleri',
+    'Test ve Muayene Hizmetleri',
+    'Yüzey Kaplama Hizmetleri'
   ],
   hibrit: [
-    'Tasarım + Üretim',
-    'Montaj + Bakım',
-    'Malzeme + Lojistik',
-    'Test + Sertifikasyon',
     'İşleme + Kaplama',
+    'Malzeme + Lojistik',
+    'Montaj + Bakım',
+    'Tasarım + Üretim',
+    'Test + Sertifikasyon',
     'Üretim + Test'
   ]
 };
