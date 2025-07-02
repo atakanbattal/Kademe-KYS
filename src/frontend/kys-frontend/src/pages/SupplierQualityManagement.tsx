@@ -6002,14 +6002,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Etkilenen Parça Adedi"
+                        label="Etkilenen Parça Adedi (adet)"
                         type="number"
                         value={formData.quantityAffected || ''}
                         onChange={(e) => setFormData({ ...formData, quantityAffected: Number(e.target.value) })}
-                        InputProps={{
-                          endAdornment: <Typography variant="caption" color="text.secondary">adet</Typography>
-                        }}
                         helperText="Kalite probleminden etkilenen parça sayısı"
+                        inputProps={{ min: 0, step: 1 }}
                       />
                     </Grid>
                   )}
@@ -6018,14 +6016,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     <Grid item xs={12} md={6}>
                       <TextField
                         fullWidth
-                        label="Gecikme Süresi"
+                        label="Gecikme Süresi (gün)"
                         type="number"
                         value={formData.delayDays || ''}
                         onChange={(e) => setFormData({ ...formData, delayDays: Number(e.target.value) })}
-                        InputProps={{
-                          endAdornment: <Typography variant="caption" color="text.secondary">gün</Typography>
-                        }}
-                        helperText="Teslimat gecikmesi (gün olarak)"
+                        helperText="Teslimat gecikmesi gün olarak"
+                        inputProps={{ min: 0, step: 1 }}
                       />
                     </Grid>
                   )}
@@ -6087,9 +6083,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       type="number"
                       value={formData.correctionCost || 0}
                       onChange={(e) => setFormData({ ...formData, correctionCost: Number(e.target.value) })}
-                      InputProps={{
-                        startAdornment: <Typography variant="caption" color="text.secondary">₺</Typography>
-                      }}
+                      inputProps={{ min: 0, step: 0.01 }}
+                      helperText="Tahmini düzeltme maliyeti"
                     />
                   </Grid>
                   
@@ -6159,10 +6154,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   <Grid item xs={12} md={4}>
                     <TextField
                       fullWidth
-                      label="Miktar"
+                      label="Miktar (adet)"
                       type="number"
                       value={formData.quantity || 0}
                       onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                      inputProps={{ min: 0, step: 1 }}
+                      helperText="Hatalı parça adedi"
                     />
                   </Grid>
                   <Grid item xs={12} md={4}>
@@ -6185,6 +6182,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       type="number"
                       value={formData.correctionCost || 0}
                       onChange={(e) => setFormData({ ...formData, correctionCost: Number(e.target.value) })}
+                      inputProps={{ min: 0, step: 0.01 }}
+                      helperText="Tahmini maliyet"
                     />
                   </Grid>
                 </Grid>
