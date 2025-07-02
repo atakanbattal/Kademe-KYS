@@ -5423,7 +5423,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Grid>
       </Grid>
     </Box>
-    );
+  );
   };
 
   // Loading durumunda gösterilecek içerik
