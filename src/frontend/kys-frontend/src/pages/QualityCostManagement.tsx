@@ -4821,6 +4821,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     onEditTarget?: (target: VehicleTarget) => void,
     onVehiclePerformanceClick?: (vehicleModel: VehicleModel) => void
   }> = ({ realTimeData, filteredData, vehicleTargets = [], onAddTarget, onEditTarget, onVehiclePerformanceClick }) => {
+    // ✅ Alt sekme sistemi eklendi
+    const [vehicleSubTab, setVehicleSubTab] = useState(0);
     const [viewMode, setViewMode] = useState<'cards' | 'table' | 'charts'>('table');
     const [forceRefresh, setForceRefresh] = useState(0);
     
@@ -6039,17 +6041,45 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
     return (
       <Box sx={{ p: 3 }}>
-        {/* KPI Dashboard */}
-        <Box sx={{ mb: 4 }}>
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                {/* Başlık alanları kaldırıldı */}
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  {/* Son güncelleme chip'i kaldırıldı */}
-                </Box>
-              </Box>
-            </Grid>
+        {/* ✅ Alt Sekme Sistemi */}
+        <Paper sx={{ mb: 4 }}>
+          <Tabs
+            value={vehicleSubTab}
+            onChange={(_, newValue) => setVehicleSubTab(newValue)}
+            variant="fullWidth"
+          >
+            <Tab 
+              icon={<DirectionsCarIcon />} 
+              label="Araç Performans Dashboard" 
+              iconPosition="start"
+            />
+            <Tab 
+              icon={<TargetIcon />} 
+              label="Hedef Yönetimi" 
+              iconPosition="start"
+            />
+            <Tab 
+              icon={<AssessmentIcon />} 
+              label="Performans Analizi" 
+              iconPosition="start"
+            />
+          </Tabs>
+        </Paper>
+
+        {/* ✅ Alt Sekme İçerikleri */}
+        {vehicleSubTab === 0 && (
+          <Box>
+            {/* KPI Dashboard */}
+            <Box sx={{ mb: 4 }}>
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    {/* Başlık alanları kaldırıldı */}
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      {/* Son güncelleme chip'i kaldırıldı */}
+                    </Box>
+                  </Box>
+                </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Card 
                 sx={{ 
@@ -6914,52 +6944,438 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           </Paper>
         )}
 
-        {/* 📊 Araç Detay Modal */}
-        <Dialog
-          open={vehicleDetailModal.open}
-          onClose={() => setVehicleDetailModal({ open: false, vehicle: null })}
-          maxWidth="lg"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              minHeight: '80vh'
-            }
-          }}
-        >
-          <DialogTitle sx={{ 
-            bgcolor: 'primary.main', 
-            color: 'white', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            p: 3
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <DirectionsCarIcon sx={{ fontSize: 32 }} />
-              <Box>
-                <Typography variant="h5" fontWeight={700}>
-                  {vehicleDetailModal.vehicle?.displayName || vehicleDetailModal.vehicle?.kategori || 'Araç Detayları'}
-                </Typography>
-                <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
-                  Detaylı Performans Analizi ve Trend Görünümü
-                </Typography>
-              </Box>
-            </Box>
-            <IconButton 
-              onClick={() => setVehicleDetailModal({ open: false, vehicle: null })}
-              sx={{ color: 'white' }}
+            {/* 📊 Araç Detay Modal */}
+            <Dialog
+              open={vehicleDetailModal.open}
+              onClose={() => setVehicleDetailModal({ open: false, vehicle: null })}
+              maxWidth="lg"
+              fullWidth
+              PaperProps={{
+                sx: {
+                  borderRadius: 3,
+                  minHeight: '80vh'
+                }
+              }}
             >
-              <CloseIcon />
-            </IconButton>
-          </DialogTitle>
+              <DialogTitle sx={{ 
+                bgcolor: 'primary.main', 
+                color: 'white', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                p: 3
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <DirectionsCarIcon sx={{ fontSize: 32 }} />
+                  <Box>
+                    <Typography variant="h5" fontWeight={700}>
+                      {vehicleDetailModal.vehicle?.displayName || vehicleDetailModal.vehicle?.kategori || 'Araç Detayları'}
+                    </Typography>
+                    <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+                      Detaylı Performans Analizi ve Trend Görünümü
+                    </Typography>
+                  </Box>
+                </Box>
+                <IconButton 
+                  onClick={() => setVehicleDetailModal({ open: false, vehicle: null })}
+                  sx={{ color: 'white' }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </DialogTitle>
 
-          <DialogContent sx={{ p: 0, maxHeight: '80vh', overflow: 'auto' }}>
-            {vehicleDetailModal.vehicle && (
-              <VehicleDetailAnalysisContent vehicle={vehicleDetailModal.vehicle} />
-            )}
+              <DialogContent sx={{ p: 0, maxHeight: '80vh', overflow: 'auto' }}>
+                {vehicleDetailModal.vehicle && (
+                  <VehicleDetailAnalysisContent vehicle={vehicleDetailModal.vehicle} />
+                )}
+              </DialogContent>
+            </Dialog>
+          </Box>
+        )}
+
+        {/* ✅ Hedef Yönetimi Sekmesi */}
+        {vehicleSubTab === 1 && (
+          <VehicleTargetManagementTab 
+            vehicleTargets={vehicleTargets}
+            onTargetUpdate={setForceRefresh}
+          />
+        )}
+
+        {/* ✅ Performans Analizi Sekmesi */}
+        {vehicleSubTab === 2 && (
+          <VehiclePerformanceAnalysisTab 
+            realTimeData={realTimeData}
+            vehicleTargets={vehicleTargets}
+          />
+        )}
+      </Box>
+    );
+  };
+
+  // ✅ Hedef Yönetimi Sekmesi Component'i
+  const VehicleTargetManagementTab: React.FC<{
+    vehicleTargets: VehicleTarget[];
+    onTargetUpdate: (value: any) => void;
+  }> = ({ vehicleTargets, onTargetUpdate }) => {
+    const [targetFormOpen, setTargetFormOpen] = useState(false);
+    const [editingTarget, setEditingTarget] = useState<VehicleTarget | null>(null);
+    const [targetFormData, setTargetFormData] = useState({
+      kategori: '',
+      displayName: '',
+      hedefler: {
+        maksRetAdet: 2,
+        maksHurdaKg: 5,
+        maksFireKg: 3
+      },
+      isActive: true
+    });
+
+    // Mevcut kategorileri getir
+    const existingCategories = useMemo(() => {
+      const categories = new Set<string>();
+      Object.keys(VEHICLE_CATEGORIES).forEach(cat => categories.add(cat));
+      vehicleTargets.forEach(target => {
+        if (target.kategori) categories.add(target.kategori);
+      });
+      return Array.from(categories);
+    }, [vehicleTargets]);
+
+    const handleSaveTarget = () => {
+      try {
+        const currentTargets = JSON.parse(localStorage.getItem('vehicle-targets') || '[]') as VehicleTarget[];
+        
+        if (editingTarget) {
+          // Güncelleme
+          const updatedTargets = currentTargets.map(target => 
+            target.id === editingTarget.id 
+              ? { ...targetFormData, id: editingTarget.id }
+              : target
+          );
+          localStorage.setItem('vehicle-targets', JSON.stringify(updatedTargets));
+        } else {
+          // Yeni ekleme
+          const newTarget: VehicleTarget = {
+            ...targetFormData,
+            id: Date.now().toString(),
+            createdAt: new Date().toISOString()
+          };
+          const updatedTargets = [...currentTargets, newTarget];
+          localStorage.setItem('vehicle-targets', JSON.stringify(updatedTargets));
+        }
+
+        // Form'u temizle ve kapat
+        setTargetFormData({
+          kategori: '',
+          displayName: '',
+          hedefler: {
+            maksRetAdet: 2,
+            maksHurdaKg: 5,
+            maksFireKg: 3
+          },
+          isActive: true
+        });
+        setEditingTarget(null);
+        setTargetFormOpen(false);
+        onTargetUpdate(Date.now());
+
+        alert(`Hedef ${editingTarget ? 'güncellendi' : 'eklendi'}! Araç performans kartları güncellenecek.`);
+      } catch (error) {
+        console.error('Hedef kaydetme hatası:', error);
+        alert('Hedef kaydedilirken hata oluştu.');
+      }
+    };
+
+    const handleEditTarget = (target: VehicleTarget) => {
+      setEditingTarget(target);
+      setTargetFormData({
+        kategori: target.kategori || '',
+        displayName: target.displayName || '',
+        hedefler: target.hedefler,
+        isActive: target.isActive !== false
+      });
+      setTargetFormOpen(true);
+    };
+
+    const handleDeleteTarget = (targetId: string) => {
+      if (confirm('Bu hedefi silmek istediğinizden emin misiniz?')) {
+        try {
+          const currentTargets = JSON.parse(localStorage.getItem('vehicle-targets') || '[]') as VehicleTarget[];
+          const updatedTargets = currentTargets.filter(target => target.id !== targetId);
+          localStorage.setItem('vehicle-targets', JSON.stringify(updatedTargets));
+          onTargetUpdate(Date.now());
+          alert('Hedef silindi!');
+        } catch (error) {
+          console.error('Hedef silme hatası:', error);
+          alert('Hedef silinirken hata oluştu.');
+        }
+      }
+    };
+
+    return (
+      <Box sx={{ p: 3 }}>
+        {/* Başlık ve Yeni Hedef Butonu */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Box>
+            <Typography variant="h5" fontWeight="bold" display="flex" alignItems="center" gap={1}>
+              <TargetIcon color="primary" />
+              Araç Kategorisi Hedef Yönetimi
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Araç kategorileri için ret, hurda ve fire hedeflerini yönetin. Bu hedefler performans hesaplamalarında kullanılır.
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setEditingTarget(null);
+              setTargetFormData({
+                kategori: '',
+                displayName: '',
+                hedefler: {
+                  maksRetAdet: 2,
+                  maksHurdaKg: 5,
+                  maksFireKg: 3
+                },
+                isActive: true
+              });
+              setTargetFormOpen(true);
+            }}
+            size="large"
+            sx={{ height: 48 }}
+          >
+            Yeni Hedef Ekle
+          </Button>
+        </Box>
+
+        {/* Mevcut Hedefler Listesi */}
+        <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+          <Box sx={{ p: 3, bgcolor: 'primary.main', color: 'white' }}>
+            <Typography variant="h6" fontWeight="bold">
+              Mevcut Hedefler ({vehicleTargets.filter(t => t.isActive !== false).length} Aktif)
+            </Typography>
+          </Box>
+
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Görünen İsim</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>Ret Hedefi (adet)</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>Hurda Hedefi (kg)</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>Fire Hedefi (kg)</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>Durum</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>İşlemler</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {vehicleTargets.map((target) => (
+                  <TableRow key={target.id} hover>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <DirectionsCarIcon color="primary" fontSize="small" />
+                        <Typography fontWeight="bold">{target.kategori}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>{target.displayName || '-'}</TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip label={`${target.hedefler.maksRetAdet} adet`} color="error" size="small" />
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip label={`${target.hedefler.maksHurdaKg} kg`} color="warning" size="small" />
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip label={`${target.hedefler.maksFireKg} kg`} color="info" size="small" />
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Chip 
+                        label={target.isActive !== false ? 'Aktif' : 'Pasif'} 
+                        color={target.isActive !== false ? 'success' : 'default'} 
+                        size="small" 
+                      />
+                    </TableCell>
+                    <TableCell sx={{ textAlign: 'center' }}>
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                        <IconButton 
+                          color="primary" 
+                          size="small"
+                          onClick={() => handleEditTarget(target)}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          color="error" 
+                          size="small"
+                          onClick={() => handleDeleteTarget(target.id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {vehicleTargets.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} sx={{ textAlign: 'center', py: 6 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <TargetIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                        <Typography variant="h6" color="text.secondary">
+                          Henüz hedef tanımlanmamış
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Araç kategorileri için kalitesizlik hedefleri ekleyin
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+
+        {/* Hedef Ekleme/Düzenleme Modal */}
+        <Dialog
+          open={targetFormOpen}
+          onClose={() => setTargetFormOpen(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <TargetIcon />
+              {editingTarget ? 'Hedef Düzenle' : 'Yeni Hedef Ekle'}
+            </Box>
+          </DialogTitle>
+          <DialogContent sx={{ p: 4 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Araç Kategorisi</InputLabel>
+                  <Select
+                    value={targetFormData.kategori}
+                    onChange={(e) => setTargetFormData({...targetFormData, kategori: e.target.value})}
+                    label="Araç Kategorisi"
+                  >
+                    {existingCategories.map(category => (
+                      <MenuItem key={category} value={category}>{category}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Görünen İsim (Opsiyonel)"
+                  value={targetFormData.displayName}
+                  onChange={(e) => setTargetFormData({...targetFormData, displayName: e.target.value})}
+                  placeholder="Örn: Ağır Hizmet Araçları"
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Maksimum Ret Adedi"
+                  type="number"
+                  value={targetFormData.hedefler.maksRetAdet}
+                  onChange={(e) => setTargetFormData({
+                    ...targetFormData, 
+                    hedefler: {...targetFormData.hedefler, maksRetAdet: parseInt(e.target.value) || 0}
+                  })}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">adet/araç</InputAdornment>
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Maksimum Hurda Ağırlığı"
+                  type="number"
+                  value={targetFormData.hedefler.maksHurdaKg}
+                  onChange={(e) => setTargetFormData({
+                    ...targetFormData, 
+                    hedefler: {...targetFormData.hedefler, maksHurdaKg: parseFloat(e.target.value) || 0}
+                  })}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">kg/araç</InputAdornment>
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  label="Maksimum Fire Ağırlığı"
+                  type="number"
+                  value={targetFormData.hedefler.maksFireKg}
+                  onChange={(e) => setTargetFormData({
+                    ...targetFormData, 
+                    hedefler: {...targetFormData.hedefler, maksFireKg: parseFloat(e.target.value) || 0}
+                  })}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">kg/araç</InputAdornment>
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={targetFormData.isActive}
+                      onChange={(e) => setTargetFormData({...targetFormData, isActive: e.target.checked})}
+                    />
+                  }
+                  label="Hedef aktif olsun"
+                />
+              </Grid>
+            </Grid>
           </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setTargetFormOpen(false)}>
+              İptal
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={handleSaveTarget}
+              disabled={!targetFormData.kategori}
+            >
+              {editingTarget ? 'Güncelle' : 'Kaydet'}
+            </Button>
+          </DialogActions>
         </Dialog>
+      </Box>
+    );
+  };
+
+  // ✅ Performans Analizi Sekmesi Component'i
+  const VehiclePerformanceAnalysisTab: React.FC<{
+    realTimeData?: any;
+    vehicleTargets: VehicleTarget[];
+  }> = ({ realTimeData, vehicleTargets }) => {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h5" fontWeight="bold" display="flex" alignItems="center" gap={1} sx={{ mb: 3 }}>
+          <AssessmentIcon color="primary" />
+          Detaylı Performans Analizi
+        </Typography>
+        
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Bu sekme geliştirilme aşamasındadır. Gelişmiş performans analizi ve trend grafikleri yakında eklenecek.
+        </Alert>
+
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <AssessmentIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Performans Analizi Geliştiriliyor
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            • Trend grafikleri<br />
+            • Karşılaştırmalı analiz<br />
+            • Tahmin modelleri<br />
+            • İyileştirme önerileri
+          </Typography>
+        </Paper>
       </Box>
     );
   };
