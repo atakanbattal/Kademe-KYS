@@ -4474,6 +4474,27 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       })).sort((a, b) => b.cost - a.cost);
     }, [detailedData, vehicle.toplam.toplamMaliyet]);
     
+    // Maliyet türü label'ları için helper fonksiyon
+    const getMaliyetTuruLabel = (type: string) => {
+      const typeMap: { [key: string]: string } = {
+        'hurda': 'Hurda Maliyeti',
+        'yeniden_islem': 'Yeniden İşlem',
+        'fire': 'Fire Maliyeti',
+        'garanti': 'Garanti Maliyeti',
+        'iade': 'İade Maliyeti',
+        'sikayet': 'Şikayet Maliyeti',
+        'onleme': 'Önleme Maliyeti',
+        'ret': 'Ret Maliyeti',
+        'kontrol': 'Kontrol Maliyeti',
+        'kalibrasyon': 'Kalibrasyon Maliyeti',
+        'egitim': 'Eğitim Maliyeti',
+        'denetim': 'Denetim Maliyeti',
+        'iade_tesellum': 'İade Teslim',
+        'musteri_sikayeti': 'Müşteri Şikayeti'
+      };
+      return typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1);
+    };
+    
     if (loading) {
       return (
         <Box sx={{ p: 4, textAlign: 'center' }}>
@@ -4633,7 +4654,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="subtitle2" fontWeight={600}>
-                      {item.type}
+                      {getMaliyetTuruLabel(item.type)}
                     </Typography>
                     <Chip 
                       label={`${item.percentage.toFixed(1)}%`}
@@ -4756,7 +4777,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     </TableCell>
                     <TableCell>
                       <Chip 
-                        label={record.maliyetTuru || 'Bilinmeyen'} 
+                        label={getMaliyetTuruLabel(record.maliyetTuru || 'Bilinmeyen')} 
                         size="small"
                         color={
                           (record.maliyetTuru || '').toLowerCase().includes('hurda') ? 'warning' :
