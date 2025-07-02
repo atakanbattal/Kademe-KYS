@@ -2527,11 +2527,11 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   {pair.alternativeSuppliers.map((altSupplier, index) => {
                     const altScore = pair.performanceComparison.alternativeScores.find(s => s.id === altSupplier.id)?.score || 0;
                     return (
-                      <Box key={altSupplier.id} mb={index < pair.alternativeSuppliers.length - 1 ? 1 : 0}>
-                        <Typography variant="body2" fontWeight="bold">
-                          {altSupplier.name}
-                        </Typography>
-                        <Box display="flex" alignItems="center" gap={1} mt={0.5}>
+                    <Box key={altSupplier.id} mb={index < pair.alternativeSuppliers.length - 1 ? 1 : 0}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {altSupplier.name}
+                      </Typography>
+                      <Box display="flex" alignItems="center" gap={1} mt={0.5}>
                           {/* Grade Badge - Alternatif Tedarikçi */}
                           <Box
                             sx={{
@@ -2550,14 +2550,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           >
                             {getPerformanceGrade(altScore).grade}
                           </Box>
-                          <Chip 
+                        <Chip 
                             label={`${altScore}%`} 
-                            color="warning" 
-                            size="small" 
-                          />
+                          color="warning" 
+                          size="small" 
+                        />
 
-                        </Box>
                       </Box>
+                    </Box>
                     );
                   })}
                 </TableCell>
@@ -2750,17 +2750,17 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       <Box 
                         width="100%" 
                         height={6} 
-                        bgcolor="grey.300" 
-                        borderRadius={1}
-                        overflow="hidden"
-                      >
-                        <Box 
-                          width={`${supplier.performanceScore}%`}
-                          height="100%"
+                      bgcolor="grey.300" 
+                      borderRadius={1}
+                      overflow="hidden"
+                    >
+                      <Box 
+                        width={`${supplier.performanceScore}%`}
+                        height="100%"
                           bgcolor={getPerformanceGrade(supplier.performanceScore).bgColor}
                           borderRadius={1}
-                        />
-                      </Box>
+                      />
+                    </Box>
                       
                       {/* Grade Aralığı */}
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
@@ -2768,7 +2768,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         {getPerformanceGrade(supplier.performanceScore).grade === 'B' && '70-84 puan'}
                         {getPerformanceGrade(supplier.performanceScore).grade === 'C' && '50-69 puan'}
                         {getPerformanceGrade(supplier.performanceScore).grade === 'D' && '0-49 puan'}
-                      </Typography>
+                    </Typography>
                     </Box>
                   </Box>
                 </TableCell>
@@ -3155,10 +3155,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               }
               action={
                 <Box display="flex" gap={1}>
-                  <Chip 
-                    size="small" 
+                <Chip 
+                  size="small" 
                     label={`${audits.length} toplam`} 
-                    color="info"
+                  color="info"
                     sx={{ fontWeight: 500 }}
                   />
                   <Chip 
@@ -3370,7 +3370,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                   month: '2-digit', 
                                   year: '2-digit' 
                                 })}
-                              </Typography>
+                                </Typography>
                             </TableCell>
                             
                             <TableCell align="center" sx={{ minWidth: 120 }}>
@@ -3405,8 +3405,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             </TableCell>
                             
                             <TableCell align="center" sx={{ minWidth: 120 }}>
-                              <Chip 
-                                size="small" 
+                                <Chip 
+                                  size="small" 
                                 label={statusInfo.text}
                                 color={statusInfo.color}
                                 sx={{ 
@@ -3418,7 +3418,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                     px: 1.5
                                   }
                                 }}
-                              />
+                                />
                             </TableCell>
                             
                             <TableCell align="center" sx={{ minWidth: 90 }}>
@@ -3471,7 +3471,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                   sx={{
                                     '& .MuiTooltip-tooltip': {
                                       maxWidth: 300,
-                                      fontSize: '0.8rem'
+                                  fontSize: '0.8rem'
                                     }
                                   }}
                                 >
@@ -3494,9 +3494,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                         cursor: 'pointer',
                                         lineHeight: 1.4
                                       }}
-                                    >
+                              >
                                       {audit.delayReason}
-                                    </Typography>
+                              </Typography>
                                   </Box>
                                 </Tooltip>
                               ) : (
@@ -3587,22 +3587,22 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
                               Henüz denetim kaydı bulunmuyor
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                          <Typography variant="body2" color="text.secondary">
                               İlk denetimi planlamak için aşağıdaki butona tıklayın
-                            </Typography>
-                            <Button 
+                          </Typography>
+                          <Button 
                               variant="contained"
-                              startIcon={<ScheduleIcon />} 
-                              onClick={handleCreateAudit}
+                            startIcon={<ScheduleIcon />} 
+                            onClick={handleCreateAudit}
                               sx={{ 
                                 mt: 1,
                                 borderRadius: 2,
                                 textTransform: 'none',
                                 fontWeight: 600
                               }}
-                            >
-                              İlk Denetimi Planla
-                            </Button>
+                          >
+                            İlk Denetimi Planla
+                          </Button>
                           </Box>
                         </TableCell>
                       </TableRow>

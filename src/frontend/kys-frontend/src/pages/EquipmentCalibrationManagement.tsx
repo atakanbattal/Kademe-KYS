@@ -55,7 +55,6 @@ import {
   Schedule as ScheduleIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
   Pending as PendingIcon,
   Edit as EditIcon,
   Visibility as ViewIcon,
@@ -78,6 +77,7 @@ import {
   PriorityHigh as UrgentIcon,
   Security as SecurityIcon,
   PersonAdd as PersonAddIcon,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -3073,7 +3073,7 @@ const StatusChip = styled(Chip)<{ statustype: string }>(({ theme, statustype }) 
   };
 });
 
-// 🎯 BALANCED STABLE SEARCH INPUT - Tıklanabilir ve focus korumalı
+// 🔍 SIMPLE STABLE SEARCH INPUT - Sorunsuz yazım deneyimi
 const UltimateStableSearchInput = memo<{
   defaultValue?: string;
   onChange: (value: string) => void;
@@ -3082,168 +3082,68 @@ const UltimateStableSearchInput = memo<{
   size?: 'small' | 'medium';
   fullWidth?: boolean;
 }>(({ defaultValue = '', onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [value, setValue] = useState(defaultValue);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  const isAliveRef = useRef(true);
-  const lastUserActionRef = useRef(Date.now());
-  const focusProtectionRef = useRef<NodeJS.Timeout | null>(null);
   
-  // 🎯 BALANCED FOCUS PROTECTION - Hem tıklanabilir hem korumalı
+  // Basit debounced search - focus problemsiz
+  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    setValue(newValue);
+    
+    // Debounce ile search callback'ini çağır
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      onChange(newValue);
+    }, 300);
+  }, [onChange]);
+  
+  // Cleanup
   useEffect(() => {
-    let focusInterval: NodeJS.Timeout;
-    
-    const balancedFocusProtection = () => {
-      if (!isAliveRef.current || !inputRef.current) return;
-      
-      const input = inputRef.current;
-      
-      // Focus kaybolmuşsa geri al - ZAman sınırı olmadan
-      if (document.activeElement !== input) {
-        // Sadece başka bir input'a focus olunmamışsa
-        const activeElement = document.activeElement;
-        if (!activeElement || activeElement.tagName !== 'INPUT') {
-          try {
-            input.focus();
-            input.setSelectionRange(input.value.length, input.value.length);
-          } catch (e) {
-            // Silent fail
-          }
-        }
-      }
-    };
-    
-    // Her 100ms kontrol et - daha yumuşak
-    focusInterval = setInterval(balancedFocusProtection, 100);
-    
     return () => {
-      clearInterval(focusInterval);
-    };
-  }, []);
-  
-  // 🎯 SMART DOM EVENT HANDLING 
-  useEffect(() => {
-    const input = inputRef.current;
-    if (!input) return;
-    
-    const handleInput = (event: Event) => {
-      const target = event.target as HTMLInputElement;
-      const value = target.value;
-      
-      lastUserActionRef.current = Date.now();
-      
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
-      
-      debounceRef.current = setTimeout(() => {
-        if (isAliveRef.current) {
-          onChange(value);
-        }
-      }, 200);
     };
-    
-    const handleFocus = () => {
-      lastUserActionRef.current = Date.now();
-    };
-    
-    const handleClick = (event: Event) => {
-      lastUserActionRef.current = Date.now();
-      // Normal click behavior'ı koru
-    };
-    
-    const handleKeyDown = () => {
-      lastUserActionRef.current = Date.now();
-    };
-    
-    const handleBlur = (event: FocusEvent) => {
-      // Sadece container dışına blur oluyorsa engelle
-      const relatedTarget = event.relatedTarget as Element;
-      if (!containerRef.current?.contains(relatedTarget)) {
-        // 50ms bekle, zaman sınırı olmadan focus'u geri al
-        setTimeout(() => {
-          if (isAliveRef.current && input) {
-            input.focus();
-          }
-        }, 50);
-      }
-    };
-    
-    // Event listener'ları ekle
-    input.addEventListener('input', handleInput);
-    input.addEventListener('focus', handleFocus);
-    input.addEventListener('click', handleClick);
-    input.addEventListener('keydown', handleKeyDown);
-    input.addEventListener('blur', handleBlur);
-    
-    return () => {
-      input.removeEventListener('input', handleInput);
-      input.removeEventListener('focus', handleFocus);
-      input.removeEventListener('click', handleClick);
-      input.removeEventListener('keydown', handleKeyDown);
-      input.removeEventListener('blur', handleBlur);
-    };
-  }, [onChange]);
-  
-  // 🎯 CONTAINER INTERACTION
-  const handleContainerClick = useCallback((event: React.MouseEvent) => {
-    // Sadece container'a tıklanırsa input'a focus ver
-    if (event.target === containerRef.current && inputRef.current) {
-      lastUserActionRef.current = Date.now();
-      inputRef.current.focus();
-    }
   }, []);
   
-  // 🎯 CLEANUP
+  // defaultValue değiştiğinde value'yu güncelle
   useEffect(() => {
-    isAliveRef.current = true;
-    
-    return () => {
-      isAliveRef.current = false;
-      if (focusProtectionRef.current) clearTimeout(focusProtectionRef.current);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
+    setValue(defaultValue);
+  }, [defaultValue]);
   
   return (
-    <div 
-      ref={containerRef}
-      onClick={handleContainerClick}
-      style={{ 
-        width: fullWidth ? '100%' : 'auto',
-        position: 'relative'
+    <TextField
+      fullWidth={fullWidth}
+      size={size}
+      label={label}
+      value={value}
+      onChange={handleChange}
+      placeholder={placeholder}
+      autoComplete="off"
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon color="action" />
+          </InputAdornment>
+        ),
       }}
-    >
-      <TextField
-        ref={inputRef}
-        fullWidth={fullWidth}
-        size={size}
-        label={label}
-        defaultValue={defaultValue || ''}
-        placeholder={placeholder}
-        autoComplete="off"
-        spellCheck={false}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            '&.Mui-focused': {
-              '& fieldset': {
-                borderColor: '#1976d2 !important',
-                borderWidth: '2px !important',
-              },
-            },
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          '&:hover fieldset': {
+            borderColor: '#1976d2',
           },
-        }}
-      />
-    </div>
+          '&.Mui-focused fieldset': {
+            borderColor: '#1976d2',
+            borderWidth: '2px',
+          },
+        },
+      }}
+    />
   );
-}, () => true); // Memo lock
+});
 
 const EquipmentCalibrationManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
@@ -3347,6 +3247,37 @@ const EquipmentCalibrationManagement: React.FC = () => {
   // Personnel data
   const [personnelList, setPersonnelList] = useState<Personnel[]>(() => getPersonnelData());
 
+  // Kalibrasyon durumunu otomatik güncelleme fonksiyonu
+  const updateCalibrationStatus = useCallback((equipment: Equipment): Equipment => {
+    if (!equipment.nextCalibrationDate) return equipment;
+    
+    const daysUntilDue = getDaysUntilDue(equipment.nextCalibrationDate);
+    let newStatus: Equipment['calibrationStatus'] = 'valid';
+    
+    if (daysUntilDue < 0) {
+      newStatus = 'overdue';
+    } else if (daysUntilDue <= 30) {
+      newStatus = 'due';
+    } else {
+      newStatus = 'valid';
+    }
+    
+    return {
+      ...equipment,
+      calibrationStatus: newStatus
+    };
+  }, []);
+
+  // Tüm ekipmanların kalibrasyon durumunu güncelleme
+  const updateAllCalibrationStatuses = useCallback(() => {
+    setEquipmentList(prevList => {
+      const updatedList = prevList.map(equipment => updateCalibrationStatus(equipment));
+      // LocalStorage'a kaydet
+      localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedList));
+      return updatedList;
+    });
+  }, [updateCalibrationStatus]);
+
   // Component mount edildiğinde localStorage verilerini sadece bir kez yükle
   useEffect(() => {
     // Sadece ilk yüklemede verileri güncelle - temizleme yapmadan
@@ -3361,7 +3292,19 @@ const EquipmentCalibrationManagement: React.FC = () => {
     
     const updatedUncertainties = getMeasurementUncertaintiesByCategory();
     setMeasurementUncertainties(updatedUncertainties);
-  }, []); // Sadece component mount'ta çalışır
+
+    // Kalibrasyon durumlarını otomatik güncelle
+    updateAllCalibrationStatuses();
+  }, [updateAllCalibrationStatuses]); // updateAllCalibrationStatuses'i dependency'e ekledim
+
+  // Kalibrasyon durumlarını günlük otomatik güncelleme
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updateAllCalibrationStatuses();
+    }, 24 * 60 * 60 * 1000); // 24 saatte bir güncelle
+
+    return () => clearInterval(interval);
+  }, [updateAllCalibrationStatuses]);
 
 
 
@@ -3537,13 +3480,59 @@ const EquipmentCalibrationManagement: React.FC = () => {
     });
   }, [equipmentList, filters]);
 
+  // Utility function - getDaysUntilDue fonksiyonu metrics'ten önce tanımlanmalı
+  const getDaysUntilDue = (dueDateString: string) => {
+    const dueDate = new Date(dueDateString);
+    const today = new Date();
+    const diffTime = dueDate.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
   // Memoized metrics calculation - sadece filteredEquipment değiştiğinde yeniden hesapla
   const metrics = useMemo(() => {
-
     const totalEquipment = filteredEquipment.length;
     const activeEquipment = filteredEquipment.filter(eq => eq.status === 'active').length;
     const criticalEquipment = filteredEquipment.filter(eq => eq.criticalEquipment).length;
     const calibrationDue = filteredEquipment.filter(eq => eq.calibrationStatus === 'due' || eq.calibrationStatus === 'overdue').length;
+
+    // Detaylı kalibrasyon takibi
+    const today = new Date();
+    const overdueEquipment = filteredEquipment.filter(eq => {
+      if (!eq.nextCalibrationDate) return false;
+      return getDaysUntilDue(eq.nextCalibrationDate) < 0;
+    });
+    
+    const critical1Day = filteredEquipment.filter(eq => {
+      if (!eq.nextCalibrationDate) return false;
+      const days = getDaysUntilDue(eq.nextCalibrationDate);
+      return days >= 0 && days <= 1;
+    });
+    
+    const urgent7Days = filteredEquipment.filter(eq => {
+      if (!eq.nextCalibrationDate) return false;
+      const days = getDaysUntilDue(eq.nextCalibrationDate);
+      return days > 1 && days <= 7;
+    });
+    
+    const warning30Days = filteredEquipment.filter(eq => {
+      if (!eq.nextCalibrationDate) return false;
+      const days = getDaysUntilDue(eq.nextCalibrationDate);
+      return days > 7 && days <= 30;
+    });
+
+    const validEquipment = filteredEquipment.filter(eq => {
+      if (!eq.nextCalibrationDate) return false;
+      return getDaysUntilDue(eq.nextCalibrationDate) > 30;
+    });
+
+    // Kalibrasyon durumu dağılımı
+    const calibrationDistribution = [
+      { name: 'Geçerli', value: validEquipment.length, color: '#4caf50' },
+      { name: '30 Gün İçinde', value: warning30Days.length, color: '#ffc107' },
+      { name: '7 Gün İçinde', value: urgent7Days.length, color: '#ff9800' },
+      { name: '1 Gün İçinde', value: critical1Day.length, color: '#f44336' },
+      { name: 'Vadesi Geçen', value: overdueEquipment.length, color: '#d32f2f' }
+    ];
 
     // Status distribution for charts
     const statusDistribution = [
@@ -3573,7 +3562,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
       statusDistribution,
       calibrationStatusDistribution,
       categoryDistribution,
-      filteredEquipment
+      calibrationDistribution,
+      filteredEquipment,
+      // Detaylı kalibrasyon takip verileri
+      overdueEquipment,
+      critical1Day,
+      urgent7Days,
+      warning30Days,
+      validEquipment
     };
   }, [filteredEquipment]); // Sadece filteredEquipment değişikliğinde yeniden hesapla
 
@@ -3669,7 +3665,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
       status: 'active',
       calibrationRequired: false,
       calibrationFrequency: 12,
-                  criticalEquipment: false,
+      criticalEquipment: false,
       specifications: '',
       notes: '',
       measurementRange: '',
@@ -3711,14 +3707,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
       lastCalibrationDate: equipment.lastCalibrationDate,
       nextCalibrationDate: equipment.nextCalibrationDate,
       calibrationStatus: equipment.calibrationStatus,
-                                    criticalEquipment: equipment.criticalEquipment,
+      criticalEquipment: equipment.criticalEquipment,
       specifications: equipment.specifications,
       operatingManual: equipment.operatingManual,
       notes: equipment.notes,
       qrCode: equipment.qrCode,
       images: equipment.images || [],
       certificates: equipment.certificates || [],
-            measurementRange: equipment.measurementRange || '',
+      measurementRange: equipment.measurementRange || '',
       measurementUncertainty: equipment.measurementUncertainty || '',
       customMeasurementRange: equipment.customMeasurementRange || '',
       customMeasurementUncertainty: equipment.customMeasurementUncertainty,
@@ -3775,12 +3771,80 @@ const EquipmentCalibrationManagement: React.FC = () => {
     return new Date(dateString).toLocaleDateString('tr-TR');
   };
 
-  const getDaysUntilDue = (dueDateString: string) => {
-    const dueDate = new Date(dueDateString);
-    const today = new Date();
-    const diffTime = dueDate.getTime() - today.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
+  // Kalibrasyon uyarı seviyesini belirleme
+  const getCalibrationWarningLevel = useCallback((equipment: Equipment) => {
+    if (!equipment.nextCalibrationDate) return 'none';
+    
+    const daysUntilDue = getDaysUntilDue(equipment.nextCalibrationDate);
+    
+    if (daysUntilDue < 0) return 'overdue';
+    if (daysUntilDue <= 1) return 'critical';
+    if (daysUntilDue <= 7) return 'urgent';
+    if (daysUntilDue <= 30) return 'warning';
+    return 'normal';
+  }, []);
+
+  // Kalibrasyon uyarı rengini belirleme
+  const getCalibrationWarningColor = useCallback((warningLevel: string) => {
+    switch (warningLevel) {
+      case 'overdue': return '#d32f2f';
+      case 'critical': return '#f44336';
+      case 'urgent': return '#ff9800';
+      case 'warning': return '#ffc107';
+      case 'normal': return '#4caf50';
+      default: return '#9e9e9e';
+    }
+  }, []);
+
+  // Kalibrasyon bildirimleri sistemi - useMemo ile optimize edildi
+  const notifications = useMemo(() => {
+    const notificationList: { id: string; type: 'error' | 'warning' | 'info'; message: string; equipment: Equipment }[] = [];
+    
+    equipmentList.forEach(equipment => {
+      if (!equipment.nextCalibrationDate) return;
+      
+      const daysUntilDue = getDaysUntilDue(equipment.nextCalibrationDate);
+      const warningLevel = getCalibrationWarningLevel(equipment);
+      
+      if (warningLevel === 'overdue') {
+        notificationList.push({
+          id: `overdue-${equipment.id}`,
+          type: 'error',
+          message: `${equipment.name} (${equipment.equipmentCode}) kalibrasyonu ${Math.abs(daysUntilDue)} gün önce dolmuş! Acil kalibrasyon gerekli.`,
+          equipment
+        });
+      } else if (warningLevel === 'critical') {
+        notificationList.push({
+          id: `critical-${equipment.id}`,
+          type: 'error',
+          message: `${equipment.name} (${equipment.equipmentCode}) kalibrasyonu ${daysUntilDue} gün içinde dolacak! Hemen ilgilenin.`,
+          equipment
+        });
+      } else if (warningLevel === 'urgent') {
+        notificationList.push({
+          id: `urgent-${equipment.id}`,
+          type: 'warning',
+          message: `${equipment.name} (${equipment.equipmentCode}) kalibrasyonu ${daysUntilDue} gün içinde dolacak. Planlama yapın.`,
+          equipment
+        });
+      } else if (warningLevel === 'warning') {
+        notificationList.push({
+          id: `warning-${equipment.id}`,
+          type: 'info',
+          message: `${equipment.name} (${equipment.equipmentCode}) kalibrasyonu ${daysUntilDue} gün içinde dolacak. Hazırlık yapabilirsiniz.`,
+          equipment
+        });
+      }
+    });
+    
+    return notificationList.sort((a, b) => {
+      if (a.type === 'error' && b.type !== 'error') return -1;
+      if (a.type !== 'error' && b.type === 'error') return 1;
+      if (a.type === 'warning' && b.type === 'info') return -1;
+      if (a.type === 'info' && b.type === 'warning') return 1;
+      return 0;
+    });
+  }, [equipmentList]); // Sadece equipmentList değiştiğinde yeniden hesapla
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('tr-TR', {
@@ -3994,13 +4058,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
       lastCalibrationDate: formData.lastCalibrationDate || new Date().toISOString().split('T')[0],
       nextCalibrationDate: formData.nextCalibrationDate || '',
       calibrationStatus: 'valid',
-                                    criticalEquipment: formData.criticalEquipment || false,
+      criticalEquipment: formData.criticalEquipment || false,
       specifications: formData.specifications || '',
       operatingManual: '',
       notes: formData.notes || '',
       images: [],
       certificates: [],
-            // Yeni alanlar
+      // Yeni alanlar
       measurementRange: formData.measurementRange === 'Diğer' ? formData.customMeasurementRange : formData.measurementRange,
       measurementUncertainty: formData.measurementUncertainty === 'Diğer' ? formData.customMeasurementUncertainty : formData.measurementUncertainty,
       calibrationCompany: formData.calibrationCompany || '',
@@ -4027,151 +4091,54 @@ const EquipmentCalibrationManagement: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
+      {/* Üst Aksiyon Çubuğu */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={openCreateDialog}
           size="large"
+          sx={{ 
+            px: 3,
+            py: 1.5,
+            borderRadius: 2,
+            boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)'
+          }}
         >
           Yeni Ekipman
         </Button>
+        
+        {/* Hızlı Filtre Butonları */}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant={filters.overdueOnly ? "contained" : "outlined"}
+            color="error"
+            size="small"
+            onClick={() => handleFilterChange('overdueOnly', !filters.overdueOnly)}
+            startIcon={<ErrorIcon />}
+          >
+            Vadesi Geçen ({metrics.overdueEquipment.length})
+          </Button>
+          <Button
+            variant={filters.calibrationStatus === 'due' ? "contained" : "outlined"}
+            color="warning"
+            size="small"
+            onClick={() => handleFilterChange('calibrationStatus', filters.calibrationStatus === 'due' ? '' : 'due')}
+            startIcon={<WarningIcon />}
+          >
+            Vadesi Yaklaşan ({metrics.warning30Days.length + metrics.urgent7Days.length + metrics.critical1Day.length})
+          </Button>
+          <Button
+            variant={filters.criticalOnly ? "contained" : "outlined"}
+            color="error"
+            size="small"
+            onClick={() => handleFilterChange('criticalOnly', !filters.criticalOnly)}
+            startIcon={<UrgentIcon />}
+          >
+            Kritik ({metrics.criticalEquipment})
+          </Button>
+        </Box>
       </Box>
-
-      {/* TÜM MODÜL İÇİN GLOBAL FİLTRELER */}
-      <StyledAccordion
-        expanded={expanded === 'filters'}
-        onChange={handleAccordionChange('filters')}
-        sx={{ mb: 3 }}
-      >
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <FilterListIcon sx={{ color: '#ffffff' }} />
-                          <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>Filtreler ve Arama</Typography>
-            {Object.values(filters).some(v => v !== '' && !(typeof v === 'object' && !v.start && !v.end) && v !== false) && (
-              <Badge color="primary" variant="dot" />
-            )}
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
-              <UltimateStableSearchInput
-                label="Ekipman Arama"
-                placeholder="Ekipman adı veya kodu ile arayın..."
-                defaultValue={filters.searchTerm}
-                onChange={(value: string) => handleFilterChange('searchTerm', value)}
-                fullWidth
-              />
-            </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
-              <FormControl fullWidth sx={{ height: 56 }}>
-                <InputLabel>Kategori</InputLabel>
-                <Select
-                  value={filters.category}
-                  onChange={(e) => handleFilterChange('category', e.target.value)}
-                  sx={{ height: 56 }}
-                >
-                  <MenuItem value="">Tüm Kategoriler</MenuItem>
-                  {EQUIPMENT_CATEGORIES.map((category) => (
-                    <MenuItem key={category} value={category}>{category}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
-              <FormControl fullWidth sx={{ height: 56 }}>
-                <InputLabel>Lokasyon</InputLabel>
-                <Select
-                  value={filters.location}
-                  onChange={(e) => handleFilterChange('location', e.target.value)}
-                  sx={{ height: 56 }}
-                >
-                  <MenuItem value="">Tüm Lokasyonlar</MenuItem>
-                  {LOCATIONS.map((location) => (
-                    <MenuItem key={location} value={location}>{location}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
-              <FormControl fullWidth sx={{ height: 56 }}>
-                <InputLabel>Departman</InputLabel>
-                <Select
-                  value={filters.department}
-                  onChange={(e) => handleFilterChange('department', e.target.value)}
-                  sx={{ height: 56 }}
-                >
-                  <MenuItem value="">Tüm Departmanlar</MenuItem>
-                  {DEPARTMENTS.map((dept) => (
-                    <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
-              <FormControl fullWidth sx={{ height: 56 }}>
-                <InputLabel>Kalibrasyon Durumu</InputLabel>
-                <Select
-                  value={filters.calibrationStatus}
-                  onChange={(e) => handleFilterChange('calibrationStatus', e.target.value)}
-                  sx={{ height: 56 }}
-                >
-                  <MenuItem value="">Tüm Durumlar</MenuItem>
-                  <MenuItem value="valid">Geçerli</MenuItem>
-                  <MenuItem value="due">Vadesi Yaklaşan</MenuItem>
-                  <MenuItem value="overdue">Vadesi Geçen</MenuItem>
-                  <MenuItem value="invalid">Geçersiz</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56, display: 'flex', alignItems: 'center' }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={filters.criticalOnly}
-                    onChange={(e) => handleFilterChange('criticalOnly', e.target.checked)}
-                  />
-                }
-                label="Sadece Kritik Ekipmanlar"
-              />
-            </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56, display: 'flex', alignItems: 'center' }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={filters.overdueOnly}
-                    onChange={(e) => handleFilterChange('overdueOnly', e.target.checked)}
-                  />
-                }
-                label="Sadece Vadesi Geçenler"
-              />
-            </Box>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px', height: 56 }}>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<ClearIcon />}
-                onClick={() => setFilters({
-                  searchTerm: '',
-                  category: '',
-                  location: '',
-                  department: '',
-                  status: '',
-                  calibrationStatus: '',
-                                    responsiblePerson: '',
-                  dateRange: { start: '', end: '' },
-                  criticalOnly: false,
-                  overdueOnly: false
-                })}
-                sx={{ height: 56 }}
-              >
-                Filtreleri Temizle
-              </Button>
-            </Box>
-          </Box>
-        </AccordionDetails>
-      </StyledAccordion>
 
       <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
         <Tab label="Dashboard" icon={<DashboardIcon />} />
@@ -4256,8 +4223,224 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 </CardContent>
               </EquipmentCard>
             </Box>
-
           </Box>
+
+          {/* Detaylı Kalibrasyon Takip Kartları */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <Card 
+                sx={{ 
+                  borderRadius: 3,
+                  background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                  '&:hover': { transform: 'translateY(-4px)' }
+                }}
+                onClick={() => setFilters(prev => ({ ...prev, calibrationStatus: 'overdue' }))}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="h4" fontWeight={700}>
+                        {metrics.overdueEquipment.length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Vadesi Geçen
+                      </Typography>
+                    </Box>
+                    <ErrorIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                  {metrics.overdueEquipment.length > 0 && (
+                    <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 1 }}>
+                      Acil kalibrasyon gerekli!
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Box>
+            
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <Card 
+                sx={{ 
+                  borderRadius: 3,
+                  background: 'linear-gradient(135deg, #f44336 0%, #ff5722 100%)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                  '&:hover': { transform: 'translateY(-4px)' }
+                }}
+                onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="h4" fontWeight={700}>
+                        {metrics.critical1Day.length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        1 Gün İçinde
+                      </Typography>
+                    </Box>
+                    <UrgentIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                  {metrics.critical1Day.length > 0 && (
+                    <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 1 }}>
+                      Hemen ilgilenin!
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Box>
+            
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <Card 
+                sx={{ 
+                  borderRadius: 3,
+                  background: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                  '&:hover': { transform: 'translateY(-4px)' }
+                }}
+                onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="h4" fontWeight={700}>
+                        {metrics.urgent7Days.length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        7 Gün İçinde
+                      </Typography>
+                    </Box>
+                    <WarningIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                  {metrics.urgent7Days.length > 0 && (
+                    <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 1 }}>
+                      Planlama yapın
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Box>
+            
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <Card 
+                sx={{ 
+                  borderRadius: 3,
+                  background: 'linear-gradient(135deg, #ffc107 0%, #ffeb3b 100%)',
+                  color: '#333',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                  '&:hover': { transform: 'translateY(-4px)' }
+                }}
+                onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="h4" fontWeight={700}>
+                        {metrics.warning30Days.length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        30 Gün İçinde
+                      </Typography>
+                    </Box>
+                    <ScheduleIcon sx={{ fontSize: 40, opacity: 0.7 }} />
+                  </Box>
+                  {metrics.warning30Days.length > 0 && (
+                    <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', mt: 1 }}>
+                      Hazırlık yapabilirsiniz
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Box>
+            
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <Card 
+                sx={{ 
+                  borderRadius: 3,
+                  background: 'linear-gradient(135deg, #4caf50 0%, #81c784 100%)',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s',
+                  '&:hover': { transform: 'translateY(-4px)' }
+                }}
+                onClick={() => setFilters(prev => ({ ...prev, calibrationStatus: 'valid' }))}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Box>
+                      <Typography variant="h4" fontWeight={700}>
+                        {metrics.validEquipment.length}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        Geçerli Kalibrasyon
+                      </Typography>
+                    </Box>
+                    <VerifiedIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                  </Box>
+                  <Typography variant="caption" sx={{ opacity: 0.8, display: 'block', mt: 1 }}>
+                    30+ gün geçerli
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+
+          {/* Kalibrasyon Bildirimleri */}
+          {notifications.length > 0 && (
+            <Box sx={{ mb: 4 }}>
+              <Paper sx={{ p: 3, borderRadius: 3, border: notifications.some(n => n.type === 'error') ? '2px solid #d32f2f' : '1px solid #e0e0e0' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <NotificationsIcon color={notifications.some(n => n.type === 'error') ? 'error' : 'warning'} />
+                  <Typography variant="h6" fontWeight={600}>
+                    Kalibrasyon Bildirimleri ({notifications.length})
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                  {notifications.map((notification) => (
+                    <Alert 
+                      key={notification.id}
+                      severity={notification.type}
+                      sx={{ 
+                        mb: 2, 
+                        borderRadius: 2,
+                        cursor: 'pointer',
+                        '&:hover': { boxShadow: 2 }
+                      }}
+                      onClick={() => {
+                        setFilters(prev => ({ ...prev, searchTerm: notification.equipment.name }));
+                        setActiveTab(1);
+                      }}
+                      action={
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditEquipment(notification.equipment);
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      }
+                    >
+                      <Typography variant="body2">
+                        {notification.message}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.5, opacity: 0.8 }}>
+                        Kategori: {notification.equipment.category} | Lokasyon: {notification.equipment.location}
+                      </Typography>
+                    </Alert>
+                  ))}
+                </Box>
+              </Paper>
+            </Box>
+          )}
 
           {/* Grafikler */}
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
@@ -4325,9 +4508,148 @@ const EquipmentCalibrationManagement: React.FC = () => {
         </Box>
       )}
 
-      {/* Ekipman Listesi Tab */}
+                {/* Ekipman Listesi Tab */}
       {activeTab === 1 && (
         <Box>
+          {/* Ekipman Listesi İçin Kompakt Filtreler */}
+          <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+              <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
+                <UltimateStableSearchInput
+                  label="Ekipman Arama"
+                  placeholder="Ekipman adı, kodu veya üretici ile arayın..."
+                  defaultValue={filters.searchTerm}
+                  onChange={(value: string) => handleFilterChange('searchTerm', value)}
+                  fullWidth
+                  size="small"
+                />
+              </Box>
+              
+              <Box sx={{ flex: '0 0 150px' }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Kategori</InputLabel>
+                  <Select
+                    value={filters.category}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                  >
+                    <MenuItem value="">Tümü</MenuItem>
+                    {EQUIPMENT_CATEGORIES.map((category) => (
+                      <MenuItem key={category} value={category}>{category}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              
+              <Box sx={{ flex: '0 0 120px' }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Lokasyon</InputLabel>
+                  <Select
+                    value={filters.location}
+                    onChange={(e) => handleFilterChange('location', e.target.value)}
+                  >
+                    <MenuItem value="">Tümü</MenuItem>
+                    {LOCATIONS.map((location) => (
+                      <MenuItem key={location} value={location}>{location}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+              
+              <Box sx={{ flex: '0 0 140px' }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Kalibrasyon</InputLabel>
+                  <Select
+                    value={filters.calibrationStatus}
+                    onChange={(e) => handleFilterChange('calibrationStatus', e.target.value)}
+                  >
+                    <MenuItem value="">Tümü</MenuItem>
+                    <MenuItem value="valid">✅ Geçerli</MenuItem>
+                    <MenuItem value="due">⚠️ Vadesi Yakın</MenuItem>
+                    <MenuItem value="overdue">❌ Vadesi Geçen</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<ClearIcon />}
+                onClick={() => setFilters({
+                  searchTerm: '',
+                  category: '',
+                  location: '',
+                  department: '',
+                  status: '',
+                  calibrationStatus: '',
+                  responsiblePerson: '',
+                  dateRange: { start: '', end: '' },
+                  criticalOnly: false,
+                  overdueOnly: false
+                })}
+                sx={{ minWidth: 'auto' }}
+              >
+                Temizle
+              </Button>
+            </Box>
+            
+            {/* Filtre Durumu Göstergesi */}
+            {Object.values(filters).some(v => v !== '' && !(typeof v === 'object' && !v.start && !v.end) && v !== false) && (
+              <Box sx={{ mt: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Aktif Filtreler:
+                </Typography>
+                {filters.searchTerm && (
+                  <Chip 
+                    label={`Arama: "${filters.searchTerm}"`}
+                    size="small"
+                    onDelete={() => handleFilterChange('searchTerm', '')}
+                    color="primary"
+                    variant="outlined"
+                  />
+                )}
+                {filters.category && (
+                  <Chip 
+                    label={`Kategori: ${filters.category}`}
+                    size="small"
+                    onDelete={() => handleFilterChange('category', '')}
+                    color="secondary"
+                    variant="outlined"
+                  />
+                )}
+                {filters.calibrationStatus && (
+                  <Chip 
+                    label={`Kalibrasyon: ${
+                      filters.calibrationStatus === 'valid' ? 'Geçerli' :
+                      filters.calibrationStatus === 'due' ? 'Vadesi Yakın' :
+                      filters.calibrationStatus === 'overdue' ? 'Vadesi Geçen' : filters.calibrationStatus
+                    }`}
+                    size="small"
+                    onDelete={() => handleFilterChange('calibrationStatus', '')}
+                    color="warning"
+                    variant="outlined"
+                  />
+                )}
+                {filters.criticalOnly && (
+                  <Chip 
+                    label="Sadece Kritik"
+                    size="small"
+                    onDelete={() => handleFilterChange('criticalOnly', false)}
+                    color="error"
+                    variant="outlined"
+                  />
+                )}
+                {filters.overdueOnly && (
+                  <Chip 
+                    label="Sadece Vadesi Geçen"
+                    size="small"
+                    onDelete={() => handleFilterChange('overdueOnly', false)}
+                    color="error"
+                    variant="outlined"
+                  />
+                )}
+              </Box>
+            )}
+          </Paper>
           <TableContainer 
             component={Paper} 
             sx={{ 
@@ -4480,22 +4802,58 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {metrics.filteredEquipment.map((equipment, index) => (
+                {metrics.filteredEquipment.map((equipment, index) => {
+                  const warningLevel = getCalibrationWarningLevel(equipment);
+                  const baseBackground = index % 2 === 0 ? 'background.default' : 'grey.50';
+                  
+                  let backgroundColor = baseBackground;
+                  let borderLeft = equipment.criticalEquipment ? '4px solid #f44336' : '4px solid transparent';
+                  
+                  // Kalibrasyon durumuna göre arka plan rengi
+                  if (warningLevel === 'overdue') {
+                    backgroundColor = 'rgba(211, 47, 47, 0.1)'; // Kırmızı
+                    borderLeft = '4px solid #d32f2f';
+                  } else if (warningLevel === 'critical') {
+                    backgroundColor = 'rgba(244, 67, 54, 0.08)'; // Açık kırmızı
+                    borderLeft = '4px solid #f44336';
+                  } else if (warningLevel === 'urgent') {
+                    backgroundColor = 'rgba(255, 152, 0, 0.08)'; // Turuncu
+                    borderLeft = '4px solid #ff9800';
+                  } else if (warningLevel === 'warning') {
+                    backgroundColor = 'rgba(255, 193, 7, 0.06)'; // Sarı
+                    borderLeft = '4px solid #ffc107';
+                  }
+                  
+                  return (
                   <TableRow 
                     key={equipment.id}
                     sx={{
-                      backgroundColor: index % 2 === 0 ? 'background.default' : 'grey.50',
+                      backgroundColor,
                       '&:hover': {
-                        backgroundColor: 'primary.50',
+                        backgroundColor: warningLevel === 'overdue' ? 'rgba(211, 47, 47, 0.15)' : 
+                                      warningLevel === 'critical' ? 'rgba(244, 67, 54, 0.12)' :
+                                      warningLevel === 'urgent' ? 'rgba(255, 152, 0, 0.12)' :
+                                      warningLevel === 'warning' ? 'rgba(255, 193, 7, 0.1)' :
+                                      'primary.50',
                         transform: 'scale(1.002)',
                         transition: 'all 0.2s ease-in-out',
                         cursor: 'pointer',
-                        boxShadow: '0 4px 12px rgba(25, 118, 210, 0.15)'
+                        boxShadow: warningLevel === 'overdue' ? '0 4px 12px rgba(211, 47, 47, 0.25)' : 
+                                  warningLevel === 'critical' ? '0 4px 12px rgba(244, 67, 54, 0.2)' :
+                                  '0 4px 12px rgba(25, 118, 210, 0.15)'
                       },
-                      height: '64px'
+                      height: '64px',
+                      ...(warningLevel === 'overdue' && {
+                        animation: 'pulse 2s infinite',
+                        '@keyframes pulse': {
+                          '0%': { opacity: 1 },
+                          '50%': { opacity: 0.8 },
+                          '100%': { opacity: 1 }
+                        }
+                      })
                     }}
                   >
-                    <TableCell sx={{ padding: '8px', borderLeft: equipment.criticalEquipment ? '4px solid #f44336' : '4px solid transparent' }}>
+                    <TableCell sx={{ padding: '8px', borderLeft }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.75rem' }}>
                           {equipment.equipmentCode}
@@ -4513,7 +4871,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             }} 
                           />
                         )}
-                      </Box>
+                </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -4555,7 +4913,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             '& .MuiChip-label': { padding: '0 4px' }
                           }}
                         />
-                      </Box>
+                </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -4585,7 +4943,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         >
                           {equipment.department}
                         </Typography>
-                      </Box>
+                </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -4616,7 +4974,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         >
                           Sicil: {equipment.responsiblePersonSicilNo || 'N/A'}
                         </Typography>
-                      </Box>
+                </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -4649,7 +5007,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         >
                           ± {equipment.measurementUncertainty || 'N/A'}
                         </Typography>
-                      </Box>
+                </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
                       <StatusChip
@@ -4700,7 +5058,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         >
                           {formatDate(equipment.nextCalibrationDate)}
                         </Typography>
-                      </Box>
+                </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -4730,7 +5088,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         >
                           "-"
                         </Typography>
-                      </Box>
+                </Box>
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
                       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
@@ -4784,7 +5142,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           <IconButton 
                             size="small"
                             onClick={() => handleDeleteEquipment(equipment)}
-                            sx={{ 
+                  sx={{
                               padding: '4px',
                               '&:hover': { 
                                 backgroundColor: 'error.50',
@@ -4795,10 +5153,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <DeleteIcon sx={{ fontSize: '16px', color: 'error.main' }} />
                           </IconButton>
                         </Tooltip>
-                      </Box>
+              </Box>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -4810,17 +5169,61 @@ const EquipmentCalibrationManagement: React.FC = () => {
               </Typography>
             </Alert>
           )}
-        </Box>
-      )}
+            </Box>
+          )}
 
-      {/* Kalibrasyon Takibi Tab */}
-      {activeTab === 2 && (
-        <Box>
-          <Typography variant="h5" gutterBottom>Kalibrasyon Takip Sistemi</Typography>
-          
+          {/* Kalibrasyon Takibi Tab */}
+          {activeTab === 2 && (
+            <Box>
+              <Typography variant="h5" gutterBottom>Kalibrasyon Takip Sistemi</Typography>
+              
+              {/* Kalibrasyon Takibi İçin Özel Filtreler */}
+              <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+                    <UltimateStableSearchInput
+                      label="Ekipman Arama"
+                      placeholder="Kalibrasyon gereken ekipmanları arayın..."
+                      defaultValue={filters.searchTerm}
+                      onChange={(value: string) => handleFilterChange('searchTerm', value)}
+                      fullWidth
+                      size="small"
+                    />
+                  </Box>
+                  
+                  <Button
+                    variant={filters.calibrationStatus === 'due' ? "contained" : "outlined"}
+                    color="warning"
+                    size="small"
+                    onClick={() => handleFilterChange('calibrationStatus', filters.calibrationStatus === 'due' ? '' : 'due')}
+                    startIcon={<WarningIcon />}
+                  >
+                    Vadesi Yaklaşan
+                  </Button>
+                  
+                  <Button
+                    variant={filters.calibrationStatus === 'overdue' ? "contained" : "outlined"}
+                    color="error"
+                    size="small"
+                    onClick={() => handleFilterChange('calibrationStatus', filters.calibrationStatus === 'overdue' ? '' : 'overdue')}
+                    startIcon={<ErrorIcon />}
+                  >
+                    Vadesi Geçen
+                  </Button>
+                  
+                  <Button
+                    variant={filters.criticalOnly ? "contained" : "outlined"}
+                    color="error"
+                    size="small"
+                    onClick={() => handleFilterChange('criticalOnly', !filters.criticalOnly)}
+                    startIcon={<UrgentIcon />}
+                  >
+                    Kritik Ekipman
+                  </Button>
+                </Box>
+              </Paper>
 
-
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             {/* Yaklaşan Kalibrasyonlar */}
             <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
               <Paper sx={{ p: 3 }}>
@@ -4857,7 +5260,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   ))}
                 </List>
               </Paper>
-            </Box>
+                </Box>
 
             {/* Vadesi Geçen Kalibrasyonlar */}
             <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
@@ -4885,7 +5288,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                               Vadesi: {formatDate(equipment.nextCalibrationDate)} 
                               ({Math.abs(getDaysUntilDue(equipment.nextCalibrationDate))} gün geçmiş)
                             </Typography>
-                          </Box>
+                </Box>
                         }
                       />
                       <Button variant="contained" color="error" size="small" startIcon={<BlockIcon />}>
@@ -4895,9 +5298,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   ))}
                 </List>
               </Paper>
-            </Box>
-          </Box>
-        </Box>
+                </Box>
+                </Box>
+                </Box>
       )}
 
       {/* Planlar ve Uyarılar Tab */}
@@ -4929,7 +5332,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </Typography>
                   </Alert>
                 )}
-              </Box>
+                </Box>
             </Paper>
 
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
@@ -4970,7 +5373,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </ListItem>
                   </List>
                 </Paper>
-              </Box>
+                </Box>
 
               {/* Durum Özeti */}
               <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
@@ -5006,8 +5409,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </ListItem>
                   </List>
                 </Paper>
+                </Box>
               </Box>
-            </Box>
           </Box>
         </Box>
       )}
@@ -5032,7 +5435,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     />
                     <Button variant="outlined" size="small">
                       PDF İndir
-                    </Button>
+                  </Button>
                   </ListItem>
                   <ListItem>
                     <ListItemIcon>
@@ -5060,7 +5463,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </ListItem>
                 </List>
               </Paper>
-            </Box>
+                </Box>
  
             <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
               <Paper sx={{ p: 3 }}>
@@ -5076,7 +5479,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     />
                     <Button variant="outlined" size="small">
                       PDF İndir
-                    </Button>
+                  </Button>
                   </ListItem>
                   <ListItem>
                     <ListItemIcon>
@@ -5104,20 +5507,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </ListItem>
                 </List>
               </Paper>
-            </Box>
-          </Box>
+                </Box>
+              </Box>
         </Box>
       )}
 
       {/* Create/Edit Dialog - YENİ PROFESYONELLEŞTİRİLMİŞ FORM */}
-      <Dialog 
-        open={openDialog} 
+              <Dialog 
+          open={openDialog} 
         onClose={closeDialog}
-        maxWidth="lg" 
-        fullWidth
+          maxWidth="lg" 
+          fullWidth
         disableEscapeKeyDown={false}
         keepMounted={false}
-        sx={{
+                  sx={{
           '& .MuiDialog-paper': {
             maxHeight: '95vh',
             margin: '16px',
@@ -5128,7 +5531,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
           }
         }}
-      >
+        >
         <DialogTitle sx={{ 
           bgcolor: 'primary.main', 
           color: 'white', 
@@ -5142,13 +5545,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>
               {dialogMode === 'create' ? 'Yeni Ekipman Kaydı' :
-                       dialogMode === 'edit' ? 'Ekipman Düzenle' :
+           dialogMode === 'edit' ? 'Ekipman Düzenle' :
             dialogMode === 'calibration' ? 'Kalibrasyon Kaydı' : 'Ekipman Detayları'}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
               {dialogMode === 'edit' ? 'Mevcut ekipman bilgilerini güncelleyin' : ''}
             </Typography>
-          </Box>
+              </Box>
         </DialogTitle>
         
         <DialogContent sx={{ p: 0 }}>
@@ -5162,7 +5565,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   <Typography variant="h6" color="primary" sx={{ mb: 1, fontWeight: 600 }}>
                     Ekipman Bilgileri Formu
                   </Typography>
-                </Box>
+            </Box>
 
                 {/* TEMEL BİLGİLER SEKSİYONU */}
                 <Paper elevation={2} sx={{ p: 3, mb: 3, borderLeft: '4px solid', borderColor: 'primary.main' }}>
@@ -5190,7 +5593,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         onChange={(_, newValue) => handleNameChange(newValue || '')}
                         disabled={!formData.category}
                         renderInput={(params) => (
-                          <TextField
+                  <TextField
                             {...params}
                             label="Cihazın Adı"
                     required
@@ -5224,7 +5627,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           <AddIcon />
                     </Button>
                       </Tooltip>
-                  </Box>
+                </Box>
                 </Box>
                 
                   <TextField
@@ -5245,7 +5648,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       value={formData.category || ''}
                       onChange={(_, newValue) => handleCategoryChange(newValue || '')}
                       renderInput={(params) => (
-                        <TextField
+                  <TextField
                           {...params}
                           label="Kategori"
                           required
@@ -5269,7 +5672,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       value={formData.location || ''}
                       onChange={(_, newValue) => handleFormChange('location', newValue || '')}
                       renderInput={(params) => (
-                        <TextField
+                  <TextField
                           {...params}
                           label="Lokasyon"
                           required
@@ -5310,8 +5713,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       getOptionLabel={(option) => option}
                       isOptionEqualToValue={(option, value) => option === value}
                       filterOptions={optimizedFilterOptions}
-                    />
-                  </Box>
+                  />
+                </Box>
 
 
                 </Paper>
@@ -5349,35 +5752,35 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           filterOptions={optimizedFilterOptions}
                         />
                         <Tooltip title="Yeni üretici ekle">
-                          <Button 
-                            variant="contained" 
+                  <Button
+                    variant="contained"
                             onClick={() => setOpenManufacturerDialog(true)}
                             sx={{ minWidth: 50 }}
                             color="success"
-                          >
+                  >
                             <AddIcon />
-                          </Button>
+                  </Button>
                         </Tooltip>
                 </Box>
                 
                       {/* Üretici Yönetimi */}
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <Tooltip title="Üretici yönet">
-                          <Button
-                            variant="outlined"
+                  <Button
+                    variant="outlined"
                             size="small"
                             onClick={() => setOpenManufacturerManagementDialog(true)}
                             startIcon={<EditIcon />}
                             color="info"
                           >
                             Üretici Yönet
-                          </Button>
+                  </Button>
                         </Tooltip>
-                      </Box>
-                    </Box>
-                    
+                </Box>
+              </Box>
+
                     {/* Model Seçimi */}
-                    <Box>
+              <Box>
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                         <Autocomplete
                           fullWidth
@@ -5420,7 +5823,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <AddIcon />
                           </Button>
                         </Tooltip>
-                      </Box>
+                </Box>
                       
                       {/* Model Yönetimi */}
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -5435,7 +5838,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             Model Yönet
                           </Button>
                         </Tooltip>
-                      </Box>
+                </Box>
                     </Box>
                   </Box>
                 </Paper>
@@ -5449,7 +5852,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3, mb: 3 }}>
                     <Autocomplete
-                      fullWidth
+                    fullWidth
                       options={personnelList.filter(p => p.isActive)}
                       value={personnelList.find(p => p.sicilNo === formData.responsiblePersonSicilNo) || null}
                       onChange={(_, newValue) => {
@@ -5462,7 +5865,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       getOptionLabel={(option) => `${option.name} (${option.sicilNo}) - ${option.department}`}
                       isOptionEqualToValue={(option, value) => option.sicilNo === value?.sicilNo}
                       renderInput={(params) => (
-                        <TextField
+                  <TextField
                           {...params}
                           label="Sorumlu Personel *"
                           placeholder="Personel ara... (isim, sicil veya departman)"
@@ -5498,7 +5901,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     >
                       Yeni Personel
                     </Button>
-                  </Box>
+                </Box>
                 
                   {/* Seçilen Personel Bilgisi */}
                   {formData.responsiblePersonName && (
@@ -5541,7 +5944,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <Box>
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                         <Autocomplete
-                          fullWidth
+                    fullWidth
                           options={getMeasurementRangeOptions}
                           value={formData.measurementRange || ''}
                           onChange={(_, newValue) => {
@@ -5549,7 +5952,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           }}
                           disabled={!formData.category}
                           renderInput={(params) => (
-                            <TextField
+                  <TextField
                               {...params}
                               label={formData.name ? `Ölçüm Aralığı (${formData.name}) *` : "Ölçüm Aralığı *"}
                               placeholder={formData.name ? `${formData.name} için aralık seçin...` : "Ölçüm aralığı seçin..."}
@@ -5632,8 +6035,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <EditIcon />
                           </Button>
                         </Tooltip>
-                      </Box>
-                    </Box>
+                </Box>
+                </Box>
                     
                     {/* Ölçüm Belirsizliği */}
                     <Box>
@@ -5692,8 +6095,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           }}
                         />
                         <Tooltip title="Yeni belirsizlik değeri ekle">
-                      <Button 
-                            variant="contained"
+                  <Button
+                    variant="contained"
                         onClick={() => {
                               const newUncertainty = prompt('Yeni ölçüm belirsizliği giriniz (örn: ±0.01mm):');
                               if (newUncertainty?.trim()) {
@@ -5719,21 +6122,21 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             color="warning"
                       >
                             <AddIcon />
-                      </Button>
+                  </Button>
                         </Tooltip>
                         <Tooltip title="Ölçüm belirsizliklerini yönet">
-                          <Button
-                            variant="outlined"
+                  <Button
+                    variant="outlined"
                             onClick={() => setOpenMeasurementUncertaintyManagementDialog(true)}
                             sx={{ minWidth: 50 }}
                             disabled={!formData.category}
                             color="warning"
                           >
                             <EditIcon />
-                          </Button>
+                  </Button>
                         </Tooltip>
-                      </Box>
-                      
+              </Box>
+
                       {/* Belirsizlik Arama */}
                       <TextField
                         fullWidth
@@ -5748,18 +6151,18 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           ),
                           endAdornment: null
                         }}
-                        sx={{ 
+                  sx={{
                           '& .MuiOutlinedInput-root': { 
                             bgcolor: formData.category ? 'warning.50' : 'grey.200',
                             '&:hover': { bgcolor: formData.category ? 'warning.100' : 'grey.200' }
                           }
-                        }}
-                      />
-                    </Box>
-                  </Box>
+                  }}
+                />
+              </Box>
+            </Box>
 
-                    <TextField
-                      fullWidth
+              <TextField
+                fullWidth
                       label="Detaylı Teknik Özellikler"
                       multiline
                     rows={4}
@@ -5778,8 +6181,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </Typography>
                   
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
-                    <TextField
-                      fullWidth
+              <TextField
+                fullWidth
                       label="Son Kalibrasyon Tarihi"
                       type="date"
                       value={formData.lastCalibrationDate || new Date().toISOString().split('T')[0]}
@@ -5787,8 +6190,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       InputLabelProps={{ shrink: true }}
                       helperText="En son kalibre edildiği tarihi giriniz"
                     />
-                    <TextField
-                      fullWidth
+              <TextField
+                fullWidth
                       label="Kalibrasyon Periyodu (Ay)"
                       type="number"
                       value={formData.calibrationFrequency || 12}
@@ -5807,11 +6210,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       inputProps={{ min: 1, max: 60 }}
                       helperText="Kaç ayda bir kalibre edilecek"
                     />
-                  </Box>
+            </Box>
                   
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
-                    <TextField
-                      fullWidth
+              <TextField
+                fullWidth
                       label="Hedef Kalibrasyon Tarihi"
                       type="date"
                       value={formData.nextCalibrationDate || ''}
@@ -5825,12 +6228,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <Box>
                       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                         <Autocomplete
-                          fullWidth
+                fullWidth
                           options={calibrationCompaniesList}
                           value={formData.calibrationCompany || ''}
                           onChange={(_, newValue) => setFormData({...formData, calibrationCompany: newValue || ''})}
                           renderInput={(params) => (
-                            <TextField
+              <TextField
                               {...params}
                               label="Kalibrasyon Laboratuvarı"
                               placeholder="Laboratuvar ara..."
@@ -5865,7 +6268,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <AddIcon />
                           </Button>
                         </Tooltip>
-                      </Box>
+            </Box>
                       
                       {/* Laboratuvar Yönetimi */}
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -5880,12 +6283,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             Laboratuvar Yönet
                       </Button>
                         </Tooltip>
-                      </Box>
-                    </Box>
+            </Box>
+            </Box>
                   </Box>
                   
-                    <TextField
-                      fullWidth
+              <TextField
+                fullWidth
                     label="Son Kalibrasyon Sertifika Numarası"
                       value={formData.lastCalibrationCertificateNumber || ''}
                       onChange={(e) => setFormData({...formData, lastCalibrationCertificateNumber: e.target.value})}
@@ -5935,19 +6338,19 @@ const EquipmentCalibrationManagement: React.FC = () => {
                               bgcolor: completionPercentage === 100 ? 'success.main' : 'warning.main',
                               transition: 'all 0.3s'
                             }} />
-                  </Box>
-                </Box>
+            </Box>
+            </Box>
                         {missingFields.length > 0 && (
                           <Typography variant="caption" color="error">
                             Eksik alanlar: {missingFields.map(f => f.label).join(', ')}
                           </Typography>
                         )}
-                      </Box>
+            </Box>
                     );
                   })()}
                 </Paper>
 
-              </Box>
+            </Box>
             </Box>
           ) : dialogMode === 'view' ? (
             <Box sx={{ p: 3 }}>
@@ -5988,7 +6391,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
         open={openPersonnelDialog} 
         onClose={() => setOpenPersonnelDialog(false)}
         maxWidth="sm"
-        fullWidth
+                fullWidth
         keepMounted={false}
         sx={{
           '& .MuiDialog-paper': {
@@ -6001,21 +6404,21 @@ const EquipmentCalibrationManagement: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <PersonAddIcon color="primary" />
             Yeni Personel Ekle
-          </Box>
+            </Box>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
-            <TextField
-              fullWidth
+              <TextField
+                fullWidth
               label="Sicil Numarası *"
               value={newPersonnelData.sicilNo}
               onChange={(e) => setNewPersonnelData({...newPersonnelData, sicilNo: e.target.value})}
               placeholder="001, 002, 003..."
               inputProps={{ maxLength: 10 }}
-            />
+              />
             
-            <TextField
-              fullWidth
+              <TextField
+                fullWidth
               label="Ad Soyad *"
               value={newPersonnelData.name}
               onChange={(e) => setNewPersonnelData({...newPersonnelData, name: e.target.value})}
@@ -6046,7 +6449,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-          </Box>
+            </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenPersonnelDialog(false)}>
@@ -6067,7 +6470,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
         open={openPersonnelManagementDialog} 
         onClose={() => setOpenPersonnelManagementDialog(false)}
         maxWidth="md"
-        fullWidth
+                fullWidth
         keepMounted={false}
         sx={{
           '& .MuiDialog-paper': {
@@ -6080,7 +6483,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <EditIcon color="primary" />
             Personel Yönetimi
-          </Box>
+            </Box>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
@@ -6099,7 +6502,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 <Typography variant="body2" color="text.secondary">
                   "Yeni Personel Ekle" butonunu kullanarak personel ekleyebilirsiniz.
                 </Typography>
-              </Box>
+            </Box>
             ) : (
               <Box>
                 <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
@@ -6115,7 +6518,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         <Typography variant="body2" color="text.secondary">
                           Sicil: {person.sicilNo} • {person.department} • {person.position}
                         </Typography>
-                      </Box>
+            </Box>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Chip 
                           label={selectedPersonnel.includes(person.sicilNo) ? "Seçili" : "Seçili Değil"}
@@ -6130,13 +6533,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         >
                           <DeleteIcon />
                         </IconButton>
-                      </Box>
+            </Box>
                     </Paper>
                   ))}
-                </Box>
-              </Box>
+            </Box>
+            </Box>
             )}
-          </Box>
+            </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenPersonnelManagementDialog(false)}>
@@ -6159,8 +6562,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
       <Dialog open={openManufacturerDialog} onClose={() => setOpenManufacturerDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Yeni Üretici Ekle</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
+              <TextField
+                fullWidth
             label="Üretici Adı"
             value={newManufacturer}
             onChange={(e) => setNewManufacturer(e.target.value)}
@@ -6186,12 +6589,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <BuildIcon color="info" />
             Üretici Yönetimi
-          </Box>
+            </Box>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
+              <TextField
+                fullWidth
               label="Yeni Üretici Ekle"
               value={newManufacturer}
               onChange={(e) => setNewManufacturer(e.target.value)}
@@ -6212,8 +6615,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </InputAdornment>
                 )
               }}
-            />
-          </Box>
+              />
+            </Box>
 
           <Typography variant="h6" sx={{ mb: 2, color: 'info.main' }}>
             Kayıtlı Üreticiler ({manufacturersList.length})
@@ -6254,7 +6657,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {manufacturer}
                     </Typography>
-                  </Box>
+            </Box>
                   <Button 
                     size="small" 
                     color="error"
@@ -6297,8 +6700,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
       <Dialog open={openModelDialog} onClose={() => setOpenModelDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Yeni Model Ekle</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
+              <TextField
+                fullWidth
             label="Model Adı"
             value={newModel}
             onChange={(e) => setNewModel(e.target.value)}
@@ -6324,12 +6727,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <BuildIcon color="info" />
             Model Yönetimi
-          </Box>
+            </Box>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
+              <TextField
+                fullWidth
               label="Yeni Model Ekle"
               value={newModel}
               onChange={(e) => setNewModel(e.target.value)}
@@ -6350,8 +6753,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </InputAdornment>
                 )
               }}
-            />
-          </Box>
+              />
+            </Box>
 
           <Typography variant="h6" sx={{ mb: 2, color: 'info.main' }}>
             Kayıtlı Modeller ({modelsList.length})
@@ -6392,7 +6795,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {model}
                     </Typography>
-                  </Box>
+            </Box>
                   <Button 
                     size="small" 
                     color="error"
@@ -6435,8 +6838,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
       <Dialog open={openEquipmentNameDialog} onClose={() => setOpenEquipmentNameDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Yeni Cihaz Adı Ekle</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
+              <TextField
+                fullWidth
             label="Cihaz Adı"
             value={newEquipmentName}
             onChange={(e) => setNewEquipmentName(e.target.value)}
@@ -6462,12 +6865,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <BuildIcon color="info" />
             Cihaz Adları Yönetimi
-          </Box>
+            </Box>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
+              <TextField
+                fullWidth
               label="Yeni Cihaz Adı Ekle"
               value={newEquipmentName}
               onChange={(e) => setNewEquipmentName(e.target.value)}
@@ -6488,8 +6891,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </InputAdornment>
                 )
               }}
-            />
-          </Box>
+              />
+            </Box>
 
           <Typography variant="h6" sx={{ mb: 2, color: 'info.main' }}>
             Kayıtlı Cihaz Adları ({equipmentNamesList.length})
@@ -6530,7 +6933,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {name}
                     </Typography>
-                  </Box>
+            </Box>
                   <Button 
                     size="small" 
                     color="error"
@@ -6568,8 +6971,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
         <DialogTitle>Kalibrasyon Laboratuvarları Yönetimi</DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
+              <TextField
+                fullWidth
               label="Yeni Kalibrasyon Firması"
               value={newCalibrationCompany}
               onChange={(e) => setNewCalibrationCompany(e.target.value)}
@@ -6584,7 +6987,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
             >
               Ekle
             </Button>
-          </Box>
+            </Box>
 
           <Typography variant="h6" sx={{ mb: 2 }}>Mevcut Kalibrasyon Firmaları:</Typography>
           <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
@@ -6609,9 +7012,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     Sil
                   </Button>
                 )}
-              </Box>
+            </Box>
             ))}
-          </Box>
+            </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenCalibrationCompanyDialog(false)}>Kapat</Button>
@@ -6624,12 +7027,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <ScienceIcon color="warning" />
             Ölçüm Aralığı Yönetimi - {formData.category}
-          </Box>
+            </Box>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
+              <TextField
+                fullWidth
               label="Yeni Ölçüm Aralığı Ekle"
               value={newMeasurementRange}
               onChange={(e) => setNewMeasurementRange(e.target.value)}
@@ -6651,8 +7054,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </InputAdornment>
                 )
               }}
-            />
-          </Box>
+              />
+            </Box>
 
           <Typography variant="h6" sx={{ mb: 2, color: 'warning.main' }}>
             {formData.category} Kategorisi Ölçüm Aralıkları ({formData.category ? (measurementRanges[formData.category] || []).length : 0})
@@ -6735,8 +7138,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
+              <TextField
+                fullWidth
               label="Yeni Ölçüm Belirsizliği Ekle"
               value={newMeasurementUncertainty}
               onChange={(e) => setNewMeasurementUncertainty(e.target.value)}
@@ -6758,8 +7161,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </InputAdornment>
                 )
               }}
-            />
-          </Box>
+              />
+            </Box>
 
           <Typography variant="h6" sx={{ mb: 2, color: 'warning.main' }}>
             {formData.category} Kategorisi Ölçüm Belirsizlikleri ({formData.category ? (measurementUncertainties[formData.category] || []).length : 0})
