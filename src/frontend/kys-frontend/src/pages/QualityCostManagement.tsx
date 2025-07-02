@@ -6223,7 +6223,13 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         )}
 
         {viewMode === 'table' && (
-          <Paper sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+          <Paper sx={{ 
+            borderRadius: 3, 
+            overflow: 'hidden', 
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            width: '100%',
+            minHeight: '650px' // Minimum yükseklik ekledim
+          }}>
             {/* Tablo Başlığı */}
             <Box sx={{ p: 3, bgcolor: 'primary.main', color: 'white' }}>
               <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -6237,7 +6243,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             
             <TableContainer 
               sx={{ 
-                maxHeight: '70vh',
+                maxHeight: '85vh', // Yüksekliği %70'den %85'e çıkardım
+                minHeight: '600px', // Minimum yükseklik ekledim
                 overflowX: 'auto',
                 overflowY: 'auto',
                 '&::-webkit-scrollbar': {
@@ -6257,7 +6264,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 },
               }}
             >
-              <Table stickyHeader sx={{ minWidth: 1400 }}>
+              <Table stickyHeader sx={{ minWidth: 1600 }}> {/* Minimum genişliği 1400'den 1600'e çıkardım */}
                 <TableHead>
                   <TableRow>
                     <TableCell 
@@ -6275,8 +6282,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <TableCell 
                       sx={{ 
                         fontWeight: 'bold', 
-                        width: 280,
-                        maxWidth: 280,
+                        width: 320, // 280'den 320'ye artırdım
+                        maxWidth: 320,
                         bgcolor: 'grey.50',
                         borderRight: '1px solid',
                         borderColor: 'grey.200'
@@ -6287,8 +6294,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <TableCell 
                       sx={{ 
                         fontWeight: 'bold', 
-                        width: 120,
-                        maxWidth: 120,
+                        width: 140, // 120'den 140'a artırdım
+                        maxWidth: 140,
                         textAlign: 'center',
                         bgcolor: 'grey.50',
                         borderRight: '1px solid',
@@ -6303,8 +6310,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <TableCell 
                       sx={{ 
                         fontWeight: 'bold', 
-                        width: 180,
-                        maxWidth: 180,
+                        width: 200, // 180'den 200'e artırdım
+                        maxWidth: 200,
                         textAlign: 'center',
                         bgcolor: 'error.50',
                         color: 'error.main',
@@ -6320,8 +6327,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <TableCell 
                       sx={{ 
                         fontWeight: 'bold', 
-                        width: 180,
-                        maxWidth: 180,
+                        width: 200, // 180'den 200'e artırdım
+                        maxWidth: 200,
                         textAlign: 'center',
                         bgcolor: 'warning.50',
                         color: 'warning.main',
@@ -6337,8 +6344,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <TableCell 
                       sx={{ 
                         fontWeight: 'bold', 
-                        width: 180,
-                        maxWidth: 180,
+                        width: 200, // 180'den 200'e artırdım
+                        maxWidth: 200,
                         textAlign: 'center',
                         bgcolor: 'info.50',
                         color: 'info.main',
@@ -6354,8 +6361,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <TableCell 
                       sx={{ 
                         fontWeight: 'bold', 
-                        width: 150,
-                        maxWidth: 150,
+                        width: 170, // 150'den 170'e artırdım
+                        maxWidth: 170,
                         textAlign: 'center',
                         bgcolor: 'grey.50',
                         borderRight: '1px solid',
@@ -6370,8 +6377,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <TableCell 
                       sx={{ 
                         fontWeight: 'bold', 
-                        width: 140,
-                        maxWidth: 140,
+                        width: 160, // 140'dan 160'a artırdım
+                        maxWidth: 160,
                         textAlign: 'center',
                         bgcolor: 'grey.50',
                         borderRight: '1px solid',
@@ -6386,8 +6393,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                     <TableCell 
                       sx={{ 
                         fontWeight: 'bold', 
-                        width: 120,
-                        maxWidth: 120,
+                        width: 140, // 120'den 140'a artırdım
+                        maxWidth: 140,
                         textAlign: 'center',
                         bgcolor: 'grey.50'
                       }}
