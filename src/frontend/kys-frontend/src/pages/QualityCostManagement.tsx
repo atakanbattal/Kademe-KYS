@@ -4324,6 +4324,12 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     const [detailedData, setDetailedData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     
+    // Kayıt detaylarını gösterecek modal state'i
+    const [recordDetailModal, setRecordDetailModal] = useState<{
+      open: boolean;
+      record: any | null;
+    }>({ open: false, record: null });
+    
     useEffect(() => {
       const loadDetailedData = () => {
         try {
@@ -4493,6 +4499,11 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         'musteri_sikayeti': 'Müşteri Şikayeti'
       };
       return typeMap[type] || type.charAt(0).toUpperCase() + type.slice(1);
+    };
+    
+    // Kayıt detayları görüntüleme fonksiyonu
+    const handleViewDetails = (record: any) => {
+      setRecordDetailModal({ open: true, record });
     };
     
     if (loading) {
@@ -4802,15 +4813,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         <IconButton 
                           size="small" 
                           onClick={() => {
-                            console.log('🔍 Executive Dashboard Görüntüle Butonu Tıklandı:', record);
-                            if ((window as any).handleViewDetails) {
-                              console.log('✅ Global handleViewDetails bulundu, dialog açılıyor...');
-                              (window as any).handleViewDetails(record);
-                            } else {
-                              console.log('❌ Global handleViewDetails bulunamadı!');
-                              console.log('📊 Kayıt detayları:', record);
-                              alert('⚠️ Detay görüntüleme servisi başlatılıyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
-                            }
+                            console.log('🔍 Modal Detay Görüntüleme Butonu Tıklandı:', record);
+                            handleViewDetails(record);
                           }}
                           sx={{ color: 'info.main' }}
                         >
@@ -4831,6 +4835,179 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             </Box>
           )}
         </Paper>
+        
+        {/* Kayıt Detay Modal */}
+        <Dialog
+          open={recordDetailModal.open}
+          onClose={() => setRecordDetailModal({ open: false, record: null })}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <VisibilityIcon color="primary" />
+            Kayıt Detayları
+          </DialogTitle>
+          <DialogContent dividers>
+            {recordDetailModal.record && (
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                    <Typography variant="h6" gutterBottom color="primary.main">
+                      Genel Bilgiler
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Tarih:</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {recordDetailModal.record.tarih 
+                            ? new Date(recordDetailModal.record.tarih).toLocaleDateString('tr-TR')
+                            : new Date(recordDetailModal.record.createdDate).toLocaleDateString('tr-TR')
+                          }
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Birim:</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {recordDetailModal.record.birim || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Araç/Model:</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {recordDetailModal.record.arac || recordDetailModal.record.aracModeli || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Parça Kodu:</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {recordDetailModal.record.parcaKodu || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Paper>
+                </Grid>
+                
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, bgcolor: 'error.50' }}>
+                    <Typography variant="h6" gutterBottom color="error.main">
+                      Maliyet Bilgileri
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Maliyet Türü:</Typography>
+                        <Chip 
+                          label={getMaliyetTuruLabel(recordDetailModal.record.maliyetTuru || 'Bilinmeyen')}
+                          size="small"
+                          color={
+                            (recordDetailModal.record.maliyetTuru || '').toLowerCase().includes('hurda') ? 'warning' :
+                            (recordDetailModal.record.maliyetTuru || '').toLowerCase().includes('fire') ? 'info' :
+                            (recordDetailModal.record.maliyetTuru || '').toLowerCase().includes('ret') ? 'error' : 'default'
+                          }
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Maliyet:</Typography>
+                        <Typography variant="h6" fontWeight={700} color="error.main">
+                          ₺{(Number(recordDetailModal.record.maliyet) || 0).toLocaleString('tr-TR')}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Atık Türü:</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {recordDetailModal.record.atikTuru || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" color="text.secondary">Durum:</Typography>
+                        <Chip 
+                          label={recordDetailModal.record.durum || 'Aktif'}
+                          size="small"
+                          color="success"
+                        />
+                      </Box>
+                    </Box>
+                  </Paper>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 2, bgcolor: 'info.50' }}>
+                    <Typography variant="h6" gutterBottom color="info.main">
+                      Açıklama ve Notlar
+                    </Typography>
+                    <Typography variant="body2">
+                      {recordDetailModal.record.aciklama || 'Bu kayıt için detaylı açıklama bulunmuyor.'}
+                    </Typography>
+                    {recordDetailModal.record.notes && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Ek Notlar:
+                        </Typography>
+                        <Typography variant="body2">
+                          {recordDetailModal.record.notes}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+                
+                {/* Ek Teknik Bilgiler */}
+                {(recordDetailModal.record.miktar || recordDetailModal.record.birimMaliyet || 
+                  recordDetailModal.record.kgMaliyet || recordDetailModal.record.saat) && (
+                  <Grid item xs={12}>
+                    <Paper sx={{ p: 2, bgcolor: 'warning.50' }}>
+                      <Typography variant="h6" gutterBottom color="warning.main">
+                        Teknik Detaylar
+                      </Typography>
+                      <Grid container spacing={2}>
+                        {recordDetailModal.record.miktar && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="body2" color="text.secondary">Miktar:</Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              {recordDetailModal.record.miktar}
+                            </Typography>
+                          </Grid>
+                        )}
+                        {recordDetailModal.record.birimMaliyet && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="body2" color="text.secondary">Birim Maliyet:</Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              ₺{Number(recordDetailModal.record.birimMaliyet).toLocaleString('tr-TR')}
+                            </Typography>
+                          </Grid>
+                        )}
+                        {recordDetailModal.record.kgMaliyet && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="body2" color="text.secondary">Kg Maliyet:</Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              ₺{Number(recordDetailModal.record.kgMaliyet).toLocaleString('tr-TR')}/kg
+                            </Typography>
+                          </Grid>
+                        )}
+                        {recordDetailModal.record.saat && (
+                          <Grid item xs={6} md={3}>
+                            <Typography variant="body2" color="text.secondary">Süre:</Typography>
+                            <Typography variant="body2" fontWeight={600}>
+                              {recordDetailModal.record.saat} saat
+                            </Typography>
+                          </Grid>
+                        )}
+                      </Grid>
+                    </Paper>
+                  </Grid>
+                )}
+              </Grid>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => setRecordDetailModal({ open: false, record: null })}
+              color="primary"
+              variant="contained"
+            >
+              Kapat
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     );
   };
