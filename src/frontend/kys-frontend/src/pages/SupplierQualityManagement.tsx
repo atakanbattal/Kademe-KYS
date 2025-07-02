@@ -2561,9 +2561,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         <Grid item xs={12} md={3}>
           <Card elevation={6} sx={{ 
             borderRadius: 4, 
-            background: auditComplianceRate >= 95 ? 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)' :
-                        auditComplianceRate >= 80 ? 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' :
-                        'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+            background: auditComplianceRate >= 95 ? 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)' :
+                                                  auditComplianceRate >= 80 ? 'linear-gradient(135deg, #e65100 0%, #d84315 100%)' :
+                        'linear-gradient(135deg, #d32f2f 0%, #c62828 100%)',
             color: 'white',
             position: 'relative',
             overflow: 'hidden'
