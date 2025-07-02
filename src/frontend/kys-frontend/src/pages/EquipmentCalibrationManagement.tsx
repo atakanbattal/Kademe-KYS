@@ -3607,7 +3607,75 @@ const EquipmentCalibrationManagement: React.FC = () => {
     };
   }, [filteredEquipment]); // Sadece filteredEquipment değişikliğinde yeniden hesapla
 
-  const openCreateDialog = () => {
+  // Dialog kapama optimizasyonu
+  const closeDialog = useCallback(() => {
+    setOpenDialog(false);
+    // State cleanup
+    setTimeout(() => {
+      setSelectedEquipment(null);
+      setSelectedPersonnel([]);
+      setFormData({
+        equipmentCode: '',
+        name: '',
+        manufacturer: '',
+        model: '',
+        serialNumber: '',
+        category: '',
+        location: '',
+        department: '',
+        responsiblePersons: [],
+        status: 'active',
+        calibrationRequired: false,
+        calibrationFrequency: 12,
+        maintenanceRequired: true,
+        maintenanceFrequency: 6,
+        criticalEquipment: false,
+        specifications: '',
+        notes: '',
+        measurementRange: '',
+        measurementUncertainty: ''
+      });
+      setActiveStep(0);
+      setDialogMode('create');
+      setDialogTitle('');
+    }, 150); // Dialog kapatma animasyonu için kısa delay
+  }, []);
+
+  // Modal scroll prevention
+  useEffect(() => {
+    if (openDialog) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [openDialog]);
+
+  // Performance optimizasyonu için event listener cleanup
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && openDialog) {
+        closeDialog();
+      }
+    };
+
+    const handleUnload = () => {
+      document.body.style.overflow = 'unset';
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, [openDialog, closeDialog]);
+
+  const openCreateDialog = useCallback(() => {
     // Yeni ekipman kodu otomatik oluştur (001, 002, 003...)
     // En yüksek mevcut kodu bul ve +1 yap
     const existingCodes = equipmentList.map(eq => {
@@ -3643,17 +3711,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
     });
     setActiveStep(0);
     setOpenDialog(true);
-  };
+  }, [equipmentList]);
 
   // ✅ İşlem butonları için fonksiyonlar eklendi
-  const handleViewEquipment = (equipment: Equipment) => {
+  const handleViewEquipment = useCallback((equipment: Equipment) => {
     setSelectedEquipment(equipment);
     setDialogMode('view');
     setDialogTitle(`${equipment.name} - Detaylar`);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const handleEditEquipment = (equipment: Equipment) => {
+  const handleEditEquipment = useCallback((equipment: Equipment) => {
     setSelectedEquipment(equipment);
     setDialogTitle(`${equipment.name} - Düzenle`);
     setSelectedPersonnel(equipment.responsiblePersons || []);
@@ -3702,7 +3770,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
     setDialogMode('edit');
     setActiveStep(0);
     setOpenDialog(true);
-  };
+  }, []);
 
   const handleCalibration = (equipment: Equipment) => {
     setSelectedEquipment(equipment);
@@ -4006,29 +4074,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
     }
 
     // Dialog'u kapat ve formu temizle
-    setOpenDialog(false);
-    setFormData({
-      equipmentCode: '',
-      name: '',
-      manufacturer: '',
-      model: '',
-      serialNumber: '',
-      category: '',
-      location: '',
-      department: '',
-      responsiblePersons: [],
-      status: 'active',
-      calibrationRequired: false,
-      calibrationFrequency: 12,
-      maintenanceRequired: true,
-      maintenanceFrequency: 6,
-      criticalEquipment: false,
-      specifications: '',
-      notes: '',
-      measurementRange: '',
-      measurementUncertainty: ''
-    });
-    setSelectedPersonnel([]);
+    closeDialog();
   };
 
   return (
@@ -5242,17 +5288,25 @@ const EquipmentCalibrationManagement: React.FC = () => {
       )}
 
       {/* Create/Edit Dialog - YENİ PROFESYONELLEŞTİRİLMİŞ FORM */}
-              <Dialog 
-          open={openDialog} 
-          onClose={(event, reason) => {
-            // Sadece 'escapeKeyDown' ve 'backdropClick' dışındaki durumlarda kapat
-            if (reason !== 'escapeKeyDown' && reason !== 'backdropClick') {
-              setOpenDialog(false);
-            }
-          }} 
-          maxWidth="lg" 
-          fullWidth
-        >
+      <Dialog 
+        open={openDialog} 
+        onClose={closeDialog}
+        maxWidth="lg" 
+        fullWidth
+        disableEscapeKeyDown={false}
+        keepMounted={false}
+        sx={{
+          '& .MuiDialog-paper': {
+            maxHeight: '95vh',
+            margin: '16px',
+            borderRadius: '12px',
+            overflow: 'hidden'
+          },
+          '& .MuiBackdrop-root': {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          }
+        }}
+      >
         <DialogTitle sx={{ 
           bgcolor: 'primary.main', 
           color: 'white', 
@@ -6114,6 +6168,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
         onClose={() => setOpenPersonnelDialog(false)}
         maxWidth="sm"
         fullWidth
+        keepMounted={false}
+        sx={{
+          '& .MuiDialog-paper': {
+            borderRadius: '12px',
+            maxHeight: '90vh'
+          }
+        }}
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -6186,6 +6247,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
         onClose={() => setOpenPersonnelManagementDialog(false)}
         maxWidth="md"
         fullWidth
+        keepMounted={false}
+        sx={{
+          '& .MuiDialog-paper': {
+            borderRadius: '12px',
+            maxHeight: '90vh'
+          }
+        }}
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
