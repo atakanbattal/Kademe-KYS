@@ -14081,84 +14081,309 @@ const VehiclePerformanceDataComponent: React.FC<{
       </Paper>
 
       {/* Toplu Performans Veri Girişi Dialog */}
-      <Dialog 
+            <Dialog 
         open={bulkDataDialogOpen} 
         onClose={() => setBulkDataDialogOpen(false)}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            minHeight: '70vh'
+          }
+        }}
       >
-                 <DialogTitle>
-           Toplu Performans Veri Girişi
-         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Dönem Türü</InputLabel>
-                <Select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value as 'ay' | 'ceyrek' | 'yil')}
-                  label="Dönem Türü"
-                >
-                  <MenuItem value="ay">Aylık</MenuItem>
-                  <MenuItem value="ceyrek">Çeyreklik</MenuItem>
-                  <MenuItem value="yil">Yıllık</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-                Performans Verisi Girilecek Araç Kategorileri:
+        <DialogTitle sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 2,
+          p: 3
+        }}>
+          <AddIcon sx={{ fontSize: 32 }} />
+          <Box>
+            <Typography variant="h5" fontWeight={700}>
+              Araç Performans Verisi Girişi
+            </Typography>
+            <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+              Araç kategorileriniz için performans hedeflerini belirleyin
+            </Typography>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 4 }}>
+          {/* Bilgilendirme Kartı */}
+          <Alert 
+            severity="info" 
+            sx={{ 
+              mb: 4, 
+              borderRadius: 2,
+              '& .MuiAlert-message': { width: '100%' }
+            }}
+          >
+            <Box>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                📊 Performans Veri Sistemi Hakkında
               </Typography>
-              <Grid container spacing={1}>
-                {vehicleCategories.map((category) => (
-                  <Grid item xs={12} md={6} key={category}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={selectedCategories.includes(category)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedCategories(prev => [...prev, category]);
-                            } else {
-                              setSelectedCategories(prev => prev.filter(v => v !== category));
-                            }
-                          }}
-                        />
-                      }
-                      label={category}
-                      sx={{
-                        '& .MuiFormControlLabel-label': {
-                          fontWeight: 600,
-                          fontSize: '0.9rem'
-                        }
-                      }}
-                    />
-                    {/* Kategori detayları */}
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4, mt: 0.5 }}>
-                      {category === 'Kompakt Araçlar' && 'Aga2100, Aga3000, Aga6000'}
-                      {category === 'Araç Üstü Vakumlu' && 'KDM80, KDM70, KDM35, Çay Toplama Makinesi'}
-                      {category === 'Çekilir Tip Mekanik Süpürgeler' && 'FTH-240, Çelik-2000, Ural'}
-                      {category === 'Kompost Makinesi' && 'Kompost Makinesi'}
-                      {category === 'Rusya Motor Odası' && 'Rusya Motor Odası'}
-                      {category === 'HSCK' && 'HSCK'}
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                Bu sistem araç kategorileri için <strong>ret, hurda ve fire</strong> performans hedeflerini yönetmenizi sağlar.
+                Girilen hedefler "Araç Bazlı Takip" sekmesinde gerçek performans ölçümlerinde referans olarak kullanılır.
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.50', borderRadius: 1 }}>
+                    <Typography variant="caption" fontWeight="bold" color="primary.main">
+                      AYLIK HEDEFİ
                     </Typography>
-                  </Grid>
-                ))}
+                    <Typography variant="body2">
+                      Kısa vadeli performans takibi
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.50', borderRadius: 1 }}>
+                    <Typography variant="caption" fontWeight="bold" color="warning.main">
+                      ÇEYREKLİK HEDEFİ
+                    </Typography>
+                    <Typography variant="body2">
+                      Orta vadeli performans takibi
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'success.50', borderRadius: 1 }}>
+                    <Typography variant="caption" fontWeight="bold" color="success.main">
+                      YILLIK HEDEFİ
+                    </Typography>
+                    <Typography variant="body2">
+                      Uzun vadeli performans takibi
+                    </Typography>
+                  </Box>
+                </Grid>
               </Grid>
+            </Box>
+          </Alert>
+
+          <Grid container spacing={4}>
+            {/* Sol Panel - Dönem Seçimi */}
+            <Grid item xs={12} md={4}>
+              <Paper 
+                sx={{ 
+                  p: 3, 
+                  borderRadius: 2, 
+                  border: '2px solid',
+                  borderColor: 'primary.100',
+                  height: 'fit-content'
+                }}
+              >
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CalendarTodayIcon color="primary" />
+                  1. Dönem Türü Seçin
+                </Typography>
+                
+                <FormControl fullWidth>
+                  <InputLabel>Dönem Türü</InputLabel>
+                  <Select
+                    value={selectedPeriod}
+                    onChange={(e) => setSelectedPeriod(e.target.value as 'ay' | 'ceyrek' | 'yil')}
+                    label="Dönem Türü"
+                    sx={{ mb: 2 }}
+                  >
+                    <MenuItem value="ay">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarTodayIcon fontSize="small" />
+                        <Box>
+                          <Typography variant="body1" fontWeight="bold">Aylık</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            30 günlük performans hedefi
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="ceyrek">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <DateRangeIcon fontSize="small" />
+                        <Box>
+                          <Typography variant="body1" fontWeight="bold">Çeyreklik</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            3 aylık performans hedefi
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="yil">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AccessTimeIcon fontSize="small" />
+                        <Box>
+                          <Typography variant="body1" fontWeight="bold">Yıllık</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            12 aylık performans hedefi
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+
+                {/* Dönem Bilgi Kartı */}
+                <Box sx={{ 
+                  p: 2, 
+                  bgcolor: selectedPeriod === 'ay' ? 'primary.50' : selectedPeriod === 'ceyrek' ? 'warning.50' : 'success.50',
+                  borderRadius: 1,
+                  mt: 2
+                }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+                    {selectedPeriod === 'ay' && '📅 Aylık Hedef Özellikleri:'}
+                    {selectedPeriod === 'ceyrek' && '📆 Çeyreklik Hedef Özellikleri:'}
+                    {selectedPeriod === 'yil' && '🗓️ Yıllık Hedef Özellikleri:'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {selectedPeriod === 'ay' && 'Kısa vadeli takip için ideal. Hızlı iyileştirme aksiyonları alınabilir.'}
+                    {selectedPeriod === 'ceyrek' && 'Orta vadeli trend takibi. Sezonsal değişimler gözlemlenebilir.'}
+                    {selectedPeriod === 'yil' && 'Stratejik hedefler. Uzun vadeli performans planlaması yapılabilir.'}
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* Sağ Panel - Kategori Seçimi */}
+            <Grid item xs={12} md={8}>
+              <Paper 
+                sx={{ 
+                  p: 3, 
+                  borderRadius: 2, 
+                  border: '2px solid',
+                  borderColor: selectedCategories.length > 0 ? 'success.100' : 'grey.200'
+                }}
+              >
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <VehicleIcon color="primary" />
+                  2. Araç Kategorilerini Seçin
+                  <Chip 
+                    label={`${selectedCategories.length} seçili`} 
+                    size="small" 
+                    color={selectedCategories.length > 0 ? 'success' : 'default'}
+                    sx={{ ml: 1 }}
+                  />
+                </Typography>
+
+                <Grid container spacing={2}>
+                  {vehicleCategories.map((category) => (
+                    <Grid item xs={12} lg={6} key={category}>
+                      <Card 
+                        sx={{ 
+                          border: selectedCategories.includes(category) ? '2px solid' : '1px solid',
+                          borderColor: selectedCategories.includes(category) ? 'success.main' : 'grey.300',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            borderColor: 'primary.main',
+                            transform: 'translateY(-1px)',
+                            boxShadow: 2
+                          }
+                        }}
+                        onClick={() => {
+                          if (selectedCategories.includes(category)) {
+                            setSelectedCategories(prev => prev.filter(v => v !== category));
+                          } else {
+                            setSelectedCategories(prev => [...prev, category]);
+                          }
+                        }}
+                      >
+                        <CardContent sx={{ p: 2.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                            <Switch
+                              checked={selectedCategories.includes(category)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCategories(prev => [...prev, category]);
+                                } else {
+                                  setSelectedCategories(prev => prev.filter(v => v !== category));
+                                }
+                              }}
+                              color="success"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                                {category}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                {category === 'Kompakt Araçlar' && 'Aga2100, Aga3000, Aga6000'}
+                                {category === 'Araç Üstü Vakumlu' && 'KDM80, KDM70, KDM35, Çay Toplama Makinesi'}
+                                {category === 'Çekilir Tip Mekanik Süpürgeler' && 'FTH-240, Çelik-2000, Ural'}
+                                {category === 'Kompost Makinesi' && 'Kompost Makinesi'}
+                                {category === 'Çay Toplama Makinesi' && 'Çay Toplama Makinesi'}
+                                {category === 'Rusya Motor Odası' && 'Rusya Motor Odası'}
+                                {category === 'HSCK' && 'HSCK'}
+                              </Typography>
+                              <Chip 
+                                label={selectedCategories.includes(category) ? 'Seçili' : 'Seç'} 
+                                size="small" 
+                                color={selectedCategories.includes(category) ? 'success' : 'default'}
+                                variant={selectedCategories.includes(category) ? 'filled' : 'outlined'}
+                              />
+                            </Box>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+
+                {/* Hızlı Seçim Butonları */}
+                <Box sx={{ mt: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setSelectedCategories(vehicleCategories)}
+                    startIcon={<CheckCircleIcon />}
+                  >
+                    Tümünü Seç
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setSelectedCategories([])}
+                    startIcon={<CloseIcon />}
+                  >
+                    Seçimi Temizle
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setSelectedCategories(['Kompakt Araçlar', 'Araç Üstü Vakumlu'])}
+                  >
+                    Popüler Kategoriler
+                  </Button>
+                </Box>
+              </Paper>
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setBulkDataDialogOpen(false)}>
+        
+        <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
+          <Button 
+            onClick={() => setBulkDataDialogOpen(false)}
+            size="large"
+            sx={{ minWidth: 100 }}
+          >
             İptal
           </Button>
           <Button 
             variant="contained" 
             onClick={handleBulkPerformanceDataSet}
             disabled={selectedCategories.length === 0}
+            size="large"
+            startIcon={<SaveIcon />}
+            sx={{ 
+              minWidth: 200,
+              fontWeight: 'bold'
+            }}
           >
-            Performans Verilerini Gir ({selectedCategories.length} kategori)
+            Performans Hedeflerini Oluştur
+            {selectedCategories.length > 0 && ` (${selectedCategories.length} kategori)`}
           </Button>
         </DialogActions>
       </Dialog>
@@ -14167,175 +14392,424 @@ const VehiclePerformanceDataComponent: React.FC<{
       <Dialog 
         open={editPerformanceDialogOpen} 
         onClose={() => setEditPerformanceDialogOpen(false)}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            minHeight: '80vh'
+          }
+        }}
       >
-        <DialogTitle>
-          Performans Verisi Düzenle - {editingPerformanceData?.kategori || editingPerformanceData?.aracModeli}
+        <DialogTitle sx={{ 
+          bgcolor: 'warning.main', 
+          color: 'white', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 2,
+          p: 3
+        }}>
+          <EditIcon sx={{ fontSize: 32 }} />
+          <Box>
+            <Typography variant="h5" fontWeight={700}>
+              Performans Hedeflerini Düzenle
+            </Typography>
+            <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+              {editingPerformanceData?.kategori || editingPerformanceData?.aracModeli} - {editingPerformanceData?.donem}
+            </Typography>
+          </Box>
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={3} sx={{ mt: 1 }}>
+        
+        <DialogContent sx={{ p: 4 }}>
+          {/* Mevcut Performans Özeti */}
+          {editingPerformanceData && (
+            <Alert 
+              severity="warning" 
+              sx={{ 
+                mb: 4, 
+                borderRadius: 2,
+                '& .MuiAlert-message': { width: '100%' }
+              }}
+            >
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                  🎯 Mevcut Performans Durumu
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'error.50', borderRadius: 1 }}>
+                      <Typography variant="h6" fontWeight="bold" color="error.main">
+                        %{editingPerformanceData.performans?.retPerformans || 0}
+                      </Typography>
+                      <Typography variant="caption">Ret Performansı</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.50', borderRadius: 1 }}>
+                      <Typography variant="h6" fontWeight="bold" color="warning.main">
+                        %{editingPerformanceData.performans?.hurdaPerformans || 0}
+                      </Typography>
+                      <Typography variant="caption">Hurda Performansı</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'info.50', borderRadius: 1 }}>
+                      <Typography variant="h6" fontWeight="bold" color="info.main">
+                        %{editingPerformanceData.performans?.firePerformans || 0}
+                      </Typography>
+                      <Typography variant="caption">Fire Performansı</Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+            </Alert>
+          )}
+
+          <Grid container spacing={4}>
+            {/* Sol Panel - Ret Hedefleri */}
+            <Grid item xs={12} md={4}>
+              <Paper 
+                sx={{ 
+                  p: 3, 
+                  borderRadius: 2, 
+                  border: '2px solid',
+                  borderColor: 'error.100',
+                  height: 'fit-content'
+                }}
+              >
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ReportProblemIcon color="error" />
+                  Ret Hedefleri
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Maksimum Ret Adet"
+                      type="number"
+                      value={performanceFormData.hedefler?.maksRetAdet || ''}
+                      onChange={(e) => setPerformanceFormData(prev => ({
+                        ...prev,
+                        hedefler: {
+                          ...prev.hedefler!,
+                          maksRetAdet: parseInt(e.target.value) || 0
+                        }
+                      }))}
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">adet</InputAdornment>
+                      }}
+                      helperText="Araç başına maksimum ret miktarı"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Maksimum Ret Maliyet"
+                      type="number"
+                      value={performanceFormData.hedefler?.maksRetMaliyet || ''}
+                      onChange={(e) => setPerformanceFormData(prev => ({
+                        ...prev,
+                        hedefler: {
+                          ...prev.hedefler!,
+                          maksRetMaliyet: parseInt(e.target.value) || 0
+                        }
+                      }))}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₺</InputAdornment>
+                      }}
+                      helperText="Ret kaynaklı toplam maliyet limiti"
+                    />
+                  </Grid>
+                </Grid>
+
+                {/* Ret Performans Göstergesi */}
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'error.50', borderRadius: 1 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+                    🔴 Ret Performansı Bilgisi
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Ret miktarı ne kadar düşükse performans o kadar yüksek olur. 
+                    Hedef değerlerin altında kalınması durumunda pozitif performans elde edilir.
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* Orta Panel - Hurda Hedefleri */}
+            <Grid item xs={12} md={4}>
+              <Paper 
+                sx={{ 
+                  p: 3, 
+                  borderRadius: 2, 
+                  border: '2px solid',
+                  borderColor: 'warning.100',
+                  height: 'fit-content'
+                }}
+              >
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <SettingsBackupRestoreIcon color="warning" />
+                  Hurda Hedefleri
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Maksimum Hurda Ağırlık"
+                      type="number"
+                      value={performanceFormData.hedefler?.maksHurdaKg || ''}
+                      onChange={(e) => setPerformanceFormData(prev => ({
+                        ...prev,
+                        hedefler: {
+                          ...prev.hedefler!,
+                          maksHurdaKg: parseInt(e.target.value) || 0
+                        }
+                      }))}
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">kg</InputAdornment>
+                      }}
+                      helperText="Araç başına maksimum hurda ağırlığı"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Maksimum Hurda Maliyet"
+                      type="number"
+                      value={performanceFormData.hedefler?.maksHurdaMaliyet || ''}
+                      onChange={(e) => setPerformanceFormData(prev => ({
+                        ...prev,
+                        hedefler: {
+                          ...prev.hedefler!,
+                          maksHurdaMaliyet: parseInt(e.target.value) || 0
+                        }
+                      }))}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₺</InputAdornment>
+                      }}
+                      helperText="Hurda kaynaklı toplam maliyet limiti"
+                    />
+                  </Grid>
+                </Grid>
+
+                {/* Hurda Performans Göstergesi */}
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'warning.50', borderRadius: 1 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+                    🟡 Hurda Performansı Bilgisi
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Hurda miktarı azaldıkça performans artar. 
+                    Hurda maliyetlerini minimize etmek ana hedeftir.
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* Sağ Panel - Fire Hedefleri */}
+            <Grid item xs={12} md={4}>
+              <Paper 
+                sx={{ 
+                  p: 3, 
+                  borderRadius: 2, 
+                  border: '2px solid',
+                  borderColor: 'info.100',
+                  height: 'fit-content'
+                }}
+              >
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <LocalFireDepartmentIcon color="info" />
+                  Fire Hedefleri
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Maksimum Fire Ağırlık"
+                      type="number"
+                      value={performanceFormData.hedefler?.maksFireKg || ''}
+                      onChange={(e) => setPerformanceFormData(prev => ({
+                        ...prev,
+                        hedefler: {
+                          ...prev.hedefler!,
+                          maksFireKg: parseInt(e.target.value) || 0
+                        }
+                      }))}
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">kg</InputAdornment>
+                      }}
+                      helperText="Araç başına maksimum fire ağırlığı"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Maksimum Fire Maliyet"
+                      type="number"
+                      value={performanceFormData.hedefler?.maksFireMaliyet || ''}
+                      onChange={(e) => setPerformanceFormData(prev => ({
+                        ...prev,
+                        hedefler: {
+                          ...prev.hedefler!,
+                          maksFireMaliyet: parseInt(e.target.value) || 0
+                        }
+                      }))}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₺</InputAdornment>
+                      }}
+                      helperText="Fire kaynaklı toplam maliyet limiti"
+                    />
+                  </Grid>
+                </Grid>
+
+                {/* Fire Performans Göstergesi */}
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'info.50', borderRadius: 1 }}>
+                  <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+                    🔵 Fire Performansı Bilgisi
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Fire oranı düştükçe kalite performansı yükselir. 
+                    Sıfır fire hedefi ideal performans seviyesidir.
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+
+            {/* Alt Panel - Genel Ayarlar */}
             <Grid item xs={12}>
-              <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-                Performans Değerleri
-              </Typography>
-            </Grid>
-            
-            {/* Ret Performansı */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Maksimum Ret Adet"
-                type="number"
-                value={performanceFormData.hedefler?.maksRetAdet || ''}
-                onChange={(e) => setPerformanceFormData(prev => ({
-                  ...prev,
-                  hedefler: {
-                    ...prev.hedefler!,
-                    maksRetAdet: parseInt(e.target.value) || 0
-                  }
-                }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Maksimum Ret Maliyet (₺)"
-                type="number"
-                value={performanceFormData.hedefler?.maksRetMaliyet || ''}
-                onChange={(e) => setPerformanceFormData(prev => ({
-                  ...prev,
-                  hedefler: {
-                    ...prev.hedefler!,
-                    maksRetMaliyet: parseInt(e.target.value) || 0
-                  }
-                }))}
-              />
-            </Grid>
+              <Paper 
+                sx={{ 
+                  p: 3, 
+                  borderRadius: 2, 
+                  border: '2px solid',
+                  borderColor: 'primary.100'
+                }}
+              >
+                <Typography variant="h6" fontWeight="bold" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ScaleIcon color="primary" />
+                  Genel Performans Ayarları
+                </Typography>
+                
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Toplam Maksimum Maliyet"
+                      type="number"
+                      value={performanceFormData.hedefler?.toplamMaksimumMaliyet || ''}
+                      onChange={(e) => setPerformanceFormData(prev => ({
+                        ...prev,
+                        hedefler: {
+                          ...prev.hedefler!,
+                          toplamMaksimumMaliyet: parseInt(e.target.value) || 0
+                        }
+                      }))}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">₺</InputAdornment>
+                      }}
+                      helperText="Tüm kalite maliyetlerinin toplamı için üst limit"
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} md={4}>
+                    <FormControl fullWidth>
+                      <InputLabel>Dönem Türü</InputLabel>
+                      <Select
+                        value={performanceFormData.donemTuru || 'ay'}
+                        onChange={(e) => setPerformanceFormData(prev => ({
+                          ...prev,
+                          donemTuru: e.target.value as 'ay' | 'ceyrek' | 'yil'
+                        }))}
+                        label="Dönem Türü"
+                      >
+                        <MenuItem value="ay">📅 Aylık</MenuItem>
+                        <MenuItem value="ceyrek">📆 Çeyreklik</MenuItem>
+                        <MenuItem value="yil">🗓️ Yıllık</MenuItem>
+                      </Select>
+                      <FormHelperText>Performans takip periyodu</FormHelperText>
+                    </FormControl>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label="Dönem"
+                      value={performanceFormData.donem || ''}
+                      onChange={(e) => setPerformanceFormData(prev => ({
+                        ...prev,
+                        donem: e.target.value
+                      }))}
+                      helperText="Örnek: 2025-01, 2025-Q1, 2025"
+                    />
+                  </Grid>
+                </Grid>
 
-            {/* Hurda Performansı */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Maksimum Hurda (kg)"
-                type="number"
-                value={performanceFormData.hedefler?.maksHurdaKg || ''}
-                onChange={(e) => setPerformanceFormData(prev => ({
-                  ...prev,
-                  hedefler: {
-                    ...prev.hedefler!,
-                    maksHurdaKg: parseInt(e.target.value) || 0
-                  }
-                }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Maksimum Hurda Maliyet (₺)"
-                type="number"
-                value={performanceFormData.hedefler?.maksHurdaMaliyet || ''}
-                onChange={(e) => setPerformanceFormData(prev => ({
-                  ...prev,
-                  hedefler: {
-                    ...prev.hedefler!,
-                    maksHurdaMaliyet: parseInt(e.target.value) || 0
-                  }
-                }))}
-              />
-            </Grid>
-
-            {/* Fire Performansı */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Maksimum Fire (kg)"
-                type="number"
-                value={performanceFormData.hedefler?.maksFireKg || ''}
-                onChange={(e) => setPerformanceFormData(prev => ({
-                  ...prev,
-                  hedefler: {
-                    ...prev.hedefler!,
-                    maksFireKg: parseInt(e.target.value) || 0
-                  }
-                }))}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Maksimum Fire Maliyet (₺)"
-                type="number"
-                value={performanceFormData.hedefler?.maksFireMaliyet || ''}
-                onChange={(e) => setPerformanceFormData(prev => ({
-                  ...prev,
-                  hedefler: {
-                    ...prev.hedefler!,
-                    maksFireMaliyet: parseInt(e.target.value) || 0
-                  }
-                }))}
-              />
-            </Grid>
-
-            {/* Toplam Performans */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Toplam Maksimum Maliyet (₺)"
-                type="number"
-                value={performanceFormData.hedefler?.toplamMaksimumMaliyet || ''}
-                onChange={(e) => setPerformanceFormData(prev => ({
-                  ...prev,
-                  hedefler: {
-                    ...prev.hedefler!,
-                    toplamMaksimumMaliyet: parseInt(e.target.value) || 0
-                  }
-                }))}
-              />
-            </Grid>
-
-            {/* Dönem Bilgileri */}
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Dönem Türü</InputLabel>
-                <Select
-                  value={performanceFormData.donemTuru || 'ay'}
-                  onChange={(e) => setPerformanceFormData(prev => ({
-                    ...prev,
-                    donemTuru: e.target.value as 'ay' | 'ceyrek' | 'yil'
-                  }))}
-                  label="Dönem Türü"
-                >
-                  <MenuItem value="ay">Aylık</MenuItem>
-                  <MenuItem value="ceyrek">Çeyreklik</MenuItem>
-                  <MenuItem value="yil">Yıllık</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Dönem"
-                value={performanceFormData.donem || ''}
-                onChange={(e) => setPerformanceFormData(prev => ({
-                  ...prev,
-                  donem: e.target.value
-                }))}
-                helperText="Örnek: 2025-01, 2025-Q1, 2025"
-              />
+                {/* Toplam Performans Özeti */}
+                <Box sx={{ mt: 3, p: 3, bgcolor: 'primary.50', borderRadius: 2 }}>
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                    📊 Hedef Performans Özeti
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={3}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight="bold" color="error.main">
+                          {performanceFormData.hedefler?.maksRetAdet || 0}
+                        </Typography>
+                        <Typography variant="caption">Ret Hedefi (adet)</Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight="bold" color="warning.main">
+                          {performanceFormData.hedefler?.maksHurdaKg || 0}
+                        </Typography>
+                        <Typography variant="caption">Hurda Hedefi (kg)</Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight="bold" color="info.main">
+                          {performanceFormData.hedefler?.maksFireKg || 0}
+                        </Typography>
+                        <Typography variant="caption">Fire Hedefi (kg)</Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight="bold" color="primary.main">
+                          ₺{(performanceFormData.hedefler?.toplamMaksimumMaliyet || 0).toLocaleString()}
+                        </Typography>
+                        <Typography variant="caption">Toplam Maliyet Hedefi</Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Paper>
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditPerformanceDialogOpen(false)}>
+        
+        <DialogActions sx={{ p: 3, borderTop: 1, borderColor: 'divider', bgcolor: 'grey.50' }}>
+          <Button 
+            onClick={() => setEditPerformanceDialogOpen(false)}
+            size="large"
+            sx={{ minWidth: 100 }}
+          >
             İptal
           </Button>
           <Button 
             variant="contained" 
             onClick={handleSaveEditedPerformanceData}
             disabled={!performanceFormData.hedefler}
+            size="large"
+            startIcon={<SaveIcon />}
+            sx={{ 
+              minWidth: 180,
+              fontWeight: 'bold'
+            }}
           >
-            Kaydet
+            Değişiklikleri Kaydet
           </Button>
         </DialogActions>
       </Dialog>
