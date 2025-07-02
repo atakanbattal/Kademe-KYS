@@ -5013,15 +5013,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Tedarikçi Kodu"
-                      value={formData.code || ''}
-                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                      required
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
                     <FormControl fullWidth>
                       <InputLabel>Tür</InputLabel>
                       <Select
