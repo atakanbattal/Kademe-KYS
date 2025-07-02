@@ -2906,50 +2906,62 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 1300 }}>
+      <TableContainer component={Paper} sx={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: 2 }}>
+        <Table sx={{ minWidth: 1480 }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'primary.50' }}>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '200px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle'
-                }}
-              >
-                Ana Tedarikçi
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '250px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle'
-                }}
-              >
-                Alternatif Tedarikçi(ler)
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '300px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle'
-                }}
-              >
-                Alt Kategoriler
-              </TableCell>
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
                   width: '220px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
-                  textAlign: 'center'
+                  fontSize: '0.9rem'
                 }}
               >
-                Performans Karşılaştırması
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Ana Tedarikçi
+                </Typography>
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '280px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  fontSize: '0.9rem'
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Alternatif Tedarikçi(ler)
+                </Typography>
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '340px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  fontSize: '0.9rem'
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Alt Kategoriler
+                </Typography>
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '250px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center',
+                  fontSize: '0.9rem'
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Performans Karşılaştırması
+                </Typography>
               </TableCell>
               <TableCell 
                 sx={{ 
@@ -2977,14 +2989,53 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           </TableHead>
           <TableBody>
             {supplierPairs.map((pair) => (
-              <TableRow key={pair.id}>
-                <TableCell sx={{ width: '200px', verticalAlign: 'top' }}>
-                  <Box>
+              <TableRow 
+                key={pair.id}
+                sx={{
+                  '&:hover': {
+                    backgroundColor: 'primary.50',
+                    transform: 'scale(1.002)',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  },
+                  '&:nth-of-type(even)': {
+                    backgroundColor: 'grey.25'
+                  },
+                  cursor: 'pointer'
+                }}
+              >
+                <TableCell sx={{ width: '220px', verticalAlign: 'top', padding: '12px 8px' }}>
+                  <Box 
+                    sx={{
+                      padding: '8px',
+                      backgroundColor: pair.primarySupplier ? 'success.50' : 'warning.50',
+                      borderRadius: '8px',
+                      border: '1px solid',
+                      borderColor: pair.primarySupplier ? 'success.200' : 'warning.200',
+                      minHeight: '60px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center'
+                    }}
+                  >
                     {pair.primarySupplier ? (
                       <>
-                        <Typography variant="body2" fontWeight="bold" noWrap>
-                          {pair.primarySupplier.name}
-                        </Typography>
+                        <Tooltip title={pair.primarySupplier.name} placement="top" arrow>
+                          <Typography 
+                            variant="body1" 
+                            fontWeight="bold"
+                            sx={{
+                              fontSize: '0.95rem',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '180px',
+                              cursor: 'help'
+                            }}
+                          >
+                            {pair.primarySupplier.name}
+                          </Typography>
+                        </Tooltip>
                         <Box display="flex" alignItems="center" gap={1} mt={0.5}>
                           {/* Grade Badge - Ana Tedarikçi */}
                           <Box
@@ -2992,14 +3043,15 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              width: 24,
-                              height: 24,
+                              width: 28,
+                              height: 28,
                               borderRadius: '50%',
                               backgroundColor: getPerformanceGrade(pair.performanceComparison.primaryScore || 0, pair.primarySupplier).bgColor,
                               color: 'white',
                               fontWeight: 'bold',
-                              fontSize: '0.75rem',
-                              mr: 0.5
+                              fontSize: '0.85rem',
+                              mr: 0.5,
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                             }}
                           >
                             {getPerformanceGrade(pair.performanceComparison.primaryScore || 0, pair.primarySupplier).grade}
@@ -3007,82 +3059,181 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           <Chip 
                             label={`${pair.performanceComparison.primaryScore || 0}%`} 
                             color="success" 
-                            size="small" 
+                            size="medium"
+                            sx={{
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              height: '28px'
+                            }}
                           />
                         </Box>
                       </>
                     ) : (
                       <>
-                        <Typography variant="body2" fontWeight="bold" color="warning.main" noWrap>
+                        <Typography 
+                          variant="body1" 
+                          fontWeight="bold" 
+                          color="warning.main"
+                          sx={{ fontSize: '0.95rem' }}
+                        >
                           Ana Tedarikçi Yok
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ fontSize: '0.8rem', mt: 0.5 }}
+                        >
                           Alternatifler arasından seçim yapın
                         </Typography>
                       </>
                     )}
                   </Box>
                 </TableCell>
-                <TableCell sx={{ width: '250px', verticalAlign: 'top' }}>
-                  {pair.alternativeSuppliers.map((altSupplier, index) => {
-                    const altScore = pair.performanceComparison.alternativeScores.find(s => s.id === altSupplier.id)?.score || 0;
-                    return (
-                    <Box key={altSupplier.id} mb={index < pair.alternativeSuppliers.length - 1 ? 1 : 0}>
-                      <Typography variant="body2" fontWeight="bold">
-                        {altSupplier.name}
-                      </Typography>
-                      <Box display="flex" alignItems="center" gap={1} mt={0.5}>
-                          {/* Grade Badge - Alternatif Tedarikçi */}
-                          <Box
+                <TableCell sx={{ width: '280px', verticalAlign: 'top', padding: '12px 8px' }}>
+                  <Box sx={{ 
+                    maxHeight: '140px', 
+                    overflow: 'auto',
+                    '&::-webkit-scrollbar': {
+                      width: '6px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: '#f1f1f1',
+                      borderRadius: '3px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#c1c1c1',
+                      borderRadius: '3px',
+                      '&:hover': {
+                        background: '#a1a1a1',
+                      }
+                    },
+                  }}>
+                    {pair.alternativeSuppliers.map((altSupplier, index) => {
+                      const altScore = pair.performanceComparison.alternativeScores.find(s => s.id === altSupplier.id)?.score || 0;
+                      return (
+                      <Box 
+                        key={altSupplier.id} 
+                        mb={index < pair.alternativeSuppliers.length - 1 ? 1.5 : 0}
+                        sx={{
+                          padding: '8px',
+                          backgroundColor: 'warning.50',
+                          borderRadius: '8px',
+                          border: '1px solid',
+                          borderColor: 'warning.200'
+                        }}
+                      >
+                        <Tooltip title={altSupplier.name} placement="top" arrow>
+                          <Typography 
+                            variant="body1" 
+                            fontWeight="bold"
                             sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: 24,
-                              height: 24,
-                              borderRadius: '50%',
-                              backgroundColor: getPerformanceGrade(altScore, altSupplier).bgColor,
-                              color: 'white',
-                              fontWeight: 'bold',
-                              fontSize: '0.75rem',
-                              mr: 0.5
+                              fontSize: '0.95rem',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '200px',
+                              cursor: 'help'
                             }}
                           >
-                            {getPerformanceGrade(altScore, altSupplier).grade}
-                          </Box>
-                        <Chip 
-                            label={`${altScore}%`} 
-                          color="warning" 
-                          size="small" 
-                        />
-
+                            {altSupplier.name}
+                          </Typography>
+                        </Tooltip>
+                        <Box display="flex" alignItems="center" gap={1} mt={0.5}>
+                            {/* Grade Badge - Alternatif Tedarikçi */}
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 28,
+                                height: 28,
+                                borderRadius: '50%',
+                                backgroundColor: getPerformanceGrade(altScore, altSupplier).bgColor,
+                                color: 'white',
+                                fontWeight: 'bold',
+                                fontSize: '0.85rem',
+                                mr: 0.5,
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                              }}
+                            >
+                              {getPerformanceGrade(altScore, altSupplier).grade}
+                            </Box>
+                          <Chip 
+                              label={`${altScore}%`} 
+                            color="warning" 
+                            size="medium"
+                            sx={{
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              height: '28px'
+                            }}
+                          />
+                        </Box>
                       </Box>
-                    </Box>
-                    );
-                  })}
+                      );
+                    })}
+                  </Box>
                 </TableCell>
-                <TableCell sx={{ width: '300px', verticalAlign: 'top' }}>
-                  <Box sx={{ maxHeight: '120px', overflow: 'auto' }}>
+                <TableCell sx={{ width: '340px', verticalAlign: 'top', padding: '12px 8px' }}>
+                  <Box sx={{ 
+                    maxHeight: '140px', 
+                    overflow: 'auto',
+                    '&::-webkit-scrollbar': {
+                      width: '6px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: '#f1f1f1',
+                      borderRadius: '3px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#c1c1c1',
+                      borderRadius: '3px',
+                      '&:hover': {
+                        background: '#a1a1a1',
+                      }
+                    },
+                  }}>
                     {/* Ana Tedarikçi Alt Kategorileri */}
                     {pair.primarySupplier && (
-                      <Box mb={1}>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
-                          Ana:
+                      <Box mb={1.5}>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          sx={{ 
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            mb: 0.5
+                          }}
+                        >
+                          Ana Tedarikçi:
                         </Typography>
-                        <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
+                        <Box display="flex" flexWrap="wrap" gap={0.75}>
                           {pair.primarySupplier.supplySubcategories.length > 0 ? (
-                            pair.primarySupplier.supplySubcategories.map((subcategory, index) => (
-                              <Chip 
-                                key={index}
-                                label={subcategory} 
-                                color="primary"
-                                variant="outlined"
-                                size="small"
-                                sx={{ fontSize: '0.6rem', height: '20px' }}
-                              />
-                            ))
+                            pair.primarySupplier.supplySubcategories.map((subcategory, index) => {
+                              const shortLabel = subcategory.length > 30 
+                                ? subcategory.substring(0, 30) + '...' 
+                                : subcategory;
+                              
+                              return (
+                                <Tooltip key={index} title={subcategory} placement="top" arrow>
+                                  <Chip 
+                                    label={shortLabel} 
+                                    color="primary"
+                                    variant="outlined"
+                                    size="small"
+                                    sx={{ 
+                                      fontSize: '0.75rem', 
+                                      height: '26px',
+                                      fontWeight: 500,
+                                      cursor: 'help',
+                                      maxWidth: '160px'
+                                    }}
+                                  />
+                                </Tooltip>
+                              );
+                            })
                           ) : (
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                               Belirtilmemiş
                             </Typography>
                           )}
@@ -3093,28 +3244,49 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     {/* Alternatif Tedarikçiler Alt Kategorileri */}
                     {pair.alternativeSuppliers.length > 0 && (
                       <Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
-                          Alt:
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          sx={{ 
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            mb: 0.5
+                          }}
+                        >
+                          Alternatif Tedarikçiler:
                         </Typography>
-                        <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
+                        <Box display="flex" flexWrap="wrap" gap={0.75}>
                           {/* Tüm alternatif tedarikçi kategorilerini birleştir */}
                           {(() => {
                             const allSubcategories = pair.alternativeSuppliers.flatMap(supplier => supplier.supplySubcategories);
                             const uniqueSubcategories = Array.from(new Set(allSubcategories));
                             
                             return uniqueSubcategories.length > 0 ? (
-                              uniqueSubcategories.map((subcategory, index) => (
-                                <Chip 
-                                  key={index}
-                                  label={subcategory} 
-                                  color="warning"
-                                  variant="outlined"
-                                  size="small"
-                                  sx={{ fontSize: '0.6rem', height: '20px' }}
-                                />
-                              ))
+                              uniqueSubcategories.map((subcategory, index) => {
+                                const shortLabel = subcategory.length > 30 
+                                  ? subcategory.substring(0, 30) + '...' 
+                                  : subcategory;
+                                
+                                return (
+                                  <Tooltip key={index} title={subcategory} placement="top" arrow>
+                                    <Chip 
+                                      label={shortLabel} 
+                                      color="warning"
+                                      variant="outlined"
+                                      size="small"
+                                      sx={{ 
+                                        fontSize: '0.75rem', 
+                                        height: '26px',
+                                        fontWeight: 500,
+                                        cursor: 'help',
+                                        maxWidth: '160px'
+                                      }}
+                                    />
+                                  </Tooltip>
+                                );
+                              })
                             ) : (
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
                                 Belirtilmemiş
                               </Typography>
                             );
@@ -3124,47 +3296,132 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     )}
                   </Box>
                 </TableCell>
-                <TableCell sx={{ width: '220px', textAlign: 'center', verticalAlign: 'middle' }}>
-                  <Box>
+                <TableCell sx={{ width: '250px', textAlign: 'center', verticalAlign: 'middle', padding: '12px 8px' }}>
+                  <Box 
+                    sx={{
+                      padding: '10px',
+                      backgroundColor: 'grey.50',
+                      borderRadius: '8px',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                      minHeight: '70px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}
+                  >
                     {pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? (
                       <>
-                        <Typography variant="body2" fontWeight="bold" color={
-                          (pair.performanceComparison.primaryScore || 0) > 
-                          Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
-                            ? 'success.main' : 'warning.main'
-                        }>
+                        <Typography 
+                          variant="body1" 
+                          fontWeight="bold" 
+                          sx={{ 
+                            fontSize: '0.9rem',
+                            textAlign: 'center',
+                            lineHeight: 1.3
+                          }}
+                          color={
+                            (pair.performanceComparison.primaryScore || 0) > 
+                            Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
+                              ? 'success.main' : 'warning.main'
+                          }
+                        >
                           {(pair.performanceComparison.primaryScore || 0) > 
                            Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
                             ? 'Ana Tedarikçi Üstün' : 'Alternatif Değerlendir'}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ 
+                            fontSize: '0.8rem',
+                            textAlign: 'center',
+                            mt: 0.5,
+                            lineHeight: 1.2
+                          }}
+                        >
                           {pair.performanceComparison.recommendation}
                         </Typography>
                       </>
                     ) : pair.primarySupplier && pair.alternativeSuppliers.length === 0 ? (
                       <>
-                        <Typography variant="body2" fontWeight="bold" color="info.main">
+                        <Typography 
+                          variant="body1" 
+                          fontWeight="bold" 
+                          color="info.main"
+                          sx={{ 
+                            fontSize: '0.9rem',
+                            textAlign: 'center',
+                            lineHeight: 1.3
+                          }}
+                        >
                           Sadece Ana Tedarikçi
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ 
+                            fontSize: '0.8rem',
+                            textAlign: 'center',
+                            mt: 0.5,
+                            lineHeight: 1.2
+                          }}
+                        >
                           Alternatif tedarikçi tanımlanmamış
                         </Typography>
                       </>
                     ) : !pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? (
                       <>
-                        <Typography variant="body2" fontWeight="bold" color="primary.main">
+                        <Typography 
+                          variant="body1" 
+                          fontWeight="bold" 
+                          color="primary.main"
+                          sx={{ 
+                            fontSize: '0.9rem',
+                            textAlign: 'center',
+                            lineHeight: 1.3
+                          }}
+                        >
                           Alternatif Karşılaştırma
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ 
+                            fontSize: '0.8rem',
+                            textAlign: 'center',
+                            mt: 0.5,
+                            lineHeight: 1.2
+                          }}
+                        >
                           {pair.performanceComparison.recommendation}
                         </Typography>
                       </>
                     ) : (
                       <>
-                        <Typography variant="body2" fontWeight="bold" color="error.main">
+                        <Typography 
+                          variant="body1" 
+                          fontWeight="bold" 
+                          color="error.main"
+                          sx={{ 
+                            fontSize: '0.9rem',
+                            textAlign: 'center',
+                            lineHeight: 1.3
+                          }}
+                        >
                           Tedarikçi Eksik
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary"
+                          sx={{ 
+                            fontSize: '0.8rem',
+                            textAlign: 'center',
+                            mt: 0.5,
+                            lineHeight: 1.2
+                          }}
+                        >
                           En az bir tedarikçi seçilmeli
                         </Typography>
                       </>
