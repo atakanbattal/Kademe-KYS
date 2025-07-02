@@ -289,6 +289,11 @@ const SupplierQualityManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [supplierTypeFilter, setSupplierTypeFilter] = useState('all');
 
+  // Supplier switch dialog states
+  const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
+  const [selectedPairForSwitch, setSelectedPairForSwitch] = useState<SupplierPair | null>(null);
+  const [selectedAlternativeForSwitch, setSelectedAlternativeForSwitch] = useState<string>('');
+
   // Load initial data
   const [dataLoaded, setDataLoaded] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -1381,6 +1386,77 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   // Utility functions
   const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
     setSnackbar({ open: true, message, severity });
+  };
+
+  // Supplier switch functions
+  const handleOpenSwitchDialog = (pair: SupplierPair) => {
+    if (pair.alternativeSuppliers.length === 0) {
+      showSnackbar('Bu eşleştirmede alternatif tedarikçi bulunmuyor', 'warning');
+      return;
+    }
+    
+    if (pair.alternativeSuppliers.length === 1) {
+      // Tek alternatif varsa doğrudan değiştir
+      handleDirectSwitch(pair, pair.alternativeSuppliers[0]);
+      return;
+    }
+    
+    // Birden fazla alternatif varsa dialog aç
+    setSelectedPairForSwitch(pair);
+    setSelectedAlternativeForSwitch('');
+    setSwitchDialogOpen(true);
+  };
+
+  const handleDirectSwitch = (pair: SupplierPair, selectedAlternative: Supplier) => {
+    const remainingAlternatives = pair.alternativeSuppliers.filter(s => s.id !== selectedAlternative.id);
+    if (pair.primarySupplier) {
+      remainingAlternatives.push(pair.primarySupplier);
+    }
+    
+    const updatedPair = {
+      ...pair,
+      primarySupplier: selectedAlternative,
+      alternativeSuppliers: remainingAlternatives,
+      performanceComparison: {
+        primaryScore: selectedAlternative.performanceScore,
+        alternativeScores: remainingAlternatives.map(s => ({ id: s.id, score: s.performanceScore })),
+        recommendation: `${selectedAlternative.name} ana tedarikçi olarak seçildi`
+      },
+      lastReviewDate: new Date().toISOString().split('T')[0]
+    };
+    
+    // Supplier pairs'i güncelle
+    const updatedPairs = supplierPairs.map(p => 
+      p.id === pair.id ? updatedPair : p
+    );
+    setSupplierPairs(updatedPairs);
+    
+    // localStorage'a kaydet
+    setTimeout(() => {
+      localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
+      console.log('💾 Tedarikçi değişimi localStorage\'a kaydedildi');
+      window.dispatchEvent(new Event('supplierDataUpdated'));
+    }, 100);
+    
+    showSnackbar(`${selectedAlternative.name} ana tedarikçi olarak seçildi`, 'success');
+  };
+
+  const handleConfirmSwitch = () => {
+    if (!selectedPairForSwitch || !selectedAlternativeForSwitch) {
+      showSnackbar('Lütfen bir alternatif tedarikçi seçin', 'error');
+      return;
+    }
+    
+    const selectedAlternative = selectedPairForSwitch.alternativeSuppliers.find(s => s.id === selectedAlternativeForSwitch);
+    if (!selectedAlternative) {
+      showSnackbar('Seçilen tedarikçi bulunamadı', 'error');
+      return;
+    }
+    
+    handleDirectSwitch(selectedPairForSwitch, selectedAlternative);
+    setSwitchDialogOpen(false);
+    setSelectedPairForSwitch(null);
+    setSelectedAlternativeForSwitch('');
   };
 
   // Dialog handlers for all button functionalities
@@ -2784,44 +2860,11 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         <EditIcon />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="En İyi Tedarikçiyi Ana Yap">
+                    <Tooltip title="Tedarikçi Değiştir">
                       <IconButton 
                         size="small" 
                         color="warning" 
-                        onClick={() => {
-                          // En iyi performanslı tedarikçiyi ana tedarikçi yap
-                          if (pair.alternativeSuppliers.length > 0) {
-                            const bestAlternative = pair.alternativeSuppliers.reduce((best, current) => 
-                              current.performanceScore > best.performanceScore ? current : best
-                            );
-                            
-                            const remainingAlternatives = pair.alternativeSuppliers.filter(s => s.id !== bestAlternative.id);
-                            if (pair.primarySupplier) {
-                              remainingAlternatives.push(pair.primarySupplier);
-                            }
-                            
-                            const updatedPair = {
-                              ...pair,
-                              primarySupplier: bestAlternative,
-                              alternativeSuppliers: remainingAlternatives,
-                              performanceComparison: {
-                                primaryScore: bestAlternative.performanceScore,
-                                alternativeScores: remainingAlternatives.map(s => ({ id: s.id, score: s.performanceScore })),
-                                recommendation: `${bestAlternative.name} en iyi performans ile ana tedarikçi seçildi`
-                              },
-                              lastReviewDate: new Date().toISOString().split('T')[0]
-                            };
-                            
-                            // Supplier pairs'i güncelle
-                            setSupplierPairs(supplierPairs.map(p => 
-                              p.id === pair.id ? updatedPair : p
-                            ));
-                            
-                            showSnackbar(`${bestAlternative.name} en iyi performans ile ana tedarikçi olarak seçildi`, 'success');
-                          } else {
-                            showSnackbar('Bu eşleştirmede alternatif tedarikçi bulunmuyor', 'warning');
-                          }
-                        }}
+                        onClick={() => handleOpenSwitchDialog(pair)}
                       >
                         <SwapHorizIcon />
                       </IconButton>
@@ -6245,6 +6288,139 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             </Button>
             <Button onClick={handleSaveDialog} variant="contained" color="primary">
               {selectedItem ? 'Güncelle' : 'Kaydet'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Tedarikçi Değiştirme Dialog */}
+        <Dialog 
+          open={switchDialogOpen} 
+          onClose={() => setSwitchDialogOpen(false)} 
+          maxWidth="sm" 
+          fullWidth
+        >
+          <DialogTitle>
+            <Box display="flex" alignItems="center" gap={1}>
+              <SwapHorizIcon color="warning" />
+              Alternatif Tedarikçiyi Ana Yap
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2 }}>
+              {selectedPairForSwitch && (
+                <>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>Mevcut Ana Tedarikçi:</strong> {selectedPairForSwitch.primarySupplier?.name || 'Belirtilmemiş'}
+                  </Typography>
+                  
+                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
+                    Hangi alternatif tedarikçiyi ana tedarikçi yapmak istiyorsunuz?
+                  </Typography>
+
+                  <FormControl fullWidth>
+                    <InputLabel>Alternatif Tedarikçi Seçin</InputLabel>
+                    <Select
+                      value={selectedAlternativeForSwitch}
+                      onChange={(e) => setSelectedAlternativeForSwitch(e.target.value)}
+                      label="Alternatif Tedarikçi Seçin"
+                    >
+                      {selectedPairForSwitch.alternativeSuppliers.map((supplier) => (
+                        <MenuItem key={supplier.id} value={supplier.id}>
+                          <Box display="flex" alignItems="center" gap={1} width="100%">
+                            <Box>
+                              <Typography variant="body2" fontWeight="500">
+                                {supplier.name}
+                              </Typography>
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <Typography variant="caption" color="text.secondary">
+                                  {supplier.type} • {supplier.category}
+                                </Typography>
+                                <Chip 
+                                  label={`${supplier.performanceScore}%`} 
+                                  color={supplier.performanceScore >= 80 ? 'success' : 'warning'} 
+                                  size="small" 
+                                  sx={{ ml: 1 }}
+                                />
+                              </Box>
+                            </Box>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                      Seçilen tedarikçi ana tedarikçi olacak, mevcut ana tedarikçi alternatif olarak kalacak.
+                    </Typography>
+                  </FormControl>
+
+                  {/* Performans Karşılaştırması */}
+                  {selectedAlternativeForSwitch && (
+                    <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Performans Karşılaştırması
+                      </Typography>
+                      {(() => {
+                        const selectedSupplier = selectedPairForSwitch.alternativeSuppliers.find(s => s.id === selectedAlternativeForSwitch);
+                        const currentPrimary = selectedPairForSwitch.primarySupplier;
+                        
+                        return (
+                          <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                              <Box textAlign="center">
+                                <Typography variant="body2" color="text.secondary">
+                                  Mevcut Ana
+                                </Typography>
+                                <Typography variant="h6">
+                                  {currentPrimary?.performanceScore || 0}%
+                                </Typography>
+                                <Typography variant="caption">
+                                  {currentPrimary?.name}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Box textAlign="center">
+                                <Typography variant="body2" color="text.secondary">
+                                  Yeni Ana
+                                </Typography>
+                                <Typography variant="h6" color={
+                                  (selectedSupplier?.performanceScore || 0) > (currentPrimary?.performanceScore || 0) 
+                                    ? 'success.main' : 'warning.main'
+                                }>
+                                  {selectedSupplier?.performanceScore || 0}%
+                                </Typography>
+                                <Typography variant="caption">
+                                  {selectedSupplier?.name}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        );
+                      })()}
+                    </Box>
+                  )}
+                </>
+              )}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => {
+                setSwitchDialogOpen(false);
+                setSelectedPairForSwitch(null);
+                setSelectedAlternativeForSwitch('');
+              }} 
+              color="inherit"
+            >
+              İptal
+            </Button>
+            <Button 
+              onClick={handleConfirmSwitch} 
+              variant="contained" 
+              color="warning"
+              disabled={!selectedAlternativeForSwitch}
+              startIcon={<SwapHorizIcon />}
+            >
+              Tedarikçiyi Değiştir
             </Button>
           </DialogActions>
         </Dialog>
