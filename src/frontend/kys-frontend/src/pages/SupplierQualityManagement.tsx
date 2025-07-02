@@ -58,7 +58,6 @@ interface SupplierPair {
   id: string;
   primarySupplier: Supplier;
   alternativeSuppliers: Supplier[];
-  materialType: string;
   category: string;
   performanceComparison: {
     primaryScore: number;
@@ -756,7 +755,6 @@ const SupplierQualityManagement: React.FC = () => {
         id: 'PAIR-001',
         primarySupplier: mockSuppliers.find(s => s.id === 'SUP-001')!,
         alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-002')!, mockSuppliers.find(s => s.id === 'SUP-007')!],
-        materialType: 'St 37 Yapı Çeliği',
         category: 'stratejik',
         performanceComparison: {
           primaryScore: 92,
@@ -773,7 +771,7 @@ const SupplierQualityManagement: React.FC = () => {
         id: 'PAIR-002',
         primarySupplier: mockSuppliers.find(s => s.id === 'SUP-003')!,
         alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-008')!],
-        materialType: 'GGG-40 Küresel Grafitli Döküm',
+
         category: 'kritik',
         performanceComparison: {
           primaryScore: 89,
@@ -787,7 +785,7 @@ const SupplierQualityManagement: React.FC = () => {
         id: 'PAIR-003',
         primarySupplier: mockSuppliers.find(s => s.id === 'SUP-009')!,
         alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-004')!],
-        materialType: 'PCB Baskı Devre Kartları',
+
         category: 'genel',
         performanceComparison: {
           primaryScore: 86,
@@ -801,7 +799,7 @@ const SupplierQualityManagement: React.FC = () => {
         id: 'PAIR-004',
         primarySupplier: mockSuppliers.find(s => s.id === 'SUP-005')!,
         alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-007')!, mockSuppliers.find(s => s.id === 'SUP-001')!],
-        materialType: 'S 235 JR Yapı Çeliği',
+
         category: 'kritik',
         performanceComparison: {
           primaryScore: 65,
@@ -818,7 +816,7 @@ const SupplierQualityManagement: React.FC = () => {
         id: 'PAIR-005',
         primarySupplier: mockSuppliers.find(s => s.id === 'SUP-010')!,
         alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-006')!],
-        materialType: 'Kompozit Malzemeler',
+
         category: 'genel',
         performanceComparison: {
           primaryScore: 75,
@@ -1404,7 +1402,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     setDialogType('pair');
     setSelectedItem(null);
     setFormData({
-      materialType: '',
       primarySupplierId: '',
       alternativeSupplierIds: [],
       category: 'genel'
@@ -1920,17 +1917,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           return;
         }
         
-        // Malzeme türü otomatik seçilmemişse ana tedarikçiden al
-        if (!formData.materialType) {
-          const primarySupplier = suppliers.find(s => s.id === formData.primarySupplierId);
-          if (primarySupplier?.materialTypes?.length > 0) {
-            formData.materialType = primarySupplier.materialTypes[0];
-          } else {
-            showSnackbar('Seçilen ana tedarikçinin malzeme türü bilgisi bulunamadı', 'error');
-            return;
-          }
-        }
-        
         if (formData.primarySupplierId === formData.alternativeSupplierId) {
           showSnackbar('Ana tedarikçi ile alternatif tedarikçi aynı olamaz', 'error');
           return;
@@ -1948,7 +1934,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           id: selectedItem ? selectedItem.id : newId,
           primarySupplier,
           alternativeSuppliers: [alternativeSupplier],
-          materialType: formData.materialType,
           category: formData.category || 'genel',
           performanceComparison: {
             primaryScore: primarySupplier.performanceScore,
@@ -2524,7 +2509,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: 'primary.50' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Malzeme Türü</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Ana Tedarikçi</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Alternatif Tedarikçi(ler)</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Performans Karşılaştırması</TableCell>
@@ -2535,14 +2519,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           <TableBody>
             {supplierPairs.map((pair) => (
               <TableRow key={pair.id}>
-                <TableCell>
-                  <Chip 
-                    label={pair.materialType} 
-                    color="primary" 
-                    variant="outlined" 
-                    size="small" 
-                  />
-                </TableCell>
                 <TableCell>
                   <Box>
                     <Typography variant="body2" fontWeight="bold">
@@ -5555,15 +5531,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       value={suppliers.find(s => s.id === formData.primarySupplierId) || null}
                       onChange={(event, newValue) => {
                         const selectedSupplierId = newValue?.id || '';
-                        const selectedSupplier = newValue;
-                        
-                        // Seçilen tedarikçinin malzeme türlerinden ilkini otomatik seç
-                        const autoMaterialType = selectedSupplier?.materialTypes?.[0] || '';
                         
                         setFormData({ 
                           ...formData, 
-                          primarySupplierId: selectedSupplierId,
-                          materialType: autoMaterialType
+                          primarySupplierId: selectedSupplierId
                         });
                       }}
                       renderInput={(params) => (
@@ -5645,16 +5616,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     />
                   </Grid>
 
-                  {/* Malzeme Türü - Otomatik Seçilen */}
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Malzeme Türü"
-                      value={formData.materialType || 'Ana tedarikçi seçildikten sonra otomatik belirlenecek'}
-                      disabled
-                      helperText="Ana tedarikçinin malzeme türlerinden otomatik seçilir"
-                    />
-                  </Grid>
+
 
                   {/* Kategori */}
                   <Grid item xs={12} md={6}>
