@@ -3193,6 +3193,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
     }
   })) as any;
   const [activeTab, setActiveTab] = useState(0);
+  const [viewModalTab, setViewModalTab] = useState(0);
   const [expanded, setExpanded] = useState<string | false>('filters');
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view' | 'calibration'>('create');
@@ -3680,6 +3681,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
     setSelectedEquipment(equipment);
     setDialogMode('view');
     setDialogTitle(`${equipment.name} - Detaylar`);
+    setViewModalTab(0); // Tab'ı sıfırla
     setOpenDialog(true);
   }, []);
 
@@ -6353,8 +6355,374 @@ const EquipmentCalibrationManagement: React.FC = () => {
             </Box>
             </Box>
           ) : dialogMode === 'view' ? (
-            <Box sx={{ p: 3 }}>
-              <Typography>Görüntüleme modu - Ekipman detayları burada gösterilecek</Typography>
+            <Box sx={{ maxHeight: '70vh', overflow: 'auto' }}>
+              {selectedEquipment && (
+                <Box sx={{ p: 3 }}>
+                  {/* Başlık ve Temel Bilgiler */}
+                  <Paper sx={{ p: 3, mb: 3, bgcolor: 'primary.main', color: 'white' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <BuildIcon sx={{ fontSize: 40 }} />
+                      <Box>
+                        <Typography variant="h5" fontWeight="bold">
+                          {selectedEquipment.name}
+                        </Typography>
+                        <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>
+                          Ekipman Kodu: {selectedEquipment.equipmentCode}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      <Chip 
+                        label={selectedEquipment.status === 'active' ? 'Aktif' : 
+                              selectedEquipment.status === 'inactive' ? 'İnaktif' :
+                              selectedEquipment.status === 'calibration' ? 'Kalibrasyonda' : 'Hizmet Dışı'}
+                        color={selectedEquipment.status === 'active' ? 'success' : 
+                               selectedEquipment.status === 'calibration' ? 'warning' : 'error'}
+                        sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                      />
+                      <Chip 
+                        label={selectedEquipment.calibrationStatus === 'valid' ? 'Kalibrasyon Geçerli' :
+                               selectedEquipment.calibrationStatus === 'due' ? 'Kalibrasyon Yakın' :
+                               selectedEquipment.calibrationStatus === 'overdue' ? 'Kalibrasyon Gecikmiş' : 'Kalibrasyon Geçersiz'}
+                        color={selectedEquipment.calibrationStatus === 'valid' ? 'success' : 
+                               selectedEquipment.calibrationStatus === 'due' ? 'warning' : 'error'}
+                        sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                      />
+                      {selectedEquipment.criticalEquipment && (
+                        <Chip 
+                          label="Kritik Ekipman" 
+                          color="error"
+                          sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                        />
+                      )}
+                    </Box>
+                  </Paper>
+
+                  <Tabs value={viewModalTab} onChange={(e, newValue) => setViewModalTab(newValue)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+                    <Tab label="Genel Bilgiler" />
+                    <Tab label="Kalibrasyon Bilgileri" />
+                    <Tab label="Sertifikalar" />
+                    <Tab label="Sorumlu Personel" />
+                  </Tabs>
+
+                  {/* Tab 0: Genel Bilgiler */}
+                  {viewModalTab === 0 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <EngineeringIcon color="primary" />
+                        Genel Bilgiler
+                      </Typography>
+                    
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                        {/* Sol Panel */}
+                        <Paper sx={{ p: 3, borderLeft: '4px solid', borderColor: 'primary.main' }}>
+                          <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="primary">
+                            Teknik Özellikler
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Üretici</Typography>
+                              <Typography variant="body1" fontWeight="bold">{selectedEquipment.manufacturer || 'Belirtilmemiş'}</Typography>
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Model</Typography>
+                              <Typography variant="body1" fontWeight="bold">{selectedEquipment.model || 'Belirtilmemiş'}</Typography>
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Seri Numarası</Typography>
+                              <Typography variant="body1" fontWeight="bold">{selectedEquipment.serialNumber}</Typography>
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Kategori</Typography>
+                              <Typography variant="body1" fontWeight="bold">{selectedEquipment.category}</Typography>
+                            </Box>
+                            {selectedEquipment.measurementRange && (
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">Ölçüm Aralığı</Typography>
+                                <Typography variant="body1" fontWeight="bold">{selectedEquipment.measurementRange}</Typography>
+                              </Box>
+                            )}
+                            {selectedEquipment.measurementUncertainty && (
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">Ölçüm Belirsizliği</Typography>
+                                <Typography variant="body1" fontWeight="bold">±{selectedEquipment.measurementUncertainty}</Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        </Paper>
+
+                        {/* Sağ Panel */}
+                        <Paper sx={{ p: 3, borderLeft: '4px solid', borderColor: 'info.main' }}>
+                          <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="info.main">
+                            Konum ve Organizasyon
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Konum</Typography>
+                              <Typography variant="body1" fontWeight="bold">{selectedEquipment.location || 'Belirtilmemiş'}</Typography>
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Departman</Typography>
+                              <Typography variant="body1" fontWeight="bold">{selectedEquipment.department || 'Belirtilmemiş'}</Typography>
+                            </Box>
+                          </Box>
+                        </Paper>
+                      </Box>
+
+                      {/* Ek Bilgiler */}
+                      {(selectedEquipment.specifications || selectedEquipment.notes || selectedEquipment.operatingManual) && (
+                        <Paper sx={{ p: 3, mt: 3, borderLeft: '4px solid', borderColor: 'grey.400' }}>
+                          <Typography variant="subtitle1" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <AssessmentIcon color="action" />
+                            Ek Bilgiler
+                          </Typography>
+                          {selectedEquipment.specifications && (
+                            <Box sx={{ mb: 2 }}>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>Teknik Özellikler</Typography>
+                              <Typography variant="body2" sx={{ 
+                                bgcolor: 'grey.50', 
+                                p: 2, 
+                                borderRadius: 1, 
+                                border: '1px solid', 
+                                borderColor: 'grey.200' 
+                              }}>
+                                {selectedEquipment.specifications}
+                              </Typography>
+                            </Box>
+                          )}
+                          {selectedEquipment.operatingManual && (
+                            <Box sx={{ mb: 2 }}>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>Kullanım Kılavuzu</Typography>
+                              <Typography variant="body2" sx={{ 
+                                bgcolor: 'grey.50', 
+                                p: 2, 
+                                borderRadius: 1, 
+                                border: '1px solid', 
+                                borderColor: 'grey.200' 
+                              }}>
+                                {selectedEquipment.operatingManual}
+                              </Typography>
+                            </Box>
+                          )}
+                          {selectedEquipment.notes && (
+                            <Box>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>Notlar</Typography>
+                              <Typography variant="body2" sx={{ 
+                                bgcolor: 'grey.50', 
+                                p: 2, 
+                                borderRadius: 1, 
+                                border: '1px solid', 
+                                borderColor: 'grey.200' 
+                              }}>
+                                {selectedEquipment.notes}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Paper>
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Tab 1: Kalibrasyon Bilgileri */}
+                  {viewModalTab === 1 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <ScienceIcon color="warning" />
+                        Kalibrasyon Bilgileri
+                      </Typography>
+                      
+                      <Paper sx={{ p: 3, borderLeft: '4px solid', borderColor: 'warning.main' }}>
+                        <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="warning.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <ScienceIcon />
+                          Kalibrasyon Durumu
+                        </Typography>
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Kalibrasyon Gerekli</Typography>
+                            <Typography variant="body1" fontWeight="bold">
+                              {selectedEquipment.calibrationRequired ? 'Evet' : 'Hayır'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Kalibrasyon Sıklığı</Typography>
+                            <Typography variant="body1" fontWeight="bold">
+                              {selectedEquipment.calibrationFrequency} ay
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Son Kalibrasyon</Typography>
+                            <Typography variant="body1" fontWeight="bold">
+                              {selectedEquipment.lastCalibrationDate ? formatDate(selectedEquipment.lastCalibrationDate) : 'Hiç yapılmamış'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Sonraki Kalibrasyon</Typography>
+                            <Typography variant="body1" fontWeight="bold" color={
+                              selectedEquipment.calibrationStatus === 'overdue' ? 'error.main' :
+                              selectedEquipment.calibrationStatus === 'due' ? 'warning.main' : 'success.main'
+                            }>
+                              {selectedEquipment.nextCalibrationDate ? formatDate(selectedEquipment.nextCalibrationDate) : 'Planlanmamış'}
+                            </Typography>
+                          </Box>
+                          {selectedEquipment.calibrationCompany && (
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Kalibrasyon Firması</Typography>
+                              <Typography variant="body1" fontWeight="bold">{selectedEquipment.calibrationCompany}</Typography>
+                            </Box>
+                          )}
+                          {selectedEquipment.lastCalibrationCertificateNumber && (
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Son Sertifika No</Typography>
+                              <Typography variant="body1" fontWeight="bold">{selectedEquipment.lastCalibrationCertificateNumber}</Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </Paper>
+                    </Box>
+                  )}
+
+                  {/* Tab 2: Sertifikalar */}
+                  {viewModalTab === 2 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CertificateIcon color="secondary" />
+                        Sertifikalar
+                      </Typography>
+                      
+                      {selectedEquipment.certificates && selectedEquipment.certificates.length > 0 ? (
+                        <Paper sx={{ p: 3, borderLeft: '4px solid', borderColor: 'secondary.main' }}>
+                          <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="secondary.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CertificateIcon />
+                            Kalibrasyon Sertifikaları ({selectedEquipment.certificates.length})
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {selectedEquipment.certificates.map((cert, index) => (
+                              <Paper key={cert.id} sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
+                                  <Box>
+                                    <Typography variant="caption" color="text.secondary">Sertifika No</Typography>
+                                    <Typography variant="body2" fontWeight="bold">{cert.certificateNumber}</Typography>
+                                  </Box>
+                                  <Box>
+                                    <Typography variant="caption" color="text.secondary">Kalibrasyon Tarihi</Typography>
+                                    <Typography variant="body2" fontWeight="bold">{formatDate(cert.calibrationDate)}</Typography>
+                                  </Box>
+                                  <Box>
+                                    <Typography variant="caption" color="text.secondary">Geçerlilik</Typography>
+                                    <Typography variant="body2" fontWeight="bold">{formatDate(cert.nextDueDate)}</Typography>
+                                  </Box>
+                                  <Box>
+                                    <Typography variant="caption" color="text.secondary">Kalibratör</Typography>
+                                    <Typography variant="body2" fontWeight="bold">{cert.calibratorCompany}</Typography>
+                                  </Box>
+                                  <Box>
+                                    <Typography variant="caption" color="text.secondary">Durum</Typography>
+                                    <Chip 
+                                      label={cert.status === 'valid' ? 'Geçerli' : cert.status === 'expired' ? 'Süresi Dolmuş' : 'Geçersiz'}
+                                      color={cert.status === 'valid' ? 'success' : 'error'}
+                                      size="small"
+                                    />
+                                  </Box>
+                                  <Box>
+                                    <Typography variant="caption" color="text.secondary">Uygunluk</Typography>
+                                    <Chip 
+                                      label={cert.conformityAssessment === 'pass' ? 'Uygun' : 
+                                             cert.conformityAssessment === 'fail' ? 'Uygun Değil' : 'Şartlı'}
+                                      color={cert.conformityAssessment === 'pass' ? 'success' : 
+                                             cert.conformityAssessment === 'fail' ? 'error' : 'warning'}
+                                      size="small"
+                                    />
+                                  </Box>
+                                </Box>
+                                {cert.notes && (
+                                  <Box sx={{ mt: 2 }}>
+                                    <Typography variant="caption" color="text.secondary" gutterBottom>Notlar</Typography>
+                                    <Typography variant="body2" sx={{ 
+                                      bgcolor: 'white', 
+                                      p: 1, 
+                                      borderRadius: 1, 
+                                      border: '1px solid', 
+                                      borderColor: 'grey.300' 
+                                    }}>
+                                      {cert.notes}
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Paper>
+                            ))}
+                          </Box>
+                        </Paper>
+                      ) : (
+                        <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
+                          <Typography variant="body1" color="text.secondary">
+                            Bu ekipman için henüz sertifika kaydı bulunmamaktadır.
+                          </Typography>
+                        </Paper>
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Tab 3: Sorumlu Personel */}
+                  {viewModalTab === 3 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PersonAddIcon color="success" />
+                        Sorumlu Personel
+                      </Typography>
+                      
+                      {selectedEquipment.responsiblePersonName ? (
+                        <Paper sx={{ p: 3, borderLeft: '4px solid', borderColor: 'success.main' }}>
+                          <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="success.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <PersonAddIcon />
+                            Atanmış Personel Bilgileri
+                          </Typography>
+                          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Ana Sorumlu</Typography>
+                              <Typography variant="body1" fontWeight="bold">{selectedEquipment.responsiblePersonName}</Typography>
+                            </Box>
+                            {selectedEquipment.responsiblePersonSicilNo && (
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">Sicil Numarası</Typography>
+                                <Typography variant="body1" fontWeight="bold">{selectedEquipment.responsiblePersonSicilNo}</Typography>
+                              </Box>
+                            )}
+                          </Box>
+                          
+                          {/* Ek sorumlu personel listesi varsa */}
+                          {selectedEquipment.responsiblePersons && selectedEquipment.responsiblePersons.length > 0 && (
+                            <Box sx={{ mt: 3 }}>
+                              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                                Diğer Sorumlu Personel
+                              </Typography>
+                              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                {selectedEquipment.responsiblePersons.map((sicilNo, index) => {
+                                  const person = getPersonnelData().find(p => p.sicilNo === sicilNo);
+                                  return (
+                                    <Chip 
+                                      key={index}
+                                      label={person ? `${person.name} (${sicilNo})` : sicilNo}
+                                      color="primary"
+                                      variant="outlined"
+                                      size="small"
+                                    />
+                                  );
+                                })}
+                              </Box>
+                            </Box>
+                          )}
+                        </Paper>
+                      ) : (
+                        <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
+                          <Typography variant="body1" color="text.secondary">
+                            Bu ekipman için henüz sorumlu personel atanmamıştır.
+                          </Typography>
+                        </Paper>
+                      )}
+                    </Box>
+                  )}
+                </Box>
+              )}
             </Box>
           ) : (
             <Box sx={{ p: 3 }}>

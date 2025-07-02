@@ -7072,6 +7072,13 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           // Yeni ekleme
           const newTarget: SimpleVehicleTarget = {
             ...targetFormData,
+            kategori: targetFormData.kategori || '', // Kategori alanını zorunlu olarak ekle
+            isActive: targetFormData.isActive ?? true, // isActive alanını garantile
+            hedefler: targetFormData.hedefler || {
+              maksRetAdet: 2,
+              maksHurdaKg: 5,
+              maksFireKg: 3
+            },
             id: Date.now().toString(),
             createdDate: new Date().toISOString()
           };
@@ -7127,7 +7134,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     };
 
     const handleDeleteTarget = (targetId: string) => {
-      if (confirm('Bu hedefi silmek istediğinizden emin misiniz?')) {
+      if (window.confirm('Bu hedefi silmek istediğinizden emin misiniz?')) {
         try {
           const currentTargets = JSON.parse(localStorage.getItem('vehicle-targets') || '[]') as SimpleVehicleTarget[];
           const updatedTargets = currentTargets.filter(target => target.id !== targetId);
@@ -7315,8 +7322,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       ...targetFormData, 
                       hedefler: {
                         ...targetFormData.hedefler, 
-                        maksRetAdet: retAdet,
-                        maksRetMaliyet: retAdet * 2500 // Varsayılan birim maliyet
+                        maksRetAdet: retAdet
                       }
                     });
                   }}
