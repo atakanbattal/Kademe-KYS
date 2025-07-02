@@ -522,6 +522,7 @@ interface VehicleTarget {
   id: string;
   aracModeli?: VehicleModel; // Optional çünkü kategori bazlı da olabilir
   kategori?: VehicleCategory; // Yeni: kategori bazlı hedefler
+  displayName?: string; // ✅ Görüntülenecek isim
   donem: string;            // 2025-01, 2025-Q1, 2025
   donemTuru: 'ay' | 'ceyrek' | 'yil';
   
@@ -7012,6 +7013,20 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     );
   };
 
+  // ✅ Basit Hedef Yönetimi Interface'i
+  interface SimpleVehicleTarget {
+    id: string;
+    kategori: string;
+    displayName?: string;
+    hedefler: {
+      maksRetAdet: number;
+      maksHurdaKg: number;
+      maksFireKg: number;
+    };
+    isActive: boolean;
+    createdDate: string;
+  }
+
   // ✅ Hedef Yönetimi Sekmesi Component'i
   const VehicleTargetManagementTab: React.FC<{
     vehicleTargets: VehicleTarget[];
@@ -7024,8 +7039,13 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       displayName: '',
       hedefler: {
         maksRetAdet: 2,
+        maksRetMaliyet: 5000,
         maksHurdaKg: 5,
-        maksFireKg: 3
+        maksHurdaMaliyet: 2500,
+        maksFireKg: 3,
+        maksFireMaliyet: 1500,
+        toplamMaksimumMaliyet: 9000,
+        hedefVerimlilik: 95
       },
       isActive: true
     });
@@ -7042,22 +7062,23 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
     const handleSaveTarget = () => {
       try {
-        const currentTargets = JSON.parse(localStorage.getItem('vehicle-targets') || '[]') as VehicleTarget[];
+        const currentTargets = JSON.parse(localStorage.getItem('vehicle-targets') || '[]') as SimpleVehicleTarget[];
         
         if (editingTarget) {
-          // Güncelleme
+          // Güncelleme (SimpleVehicleTarget'tan gelen)
+          const simpleTarget = editingTarget as any; // Type assertion
           const updatedTargets = currentTargets.map(target => 
-            target.id === editingTarget.id 
-              ? { ...targetFormData, id: editingTarget.id }
+            target.id === simpleTarget.id 
+              ? { ...targetFormData, id: simpleTarget.id, createdDate: simpleTarget.createdDate || new Date().toISOString() }
               : target
           );
           localStorage.setItem('vehicle-targets', JSON.stringify(updatedTargets));
         } else {
           // Yeni ekleme
-          const newTarget: VehicleTarget = {
+          const newTarget: SimpleVehicleTarget = {
             ...targetFormData,
             id: Date.now().toString(),
-            createdAt: new Date().toISOString()
+            createdDate: new Date().toISOString()
           };
           const updatedTargets = [...currentTargets, newTarget];
           localStorage.setItem('vehicle-targets', JSON.stringify(updatedTargets));
@@ -7085,13 +7106,19 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       }
     };
 
-    const handleEditTarget = (target: VehicleTarget) => {
+    const handleEditTarget = (target: VehicleTarget | SimpleVehicleTarget) => {
       setEditingTarget(target);
+      // SimpleVehicleTarget formatına dönüştür
+      const simpleTarget = target as SimpleVehicleTarget;
       setTargetFormData({
-        kategori: target.kategori || '',
-        displayName: target.displayName || '',
-        hedefler: target.hedefler,
-        isActive: target.isActive !== false
+        kategori: simpleTarget.kategori || (target as VehicleTarget).kategori || '',
+        displayName: simpleTarget.displayName || '',
+        hedefler: simpleTarget.hedefler || {
+          maksRetAdet: 2,
+          maksHurdaKg: 5,
+          maksFireKg: 3
+        },
+        isActive: simpleTarget.isActive !== false
       });
       setTargetFormOpen(true);
     };
@@ -7099,7 +7126,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     const handleDeleteTarget = (targetId: string) => {
       if (confirm('Bu hedefi silmek istediğinizden emin misiniz?')) {
         try {
-          const currentTargets = JSON.parse(localStorage.getItem('vehicle-targets') || '[]') as VehicleTarget[];
+          const currentTargets = JSON.parse(localStorage.getItem('vehicle-targets') || '[]') as SimpleVehicleTarget[];
           const updatedTargets = currentTargets.filter(target => target.id !== targetId);
           localStorage.setItem('vehicle-targets', JSON.stringify(updatedTargets));
           onTargetUpdate(Date.now());
@@ -7279,10 +7306,17 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   label="Maksimum Ret Adedi"
                   type="number"
                   value={targetFormData.hedefler.maksRetAdet}
-                  onChange={(e) => setTargetFormData({
-                    ...targetFormData, 
-                    hedefler: {...targetFormData.hedefler, maksRetAdet: parseInt(e.target.value) || 0}
-                  })}
+                  onChange={(e) => {
+                    const retAdet = parseInt(e.target.value) || 0;
+                    setTargetFormData({
+                      ...targetFormData, 
+                      hedefler: {
+                        ...targetFormData.hedefler, 
+                        maksRetAdet: retAdet,
+                        maksRetMaliyet: retAdet * 2500 // Varsayılan birim maliyet
+                      }
+                    });
+                  }}
                   InputProps={{
                     endAdornment: <InputAdornment position="end">adet/araç</InputAdornment>
                   }}
