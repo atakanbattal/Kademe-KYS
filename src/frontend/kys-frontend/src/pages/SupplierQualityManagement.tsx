@@ -1133,12 +1133,15 @@ const SupplierQualityManagement: React.FC = () => {
       localStorage.removeItem('supplier-pairs');
       localStorage.removeItem('supplier-audits');
       console.log('🗑️ Tedarikçi cache temizlendi');
-      showSnackbar('Tedarikçi verileri cache\'i temizlendi. Sayfa yenileniyor...', 'info');
       
-      // Verileri yeniden yükle
-      setTimeout(() => {
-        loadMockData();
-      }, 1000);
+      // State'leri temizle
+      setSuppliers([]);
+      setNonconformities([]);
+      setDefects([]);
+      setSupplierPairs([]);
+      setAudits([]);
+      
+      showSnackbar('Tedarikçi verileri cache\'i temizlendi. Yeni veriler girilebilir.', 'info');
     } catch (error) {
       console.error('❌ Cache temizleme hatası:', error);
       showSnackbar('Cache temizleme sırasında hata oluştu', 'error');
@@ -2393,20 +2396,15 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
 
   // Dashboard component
   const renderDashboard = () => {
-    // Gelişmiş analizler için hesaplamalar
-    const evaluatedSuppliers = suppliers.filter(s => s.lastAuditDate && s.lastAuditDate !== '');
-    const avgPerformance = evaluatedSuppliers.length > 0 
-      ? Math.round(evaluatedSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / evaluatedSuppliers.length)
+    // Temel metrikler - sadece mevcut tedarikçiler üzerinden hesaplanıyor
+    const totalSuppliers = suppliers.length;
+    const activeSuppliers = suppliers.filter(s => s.status === 'aktif');
+    const avgPerformance = suppliers.length > 0 
+      ? Math.round(suppliers.reduce((acc, s) => acc + s.performanceScore, 0) / suppliers.length)
       : 0;
     
     const openNonconformities = nonconformities.filter(nc => nc.status === 'açık');
     const criticalSuppliers = suppliers.filter(s => s.riskLevel === 'kritik' || s.riskLevel === 'yüksek');
-    
-    // Denetim performans analizi
-    const overdueAudits = suppliers.filter(s => new Date(s.nextAuditDate) < new Date()).length;
-    const auditComplianceRate = suppliers.length > 0 
-      ? Math.round(((suppliers.length - overdueAudits) / suppliers.length) * 100) 
-      : 100;
     
     // Uygunsuzluk çözüm performansı
     const totalNonconformities = nonconformities.length;
@@ -2415,56 +2413,63 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       ? Math.round((resolvedNonconformities / totalNonconformities) * 100) 
       : 100;
     
-    // Kategori bazlı performans
-    const stratejikSuppliers = suppliers.filter(s => s.category === 'stratejik');
-    const kritikSuppliers = suppliers.filter(s => s.category === 'kritik');
+    // Kategori bazlı performans - gerçek veriler
+    const categoryData = [
+      { name: 'Stratejik', key: 'stratejik' },
+      { name: 'Kritik', key: 'kritik' },
+      { name: 'Rutin', key: 'rutin' },
+      { name: 'Genel', key: 'genel' }
+    ].map(cat => {
+      const categorySuppliers = suppliers.filter(s => s.category === cat.key);
+      const avgScore = categorySuppliers.length > 0 
+        ? Math.round(categorySuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / categorySuppliers.length)
+        : 0;
+      return {
+        category: cat.name,
+        ortalama: avgScore,
+        adet: categorySuppliers.length,
+        hedef: cat.key === 'stratejik' ? 90 : cat.key === 'kritik' ? 85 : cat.key === 'rutin' ? 80 : 75
+      };
+    }).filter(cat => cat.adet > 0); // Sadece tedarikçisi olan kategorileri göster
     
-    const stratejikAvg = stratejikSuppliers.length > 0 
-      ? Math.round(stratejikSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / stratejikSuppliers.length)
-      : 0;
-    
-    const kritikAvg = kritikSuppliers.length > 0 
-      ? Math.round(kritikSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / kritikSuppliers.length)
-      : 0;
+    // Performans karşılaştırması için tedarikçiler - tüm aktif tedarikçiler
+    const performanceData = suppliers
+      .filter(s => s.status === 'aktif')
+      .slice(0, 8) // En fazla 8 tedarikçi göster
+      .map(s => ({
+        name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
+        kalite: s.qualityScore,
+        teslimat: s.deliveryScore,
+        genel: s.performanceScore
+      }));
 
     return (
       <Grid container spacing={3}>
-        {/* Enhanced KPI Cards */}
+        {/* Tedarikçi Sayısı */}
         <Grid item xs={12} md={3}>
-          <Card elevation={6} sx={{ 
-            borderRadius: 4, 
+          <Card elevation={3} sx={{ 
+            borderRadius: 3, 
             background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
             color: 'white',
-            position: 'relative',
-            overflow: 'hidden'
+            height: '140px'
           }}>
-            <Box sx={{
-              position: 'absolute',
-              top: -20,
-              right: -20,
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }} />
-            <CardContent>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Box display="flex" alignItems="center" gap={2}>
-                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', width: 56, height: 56 }}>
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
                   <BusinessIcon fontSize="large" />
                 </Avatar>
                 <Box flex={1}>
-                  <Typography variant="h3" fontWeight="bold" sx={{ color: 'white' }}>
-                    {suppliers.filter(s => s.type === 'onaylı').length}
+                  <Typography variant="h4" fontWeight="bold">
+                    {totalSuppliers}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                    Onaylı Tedarikçi
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Toplam Tedarikçi
                   </Typography>
-                  <Box display="flex" alignItems="center" gap={1} mt={1}>
-                    <TrendingUpIcon fontSize="small" sx={{ color: '#4caf50' }} />
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                      {suppliers.filter(s => s.type === 'alternatif').length} alternatif mevcut
+                  {totalSuppliers > 0 && (
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      {activeSuppliers.length} aktif
                     </Typography>
-                  </Box>
+                  )}
                 </Box>
               </Box>
             </CardContent>
@@ -2472,44 +2477,31 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Grid>
 
         <Grid item xs={12} md={3}>
-          <Card elevation={6} sx={{ 
-            borderRadius: 4, 
-            background: avgPerformance >= 85 ? 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' : 
-                        avgPerformance >= 70 ? 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' : 
+          <Card elevation={3} sx={{ 
+            borderRadius: 3, 
+            background: avgPerformance >= 85 ? 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)' : 
+                        avgPerformance >= 70 ? 'linear-gradient(135deg, #e65100 0%, #d84315 100%)' : 
                         'linear-gradient(135deg, #d32f2f 0%, #c62828 100%)',
             color: 'white',
-            position: 'relative',
-            overflow: 'hidden'
+            height: '140px'
           }}>
-            <Box sx={{
-              position: 'absolute',
-              bottom: -20,
-              left: -20,
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }} />
-            <CardContent>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Box display="flex" alignItems="center" gap={2}>
-                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', width: 56, height: 56 }}>
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
                   <AssessmentIcon fontSize="large" />
                 </Avatar>
                 <Box flex={1}>
-                  <Typography variant="h3" fontWeight="bold" sx={{ color: 'white' }}>
-                    {avgPerformance}
+                  <Typography variant="h4" fontWeight="bold">
+                    {totalSuppliers > 0 ? avgPerformance : 0}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
                     Ortalama Performans
                   </Typography>
-                  <Box display="flex" alignItems="center" gap={1} mt={1}>
-                    {avgPerformance >= 85 ? <TrendingUpIcon fontSize="small" sx={{ color: '#4caf50' }} /> : 
-                     avgPerformance >= 70 ? <TrendingUpIcon fontSize="small" sx={{ color: '#ff9800' }} /> :
-                     <WarningIcon fontSize="small" sx={{ color: '#f44336' }} />}
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                      {evaluatedSuppliers.length} tedarikçi değerlendirildi
+                  {totalSuppliers > 0 && (
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      {suppliers.length} tedarikçi ortalaması
                     </Typography>
-                  </Box>
+                  )}
                 </Box>
               </Box>
             </CardContent>
@@ -2517,41 +2509,29 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Grid>
 
         <Grid item xs={12} md={3}>
-          <Card elevation={6} sx={{ 
-            borderRadius: 4, 
-            background: openNonconformities.length === 0 ? 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)' :
-                        openNonconformities.length <= 5 ? 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' :
-                        'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+          <Card elevation={3} sx={{ 
+            borderRadius: 3, 
+            background: 'linear-gradient(135deg, #d32f2f 0%, #c62828 100%)',
             color: 'white',
-            position: 'relative',
-            overflow: 'hidden'
+            height: '140px'
           }}>
-            <Box sx={{
-              position: 'absolute',
-              top: -10,
-              right: -10,
-              width: 60,
-              height: 60,
-              borderRadius: '50%',
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }} />
-            <CardContent>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Box display="flex" alignItems="center" gap={2}>
-                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', width: 56, height: 56 }}>
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
                   <WarningIcon fontSize="large" />
                 </Avatar>
                 <Box flex={1}>
-                  <Typography variant="h3" fontWeight="bold" sx={{ color: 'white' }}>
+                  <Typography variant="h4" fontWeight="bold">
                     {openNonconformities.length}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                    Açık Uygunsuzluk
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Açık Sorun
                   </Typography>
-                  <Box display="flex" alignItems="center" gap={1} mt={1}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                      %{resolutionRate} çözüm oranı
+                  {totalNonconformities > 0 && (
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      {totalNonconformities} toplam kayıt
                     </Typography>
-                  </Box>
+                  )}
                 </Box>
               </Box>
             </CardContent>
@@ -2559,41 +2539,29 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Grid>
 
         <Grid item xs={12} md={3}>
-          <Card elevation={6} sx={{ 
-            borderRadius: 4, 
-            background: auditComplianceRate >= 95 ? 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)' :
-                                                  auditComplianceRate >= 80 ? 'linear-gradient(135deg, #e65100 0%, #d84315 100%)' :
-                        'linear-gradient(135deg, #d32f2f 0%, #c62828 100%)',
+          <Card elevation={3} sx={{ 
+            borderRadius: 3, 
+            background: 'linear-gradient(135deg, #e65100 0%, #d84315 100%)',
             color: 'white',
-            position: 'relative',
-            overflow: 'hidden'
+            height: '140px'
           }}>
-            <Box sx={{
-              position: 'absolute',
-              bottom: -15,
-              right: -15,
-              width: 70,
-              height: 70,
-              borderRadius: '50%',
-              bgcolor: 'rgba(255,255,255,0.1)'
-            }} />
-            <CardContent>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Box display="flex" alignItems="center" gap={2}>
-                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', width: 56, height: 56 }}>
-                  <ScheduleIcon fontSize="large" />
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
+                  <CheckCircleIcon fontSize="large" />
                 </Avatar>
                 <Box flex={1}>
-                  <Typography variant="h3" fontWeight="bold" sx={{ color: 'white' }}>
-                    %{auditComplianceRate}
+                  <Typography variant="h4" fontWeight="bold">
+                    %{resolutionRate}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                    Denetim Uyum Oranı
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Çözüm Oranı
                   </Typography>
-                  <Box display="flex" alignItems="center" gap={1} mt={1}>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                      {overdueAudits} gecikmiş denetim
+                  {totalNonconformities > 0 && (
+                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                      {resolvedNonconformities}/{totalNonconformities}
                     </Typography>
-                  </Box>
+                  )}
                 </Box>
               </Box>
             </CardContent>
@@ -2602,174 +2570,168 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
 
         {/* Kategori Bazlı Performans Analizi */}
         <Grid item xs={12} md={6}>
-          <Card elevation={4} sx={{ borderRadius: 3, height: '100%' }}>
+          <Card elevation={3} sx={{ borderRadius: 3, height: '100%' }}>
             <CardHeader 
               title="Kategori Bazlı Performans" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%)' }}
             />
             <CardContent>
-              <Box height={280}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[
-                    { category: 'Stratejik', ortalama: stratejikAvg, adet: stratejikSuppliers.length, hedef: 90 },
-                    { category: 'Kritik', ortalama: kritikAvg, adet: kritikSuppliers.length, hedef: 85 },
-                    { category: 'Rutin', ortalama: suppliers.filter(s => s.category === 'rutin').length > 0 ? Math.round(suppliers.filter(s => s.category === 'rutin').reduce((acc, s) => acc + s.performanceScore, 0) / suppliers.filter(s => s.category === 'rutin').length) : 0, adet: suppliers.filter(s => s.category === 'rutin').length, hedef: 80 },
-                    { category: 'Genel', ortalama: suppliers.filter(s => s.category === 'genel').length > 0 ? Math.round(suppliers.filter(s => s.category === 'genel').reduce((acc, s) => acc + s.performanceScore, 0) / suppliers.filter(s => s.category === 'genel').length) : 0, adet: suppliers.filter(s => s.category === 'genel').length, hedef: 75 }
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="category" tick={{ fontSize: 12 }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
-                    <ChartTooltip 
-                      formatter={(value: any, name: any, props: any) => [
-                        name === 'ortalama' ? `${value} puan` : `${value} tedarikçi`,
-                        name === 'ortalama' ? 'Ortalama Performans' : 
-                        name === 'hedef' ? 'Hedef' : 'Tedarikçi Sayısı'
-                      ]}
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        border: '1px solid #ddd',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="ortalama" fill="#1976d2" name="Ortalama Performans" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="hedef" fill="#f57c00" name="Hedef" radius={[4, 4, 0, 0]} stroke="#e65100" strokeWidth={2} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
+              {categoryData.length > 0 ? (
+                <Box height={280}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={categoryData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="category" tick={{ fontSize: 12 }} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+                      <ChartTooltip 
+                        formatter={(value: any, name: any, props: any) => [
+                          `${value} puan`,
+                          name === 'ortalama' ? 'Ortalama Performans' : 
+                          name === 'hedef' ? 'Hedef Performans' : 'Tedarikçi Puanı'
+                        ]}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Legend />
+                      <Bar dataKey="ortalama" fill="#1976d2" name="Ortalama Performans" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="hedef" fill="#f57c00" name="Hedef" radius={[4, 4, 0, 0]} stroke="#e65100" strokeWidth={2} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Box height={280} display="flex" alignItems="center" justifyContent="center" flexDirection="column" gap={2}>
+                  <BusinessIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+                  <Typography variant="body2" color="text.secondary" textAlign="center">
+                    Henüz tedarikçi bulunmuyor.<br />
+                    Performans analizi için tedarikçi ekleyin.
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Risk ve Aksiyon Matrisi */}
+        {/* Risk Dağılımı */}
         <Grid item xs={12} md={6}>
-          <Card elevation={4} sx={{ borderRadius: 3, height: '100%' }}>
+          <Card elevation={3} sx={{ borderRadius: 3, height: '100%' }}>
             <CardHeader 
-              title="Risk & Aksiyon Matrisi" 
+              title="Risk Dağılımı" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)' }}
             />
             <CardContent>
-              <Grid container spacing={2} sx={{ height: 280 }}>
-                {[
-                  { level: 'Kritik', count: suppliers.filter(s => s.riskLevel === 'kritik').length, color: '#d32f2f' },
-                  { level: 'Yüksek', count: suppliers.filter(s => s.riskLevel === 'yüksek').length, color: '#f57c00' },
-                  { level: 'Orta', count: suppliers.filter(s => s.riskLevel === 'orta').length, color: '#fbc02d' },
-                  { level: 'Düşük', count: suppliers.filter(s => s.riskLevel === 'düşük').length, color: '#388e3c' }
-                ].map((risk, index) => (
-                  <Grid item xs={6} key={risk.level}>
-                    <Card 
-                      elevation={2} 
-                      sx={{ 
-                        p: 2, 
-                        textAlign: 'center', 
-                        background: `linear-gradient(135deg, ${risk.color}15 0%, ${risk.color}25 100%)`,
-                        border: `2px solid ${risk.color}30`,
-                        borderRadius: 3,
-                        height: '120px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center'
-                      }}
-                    >
-
-                      <Typography variant="h4" fontWeight="bold" sx={{ color: risk.color }}>
-                        {risk.count}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: risk.color, fontWeight: 600 }}>
-                        {risk.level} Risk
-                      </Typography>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+              {totalSuppliers > 0 ? (
+                <Grid container spacing={2} sx={{ height: 280 }}>
+                  {[
+                    { level: 'Kritik', count: suppliers.filter(s => s.riskLevel === 'kritik').length, color: '#d32f2f' },
+                    { level: 'Yüksek', count: suppliers.filter(s => s.riskLevel === 'yüksek').length, color: '#f57c00' },
+                    { level: 'Orta', count: suppliers.filter(s => s.riskLevel === 'orta').length, color: '#fbc02d' },
+                    { level: 'Düşük', count: suppliers.filter(s => s.riskLevel === 'düşük').length, color: '#388e3c' }
+                  ].map((risk, index) => (
+                    <Grid item xs={6} key={risk.level}>
+                      <Card 
+                        elevation={2} 
+                        sx={{ 
+                          p: 2, 
+                          textAlign: 'center', 
+                          background: `linear-gradient(135deg, ${risk.color}15 0%, ${risk.color}25 100%)`,
+                          border: `2px solid ${risk.color}30`,
+                          borderRadius: 3,
+                          height: '120px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Typography variant="h4" fontWeight="bold" sx={{ color: risk.color }}>
+                          {risk.count}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: risk.color, fontWeight: 600 }}>
+                          {risk.level} Risk
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                          {totalSuppliers > 0 ? `%${Math.round((risk.count / totalSuppliers) * 100)}` : '0%'}
+                        </Typography>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Box height={280} display="flex" alignItems="center" justifyContent="center" flexDirection="column" gap={2}>
+                  <SecurityIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+                  <Typography variant="body2" color="text.secondary" textAlign="center">
+                    Henüz tedarikçi bulunmuyor.<br />
+                    Risk analizi için tedarikçi ekleyin.
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Gelişmiş Performans Chart */}
+        {/* Tedarikçi Performans Karşılaştırması */}
         <Grid item xs={12} md={8}>
-          <Card elevation={4} sx={{ borderRadius: 3 }}>
+          <Card elevation={3} sx={{ borderRadius: 3 }}>
             <CardHeader 
               title="Tedarikçi Performans Karşılaştırması" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #e1f5fe 100%)' }}
             />
             <CardContent>
-              <Box height={350}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={suppliers
-                    .filter(s => s.lastAuditDate && s.lastAuditDate !== '') // Sadece değerlendirilen tedarikçiler
-                    .slice(0, 10) // En fazla 10 tedarikçi göster
-                    .map(s => ({
-                      name: s.name.length > 12 ? s.name.substring(0, 12) + '...' : s.name,
-                      kalite: s.qualityScore,
-                      teslimat: s.deliveryScore,
-                      genel: s.performanceScore
-                    }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                    <ChartTooltip 
-                      formatter={(value: any, name: any) => [`${value} puan`, name]}
-                      labelStyle={{ fontWeight: 'bold' }}
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        border: '1px solid #ddd',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="kalite" fill="#2196f3" name="Kalite Skoru" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat Skoru" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="genel" fill="#1976d2" name="Genel Performans" radius={[2, 2, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
+              {performanceData.length > 0 ? (
+                <Box height={350}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={performanceData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                      <ChartTooltip 
+                        formatter={(value: any, name: any) => [`${value} puan`, name]}
+                        labelStyle={{ fontWeight: 'bold' }}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                      <Legend />
+                      <Bar dataKey="kalite" fill="#2196f3" name="Kalite" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="genel" fill="#1976d2" name="Genel" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Box height={350} display="flex" alignItems="center" justifyContent="center" flexDirection="column" gap={2}>
+                  <AssessmentIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+                  <Typography variant="body2" color="text.secondary" textAlign="center">
+                    Henüz aktif tedarikçi bulunmuyor.<br />
+                    Performans karşılaştırması için tedarikçi ekleyin.
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Operasyonel Metrikler */}
+        {/* İstatistikler */}
         <Grid item xs={12} md={4}>
-          <Card elevation={4} sx={{ borderRadius: 3, height: '100%' }}>
+          <Card elevation={3} sx={{ borderRadius: 3, height: '100%' }}>
             <CardHeader 
-              title="Operasyonel Metrikler" 
+              title="Sistem İstatistikleri" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%)' }}
             />
             <CardContent>
               <Box display="flex" flexDirection="column" gap={3} height={350} justifyContent="space-between">
-                {/* Denetim Başarı Oranı */}
+                {/* Çözüm Oranı */}
                 <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
                   <Typography variant="h4" fontWeight="bold" color="primary.main">
-                    %{auditComplianceRate}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Denetim Başarı Oranı
-                  </Typography>
-                  <Box mt={1}>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={auditComplianceRate} 
-                      sx={{ 
-                        height: 8, 
-                        borderRadius: 4,
-                        backgroundColor: '#e0e0e0',
-                        '& .MuiLinearProgress-bar': {
-                          backgroundColor: auditComplianceRate >= 90 ? '#4caf50' : 
-                                           auditComplianceRate >= 75 ? '#ff9800' : '#f44336'
-                        }
-                      }} 
-                    />
-                  </Box>
-                </Box>
-
-                {/* Uygunsuzluk Çözüm Oranı */}
-                <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
-                  <Typography variant="h4" fontWeight="bold" color="secondary.main">
                     %{resolutionRate}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
@@ -2792,6 +2754,19 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </Box>
                 </Box>
 
+                {/* Aktif Sorunlar */}
+                <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
+                  <Typography variant="h4" fontWeight="bold" color="warning.main">
+                    {openNonconformities.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Açık Uygunsuzluk
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {totalNonconformities > 0 ? `${totalNonconformities} toplam` : 'Hiç kayıt yok'}
+                  </Typography>
+                </Box>
+
                 {/* Risk Seviyesi */}
                 <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
                   <Typography variant="h4" fontWeight="bold" color="error.main">
@@ -2800,8 +2775,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   <Typography variant="body2" color="text.secondary">
                     Yüksek Risk Tedarikçi
                   </Typography>
-                  <Typography variant="caption" color="error.main">
-                    Acil aksiyon gerekli
+                  <Typography variant="caption" color="text.secondary">
+                    {totalSuppliers > 0 ? `${totalSuppliers} toplam` : 'Henüz tedarikçi yok'}
                   </Typography>
                 </Box>
               </Box>
