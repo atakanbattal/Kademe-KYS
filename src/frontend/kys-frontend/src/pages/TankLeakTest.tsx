@@ -92,7 +92,6 @@ interface TankInfo {
   material: string;
   capacity: number;
   productionDate: string;
-  batchNumber: string;
 }
 
 interface PersonnelItem {
@@ -195,7 +194,7 @@ interface RepairRecord {
   tankInfo: TankInfo; // Test'ten kopyalanır
   repairInfo: {
     repairDate: string;
-    estimatedDuration: number; // saat
+    duration: number; // saat - manuel giriş
     actualDuration?: number;
     priority: 'low' | 'medium' | 'high' | 'critical';
     repairType: 'welding' | 'patching' | 'replacement' | 'cleaning' | 'adjustment' | 'other';
@@ -222,7 +221,7 @@ interface RepairRecord {
     retestResult: 'passed' | 'failed' | 'conditional';
     finalApproval: boolean;
   };
-  status: 'planned' | 'in_progress' | 'quality_check' | 'retest_required' | 'completed' | 'cancelled';
+  status: 'planned' | 'in_progress' | 'quality_check' | 'conditional_accept' | 'retest_required' | 'completed' | 'cancelled';
   totalCost: number;
   createdAt: string;
   updatedAt: string;
@@ -280,7 +279,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
 const ErrorCard = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2),
   marginBottom: theme.spacing(2),
-  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+  backgroundColor: '#ffffff',
   border: '1px solid',
   borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
 }));
@@ -731,7 +730,6 @@ const TankLeakTest: React.FC = () => {
     material: '',
     capacity: 0,
     productionDate: '',
-    batchNumber: '',
   });
 
   const [personnel, setPersonnel] = useState<Personnel>({
@@ -1095,10 +1093,22 @@ const TankLeakTest: React.FC = () => {
       const timeId = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
       const newRepairId = `RPR-${shortId}-${timeId}`;
       
-      // Tamir türünü hataya göre belirle
+      // Tamir türünü hatanın tamir yönteminden belirle
       const determineRepairType = (): 'welding' | 'patching' | 'replacement' | 'cleaning' | 'adjustment' | 'other' => {
         if (test.errors && test.errors.length > 0) {
           const firstError = test.errors[0];
+          // Önce hata kaydındaki tamir yöntemini kontrol et
+          if (firstError.repairMethod) {
+            const method = firstError.repairMethod.toLowerCase();
+            if (method.includes('kaynak') || method.includes('welding')) return 'welding';
+            if (method.includes('yama') || method.includes('patch')) return 'patching';
+            if (method.includes('değişim') || method.includes('replacement')) return 'replacement';
+            if (method.includes('temizlik') || method.includes('cleaning')) return 'cleaning';
+            if (method.includes('ayar') || method.includes('adjustment')) return 'adjustment';
+            return 'other';
+          }
+          
+          // Eğer tamir yöntemi belirtilmemişse hata türüne göre belirle
           if (firstError.errorType.toLowerCase().includes('kaynak')) return 'welding';
           if (firstError.errorType.toLowerCase().includes('çatlak')) return 'patching';
           if (firstError.errorType.toLowerCase().includes('delik')) return 'patching';
@@ -1133,7 +1143,7 @@ const TankLeakTest: React.FC = () => {
         tankInfo: test.tankInfo,
         repairInfo: {
           repairDate: new Date().toISOString().split('T')[0],
-          estimatedDuration: estimatedDuration,
+          duration: estimatedDuration,
           priority: priority,
           repairType: repairType,
           rootCause: `${test.testParameters.testType} testinde başarısızlık tespit edildi`,
@@ -1328,12 +1338,11 @@ const TankLeakTest: React.FC = () => {
           type: ['Yakıt Tankı', 'Hidrolik Tankı', 'Su Tankı'][i % 3],
           material: 'Çelik',
           capacity: 200 + (i * 100),
-          productionDate: repairDate.toISOString().split('T')[0],
-          batchNumber: `BT-${String(i + 1).padStart(3, '0')}`
+          productionDate: repairDate.toISOString().split('T')[0]
         },
         repairInfo: {
           repairDate: repairDate.toISOString().split('T')[0],
-          estimatedDuration: 4 + (i * 2), // 4, 6, 8 saat
+          duration: 4 + (i * 2), // 4, 6, 8 saat
           actualDuration: status === 'completed' ? (4 + (i * 2) + Math.floor(Math.random() * 2)) : undefined,
           priority: priority,
           repairType: repairType,
@@ -1459,8 +1468,7 @@ const TankLeakTest: React.FC = () => {
           type: tankType,
           material: material,
           capacity: capacity,
-          productionDate: testDateString,
-          batchNumber: `BT-${String(i + 1).padStart(3, '0')}`
+          productionDate: testDateString
         },
         personnel: {
           welder: WELDERS_LIST[Math.floor(Math.random() * WELDERS_LIST.length)].name,
@@ -1654,11 +1662,101 @@ const TankLeakTest: React.FC = () => {
     });
   };
 
-  // Test türü değiştiğinde otomatik test koşullarını doldur
+  // Tamir türü çevirme fonksiyonu
+  const getRepairTypeDisplayName = (repair: RepairRecord): string => {
+    // Önce hata kaydından tamir yöntemini kontrol et
+    if (repair.errors && repair.errors.length > 0) {
+      for (const error of repair.errors) {
+        if (error.repairMethod && error.repairMethod.trim() !== '') {
+          return error.repairMethod;
+        }
+      }
+    }
+    
+    // Eğer hata kaydında tamir yöntemi yoksa genel çeviri
+    switch (repair.repairInfo.repairType) {
+      case 'welding': return 'Kaynak';
+      case 'patching': return 'Yama';
+      case 'replacement': return 'Değişim';
+      case 'cleaning': return 'Temizlik';
+      case 'adjustment': return 'Ayarlama';
+      default: return 'Diğer';
+    }
+  };
+
+  // Kademe A.Ş. Araç Modelleri
+  const KADEME_VEHICLE_MODELS = [
+    'Kademe Kamyon Serisi A',
+    'Kademe Kamyon Serisi B',
+    'Kademe Kamyon Serisi C',
+    'Kademe Tank Kamyonu',
+    'Kademe Özel Araç KD-100',
+    'Kademe Özel Araç KD-200',
+    'Kademe Özel Araç KD-300',
+    'Kademe İş Makinesi Serisi',
+    'Kademe Forklift Serisi',
+    'Kademe Vinç Serisi',
+    'Kademe Damperli Kamyon',
+    'Kademe Römork Serisi',
+    'Kademe Çekici Serisi',
+    'Kademe Belediye Aracı',
+    'Kademe Temizlik Aracı',
+    'Kademe Kargo Aracı',
+    'Kademe Soğutmalı Araç',
+    'Kademe Yakıt Tankeri',
+    'Kademe Su Tankeri',
+    'Kademe Kimyasal Tankeri'
+  ];
+
+  // Test türüne göre test ekipmanları
+  const getTestEquipmentOptions = (testType: string): string[] => {
+    const equipmentMap: { [key: string]: string[] } = {
+      'Basınç Testi': [
+        'Hidrolik Test Ünitesi',
+        'Pnömatik Test Cihazı', 
+        'Dijital Basınç Göstergesi',
+        'Manuel Basınç Pompası'
+      ],
+      'Sızdırmazlık Testi': [
+        'Sızdırmazlık Test Cihazı',
+        'Köpük Sıvısı Test Seti',
+        'Gaz Detektörü',
+        'Ultrasonik Sızdırmazlık Dedektörü',
+        'Helyum Sızdırmazlık Test Cihazı'
+      ],
+      'Tam Test': [
+        'Tam Test Ünitesi (Hidrolik+Pnömatik)',
+        'Entegre Test Sistemi',
+        'Çoklu Sensör Test Cihazı',
+        'Otomatik Test Ünitesi'
+      ],
+      'Vakum Testi': [
+        'Vakum Pompası',
+        'Vakumlu Test Cihazı',
+        'Dijital Vakum Göstergesi'
+      ],
+      'Su Basınç Testi': [
+        'Su Basınç Test Ünitesi',
+        'Hidrostatik Test Cihazı',
+        'Su Basınç Pompası'
+      ]
+    };
+    
+    return equipmentMap[testType] || [
+      'Genel Test Ekipmanı',
+      'Standart Test Cihazı',
+      'Manuel Test Seti'
+    ];
+  };
+
+  // Test türü değiştiğinde otomatik test koşullarını ve ekipmanları doldur
   const handleTestTypeChange = (selectedTestType: string) => {
+    const availableEquipment = getTestEquipmentOptions(selectedTestType);
+    
     const updatedTestParameters = {
       ...testParameters,
       testType: selectedTestType,
+      testEquipment: availableEquipment[0] || '', // İlk ekipmanı otomatik seç
       testConditions: PREDEFINED_TEST_CONDITIONS[selectedTestType] || undefined
     };
     setTestParameters(updatedTestParameters);
@@ -1731,7 +1829,6 @@ const TankLeakTest: React.FC = () => {
         material: '',
         capacity: 0,
         productionDate: '',
-        batchNumber: '',
       });
       setPersonnel({ welder: '', inspector: '' });
       setVehicleInfo({
@@ -1757,13 +1854,11 @@ const TankLeakTest: React.FC = () => {
         notes: '',
       });
 
-      // Sonuç bildirimi
+      // Sessiz kaydetme - bildirim yok
       if (automaticTestResult.result === 'failed') {
-        alert(`Test Başarısız!\n\n${errors.length} adet hata tespit edildi.\n\nTamir formu otomatik olarak oluşturuldu.\n\nTamir & Tadilat sekmesinde detayları görebilirsiniz.`);
         // Tamir sayfasına geç
         setActivePage('repair');
       } else {
-        alert('Test Başarılı!\n\nTüm kontroller geçti. Tank sızdırmazlık testi başarıyla tamamlandı.');
         // Test geçmişi sayfasına geç
         setActivePage('history');
       }
@@ -1923,8 +2018,7 @@ const TankLeakTest: React.FC = () => {
         [convertTurkish('Tank Türü'), convertTurkish(test.tankInfo.type || 'Belirtilmemiş')],
         [convertTurkish('Malzeme'), convertTurkish(test.tankInfo.material || 'Belirtilmemiş')],
         [convertTurkish('Kapasite'), `${test.tankInfo.capacity || 0} m³`],
-        [convertTurkish('Üretim Tarihi'), test.tankInfo.productionDate || convertTurkish('Belirtilmemiş')],
-        [convertTurkish('Parti Numarası'), test.tankInfo.batchNumber || convertTurkish('Belirtilmemiş')]
+        [convertTurkish('Üretim Tarihi'), test.tankInfo.productionDate || convertTurkish('Belirtilmemiş')]
       ];
       
       (doc as any).autoTable( {
@@ -2579,13 +2673,7 @@ const TankLeakTest: React.FC = () => {
                   InputLabelProps={{ shrink: true }}
                   required
                 />
-                <TextField
-                  label="Parti Numarası"
-                  value={tankInfo.batchNumber}
-                  onChange={(e) => setTankInfo({ ...tankInfo, batchNumber: e.target.value })}
-                  fullWidth
-                  required
-                />
+
               </Box>
             </CardContent>
           </StyledCard>
@@ -2644,13 +2732,18 @@ const TankLeakTest: React.FC = () => {
                   fullWidth
                   required
                 />
-                <TextField
-                  label="Test Ekipmanı"
-                  value={testParameters.testEquipment}
-                  onChange={(e) => setTestParameters({ ...testParameters, testEquipment: e.target.value })}
-                  fullWidth
-                  required
-                />
+                <FormControl fullWidth required>
+                  <InputLabel>Test Ekipmanı</InputLabel>
+                  <Select
+                    value={testParameters.testEquipment}
+                    onChange={(e) => setTestParameters({ ...testParameters, testEquipment: e.target.value })}
+                    label="Test Ekipmanı"
+                  >
+                    {getTestEquipmentOptions(testParameters.testType).map((equipment) => (
+                      <MenuItem key={equipment} value={equipment}>{equipment}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Box>
             </CardContent>
           </StyledCard>
@@ -3070,19 +3163,24 @@ const TankLeakTest: React.FC = () => {
             />
             <CardContent>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
-                <TextField
-                  label="Araç Modeli"
-                  value={vehicleInfo.model}
-                  onChange={(e) => setVehicleInfo({ ...vehicleInfo, model: e.target.value })}
-                  fullWidth
-                  required
-                />
+                <FormControl fullWidth required>
+                  <InputLabel>Araç Modeli</InputLabel>
+                  <Select
+                    value={vehicleInfo.model}
+                    onChange={(e) => setVehicleInfo({ ...vehicleInfo, model: e.target.value })}
+                    label="Araç Modeli"
+                  >
+                    {KADEME_VEHICLE_MODELS.map((model) => (
+                      <MenuItem key={model} value={model}>{model}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <TextField
                   label="Şasi Numarası (VIN)"
                   value={vehicleInfo.vinNumber}
                   onChange={(e) => setVehicleInfo({ ...vehicleInfo, vinNumber: e.target.value })}
                   fullWidth
-                  required
+                  helperText="Opsiyonel - Stok üretimi için boş bırakılabilir"
                 />
                 <FormControl fullWidth required>
                   <InputLabel>Tank Pozisyonu</InputLabel>
@@ -3844,13 +3942,7 @@ const TankLeakTest: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <Chip
-                              label={
-                                repair.repairInfo.repairType === 'welding' ? 'Kaynak' :
-                                repair.repairInfo.repairType === 'patching' ? 'Yama' :
-                                repair.repairInfo.repairType === 'replacement' ? 'Değişim' :
-                                repair.repairInfo.repairType === 'cleaning' ? 'Temizlik' :
-                                repair.repairInfo.repairType === 'adjustment' ? 'Ayarlama' : 'Diğer'
-                              }
+                              label={getRepairTypeDisplayName(repair)}
                               size="small"
                               variant="outlined"
                               sx={{ 
@@ -3886,12 +3978,14 @@ const TankLeakTest: React.FC = () => {
                                 repair.status === 'planned' ? 'Planlanan' :
                                 repair.status === 'in_progress' ? 'Devam Ediyor' :
                                 repair.status === 'quality_check' ? 'Kalite Kontrolü' :
+                                repair.status === 'conditional_accept' ? 'Şartlı Kabul' :
                                 repair.status === 'retest_required' ? 'Yeniden Test' :
                                 repair.status === 'completed' ? 'Tamamlandı' : 'İptal Edildi'
                               }
                               color={
                                 repair.status === 'completed' ? 'success' :
                                 repair.status === 'in_progress' ? 'warning' :
+                                repair.status === 'conditional_accept' ? 'info' :
                                 repair.status === 'cancelled' ? 'error' : 'default'
                               }
                               size="small"
@@ -4027,6 +4121,12 @@ const TankLeakTest: React.FC = () => {
                         Kalite Kontrolü
                       </Box>
                     </MenuItem>
+                    <MenuItem value="conditional_accept">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'info.dark' }} />
+                        Şartlı Kabul
+                      </Box>
+                    </MenuItem>
                     <MenuItem value="retest_required">
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'warning.dark' }} />
@@ -4152,20 +4252,34 @@ const TankLeakTest: React.FC = () => {
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Tamir Türü</Typography>
                     <Chip
-                      label={
-                        editRepairData.repairInfo.repairType === 'welding' ? 'Kaynak' :
-                        editRepairData.repairInfo.repairType === 'patching' ? 'Yama' :
-                        editRepairData.repairInfo.repairType === 'replacement' ? 'Değişim' :
-                        editRepairData.repairInfo.repairType === 'cleaning' ? 'Temizlik' :
-                        editRepairData.repairInfo.repairType === 'adjustment' ? 'Ayar' : 'Diğer'
-                      }
+                      label={getRepairTypeDisplayName(editRepairData)}
                       variant="outlined"
                       size="small"
                     />
                   </Grid>
                   <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">Tahmini Süre</Typography>
-                    <Typography variant="body1">{editRepairData.repairInfo.estimatedDuration} saat</Typography>
+                    <TextField
+                      label="Süre (saat)"
+                      type="number"
+                      value={editRepairData.repairInfo.duration || ''}
+                      onChange={(e) => {
+                        setEditRepairData({
+                          ...editRepairData,
+                          repairInfo: {
+                            ...editRepairData.repairInfo,
+                            duration: Number(e.target.value)
+                          },
+                          updatedAt: new Date().toISOString()
+                        });
+                      }}
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      InputProps={{
+                        inputProps: { min: 0.5, step: 0.5 }
+                      }}
+                      helperText="Manuel süre girişi"
+                    />
                   </Grid>
                 </Grid>
               </Box>
@@ -4350,12 +4464,14 @@ const TankLeakTest: React.FC = () => {
                             selectedRepairRecord.status === 'planned' ? 'Planlanan' :
                             selectedRepairRecord.status === 'in_progress' ? 'Devam Ediyor' :
                             selectedRepairRecord.status === 'quality_check' ? 'Kalite Kontrolü' :
+                            selectedRepairRecord.status === 'conditional_accept' ? 'Şartlı Kabul' :
                             selectedRepairRecord.status === 'retest_required' ? 'Yeniden Test' :
                             selectedRepairRecord.status === 'completed' ? 'Tamamlandı' : 'İptal Edildi'
                           }
                           color={
                             selectedRepairRecord.status === 'completed' ? 'success' :
                             selectedRepairRecord.status === 'in_progress' ? 'warning' :
+                            selectedRepairRecord.status === 'conditional_accept' ? 'info' :
                             selectedRepairRecord.status === 'cancelled' ? 'error' : 'default'
                           }
                           size="small"
@@ -4380,11 +4496,7 @@ const TankLeakTest: React.FC = () => {
                       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="body2" color="text.secondary">Tamir Türü:</Typography>
                         <Typography variant="body2" fontWeight="bold">
-                          {selectedRepairRecord.repairInfo.repairType === 'welding' ? 'Kaynak' :
-                           selectedRepairRecord.repairInfo.repairType === 'patching' ? 'Yama' :
-                           selectedRepairRecord.repairInfo.repairType === 'replacement' ? 'Değişim' :
-                           selectedRepairRecord.repairInfo.repairType === 'cleaning' ? 'Temizlik' :
-                           selectedRepairRecord.repairInfo.repairType === 'adjustment' ? 'Ayar' : 'Diğer'}
+                          {getRepairTypeDisplayName(selectedRepairRecord)}
                         </Typography>
                       </Box>
 
