@@ -2658,25 +2658,82 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       </Box>
 
       <TableContainer component={Paper}>
-        <Table>
+        <Table sx={{ minWidth: 1300 }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'primary.50' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Ana Tedarikçi</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Alternatif Tedarikçi(ler)</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Alt Kategoriler</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Performans Karşılaştırması</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Son Değerlendirme</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>İşlemler</TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '200px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle'
+                }}
+              >
+                Ana Tedarikçi
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '250px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle'
+                }}
+              >
+                Alternatif Tedarikçi(ler)
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '300px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle'
+                }}
+              >
+                Alt Kategoriler
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '220px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center'
+                }}
+              >
+                Performans Karşılaştırması
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '150px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center'
+                }}
+              >
+                Son Değerlendirme
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '180px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center'
+                }}
+              >
+                İşlemler
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {supplierPairs.map((pair) => (
               <TableRow key={pair.id}>
-                <TableCell>
+                <TableCell sx={{ width: '200px', verticalAlign: 'top' }}>
                   <Box>
                     {pair.primarySupplier ? (
                       <>
-                        <Typography variant="body2" fontWeight="bold">
+                        <Typography variant="body2" fontWeight="bold" noWrap>
                           {pair.primarySupplier.name}
                         </Typography>
                         <Box display="flex" alignItems="center" gap={1} mt={0.5}>
@@ -2707,7 +2764,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       </>
                     ) : (
                       <>
-                        <Typography variant="body2" fontWeight="bold" color="warning.main">
+                        <Typography variant="body2" fontWeight="bold" color="warning.main" noWrap>
                           Ana Tedarikçi Yok
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
@@ -2717,7 +2774,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     )}
                   </Box>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: '250px', verticalAlign: 'top' }}>
                   {pair.alternativeSuppliers.map((altSupplier, index) => {
                     const altScore = pair.performanceComparison.alternativeScores.find(s => s.id === altSupplier.id)?.score || 0;
                     return (
@@ -2755,8 +2812,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     );
                   })}
                 </TableCell>
-                <TableCell>
-                  <Box>
+                <TableCell sx={{ width: '300px', verticalAlign: 'top' }}>
+                  <Box sx={{ maxHeight: '120px', overflow: 'auto' }}>
                     {/* Ana Tedarikçi Alt Kategorileri */}
                     {pair.primarySupplier && (
                       <Box mb={1}>
@@ -2772,7 +2829,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                 color="primary"
                                 variant="outlined"
                                 size="small"
-                                sx={{ fontSize: '0.65rem' }}
+                                sx={{ fontSize: '0.6rem', height: '20px' }}
                               />
                             ))
                           ) : (
@@ -2804,7 +2861,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                   color="warning"
                                   variant="outlined"
                                   size="small"
-                                  sx={{ fontSize: '0.65rem' }}
+                                  sx={{ fontSize: '0.6rem', height: '20px' }}
                                 />
                               ))
                             ) : (
@@ -2818,7 +2875,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     )}
                   </Box>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: '220px', textAlign: 'center', verticalAlign: 'middle' }}>
                   <Box>
                     {pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? (
                       <>
@@ -2865,16 +2922,16 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     )}
                   </Box>
                 </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
+                <TableCell sx={{ width: '150px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <Typography variant="body2" textAlign="center">
                     {new Date(pair.lastReviewDate).toLocaleDateString('tr-TR')}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
                     Sonraki: {new Date(pair.nextReviewDate).toLocaleDateString('tr-TR')}
                   </Typography>
                 </TableCell>
-                <TableCell>
-                  <Box display="flex" gap={1}>
+                <TableCell sx={{ width: '180px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <Box display="flex" gap={0.5} justifyContent="center">
                     <Tooltip title="Performans Analizi">
                       <IconButton 
                         size="small" 
