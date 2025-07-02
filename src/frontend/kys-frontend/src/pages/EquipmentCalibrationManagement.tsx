@@ -313,7 +313,7 @@ const getMeasurementRangesBySubCategory = () => {
   
   // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
   // Takometre, Sentil Çakısı, Radius Mastar, Dijital Isı Ölçer, Su Terazisi kontrolü
-  if (stored && version === '2.1') {
+  if (stored && version === '2.2') {
     try {
       const data = JSON.parse(stored);
       // Yeni eklenen cihazların varlığını kontrol et
@@ -625,12 +625,182 @@ const getMeasurementRangesBySubCategory = () => {
       '200mm uzunluk', '300mm uzunluk', '400mm uzunluk', '600mm uzunluk', '800mm uzunluk'
     ],
 
+    // Mesafe Ölçüm Cihazları
+    'Lazer Mesafe Ölçer': [
+      '0-30 m', '0-50 m', '0-80 m', '0-100 m', '0-150 m', '0-200 m', '0-250 m', '0-300 m',
+      '0-100 ft', '0-164 ft', '0-262 ft', '0-328 ft', '0-492 ft', '0-656 ft', '0-820 ft', '0-984 ft',
+      '0.05-30 m', '0.1-50 m', '0.2-100 m', '0.5-200 m',
+      '0.002-98 ft', '0.003-164 ft', '0.007-328 ft', '0.016-656 ft'
+    ],
+    'Ultrasonik Mesafe Ölçer': [
+      '0-1 m', '0-3 m', '0-5 m', '0-10 m', '0-15 m', '0-20 m', '0-30 m', '0-50 m',
+      '0.3-15 m', '0.5-20 m', '1-30 m', '2-50 m',
+      '0-3 ft', '0-10 ft', '0-16 ft', '0-33 ft', '0-49 ft', '0-66 ft', '0-98 ft', '0-164 ft'
+    ],
+    'Ultrasonik Kalınlık Ölçer': [
+      '0.8-300 mm', '1-500 mm', '2-1000 mm', '0.5-100 mm', '0.1-50 mm',
+      '1.2-225 mm (Çelik)', '0.8-200 mm (Alüminyum)', '1.0-300 mm (Plastik)',
+      '0.03-12 inch', '0.04-20 inch', '0.08-40 inch', '0.02-4 inch', '0.004-2 inch'
+    ],
+
+    // Coating ve Kalınlık Ölçerler
+    'Coating Thickness Meter': [
+      '0-1500 μm', '0-3000 μm', '0-5000 μm', '0-10000 μm', '0-15000 μm',
+      '0-60 mils', '0-120 mils', '0-200 mils', '0-400 mils', '0-600 mils',
+      '0-1.5 mm', '0-3 mm', '0-5 mm', '0-10 mm', '0-15 mm'
+    ],
+    'Pin Type Thickness Meter': [
+      '0-500 μm', '0-1000 μm', '0-2000 μm', '0-3000 μm', '0-5000 μm',
+      '0-20 mils', '0-40 mils', '0-80 mils', '0-120 mils', '0-200 mils'
+    ],
+    'Eddy Current Thickness Meter': [
+      '0-1000 μm', '0-2000 μm', '0-3000 μm', '0-5000 μm', '0-10000 μm',
+      '0-40 mils', '0-80 mils', '0-120 mils', '0-200 mils', '0-400 mils'
+    ],
+
+    // Çevresel Ölçüm Cihazları
+    'Lüks Ölçer - Digital': [
+      '0-50 lx', '0-200 lx', '0-2000 lx', '0-20000 lx', '0-200000 lx',
+      '0-4.6 fc', '0-18.6 fc', '0-186 fc', '0-1860 fc', '0-18600 fc',
+      '1-50000 lx', '10-200000 lx', '100-999999 lx'
+    ],
+    'Lüks Ölçer - Analog': [
+      '0-100 lx', '0-1000 lx', '0-10000 lx', '0-100000 lx',
+      '0-9.3 fc', '0-93 fc', '0-930 fc', '0-9300 fc'
+    ],
+    'UV Ölçer': [
+      '0-20 mW/cm²', '0-200 mW/cm²', '0-2000 mW/cm²', '0-20000 mW/cm²',
+      '0-2 W/cm²', '0-20 W/cm²', '280-400 nm (UV)', '315-400 nm (UV-A)',
+      '280-315 nm (UV-B)', '200-280 nm (UV-C)'
+    ],
+    'IR Ölçer': [
+      '0-20 mW/cm²', '0-200 mW/cm²', '0-2000 mW/cm²',
+      '700-1400 nm (NIR)', '1400-3000 nm (SWIR)', '3000-5000 nm (MWIR)',
+      '8000-14000 nm (LWIR)'
+    ],
+
+    // Ses ve Titreşim Ölçerler
+    'Ses Seviyesi Ölçer': [
+      '30-130 dB', '40-140 dB', '50-150 dB', '25-140 dB',
+      '30-100 dB (A)', '40-120 dB (A)', '50-130 dB (A)',
+      '20-20000 Hz', '31.5-8000 Hz', '100-10000 Hz'
+    ],
+    'Vibrasyon Ölçer - Digital': [
+      '0-200 m/s²', '0-500 m/s²', '0-1000 m/s²', '0-2000 m/s²',
+      '0-20 g', '0-50 g', '0-100 g', '0-200 g',
+      '10-1000 Hz', '10-10000 Hz', '5-20000 Hz',
+      '0-200 mm/s', '0-500 mm/s', '0-1000 mm/s'
+    ],
+    'Vibrasyon Ölçer - Analog': [
+      '0-100 m/s²', '0-200 m/s²', '0-500 m/s²',
+      '0-10 g', '0-20 g', '0-50 g',
+      '10-1000 Hz', '10-5000 Hz'
+    ],
+
+    // Nem ve Atmosferik Ölçerler
+    'Nem Ölçer - Digital': [
+      '0-100% RH', '5-95% RH', '10-90% RH', '20-80% RH',
+      '-40°C - +125°C', '-20°C - +60°C', '0°C - +50°C',
+      '-40°F - +257°F', '-4°F - +140°F', '32°F - +122°F'
+    ],
+    'Nem Ölçer - Analog': [
+      '0-100% RH', '10-90% RH', '20-80% RH',
+      '-10°C - +50°C', '0°C - +40°C',
+      '14°F - +122°F', '32°F - +104°F'
+    ],
+    'Higrometre': [
+      '0-100% RH', '5-95% RH', '10-90% RH',
+      '±1% RH', '±2% RH', '±3% RH', '±5% RH'
+    ],
+    'Barometer - Digital': [
+      '300-1100 hPa', '800-1200 hPa', '500-1500 hPa',
+      '8.85-32.48 inHg', '23.62-35.43 inHg', '14.76-44.29 inHg',
+      '225-825 mmHg', '600-900 mmHg', '375-1125 mmHg'
+    ],
+    'Barometer - Analog': [
+      '960-1060 hPa', '900-1100 hPa', '800-1200 hPa',
+      '28.35-31.30 inHg', '26.57-32.48 inHg', '23.62-35.43 inHg'
+    ],
+
+    // Basınç Ölçüm Cihazları
+    'Dijital Manometre': [
+      '0-1 bar', '0-10 bar', '0-100 bar', '0-1000 bar', '0-2000 bar',
+      '0-14.5 psi', '0-145 psi', '0-1450 psi', '0-14500 psi', '0-29000 psi',
+      '0-100 kPa', '0-1 MPa', '0-10 MPa', '0-100 MPa', '0-200 MPa',
+      '-1-0 bar (Vakum)', '-1-1 bar', '-1-10 bar'
+    ],
+    'Analog Manometre': [
+      '0-1.6 bar', '0-6 bar', '0-16 bar', '0-60 bar', '0-160 bar', '0-600 bar',
+      '0-23 psi', '0-87 psi', '0-232 psi', '0-870 psi', '0-2320 psi', '0-8700 psi'
+    ],
+    'Diferansiyel Basınç Ölçer': [
+      '0-100 Pa', '0-1 kPa', '0-10 kPa', '0-100 kPa', '0-1 MPa',
+      '0-0.4 inH2O', '0-4 inH2O', '0-40 inH2O', '0-400 inH2O',
+      '0-25 mmH2O', '0-250 mmH2O', '0-2500 mmH2O', '0-25000 mmH2O'
+    ],
+
+    // Elektriksel Ölçüm Cihazları
+    'Dijital Multimetre': [
+      // DC Voltaj
+      '0-200 mV DC', '0-2 V DC', '0-20 V DC', '0-200 V DC', '0-1000 V DC',
+      // AC Voltaj
+      '0-200 mV AC', '0-2 V AC', '0-20 V AC', '0-200 V AC', '0-750 V AC',
+      // DC Akım
+      '0-2 mA DC', '0-20 mA DC', '0-200 mA DC', '0-2 A DC', '0-10 A DC', '0-20 A DC',
+      // AC Akım
+      '0-2 mA AC', '0-20 mA AC', '0-200 mA AC', '0-2 A AC', '0-10 A AC', '0-20 A AC',
+      // Direnç
+      '0-200 Ω', '0-2 kΩ', '0-20 kΩ', '0-200 kΩ', '0-2 MΩ', '0-20 MΩ', '0-200 MΩ',
+      // Frekans
+      '0-200 Hz', '0-2 kHz', '0-20 kHz', '0-200 kHz', '0-2 MHz', '0-20 MHz'
+    ],
+    'Klamp Ampermetre': [
+      '0-200 A AC', '0-400 A AC', '0-600 A AC', '0-1000 A AC', '0-2000 A AC',
+      '0-200 A DC', '0-400 A DC', '0-600 A DC', '0-1000 A DC',
+      '0-20 mA', '0-200 mA', '0-2 A', '0-20 A', '0-200 A'
+    ],
+
+    // Kimyasal Ölçüm Cihazları
+    'pH Ölçer - Digital': [
+      '0-14 pH', '0-14.00 pH', '2-12 pH', '4-10 pH',
+      '-2.00-16.00 pH', '0.00-14.00 pH',
+      '-1999-1999 mV', '±1999 mV', '±2000 mV'
+    ],
+    'pH Ölçer - Portable': [
+      '0-14 pH', '2-12 pH', '4-10 pH', '6-8 pH',
+      '0.0-14.0 pH', '0.00-14.00 pH'
+    ],
+    'Conductivity Ölçer': [
+      '0-200 μS/cm', '0-2000 μS/cm', '0-20000 μS/cm', '0-200000 μS/cm',
+      '0-0.2 mS/cm', '0-2 mS/cm', '0-20 mS/cm', '0-200 mS/cm',
+      '0-200 ppm', '0-2000 ppm', '0-20000 ppm', '0-100000 ppm'
+    ],
+    'TDS Ölçer': [
+      '0-999 ppm', '0-9999 ppm', '0-99999 ppm',
+      '0-999 mg/L', '0-9999 mg/L', '0-99999 mg/L',
+      '0-10000 μS/cm', '0-100000 μS/cm'
+    ],
+    'ORP Ölçer': [
+      '-2000-2000 mV', '-1999-1999 mV', '±1999 mV',
+      '-2000-0 mV', '0-2000 mV', '-500-500 mV'
+    ],
+    'Dissolved Oxygen Ölçer': [
+      '0-20 mg/L', '0-50 mg/L', '0-100 mg/L',
+      '0-20 ppm', '0-50 ppm', '0-100 ppm',
+      '0-200% sat', '0-500% sat', '0-1000% sat'
+    ],
+    'Refraktometre': [
+      '0-32% Brix', '0-50% Brix', '0-80% Brix', '0-95% Brix',
+      '1.3330-1.5040 nD', '1.3000-1.7000 nD',
+      '0-25% Salt', '0-100 g/L', '0-26% Alcohol'
+    ],
+
     // Varsayılan değerler
     'Diğer': ['0-100', '0-1000', 'Özel Aralık']
   };
   
   localStorage.setItem('measurement_ranges_by_sub_category', JSON.stringify(defaultRanges));
-  localStorage.setItem('measurement_ranges_version', '2.1');
+  localStorage.setItem('measurement_ranges_version', '2.2');
   console.log('✅ Yeni ölçüm aralıkları yüklendi:', Object.keys(defaultRanges).length, 'cihaz tipi');
   return defaultRanges;
 };
@@ -738,7 +908,7 @@ const getMeasurementUncertaintiesBySubCategory = () => {
   const version = localStorage.getItem('measurement_uncertainties_version');
   
   // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
-  if (stored && version === '2.1') {
+  if (stored && version === '2.2') {
     try {
       const data = JSON.parse(stored);
       // Yeni eklenen cihazların varlığını kontrol et
@@ -1205,12 +1375,261 @@ const getMeasurementUncertaintiesBySubCategory = () => {
       '±0.01 mm/m', '±0.005 mm/m', '±0.002 mm/m', '±0.001 mm/m', '±0.0005 mm/m'
     ],
 
+    // Mesafe Ölçüm Cihazları Belirsizlikleri
+    'Lazer Mesafe Ölçer': [
+      '±1 mm', '±1.5 mm', '±2 mm', '±3 mm', '±5 mm', '±10 mm',
+      '±0.04 inch', '±0.06 inch', '±0.08 inch', '±0.12 inch', '±0.2 inch', '±0.4 inch',
+      '±0.05%', '±0.1%', '±0.15%', '±0.2%', '±0.3%', '±0.5%'
+    ],
+    'Ultrasonik Mesafe Ölçer': [
+      '±0.5%', '±1%', '±1.5%', '±2%', '±3%', '±5%',
+      '±1 mm', '±2 mm', '±5 mm', '±10 mm', '±20 mm',
+      '±0.04 inch', '±0.08 inch', '±0.2 inch', '±0.4 inch', '±0.8 inch'
+    ],
+    'Ultrasonik Kalınlık Ölçer': [
+      '±0.01 mm', '±0.02 mm', '±0.05 mm', '±0.1 mm', '±0.2 mm',
+      '±0.0004 inch', '±0.0008 inch', '±0.002 inch', '±0.004 inch', '±0.008 inch',
+      '±0.1%', '±0.2%', '±0.5%', '±1%', '±2%'
+    ],
+
+    // Coating ve Kalınlık Ölçer Belirsizlikleri
+    'Coating Thickness Meter': [
+      '±1 μm', '±2 μm', '±5 μm', '±10 μm', '±20 μm', '±50 μm',
+      '±0.04 mils', '±0.08 mils', '±0.2 mils', '±0.4 mils', '±0.8 mils', '±2 mils',
+      '±1%', '±2%', '±3%', '±5%', '±10%'
+    ],
+    'Pin Type Thickness Meter': [
+      '±2 μm', '±5 μm', '±10 μm', '±20 μm', '±50 μm',
+      '±0.08 mils', '±0.2 mils', '±0.4 mils', '±0.8 mils', '±2 mils',
+      '±2%', '±3%', '±5%', '±10%'
+    ],
+    'Eddy Current Thickness Meter': [
+      '±1 μm', '±2 μm', '±5 μm', '±10 μm', '±25 μm',
+      '±0.04 mils', '±0.08 mils', '±0.2 mils', '±0.4 mils', '±1 mils',
+      '±1%', '±2%', '±3%', '±5%'
+    ],
+
+    // Çevresel Ölçüm Cihazları Belirsizlikleri
+    'Lüks Ölçer - Digital': [
+      '±2%', '±3%', '±4%', '±5%', '±7%', '±10%',
+      '±1 lx', '±2 lx', '±5 lx', '±10 lx', '±20 lx', '±50 lx',
+      '±0.1 fc', '±0.2 fc', '±0.5 fc', '±1 fc', '±2 fc', '±5 fc'
+    ],
+    'Lüks Ölçer - Analog': [
+      '±5%', '±7%', '±10%', '±15%', '±20%',
+      '±2 lx', '±5 lx', '±10 lx', '±25 lx', '±50 lx'
+    ],
+    'UV Ölçer': [
+      '±3%', '±5%', '±7%', '±10%', '±15%',
+      '±0.1 mW/cm²', '±0.2 mW/cm²', '±0.5 mW/cm²', '±1 mW/cm²', '±2 mW/cm²'
+    ],
+    'IR Ölçer': [
+      '±3%', '±5%', '±7%', '±10%', '±15%',
+      '±0.1 mW/cm²', '±0.2 mW/cm²', '±0.5 mW/cm²', '±1 mW/cm²'
+    ],
+
+    // Ses ve Titreşim Ölçer Belirsizlikleri
+    'Ses Seviyesi Ölçer': [
+      '±0.1 dB', '±0.2 dB', '±0.5 dB', '±1 dB', '±1.5 dB', '±2 dB',
+      '±0.5%', '±1%', '±1.5%', '±2%', '±3%', '±5%'
+    ],
+    'Vibrasyon Ölçer - Digital': [
+      '±0.5%', '±1%', '±2%', '±3%', '±5%', '±7%', '±10%',
+      '±0.1 m/s²', '±0.2 m/s²', '±0.5 m/s²', '±1 m/s²', '±2 m/s²',
+      '±0.01 g', '±0.02 g', '±0.05 g', '±0.1 g', '±0.2 g'
+    ],
+    'Vibrasyon Ölçer - Analog': [
+      '±2%', '±3%', '±5%', '±7%', '±10%', '±15%',
+      '±0.5 m/s²', '±1 m/s²', '±2 m/s²', '±5 m/s²'
+    ],
+
+    // Nem ve Atmosferik Ölçer Belirsizlikleri
+    'Nem Ölçer - Digital': [
+      '±1% RH', '±1.5% RH', '±2% RH', '±2.5% RH', '±3% RH', '±5% RH',
+      '±0.1°C', '±0.2°C', '±0.3°C', '±0.5°C', '±1°C', '±2°C',
+      '±0.2°F', '±0.4°F', '±0.5°F', '±0.9°F', '±1.8°F', '±3.6°F'
+    ],
+    'Nem Ölçer - Analog': [
+      '±2% RH', '±3% RH', '±5% RH', '±7% RH', '±10% RH',
+      '±0.5°C', '±1°C', '±2°C', '±3°C', '±5°C'
+    ],
+    'Higrometre': [
+      '±1% RH', '±1.5% RH', '±2% RH', '±2.5% RH', '±3% RH', '±5% RH'
+    ],
+    'Barometer - Digital': [
+      '±0.1 hPa', '±0.2 hPa', '±0.3 hPa', '±0.5 hPa', '±1 hPa', '±2 hPa',
+      '±0.003 inHg', '±0.006 inHg', '±0.009 inHg', '±0.015 inHg', '±0.03 inHg',
+      '±0.1 mmHg', '±0.2 mmHg', '±0.4 mmHg', '±0.8 mmHg', '±1.5 mmHg'
+    ],
+    'Barometer - Analog': [
+      '±1 hPa', '±2 hPa', '±3 hPa', '±5 hPa', '±10 hPa',
+      '±0.03 inHg', '±0.06 inHg', '±0.09 inHg', '±0.15 inHg', '±0.3 inHg'
+    ],
+    'Altimetre': [
+      '±1 m', '±2 m', '±5 m', '±10 m', '±20 m', '±50 m',
+      '±3 ft', '±7 ft', '±16 ft', '±33 ft', '±66 ft', '±164 ft'
+    ],
+    'Rüzgar Hızı Ölçer': [
+      '±0.1 m/s', '±0.2 m/s', '±0.5 m/s', '±1 m/s', '±2 m/s',
+      '±0.2 mph', '±0.4 mph', '±1.1 mph', '±2.2 mph', '±4.5 mph',
+      '±2%', '±3%', '±5%', '±7%', '±10%'
+    ],
+    'Hava Hızı Ölçer': [
+      '±0.05 m/s', '±0.1 m/s', '±0.2 m/s', '±0.5 m/s', '±1 m/s',
+      '±0.1 mph', '±0.2 mph', '±0.4 mph', '±1.1 mph', '±2.2 mph',
+      '±2%', '±3%', '±5%', '±7%', '±10%'
+    ],
+    'Anemometre': [
+      '±0.1 m/s', '±0.2 m/s', '±0.5 m/s', '±1 m/s', '±2 m/s',
+      '±0.2 mph', '±0.4 mph', '±1.1 mph', '±2.2 mph', '±4.5 mph',
+      '±2%', '±3%', '±5%', '±7%', '±10%'
+    ],
+
+    // Basınç Ölçüm Cihazları Belirsizlikleri
+    'Dijital Manometre': [
+      '±0.01%', '±0.02%', '±0.05%', '±0.1%', '±0.2%', '±0.25%', '±0.5%', '±1%',
+      '±0.001 bar', '±0.002 bar', '±0.005 bar', '±0.01 bar', '±0.02 bar', '±0.05 bar',
+      '±0.0145 psi', '±0.029 psi', '±0.072 psi', '±0.145 psi', '±0.29 psi', '±0.72 psi',
+      '±0.1 kPa', '±0.2 kPa', '±0.5 kPa', '±1 kPa', '±2 kPa', '±5 kPa'
+    ],
+    'Analog Manometre': [
+      '±0.5%', '±1%', '±1.6%', '±2.5%', '±4%', '±6%',
+      '±0.008 bar', '±0.016 bar', '±0.025 bar', '±0.04 bar', '±0.064 bar', '±0.096 bar',
+      '±0.12 psi', '±0.23 psi', '±0.36 psi', '±0.58 psi', '±0.93 psi', '±1.39 psi'
+    ],
+    'Diferansiyel Basınç Ölçer': [
+      '±0.25%', '±0.5%', '±1%', '±1.5%', '±2%', '±5%',
+      '±0.25 Pa', '±0.5 Pa', '±1 Pa', '±2.5 Pa', '±5 Pa', '±25 Pa',
+      '±0.001 inH2O', '±0.002 inH2O', '±0.004 inH2O', '±0.01 inH2O', '±0.02 inH2O'
+    ],
+    'Vakum Ölçer': [
+      '±0.5%', '±1%', '±2%', '±3%', '±5%', '±10%',
+      '±0.001 mbar', '±0.005 mbar', '±0.01 mbar', '±0.05 mbar', '±0.1 mbar',
+      '±0.001 Torr', '±0.004 Torr', '±0.008 Torr', '±0.04 Torr', '±0.08 Torr'
+    ],
+    'Hidrolik Test Cihazı': [
+      '±0.1%', '±0.2%', '±0.5%', '±1%', '±2%', '±5%',
+      '±0.1 bar', '±0.2 bar', '±0.5 bar', '±1 bar', '±2 bar', '±5 bar',
+      '±1.5 psi', '±2.9 psi', '±7.3 psi', '±14.5 psi', '±29 psi', '±73 psi'
+    ],
+    'Pneumatik Test Cihazı': [
+      '±0.1%', '±0.2%', '±0.5%', '±1%', '±2%', '±3%',
+      '±0.01 bar', '±0.02 bar', '±0.05 bar', '±0.1 bar', '±0.2 bar', '±0.3 bar',
+      '±0.15 psi', '±0.29 psi', '±0.73 psi', '±1.45 psi', '±2.9 psi', '±4.4 psi'
+    ],
+
+    // Elektriksel Ölçüm Cihazları Belirsizlikleri
+    'Dijital Multimetre': [
+      // DC Voltaj Belirsizlikleri
+      '±(0.025% + 5 digit)', '±(0.05% + 5 digit)', '±(0.1% + 5 digit)', '±(0.2% + 5 digit)',
+      '±(0.5% + 5 digit)', '±(1% + 5 digit)', '±(2% + 5 digit)',
+      // AC Voltaj Belirsizlikleri
+      '±(0.5% + 10 digit)', '±(1% + 10 digit)', '±(2% + 10 digit)', '±(3% + 10 digit)',
+      // Akım Belirsizlikleri
+      '±(0.1% + 3 digit)', '±(0.2% + 3 digit)', '±(0.5% + 3 digit)', '±(1% + 3 digit)',
+      // Direnç Belirsizlikleri
+      '±(0.05% + 2 digit)', '±(0.1% + 2 digit)', '±(0.2% + 2 digit)', '±(0.5% + 2 digit)',
+      // Frekans Belirsizlikleri
+      '±(0.01% + 1 digit)', '±(0.02% + 1 digit)', '±(0.05% + 1 digit)', '±(0.1% + 1 digit)'
+    ],
+    'Analog Multimetre': [
+      '±2%', '±3%', '±5%', '±7%', '±10%', '±15%',
+      '±0.1 V', '±0.2 V', '±0.5 V', '±1 V', '±2 V', '±5 V',
+      '±1 mA', '±2 mA', '±5 mA', '±10 mA', '±20 mA', '±50 mA'
+    ],
+    'Klamp Ampermetre': [
+      '±1%', '±1.5%', '±2%', '±2.5%', '±3%', '±5%', '±7%',
+      '±0.1 A', '±0.2 A', '±0.5 A', '±1 A', '±2 A', '±5 A', '±10 A',
+      '±1 mA', '±2 mA', '±5 mA', '±10 mA', '±20 mA'
+    ],
+    'İzolasyon Test Cihazı': [
+      '±2%', '±3%', '±5%', '±10%', '±15%',
+      '±0.1 MΩ', '±0.2 MΩ', '±0.5 MΩ', '±1 MΩ', '±2 MΩ', '±5 MΩ',
+      '±1 V', '±2 V', '±5 V', '±10 V', '±25 V', '±50 V'
+    ],
+    'Topraklama Test Cihazı': [
+      '±2%', '±3%', '±5%', '±10%', '±15%',
+      '±0.01 Ω', '±0.02 Ω', '±0.05 Ω', '±0.1 Ω', '±0.2 Ω', '±0.5 Ω'
+    ],
+    'RCD Test Cihazı': [
+      '±1%', '±2%', '±5%', '±10%',
+      '±0.1 mA', '±0.2 mA', '±0.5 mA', '±1 mA', '±2 mA',
+      '±1 ms', '±2 ms', '±5 ms', '±10 ms', '±20 ms'
+    ],
+    'Power Quality Analyzer': [
+      '±0.1%', '±0.2%', '±0.5%', '±1%', '±2%',
+      '±0.1 V', '±0.2 V', '±0.5 V', '±1 V', '±2 V',
+      '±0.1 A', '±0.2 A', '±0.5 A', '±1 A', '±2 A'
+    ],
+    'Harmonik Analizör': [
+      '±0.5%', '±1%', '±2%', '±3%', '±5%',
+      '±0.1%', '±0.2%', '±0.5%', '±1%', '±2%'
+    ],
+    'Frekans Sayıcı': [
+      '±1 ppm', '±2 ppm', '±5 ppm', '±10 ppm', '±20 ppm',
+      '±0.001 Hz', '±0.01 Hz', '±0.1 Hz', '±1 Hz', '±10 Hz'
+    ],
+    'Kapasitans Ölçer': [
+      '±0.1%', '±0.2%', '±0.5%', '±1%', '±2%', '±5%',
+      '±0.1 pF', '±1 pF', '±10 pF', '±100 pF', '±1 nF', '±10 nF'
+    ],
+    'İndüktans Ölçer': [
+      '±0.2%', '±0.5%', '±1%', '±2%', '±5%',
+      '±0.1 μH', '±1 μH', '±10 μH', '±100 μH', '±1 mH', '±10 mH'
+    ],
+    'LCR Metre': [
+      '±0.05%', '±0.1%', '±0.2%', '±0.5%', '±1%', '±2%',
+      '±0.1 pF', '±1 pF', '±10 pF', '±0.1 μH', '±1 μH', '±10 μH',
+      '±0.1 Ω', '±1 Ω', '±10 Ω', '±100 Ω', '±1 kΩ', '±10 kΩ'
+    ],
+
+    // Kimyasal Ölçüm Cihazları Belirsizlikleri
+    'pH Ölçer - Digital': [
+      '±0.001 pH', '±0.002 pH', '±0.005 pH', '±0.01 pH', '±0.02 pH', '±0.05 pH', '±0.1 pH',
+      '±0.1 mV', '±0.2 mV', '±0.5 mV', '±1 mV', '±2 mV', '±5 mV'
+    ],
+    'pH Ölçer - Portable': [
+      '±0.01 pH', '±0.02 pH', '±0.05 pH', '±0.1 pH', '±0.2 pH'
+    ],
+    'Conductivity Ölçer': [
+      '±0.5%', '±1%', '±1.5%', '±2%', '±3%', '±5%',
+      '±1 μS/cm', '±2 μS/cm', '±5 μS/cm', '±10 μS/cm', '±20 μS/cm',
+      '±0.001 mS/cm', '±0.002 mS/cm', '±0.005 mS/cm', '±0.01 mS/cm', '±0.02 mS/cm'
+    ],
+    'TDS Ölçer': [
+      '±1%', '±2%', '±3%', '±5%', '±10%',
+      '±1 ppm', '±2 ppm', '±5 ppm', '±10 ppm', '±20 ppm', '±50 ppm'
+    ],
+    'ORP Ölçer': [
+      '±0.2 mV', '±0.5 mV', '±1 mV', '±2 mV', '±5 mV', '±10 mV',
+      '±0.2%', '±0.5%', '±1%', '±2%', '±5%'
+    ],
+    'Dissolved Oxygen Ölçer': [
+      '±0.1 mg/L', '±0.2 mg/L', '±0.5 mg/L', '±1 mg/L', '±2 mg/L',
+      '±0.1 ppm', '±0.2 ppm', '±0.5 ppm', '±1 ppm', '±2 ppm',
+      '±1% sat', '±2% sat', '±5% sat', '±10% sat'
+    ],
+    'Chlorine Ölçer': [
+      '±0.01 mg/L', '±0.02 mg/L', '±0.05 mg/L', '±0.1 mg/L', '±0.2 mg/L',
+      '±0.01 ppm', '±0.02 ppm', '±0.05 ppm', '±0.1 ppm', '±0.2 ppm',
+      '±2%', '±3%', '±5%', '±10%'
+    ],
+    'Turbidity Ölçer': [
+      '±0.01 NTU', '±0.02 NTU', '±0.05 NTU', '±0.1 NTU', '±0.2 NTU',
+      '±2%', '±3%', '±5%', '±10%', '±15%'
+    ],
+    'Refraktometre': [
+      '±0.1% Brix', '±0.2% Brix', '±0.5% Brix', '±1% Brix',
+      '±0.0001 nD', '±0.0002 nD', '±0.0005 nD', '±0.001 nD',
+      '±0.1% Salt', '±0.2% Salt', '±0.5% Salt', '±1% Salt'
+    ],
+
     // Varsayılan değerler
     'Diğer': ['±0.1%', '±0.2%', '±0.5%', '±1%', '±2%', '±5%', 'Özel Belirsizlik']
   };
   
   localStorage.setItem('measurement_uncertainties_by_sub_category', JSON.stringify(defaultUncertainties));
-  localStorage.setItem('measurement_uncertainties_version', '2.1');
+  localStorage.setItem('measurement_uncertainties_version', '2.2');
   console.log('✅ Yeni belirsizlik değerleri yüklendi:', Object.keys(defaultUncertainties).length, 'cihaz tipi');
   return defaultUncertainties;
 };
@@ -1395,7 +1814,7 @@ const getEquipmentNamesByCategory = () => {
   const version = localStorage.getItem('equipment_names_version');
   
   // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
-  if (stored && version === '2.1') {
+  if (stored && version === '2.2') {
     try {
       const data = JSON.parse(stored);
       // Ölçüm Cihazları kategorisinde yeni cihazların varlığını kontrol et
@@ -1433,6 +1852,28 @@ const getEquipmentNamesByCategory = () => {
       'Sentil Çakısı - 0.001mm', 'Sentil Çakısı - 0.002mm', 'Sentil Çakısı - 0.005mm',
       'Radius Mastar - İç R', 'Radius Mastar - Dış R', 'Radius Mastar - Universal',
       'Dijital Isı Ölçer - İnfrared', 'Dijital Isı Ölçer - Temaslı', 'Dijital Isı Ölçer - Problu',
+      'Su Terazisi - Standart', 'Su Terazisi - Hassas', 'Su Terazisi - Digital',
+      // Mesafe ve Boyut Ölçüm Cihazları
+      'Lazer Mesafe Ölçer', 'Ultrasonik Mesafe Ölçer', 'Ultrasonik Kalınlık Ölçer',
+      'Coating Thickness Meter', 'Pin Type Thickness Meter', 'Eddy Current Thickness Meter',
+      // Çevresel Ölçüm Cihazları
+      'Lüks Ölçer - Digital', 'Lüks Ölçer - Analog', 'UV Ölçer', 'IR Ölçer',
+      'Ses Seviyesi Ölçer', 'Vibrasyon Ölçer - Digital', 'Vibrasyon Ölçer - Analog',
+      'Nem Ölçer - Digital', 'Nem Ölçer - Analog', 'Higrometre',
+      'Barometer - Digital', 'Barometer - Analog', 'Altimetre',
+      'Rüzgar Hızı Ölçer', 'Hava Hızı Ölçer', 'Anemometre',
+      // Basınç Ölçüm Cihazları
+      'Dijital Manometre', 'Analog Manometre', 'Diferansiyel Basınç Ölçer',
+      'Vakum Ölçer', 'Hidrolik Test Cihazı', 'Pneumatik Test Cihazı',
+      // Elektriksel Ölçüm Cihazları
+      'Dijital Multimetre', 'Analog Multimetre', 'Klamp Ampermetre',
+      'İzolasyon Test Cihazı', 'Topraklama Test Cihazı', 'RCD Test Cihazı',
+      'Power Quality Analyzer', 'Harmonik Analizör', 'Frekans Sayıcı',
+      'Kapasitans Ölçer', 'İndüktans Ölçer', 'LCR Metre',
+      // Kimyasal Ölçüm Cihazları
+      'pH Ölçer - Digital', 'pH Ölçer - Portable', 'Conductivity Ölçer',
+      'TDS Ölçer', 'ORP Ölçer', 'Dissolved Oxygen Ölçer',
+      'Chlorine Ölçer', 'Turbidity Ölçer', 'Refraktometre',
       // Hassas Ölçüm Cihazları
       'Koordinat Ölçüm Makinesi (CMM)', 'Optik Komparatör',
       'Projektör - Profil', 'Projektör - Werkstück',
@@ -1596,7 +2037,7 @@ const getEquipmentNamesByCategory = () => {
   };
   
   localStorage.setItem('equipment_names_by_category', JSON.stringify(defaultEquipmentNames));
-  localStorage.setItem('equipment_names_version', '2.1');
+  localStorage.setItem('equipment_names_version', '2.2');
   console.log('✅ Yeni ekipman adları yüklendi - Ölçüm Cihazları:', defaultEquipmentNames['Ölçüm Cihazları'].length, 'adet');
   return defaultEquipmentNames;
 };
