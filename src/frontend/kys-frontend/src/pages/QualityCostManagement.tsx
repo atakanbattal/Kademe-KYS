@@ -15407,5 +15407,3 @@ const CategoryProductionManagementComponent: React.FC<{
     </Box>
   );
 };
-
-export default QualityCostManagement;
