@@ -310,10 +310,26 @@ const getPersonnelData = (): Personnel[] => {
 const getMeasurementRangesBySubCategory = () => {
   const stored = localStorage.getItem('measurement_ranges_by_sub_category');
   const version = localStorage.getItem('measurement_ranges_version');
+  
   // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
-  if (stored && version === '2.0') {
-    return JSON.parse(stored);
+  // Takometre, Sentil Çakısı, Radius Mastar, Dijital Isı Ölçer, Su Terazisi kontrolü
+  if (stored && version === '2.1') {
+    try {
+      const data = JSON.parse(stored);
+      // Yeni eklenen cihazların varlığını kontrol et
+      if (data['Takometre - Digital'] && data['Sentil Çakısı - 0.001mm'] && 
+          data['Radius Mastar - İç R'] && data['Dijital Isı Ölçer - İnfrared'] && 
+          data['Su Terazisi - Standart']) {
+        return data;
+      }
+    } catch (e) {
+      console.log('Cache bozuk, yeniden oluşturuluyor...');
+    }
   }
+  
+  // Cache'i temizle ve yeniden oluştur
+  localStorage.removeItem('measurement_ranges_by_sub_category');
+  localStorage.removeItem('measurement_ranges_version');
   
   const defaultRanges = {
     // Kumpas Çeşitleri - Çok Detaylı
@@ -614,7 +630,8 @@ const getMeasurementRangesBySubCategory = () => {
   };
   
   localStorage.setItem('measurement_ranges_by_sub_category', JSON.stringify(defaultRanges));
-  localStorage.setItem('measurement_ranges_version', '2.0');
+  localStorage.setItem('measurement_ranges_version', '2.1');
+  console.log('✅ Yeni ölçüm aralıkları yüklendi:', Object.keys(defaultRanges).length, 'cihaz tipi');
   return defaultRanges;
 };
 
@@ -719,10 +736,25 @@ const getMeasurementRangesByCategory = () => {
 const getMeasurementUncertaintiesBySubCategory = () => {
   const stored = localStorage.getItem('measurement_uncertainties_by_sub_category');
   const version = localStorage.getItem('measurement_uncertainties_version');
+  
   // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
-  if (stored && version === '2.0') {
-    return JSON.parse(stored);
+  if (stored && version === '2.1') {
+    try {
+      const data = JSON.parse(stored);
+      // Yeni eklenen cihazların varlığını kontrol et
+      if (data['Takometre - Digital'] && data['Sentil Çakısı - 0.001mm'] && 
+          data['Radius Mastar - İç R'] && data['Dijital Isı Ölçer - İnfrared'] && 
+          data['Su Terazisi - Standart']) {
+        return data;
+      }
+    } catch (e) {
+      console.log('Belirsizlik cache bozuk, yeniden oluşturuluyor...');
+    }
   }
+  
+  // Cache'i temizle ve yeniden oluştur
+  localStorage.removeItem('measurement_uncertainties_by_sub_category');
+  localStorage.removeItem('measurement_uncertainties_version');
   
   const defaultUncertainties = {
     // Kumpas Çeşitleri - Detaylı Belirsizlik Değerleri
@@ -1178,7 +1210,8 @@ const getMeasurementUncertaintiesBySubCategory = () => {
   };
   
   localStorage.setItem('measurement_uncertainties_by_sub_category', JSON.stringify(defaultUncertainties));
-  localStorage.setItem('measurement_uncertainties_version', '2.0');
+  localStorage.setItem('measurement_uncertainties_version', '2.1');
+  console.log('✅ Yeni belirsizlik değerleri yüklendi:', Object.keys(defaultUncertainties).length, 'cihaz tipi');
   return defaultUncertainties;
 };
 
@@ -1360,10 +1393,27 @@ const getModels = (): string[] => {
 const getEquipmentNamesByCategory = () => {
   const stored = localStorage.getItem('equipment_names_by_category');
   const version = localStorage.getItem('equipment_names_version');
+  
   // Versiyon kontrolü - Yeni cihazlar eklendiğinde cache'i yenile
-  if (stored && version === '2.0') {
-    return JSON.parse(stored);
+  if (stored && version === '2.1') {
+    try {
+      const data = JSON.parse(stored);
+      // Ölçüm Cihazları kategorisinde yeni cihazların varlığını kontrol et
+      const olcumCihazlari = data['Ölçüm Cihazları'] || [];
+      if (olcumCihazlari.includes('Takometre - Digital') && 
+          olcumCihazlari.includes('Sentil Çakısı - 0.001mm') && 
+          olcumCihazlari.includes('Radius Mastar - İç R') && 
+          olcumCihazlari.includes('Dijital Isı Ölçer - İnfrared')) {
+        return data;
+      }
+    } catch (e) {
+      console.log('Ekipman adları cache bozuk, yeniden oluşturuluyor...');
+    }
   }
+  
+  // Cache'i temizle ve yeniden oluştur
+  localStorage.removeItem('equipment_names_by_category');
+  localStorage.removeItem('equipment_names_version');
   
   const defaultEquipmentNames = {
     'Ölçüm Cihazları': [
@@ -1546,7 +1596,8 @@ const getEquipmentNamesByCategory = () => {
   };
   
   localStorage.setItem('equipment_names_by_category', JSON.stringify(defaultEquipmentNames));
-  localStorage.setItem('equipment_names_version', '2.0');
+  localStorage.setItem('equipment_names_version', '2.1');
+  console.log('✅ Yeni ekipman adları yüklendi - Ölçüm Cihazları:', defaultEquipmentNames['Ölçüm Cihazları'].length, 'adet');
   return defaultEquipmentNames;
 };
 
