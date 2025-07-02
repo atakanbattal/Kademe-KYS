@@ -164,6 +164,7 @@ const SUPPLY_SUBCATEGORIES = {
     'Kilit ve Güvenlik Sistemleri',
     'Kimyasal Maddeler (Boya, Temizlik)',
     'Koltuk Sistemleri ve İç Donanım',
+    'Kompresör ve Hava Kurutu',
     'Kontrol Sistemleri',
     'Lastik ve Jant',
     'Mil ve Şaft Parçaları',
