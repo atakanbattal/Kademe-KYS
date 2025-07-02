@@ -157,6 +157,7 @@ const SUPPLY_SUBCATEGORIES = {
     'Hidrolik Sistem Parçaları',
     'Koltuk Sistemleri ve İç Donanım',
     'Filtre Sistemleri (Hava, Yağ, Yakıt)',
+    'Fırça Sistemleri (Cam Silecek, Temizlik)',
     'Kilit Sistemleri ve Güvenlik',
     'Lastik ve Jant',
     
@@ -166,6 +167,7 @@ const SUPPLY_SUBCATEGORIES = {
     'Kavrama ve Fren Sistemi',
     'Hidrolik ve Pnömatik Komponentler',
     'Filtre Sistemleri (Endüstriyel)',
+    'Fırça ve Temizlik Sistemleri',
     'Kilit ve Güvenlik Sistemleri',
     'Mil ve Şaft Parçaları',
     'Kayış ve Zincir Parçaları',
