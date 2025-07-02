@@ -155,6 +155,7 @@ const SUPPLY_SUBCATEGORIES = {
     'Ham Madde (Çelik, Alüminyum, Plastik)',
     'Hidrolik Sistem Parçaları',
     'Hidrolik ve Pnömatik Komponentler',
+    'Kabin Profil Alımı',
     'Kablaj ve Elektrik Bağlantıları',
     'Karoseri ve Şasi Parçaları',
     'Kavrama ve Fren Sistemi',
