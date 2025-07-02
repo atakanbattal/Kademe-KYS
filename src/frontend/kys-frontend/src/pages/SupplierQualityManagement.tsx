@@ -2221,10 +2221,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   const calculateSupplierPerformance = React.useCallback((supplier: Supplier) => {
     console.log(`\n=== PERFORMANS HESAPLAMA: ${supplier.name} ===`);
     
-    // Temel skorlar (başlangıç değerleri)
-    let qualityScore = 100;
-    let deliveryScore = 100;
-    let performanceScore = 100;
+    // ✅ DÜZELTME: Kullanıcının girdiği skorları koru, yoksa default 100 kullan
+    let qualityScore = supplier.qualityScore || 100;
+    let deliveryScore = supplier.deliveryScore || 100;
+    let performanceScore = supplier.performanceScore || 100;
+    
+    console.log(`🎯 BAŞLANGIÇ SKORLARI - Kalite: ${qualityScore}, Teslimat: ${deliveryScore}, Genel: ${performanceScore}`);
 
     // Uygunsuzluk sayısına göre kalite skoru düşürme
     const supplierNonconformities = nonconformities.filter(nc => nc.supplierId === supplier.id);
