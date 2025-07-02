@@ -5567,14 +5567,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             <Box display="flex" alignItems="center" gap={1}>
                               <CheckCircleIcon color="success" fontSize="small" />
                               {supplier.name} ({supplier.code})
-                              {supplier.materialTypes.length > 0 && (
-                                <Chip 
-                                  size="small" 
-                                  label={`${supplier.materialTypes.length} malzeme`}
-                                  variant="outlined"
-                                  sx={{ ml: 1, fontSize: '0.7rem' }}
-                                />
-                              )}
                             </Box>
                           </MenuItem>
                         ))}
@@ -5589,97 +5581,31 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       <Select
                         value={formData.alternativeSupplierId || ''}
                         onChange={(e) => setFormData({ ...formData, alternativeSupplierId: e.target.value })}
-                        disabled={!formData.materialType}
                       >
-                        {(() => {
-                          // Seçili malzeme türünü işleyebilen alternatif tedarikçileri göster
-                          if (formData.materialType) {
-                            return suppliers
-                              .filter(s => 
-                                (s.type === 'alternatif' || s.type === 'onaylı') && 
-                                s.id !== formData.primarySupplierId &&
-                                s.materialTypes.includes(formData.materialType)
-                              )
-                              .map(supplier => (
-                                <MenuItem key={supplier.id} value={supplier.id}>
-                                  <Box display="flex" alignItems="center" gap={1}>
-                                    <SwapHorizIcon color="warning" fontSize="small" />
-                                    {supplier.name} ({supplier.code})
-                                    <Chip 
-                                      size="small" 
-                                      label={supplier.type}
-                                      color={supplier.type === 'onaylı' ? 'success' : 'warning'}
-                                      variant="outlined"
-                                      sx={{ ml: 1, fontSize: '0.7rem' }}
-                                    />
-                                  </Box>
-                                </MenuItem>
-                              ));
-                          } else {
-                            return (
-                              <MenuItem disabled>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                  <WarningIcon color="warning" fontSize="small" />
-                                  Önce malzeme türü seçiniz
-                                </Box>
-                              </MenuItem>
-                            );
-                          }
-                        })()}
-                      </Select>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                        {formData.materialType ? 
-                          `${formData.materialType} için uygun ${suppliers.filter(s => 
-                            (s.type === 'alternatif' || s.type === 'onaylı') && 
-                            s.id !== formData.primarySupplierId &&
-                            s.materialTypes.includes(formData.materialType || '')
-                          ).length} alternatif tedarikçi` :
-                          'Malzeme türü seçildikten sonra uygun alternatifler listelenecek'
+                        {suppliers
+                          .filter(s => (s.type === 'alternatif' || s.type === 'onaylı') && s.id !== formData.primarySupplierId)
+                          .map(supplier => (
+                            <MenuItem key={supplier.id} value={supplier.id}>
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <SwapHorizIcon color="warning" fontSize="small" />
+                                {supplier.name} ({supplier.code})
+                              </Box>
+                            </MenuItem>
+                          ))
                         }
-                      </Typography>
+                      </Select>
                     </FormControl>
                   </Grid>
 
-                  {/* Malzeme Türü */}
+                  {/* Malzeme Türü - Otomatik Seçilen */}
                   <Grid item xs={12} md={6}>
-                    <FormControl fullWidth required>
-                      <InputLabel>Malzeme Türü</InputLabel>
-                      <Select
-                        value={formData.materialType || ''}
-                        onChange={(e) => setFormData({ ...formData, materialType: e.target.value })}
-                        disabled={!formData.primarySupplierId}
-                      >
-                        {(() => {
-                          // Seçili ana tedarikçinin malzeme türlerini göster
-                          const selectedSupplier = suppliers.find(s => s.id === formData.primarySupplierId);
-                          if (selectedSupplier?.materialTypes?.length > 0) {
-                            return selectedSupplier.materialTypes.map(materialType => (
-                              <MenuItem key={materialType} value={materialType}>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                  <Box width={8} height={8} bgcolor="primary.main" borderRadius="50%" />
-                                  {materialType}
-                                </Box>
-                              </MenuItem>
-                            ));
-                          } else {
-                            return (
-                              <MenuItem disabled>
-                                <Box display="flex" alignItems="center" gap={1}>
-                                  <WarningIcon color="warning" fontSize="small" />
-                                  Önce ana tedarikçi seçiniz
-                                </Box>
-                              </MenuItem>
-                            );
-                          }
-                        })()}
-                      </Select>
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                        {formData.primarySupplierId ? 
-                          `Ana tedarikçinin sahip olduğu ${suppliers.find(s => s.id === formData.primarySupplierId)?.materialTypes?.length || 0} malzeme türü gösteriliyor` :
-                          'Ana tedarikçi seçildikten sonra malzeme türleri listelenecek'
-                        }
-                      </Typography>
-                    </FormControl>
+                    <TextField
+                      fullWidth
+                      label="Malzeme Türü"
+                      value={formData.materialType || 'Ana tedarikçi seçildikten sonra otomatik belirlenecek'}
+                      disabled
+                      helperText="Ana tedarikçinin malzeme türlerinden otomatik seçilir"
+                    />
                   </Grid>
 
                   {/* Kategori */}
