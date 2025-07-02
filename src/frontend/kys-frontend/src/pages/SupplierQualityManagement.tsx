@@ -1915,35 +1915,60 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         break;
         
       case 'pair':
-        // Form validasyonu
-        if (!formData.primarySupplierId || !formData.alternativeSupplierId) {
-          showSnackbar('Ana tedarikçi ve alternatif tedarikçi seçimi zorunludur', 'error');
-          return;
-        }
-        
-        if (formData.primarySupplierId === formData.alternativeSupplierId) {
-          showSnackbar('Ana tedarikçi ile alternatif tedarikçi aynı olamaz', 'error');
+        // Form validasyonu - Sadece ana tedarikçi zorunlu
+        if (!formData.primarySupplierId) {
+          showSnackbar('Ana tedarikçi seçimi zorunludur', 'error');
           return;
         }
         
         const primarySupplier = suppliers.find(s => s.id === formData.primarySupplierId);
-        const alternativeSupplier = suppliers.find(s => s.id === formData.alternativeSupplierId);
-        
-        if (!primarySupplier || !alternativeSupplier) {
-          showSnackbar('Seçilen tedarikçiler bulunamadı', 'error');
+        if (!primarySupplier) {
+          showSnackbar('Seçilen ana tedarikçi bulunamadı', 'error');
           return;
+        }
+        
+        // Alternatif tedarikçiler (opsiyonel)
+        const alternativeSupplierIds = formData.alternativeSupplierIds || [];
+        const alternativeSuppliers: Supplier[] = [];
+        
+        // Alternatif tedarikçi varsa kontrol et
+        for (const altId of alternativeSupplierIds) {
+          if (altId === formData.primarySupplierId) {
+            showSnackbar('Ana tedarikçi ile alternatif tedarikçi aynı olamaz', 'error');
+            return;
+          }
+          
+          const altSupplier = suppliers.find(s => s.id === altId);
+          if (!altSupplier) {
+            showSnackbar('Seçilen alternatif tedarikçilerden biri bulunamadı', 'error');
+            return;
+          }
+          alternativeSuppliers.push(altSupplier);
+        }
+        
+        // Performans karşılaştırması
+        const alternativeScores = alternativeSuppliers.map(supplier => ({
+          id: supplier.id,
+          score: supplier.performanceScore
+        }));
+        
+        let recommendation = 'Ana tedarikçi değerlendirmesi';
+        if (alternativeSuppliers.length > 0) {
+          const bestAlternativeScore = Math.max(...alternativeSuppliers.map(s => s.performanceScore));
+          recommendation = primarySupplier.performanceScore >= bestAlternativeScore 
+            ? 'Ana tedarikçi önerilen' 
+            : 'Alternatif tedarikçi değerlendirilebilir';
         }
         
         const newPair: SupplierPair = {
           id: selectedItem ? selectedItem.id : newId,
           primarySupplier,
-          alternativeSuppliers: [alternativeSupplier],
+          alternativeSuppliers,
           category: formData.category || 'genel',
           performanceComparison: {
             primaryScore: primarySupplier.performanceScore,
-            alternativeScores: [{ id: alternativeSupplier.id, score: alternativeSupplier.performanceScore }],
-            recommendation: primarySupplier.performanceScore >= alternativeSupplier.performanceScore 
-              ? 'Ana tedarikçi önerilen' : 'Alternatif tedarikçi değerlendirilebilir'
+            alternativeScores,
+            recommendation
           },
           lastReviewDate: new Date().toISOString().split('T')[0],
           nextReviewDate: new Date(Date.now() + (parseInt(formData.reviewPeriod || '3') * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
@@ -2631,55 +2656,80 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       </Box>
                     </Box>
                     
-                    {/* Alternatif Tedarikçi Alt Kategorileri */}
-                    <Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
-                        Alt:
-                      </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
-                        {pair.alternativeSuppliers[0]?.supplySubcategories.length > 0 ? (
-                          pair.alternativeSuppliers[0].supplySubcategories.slice(0, 2).map((subcategory, index) => (
-                            <Chip 
-                              key={index}
-                              label={subcategory} 
-                              color="warning"
-                              variant="outlined"
-                              size="small"
-                              sx={{ fontSize: '0.65rem' }}
-                            />
-                          ))
-                        ) : (
-                          <Typography variant="caption" color="text.secondary">
-                            Belirtilmemiş
-                          </Typography>
-                        )}
-                        {(pair.alternativeSuppliers[0]?.supplySubcategories.length || 0) > 2 && (
-                          <Chip 
-                            label={`+${(pair.alternativeSuppliers[0]?.supplySubcategories.length || 0) - 2}`} 
-                            color="warning"
-                            variant="outlined"
-                            size="small"
-                            sx={{ fontSize: '0.65rem' }}
-                          />
-                        )}
+                    {/* Alternatif Tedarikçiler Alt Kategorileri */}
+                    {pair.alternativeSuppliers.length > 0 && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                          Alt:
+                        </Typography>
+                        <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
+                          {/* Tüm alternatif tedarikçi kategorilerini birleştir */}
+                          {(() => {
+                            const allSubcategories = pair.alternativeSuppliers.flatMap(supplier => supplier.supplySubcategories);
+                            const uniqueSubcategories = Array.from(new Set(allSubcategories));
+                            
+                            return uniqueSubcategories.length > 0 ? (
+                              uniqueSubcategories.slice(0, 2).map((subcategory, index) => (
+                                <Chip 
+                                  key={index}
+                                  label={subcategory} 
+                                  color="warning"
+                                  variant="outlined"
+                                  size="small"
+                                  sx={{ fontSize: '0.65rem' }}
+                                />
+                              ))
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">
+                                Belirtilmemiş
+                              </Typography>
+                            );
+                          })()}
+                          {(() => {
+                            const allSubcategories = pair.alternativeSuppliers.flatMap(supplier => supplier.supplySubcategories);
+                            const uniqueSubcategories = Array.from(new Set(allSubcategories));
+                            return uniqueSubcategories.length > 2 && (
+                              <Chip 
+                                label={`+${uniqueSubcategories.length - 2}`} 
+                                color="warning"
+                                variant="outlined"
+                                size="small"
+                                sx={{ fontSize: '0.65rem' }}
+                              />
+                            );
+                          })()}
+                        </Box>
                       </Box>
-                    </Box>
+                    )}
                   </Box>
                 </TableCell>
                 <TableCell>
                   <Box>
-                    <Typography variant="body2" fontWeight="bold" color={
-                      pair.performanceComparison.primaryScore > 
-                      Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
-                        ? 'success.main' : 'warning.main'
-                    }>
-                      {pair.performanceComparison.primaryScore > 
-                       Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
-                        ? 'Ana Tedarikçi Üstün' : 'Alternatif Değerlendir'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {pair.performanceComparison.recommendation}
-                    </Typography>
+                    {pair.alternativeSuppliers.length > 0 ? (
+                      <>
+                        <Typography variant="body2" fontWeight="bold" color={
+                          pair.performanceComparison.primaryScore > 
+                          Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
+                            ? 'success.main' : 'warning.main'
+                        }>
+                          {pair.performanceComparison.primaryScore > 
+                           Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
+                            ? 'Ana Tedarikçi Üstün' : 'Alternatif Değerlendir'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {pair.performanceComparison.recommendation}
+                        </Typography>
+                      </>
+                    ) : (
+                      <>
+                        <Typography variant="body2" fontWeight="bold" color="info.main">
+                          Sadece Ana Tedarikçi
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Alternatif tedarikçi tanımlanmamış
+                        </Typography>
+                      </>
+                    )}
                   </Box>
                 </TableCell>
                 <TableCell>
@@ -5699,21 +5749,27 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     />
                   </Grid>
 
-                  {/* Alternatif Tedarikçi Seçimi */}
+                  {/* 1. Alternatif Tedarikçi Seçimi */}
                   <Grid item xs={12} md={6}>
                     <Autocomplete
                       fullWidth
-                      options={suppliers.filter(s => (s.type === 'alternatif' || s.type === 'onaylı') && s.id !== formData.primarySupplierId)}
+                      options={suppliers.filter(s => (s.type === 'alternatif' || s.type === 'onaylı') && 
+                        s.id !== formData.primarySupplierId && 
+                        s.id !== (formData.alternativeSupplierIds || [])[1])}
                       getOptionLabel={(option) => option.name}
-                      value={suppliers.find(s => s.id === formData.alternativeSupplierId) || null}
+                      value={suppliers.find(s => s.id === (formData.alternativeSupplierIds || [])[0]) || null}
                       onChange={(event, newValue) => {
-                        setFormData({ ...formData, alternativeSupplierId: newValue?.id || '' });
+                        const currentIds = formData.alternativeSupplierIds || [];
+                        const newIds = [...currentIds];
+                        newIds[0] = newValue?.id || '';
+                        // Boş stringleri filtrele
+                        const filteredIds = newIds.filter(id => id !== '');
+                        setFormData({ ...formData, alternativeSupplierIds: filteredIds });
                       }}
                       renderInput={(params) => (
                         <TextField
                           {...params}
-                          label="Alternatif Tedarikçi"
-                          required
+                          label="1. Alternatif Tedarikçi (Opsiyonel)"
                           helperText="Arama yaparak tedarikçi bulabilirsiniz"
                         />
                       )}
@@ -5721,6 +5777,57 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         <Box component="li" {...props}>
                           <Box display="flex" alignItems="center" gap={1}>
                             <SwapHorizIcon color="warning" fontSize="small" />
+                            <Box>
+                              <Typography variant="body2" fontWeight="500">
+                                {option.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {option.type} • {option.category} • Puan: {option.performanceScore}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+                      )}
+                      filterOptions={(options, { inputValue }) =>
+                        options.filter(option =>
+                          option.name.toLowerCase().includes(inputValue.toLowerCase()) ||
+                          option.category.toLowerCase().includes(inputValue.toLowerCase()) ||
+                          option.type.toLowerCase().includes(inputValue.toLowerCase()) ||
+                          option.materialTypes.some(mt => mt.toLowerCase().includes(inputValue.toLowerCase()))
+                        )
+                      }
+                      noOptionsText="Tedarikçi bulunamadı"
+                    />
+                  </Grid>
+
+                  {/* 2. Alternatif Tedarikçi Seçimi */}
+                  <Grid item xs={12} md={6}>
+                    <Autocomplete
+                      fullWidth
+                      options={suppliers.filter(s => (s.type === 'alternatif' || s.type === 'onaylı') && 
+                        s.id !== formData.primarySupplierId && 
+                        s.id !== (formData.alternativeSupplierIds || [])[0])}
+                      getOptionLabel={(option) => option.name}
+                      value={suppliers.find(s => s.id === (formData.alternativeSupplierIds || [])[1]) || null}
+                      onChange={(event, newValue) => {
+                        const currentIds = formData.alternativeSupplierIds || [];
+                        const newIds = [...currentIds];
+                        newIds[1] = newValue?.id || '';
+                        // Boş stringleri filtrele
+                        const filteredIds = newIds.filter(id => id !== '');
+                        setFormData({ ...formData, alternativeSupplierIds: filteredIds });
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="2. Alternatif Tedarikçi (Opsiyonel)"
+                          helperText="İkinci alternatif tedarikçi seçebilirsiniz"
+                        />
+                      )}
+                      renderOption={(props, option) => (
+                        <Box component="li" {...props}>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <SwapHorizIcon color="info" fontSize="small" />
                             <Box>
                               <Typography variant="body2" fontWeight="500">
                                 {option.name}
