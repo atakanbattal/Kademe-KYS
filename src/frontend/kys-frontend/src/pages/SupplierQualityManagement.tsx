@@ -96,7 +96,7 @@ interface NonconformityRecord {
   detectedDate: string;
   status: 'açık' | 'araştırılıyor' | 'düzeltiliyor' | 'kapalı';
   dueDate: string;
-  correctionCost: number;
+  correctionCost?: number; // Opsiyonel düzeltme maliyeti
   dofId?: string;
   recurrence: boolean;
   // Yeni zorunlu alanlar
@@ -1343,7 +1343,6 @@ Açıklama: ${nonconformity.description}
 Kategori: ${nonconformity.category}
 Parça Kodu: ${nonconformity.partCode}
 Tespit Tarihi: ${nonconformity.detectedDate}
-Düzeltme Maliyeti: ${nonconformity.correctionCost} ₺
 ${nonconformity.quantityAffected ? `Etkilenen Miktar: ${nonconformity.quantityAffected} adet` : ''}
 ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` : ''}`,
         department: 'Satın Alma',
@@ -1503,7 +1502,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       detectedDate: new Date().toISOString().split('T')[0],
       status: 'açık',
       dueDate: '',
-      correctionCost: 0,
       partCode: '', // Zorunlu alan
       quantityAffected: undefined,
       delayDays: undefined,
@@ -6073,18 +6071,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                       InputLabelProps={{ shrink: true }}
                       helperText="Uygunsuzluğun giderilmesi gereken tarih"
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Düzeltme Maliyeti (₺)"
-                      type="number"
-                      value={formData.correctionCost || 0}
-                      onChange={(e) => setFormData({ ...formData, correctionCost: Number(e.target.value) })}
-                      inputProps={{ min: 0, step: 0.01 }}
-                      helperText="Tahmini düzeltme maliyeti"
                     />
                   </Grid>
                   
