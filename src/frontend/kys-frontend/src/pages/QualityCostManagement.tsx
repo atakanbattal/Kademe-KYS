@@ -6305,7 +6305,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         Math.round((retPerformance + hurdaPerformance + firePerformance) / 3) : null;
 
                       const getPerformanceColor = (performance: number | null) => {
-                        if (performance === null) return 'grey';
+                        if (performance === null) return 'default';
                         if (performance >= 80) return 'success';
                         if (performance >= 60) return 'warning';
                         return 'error';
