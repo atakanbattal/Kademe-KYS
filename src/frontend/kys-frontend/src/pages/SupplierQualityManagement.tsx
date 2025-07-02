@@ -30,8 +30,6 @@ interface Supplier {
   code: string;
   type: 'onaylı' | 'alternatif' | 'potansiyel' | 'bloklu';
   category: 'stratejik' | 'kritik' | 'rutin' | 'genel';
-  // A/B/C/D Tedarikçi Gruplandırması
-  supplierGrade: 'A' | 'B' | 'C' | 'D';
   // Yeni tedarik türü alanları
   supplyType: 'malzeme' | 'hizmet' | 'hibrit';
   supplySubcategories: string[];
@@ -76,19 +74,13 @@ interface AuditRecord {
   id: string;
   supplierId: string;
   auditDate: string;
-  plannedDate?: string; // Planlandığı tarih
   auditType: 'planlı' | 'ani' | 'takip' | 'acil';
   auditorName: string;
   score: number;
   findings: string[];
-  status: 'planlı' | 'devam_ediyor' | 'tamamlandı' | 'iptal' | 'gecikmiş';
+  status: 'planlı' | 'tamamlandı' | 'iptal';
   nextAuditDate: string;
   isAutoScheduled: boolean;
-  // Denetim sapması için yeni alanlar
-  delayReason?: string; // Gecikme nedeni
-  delayDays?: number; // Gecikme gün sayısı
-  isDelayed: boolean; // Gecikmiş mi?
-  actualCompletionDate?: string; // Gerçekleşme tarihi
 }
 
 interface NonconformityRecord {
@@ -318,6 +310,17 @@ const SupplierQualityManagement: React.FC = () => {
     return () => clearInterval(monitorInterval);
   }, [suppliers, dataLoaded]);
 
+  // Veri tutarlılığı kontrolü - Veriler yüklendikten sonra
+  useEffect(() => {
+    if (dataLoaded && suppliers.length > 0 && supplierPairs.length > 0) {
+      console.log('🔄 Veri yüklendi, tutarlılık kontrolü başlatılıyor...');
+      // Biraz bekleyip senkronizasyon yap
+      setTimeout(() => {
+        syncDataConsistency();
+      }, 500);
+    }
+  }, [dataLoaded, suppliers.length, supplierPairs.length]);
+
   // MANUEL KAYDETME FONKSİYONLARI - useEffect yerine
   const saveToLocalStorage = () => {
     try {
@@ -421,13 +424,13 @@ const SupplierQualityManagement: React.FC = () => {
   const loadMockData = () => {
     // Mock data - gerçek uygulamada API'den gelecek
     const mockSuppliers: Supplier[] = [
+      // Ana tedarikçiler (Onaylı)
       {
         id: 'SUP-001',
         name: 'Seçkinler Metal A.Ş.',
         code: 'SM001',
         type: 'onaylı',
         category: 'stratejik',
-        supplierGrade: 'A',
         supplyType: 'malzeme',
         supplySubcategories: ['Ham Madde (Çelik, Alüminyum, Plastik)', 'Yarı Mamul (Profil, Sac, Boru)'],
         contact: {
@@ -451,14 +454,100 @@ const SupplierQualityManagement: React.FC = () => {
         dofCount: 0,
         isActive: true
       },
-      // Düşük performanslı tedarikçi örnekleri (otomatik denetim önerisi için)
+      {
+        id: 'SUP-002',
+        name: 'Nisa Metal Ltd.',
+        code: 'NM002',
+        type: 'alternatif',
+        category: 'stratejik',
+        supplyType: 'hizmet',
+        supplySubcategories: ['Taşeron İşçilik (Kaynak, Montaj)', 'Bakım ve Onarım Hizmetleri'],
+        contact: {
+          email: 'info@nisametal.com',
+          phone: '+90 212 555 0124',
+          address: 'Bursa Sanayi Sitesi',
+          contactPerson: 'Fatma Nisa'
+        },
+        materialTypes: ['Çelik Levha', 'Profil'],
+        performanceScore: 87,
+        qualityScore: 90,
+        deliveryScore: 85,
+        riskLevel: 'düşük',
+        status: 'aktif',
+        registrationDate: '2021-03-20',
+        lastAuditDate: '2024-07-10',
+        nextAuditDate: '2025-07-10',
+        auditStatus: 'planlı',
+        nonconformityCount: 1,
+        defectCount: 0,
+        dofCount: 0,
+        isActive: true
+      },
+      {
+        id: 'SUP-003',
+        name: 'Demir Döküm Sanayi A.Ş.',
+        code: 'DD003',
+        type: 'onaylı',
+        category: 'kritik',
+        supplyType: 'malzeme',
+        supplySubcategories: ['Ham Madde (Çelik, Alüminyum, Plastik)', 'Standart Parçalar (Vida, Somun, Rondela)'],
+        contact: {
+          email: 'contact@demirdokum.com',
+          phone: '+90 232 555 0145',
+          address: 'İzmir Aliağa Organize Sanayi',
+          contactPerson: 'Cemil Demir'
+        },
+        materialTypes: ['Döküm Parçalar', 'Boru Bağlantıları'],
+        performanceScore: 89,
+        qualityScore: 91,
+        deliveryScore: 87,
+        riskLevel: 'düşük',
+        status: 'aktif',
+        registrationDate: '2019-07-22',
+        lastAuditDate: '2024-05-20',
+        nextAuditDate: '2025-05-20',
+        auditStatus: 'planlı',
+        nonconformityCount: 3,
+        defectCount: 2,
+        dofCount: 1,
+        isActive: true
+      },
+      {
+        id: 'SUP-004',
+        name: 'Altın Kaynak Teknolojileri Ltd.',
+        code: 'AK004',
+        type: 'alternatif',
+        category: 'kritik',
+        supplyType: 'hizmet',
+        supplySubcategories: ['Taşeron İşçilik (Kaynak, Montaj)', 'Test ve Muayene Hizmetleri'],
+        contact: {
+          email: 'info@altinkaynak.com',
+          phone: '+90 262 555 0167',
+          address: 'Kocaeli Gebze Organize Sanayi',
+          contactPerson: 'Mustafa Altın'
+        },
+        materialTypes: ['Kaynak İşleri', 'Yapısal Çelik'],
+        performanceScore: 84,
+        qualityScore: 88,
+        deliveryScore: 81,
+        riskLevel: 'orta',
+        status: 'aktif',
+        registrationDate: '2020-11-18',
+        lastAuditDate: '2024-08-12',
+        nextAuditDate: '2025-08-12',
+        auditStatus: 'planlı',
+        nonconformityCount: 4,
+        defectCount: 3,
+        dofCount: 1,
+        isActive: true
+      },
+      // Düşük performanslı tedarikçiler (otomatik denetim önerisi için)
       {
         id: 'SUP-005',
         name: 'Problematik Metal San. Tic.',
         code: 'PM005',
         type: 'onaylı',
         category: 'kritik',
-        supplierGrade: 'C',
         supplyType: 'malzeme',
         supplySubcategories: ['Ham Madde (Çelik, Alüminyum, Plastik)'],
         contact: {
@@ -488,7 +577,6 @@ const SupplierQualityManagement: React.FC = () => {
         code: 'KU006',
         type: 'onaylı',
         category: 'kritik',
-        supplierGrade: 'D',
         supplyType: 'malzeme',
         supplySubcategories: ['Yarı Mamul (Profil, Sac, Boru)'],
         contact: {
@@ -512,34 +600,121 @@ const SupplierQualityManagement: React.FC = () => {
         dofCount: 5,
         isActive: true
       },
+      // Ek tedarikçiler
       {
-        id: 'SUP-002',
-        name: 'Nisa Metal Ltd.',
-        code: 'NM002',
-        type: 'alternatif',
+        id: 'SUP-007',
+        name: 'Premium Çelik Teknolojileri A.Ş.',
+        code: 'PC007',
+        type: 'onaylı',
         category: 'stratejik',
-        supplierGrade: 'B',
-        supplyType: 'hizmet',
-        supplySubcategories: ['Taşeron İşçilik (Kaynak, Montaj)', 'Bakım ve Onarım Hizmetleri'],
+        supplyType: 'malzeme',
+        supplySubcategories: ['Ham Madde (Çelik, Alüminyum, Plastik)', 'Yarı Mamul (Profil, Sac, Boru)'],
         contact: {
-          email: 'info@nisametal.com',
-          phone: '+90 212 555 0124',
-          address: 'Bursa Sanayi Sitesi',
-          contactPerson: 'Fatma Nisa'
+          email: 'sales@premiumcelik.com',
+          phone: '+90 224 555 0201',
+          address: 'Bursa Nilüfer Organize Sanayi',
+          contactPerson: 'Hasan Premium'
         },
-        materialTypes: ['Çelik Levha', 'Profil'],
-        performanceScore: 87,
-        qualityScore: 90,
-        deliveryScore: 85,
+        materialTypes: ['Özel Çelik Alaşımları', 'Yüksek Dayanım Çelik'],
+        performanceScore: 95,
+        qualityScore: 97,
+        deliveryScore: 93,
         riskLevel: 'düşük',
         status: 'aktif',
-        registrationDate: '2021-03-20',
-        lastAuditDate: '2024-07-10',
-        nextAuditDate: '2025-07-10',
+        registrationDate: '2021-05-12',
+        lastAuditDate: '2024-09-10',
+        nextAuditDate: '2025-09-10',
         auditStatus: 'planlı',
-        nonconformityCount: 1,
+        nonconformityCount: 0,
         defectCount: 0,
         dofCount: 0,
+        isActive: true
+      },
+      {
+        id: 'SUP-008',
+        name: 'Güven Makine Parçaları Ltd.',
+        code: 'GM008',
+        type: 'alternatif',
+        category: 'rutin',
+        supplyType: 'hibrit',
+        supplySubcategories: ['Standart Parçalar (Vida, Somun, Rondela)', 'Montaj + Bakım'],
+        contact: {
+          email: 'info@guvenmakine.com',
+          phone: '+90 274 555 0298',
+          address: 'Edirne Sanayi Sitesi',
+          contactPerson: 'Ali Güven'
+        },
+        materialTypes: ['Makine Parçaları', 'Standart Bağlantı Elemanları'],
+        performanceScore: 79,
+        qualityScore: 82,
+        deliveryScore: 77,
+        riskLevel: 'orta',
+        status: 'aktif',
+        registrationDate: '2020-09-15',
+        lastAuditDate: '2024-04-18',
+        nextAuditDate: '2025-04-18',
+        auditStatus: 'planlı',
+        nonconformityCount: 5,
+        defectCount: 4,
+        dofCount: 2,
+        isActive: true
+      },
+      {
+        id: 'SUP-009',
+        name: 'Elektronik Sistem Çözümleri A.Ş.',
+        code: 'ES009',
+        type: 'onaylı',
+        category: 'genel',
+        supplyType: 'malzeme',
+        supplySubcategories: ['Elektronik Komponentler'],
+        contact: {
+          email: 'teknik@elektroniksistem.com',
+          phone: '+90 312 555 0345',
+          address: 'Ankara Ostim Sanayi Sitesi',
+          contactPerson: 'Zeynep Elektronik'
+        },
+        materialTypes: ['Sensörler', 'Kontrol Kartları', 'Kablolar'],
+        performanceScore: 86,
+        qualityScore: 89,
+        deliveryScore: 84,
+        riskLevel: 'düşük',
+        status: 'aktif',
+        registrationDate: '2022-01-08',
+        lastAuditDate: '2024-07-25',
+        nextAuditDate: '2025-07-25',
+        auditStatus: 'planlı',
+        nonconformityCount: 2,
+        defectCount: 1,
+        dofCount: 0,
+        isActive: true
+      },
+      {
+        id: 'SUP-010',
+        name: 'Kimya Endüstri Malzemeleri Ltd.',
+        code: 'KE010',
+        type: 'potansiyel',
+        category: 'genel',
+        supplyType: 'malzeme',
+        supplySubcategories: ['Kimyasal Maddeler (Boya, Temizlik)'],
+        contact: {
+          email: 'musteri@kimyaendus.com',
+          phone: '+90 264 555 0412',
+          address: 'Adapazarı Organize Sanayi',
+          contactPerson: 'Erkan Kimya'
+        },
+        materialTypes: ['Endüstriyel Boyalar', 'Temizlik Kimyasalları'],
+        performanceScore: 75,
+        qualityScore: 78,
+        deliveryScore: 73,
+        riskLevel: 'orta',
+        status: 'aktif',
+        registrationDate: '2023-03-14',
+        lastAuditDate: '2024-10-05',
+        nextAuditDate: '2025-10-05',
+        auditStatus: 'planlı',
+        nonconformityCount: 3,
+        defectCount: 2,
+        dofCount: 1,
         isActive: true
       }
     ];
@@ -547,17 +722,79 @@ const SupplierQualityManagement: React.FC = () => {
     const mockPairs: SupplierPair[] = [
       {
         id: 'PAIR-001',
-        primarySupplier: mockSuppliers[0],
-        alternativeSuppliers: [mockSuppliers[1]],
+        primarySupplier: mockSuppliers.find(s => s.id === 'SUP-001')!,
+        alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-002')!, mockSuppliers.find(s => s.id === 'SUP-007')!],
         materialType: 'Çelik Levha',
         category: 'stratejik',
         performanceComparison: {
           primaryScore: 92,
-          alternativeScores: [{ id: 'SUP-002', score: 87 }],
-          recommendation: 'Ana tedarikçi performansı üstün'
+          alternativeScores: [
+            { id: 'SUP-002', score: 87 },
+            { id: 'SUP-007', score: 95 }
+          ],
+          recommendation: 'SUP-007 Premium Çelik alternatifi değerlendirilmeli'
         },
         lastReviewDate: '2024-10-15',
         nextReviewDate: '2025-04-15'
+      },
+      {
+        id: 'PAIR-002',
+        primarySupplier: mockSuppliers.find(s => s.id === 'SUP-003')!,
+        alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-008')!],
+        materialType: 'Döküm Parçalar',
+        category: 'kritik',
+        performanceComparison: {
+          primaryScore: 89,
+          alternativeScores: [{ id: 'SUP-008', score: 79 }],
+          recommendation: 'Ana tedarikçi performansı üstün'
+        },
+        lastReviewDate: '2024-11-20',
+        nextReviewDate: '2025-05-20'
+      },
+      {
+        id: 'PAIR-003',
+        primarySupplier: mockSuppliers.find(s => s.id === 'SUP-009')!,
+        alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-004')!],
+        materialType: 'Elektronik Komponentler',
+        category: 'genel',
+        performanceComparison: {
+          primaryScore: 86,
+          alternativeScores: [{ id: 'SUP-004', score: 84 }],
+          recommendation: 'Mevcut performans dengeli'
+        },
+        lastReviewDate: '2024-09-12',
+        nextReviewDate: '2025-03-12'
+      },
+      {
+        id: 'PAIR-004',
+        primarySupplier: mockSuppliers.find(s => s.id === 'SUP-005')!,
+        alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-007')!, mockSuppliers.find(s => s.id === 'SUP-001')!],
+        materialType: 'Ham Madde Çelik',
+        category: 'kritik',
+        performanceComparison: {
+          primaryScore: 65,
+          alternativeScores: [
+            { id: 'SUP-007', score: 95 },
+            { id: 'SUP-001', score: 92 }
+          ],
+          recommendation: 'ACİL: Ana tedarikçi değişimi gerekli - her iki alternatif daha üstün'
+        },
+        lastReviewDate: '2024-11-25',
+        nextReviewDate: '2024-12-25'
+      },
+      {
+        id: 'PAIR-005',
+        primarySupplier: mockSuppliers.find(s => s.id === 'SUP-010')!,
+        alternativeSuppliers: [mockSuppliers.find(s => s.id === 'SUP-006')!],
+        materialType: 'Kimyasal Maddeler',
+        category: 'genel',
+        performanceComparison: {
+          primaryScore: 75,
+          alternativeScores: [{ id: 'SUP-006', score: 58 }],
+          recommendation: 'Ana tedarikçi ile devam edilmeli'
+        },
+        lastReviewDate: '2024-10-30',
+        nextReviewDate: '2025-04-30'
       }
     ];
 
@@ -567,61 +804,49 @@ const SupplierQualityManagement: React.FC = () => {
         id: 'AUDIT-001',
         supplierId: 'SUP-001',
         auditDate: '2024-12-25',
-        plannedDate: '2024-12-25',
         auditType: 'planlı',
         auditorName: 'Kalite Müdürü - Ahmet Yılmaz',
         score: 0,
         findings: [],
         status: 'planlı',
         nextAuditDate: '2025-12-25',
-        isAutoScheduled: false,
-        isDelayed: false
+        isAutoScheduled: false
       },
       {
         id: 'AUDIT-002',
         supplierId: 'SUP-002',
         auditDate: '2024-12-28',
-        plannedDate: '2024-12-28',
         auditType: 'takip',
         auditorName: 'Denetim Uzmanı - Fatma Demir',
         score: 0,
         findings: [],
         status: 'planlı',
         nextAuditDate: '2025-06-28',
-        isAutoScheduled: false,
-        isDelayed: false
+        isAutoScheduled: false
       },
       {
         id: 'AUDIT-003',
         supplierId: 'SUP-005',
         auditDate: '2024-12-20',
-        plannedDate: '2024-12-15',
         auditType: 'acil',
         auditorName: 'Baş Denetçi - Mehmet Öztürk',
         score: 0,
         findings: [],
-        status: 'gecikmiş',
+        status: 'planlı',
         nextAuditDate: '2025-03-20',
-        isAutoScheduled: true,
-        isDelayed: true,
-        delayReason: 'Tedarikçi hazırlık süresi uzadı',
-        delayDays: 5
+        isAutoScheduled: true
       },
       {
         id: 'AUDIT-004',
         supplierId: 'SUP-006',
         auditDate: '2024-12-15',
-        plannedDate: '2024-12-10',
         auditType: 'ani',
         auditorName: 'Kalite Kontrol - Ayşe Kaya',
         score: 0,
         findings: [],
-        status: 'gecikmiş',
+        status: 'planlı',
         nextAuditDate: '2025-02-15',
-        isAutoScheduled: true,
-        isDelayed: true,
-        delayReason: 'Denetçi müsaitlik sorunu',
-        delayDays: 5
+        isAutoScheduled: true
       }
     ];
 
@@ -721,14 +946,97 @@ const SupplierQualityManagement: React.FC = () => {
     setNonconformities(mockNonconformities);
     setDefects(mockDefects);
     
+    // LocalStorage'a kaydet
+    saveToLocalStorage();
+    
     // Veri yükleme tamamlandığını işaretle
     setDataLoaded(true);
     setIsLoading(false);
     console.log('🎯 Mock tedarikçi verileri yüklendi ve dataLoaded true oldu');
+    console.log('📊 Yüklenen veriler:', {
+      suppliers: mockSuppliers.length,
+      pairs: mockPairs.length,
+      audits: mockAudits.length,
+      nonconformities: mockNonconformities.length,
+      defects: mockDefects.length
+    });
     
     // Auto-audit check
     if (autoAuditEnabled) {
       checkAutoAuditRequirements(mockSuppliers);
+    }
+  };
+
+  // Veri tutarlılığını kontrol et ve senkronize et
+  const syncDataConsistency = () => {
+    console.log('🔄 Veri tutarlılığı kontrol ediliyor...');
+    
+    // Eşleştirmelerdeki tedarikçilerin ana listede olup olmadığını kontrol et
+    const missingSuppliers: string[] = [];
+    
+    supplierPairs.forEach(pair => {
+      // Ana tedarikçi kontrolü
+      if (!suppliers.find(s => s.id === pair.primarySupplier.id)) {
+        missingSuppliers.push(pair.primarySupplier.id);
+      }
+      
+      // Alternatif tedarikçiler kontrolü
+      pair.alternativeSuppliers.forEach(altSupplier => {
+        if (!suppliers.find(s => s.id === altSupplier.id)) {
+          missingSuppliers.push(altSupplier.id);
+        }
+      });
+    });
+    
+    if (missingSuppliers.length > 0) {
+      console.warn('⚠️ Eşleştirmelerde eksik tedarikçiler tespit edildi:', missingSuppliers);
+      showSnackbar(`${missingSuppliers.length} tedarikçi eşleştirmede var ama ana listede yok. Veriler senkronize ediliyor...`, 'warning');
+      
+      // Eksik tedarikçileri eşleştirmelerden ana listeye ekle
+      const suppliersToAdd: Supplier[] = [];
+      
+      supplierPairs.forEach(pair => {
+        if (!suppliers.find(s => s.id === pair.primarySupplier.id)) {
+          suppliersToAdd.push(pair.primarySupplier);
+        }
+        
+        pair.alternativeSuppliers.forEach(altSupplier => {
+          if (!suppliers.find(s => s.id === altSupplier.id) && 
+              !suppliersToAdd.find(s => s.id === altSupplier.id)) {
+            suppliersToAdd.push(altSupplier);
+          }
+        });
+      });
+      
+      if (suppliersToAdd.length > 0) {
+        const updatedSuppliers = [...suppliers, ...suppliersToAdd];
+        setSuppliers(updatedSuppliers);
+        console.log('✅ Eksik tedarikçiler ana listeye eklendi:', suppliersToAdd.map(s => s.name));
+        showSnackbar(`${suppliersToAdd.length} tedarikçi ana listeye eklendi`, 'success');
+      }
+    } else {
+      console.log('✅ Veri tutarlılığı kontrol edildi - sorun yok');
+    }
+  };
+
+  // Cache temizleme fonksiyonu
+  const clearSupplierCache = () => {
+    try {
+      localStorage.removeItem('suppliers');
+      localStorage.removeItem('supplier-nonconformities');
+      localStorage.removeItem('supplier-defects');
+      localStorage.removeItem('supplier-pairs');
+      localStorage.removeItem('supplier-audits');
+      console.log('🗑️ Tedarikçi cache temizlendi');
+      showSnackbar('Tedarikçi verileri cache\'i temizlendi. Sayfa yenileniyor...', 'info');
+      
+      // Verileri yeniden yükle
+      setTimeout(() => {
+        loadMockData();
+      }, 1000);
+    } catch (error) {
+      console.error('❌ Cache temizleme hatası:', error);
+      showSnackbar('Cache temizleme sırasında hata oluştu', 'error');
     }
   };
 
@@ -1904,6 +2212,123 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           </CardContent>
         </Card>
       </Grid>
+
+      {/* Debug & System Management Panel */}
+      <Grid item xs={12}>
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <SecurityIcon color="secondary" />
+              <Typography variant="h6" color="secondary">
+                Sistem Yönetimi ve Debug Kontrolleri
+              </Typography>
+              <Chip 
+                size="small" 
+                label="Geliştirici" 
+                color="secondary" 
+                variant="outlined"
+              />
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Grid container spacing={2}>
+              {/* Veri İstatistikleri */}
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    📊 Veri İstatistikleri
+                  </Typography>
+                  <Box display="flex" flexDirection="column" gap={1}>
+                    <Typography variant="body2">
+                      👥 Toplam Tedarikçi: <strong>{suppliers.length}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      🔗 Tedarikçi Eşleştirme: <strong>{supplierPairs.length}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      ⚠️ Uygunsuzluk Kayıtları: <strong>{nonconformities.length}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      🔍 Denetim Kayıtları: <strong>{audits.length}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      ❌ Hata Kayıtları: <strong>{defects.length}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      💾 Veri Yüklendi: <strong>{dataLoaded ? '✅ Evet' : '❌ Hayır'}</strong>
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
+
+              {/* Debug Aksiyonları */}
+              <Grid item xs={12} md={6}>
+                <Paper sx={{ p: 2, bgcolor: 'warning.50' }}>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    🛠️ Debug Aksiyonları
+                  </Typography>
+                  <Box display="flex" flexDirection="column" gap={1}>
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      color="info"
+                      startIcon={<AssessmentIcon />}
+                      onClick={syncDataConsistency}
+                    >
+                      Veri Tutarlılığı Kontrol Et
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      color="primary"
+                      startIcon={<TrendingUpIcon />}
+                      onClick={() => {
+                        console.log('📋 Debug Bilgileri:', {
+                          suppliers: suppliers.length,
+                          pairs: supplierPairs.length,
+                          pairDetails: supplierPairs.map(p => ({
+                            id: p.id,
+                            primary: p.primarySupplier.name,
+                            alternatives: p.alternativeSuppliers.map(a => a.name)
+                          })),
+                          localStorage: {
+                            suppliers: localStorage.getItem('suppliers') ? 'Var' : 'Yok',
+                            pairs: localStorage.getItem('supplier-pairs') ? 'Var' : 'Yok'
+                          }
+                        });
+                        showSnackbar('Debug bilgileri konsola yazdırıldı', 'info');
+                      }}
+                    >
+                      Debug Bilgilerini Göster
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      color="warning"
+                      startIcon={<DeleteIcon />}
+                      onClick={clearSupplierCache}
+                    >
+                      Cache Temizle & Yenile
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      color="success"
+                      startIcon={<EditIcon />}
+                      onClick={() => {
+                        saveToLocalStorage();
+                        showSnackbar('Tüm veriler localStorage\'a manuel kaydedildi', 'success');
+                      }}
+                    >
+                      Manuel Kaydet
+                    </Button>
+                  </Box>
+                </Paper>
+              </Grid>
+            </Grid>
+          </AccordionDetails>
+        </Accordion>
+      </Grid>
     </Grid>
   );
 
@@ -2211,45 +2636,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   );
 
   // Audit Tracking Component
-  const renderAuditTracking = () => {
-    // A/B/C/D gruplarına göre tedarikçileri gruplandır
-    const groupedSuppliers = {
-      'A': suppliers.filter(s => s.supplierGrade === 'A'),
-      'B': suppliers.filter(s => s.supplierGrade === 'B'), 
-      'C': suppliers.filter(s => s.supplierGrade === 'C'),
-      'D': suppliers.filter(s => s.supplierGrade === 'D')
-    };
-
-    const getGradeColor = (grade: string) => {
-      switch (grade) {
-        case 'A': return '#4caf50'; // Yeşil
-        case 'B': return '#2196f3'; // Mavi  
-        case 'C': return '#ff9800'; // Turuncu
-        case 'D': return '#f44336'; // Kırmızı
-        default: return '#757575';
-      }
-    };
-
-    const getDelayedAudits = () => {
-      return audits.filter(audit => audit.isDelayed && audit.status === 'gecikmiş');
-    };
-
-    const getUpcomingAudits = () => {
-      const today = new Date();
-      return audits.filter(audit => {
-        const auditDate = new Date(audit.auditDate);
-        const daysDiff = Math.ceil((auditDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
-        return audit.status === 'planlı' && daysDiff <= 30;
-      });
-    };
-
-    return (
+  const renderAuditTracking = () => (
     <Box>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5" fontWeight="bold">
-          Profesyonel Denetim Takibi
-        </Typography>
+      <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
         <Box display="flex" gap={2}>
           <Button 
             variant="outlined" 
@@ -2264,81 +2653,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           </Button>
         </Box>
       </Box>
-
-      {/* Özet Kartları */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#e3f2fd', border: '1px solid #2196f3' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2}>
-                <ScheduleIcon sx={{ color: '#1976d2', fontSize: 40 }} />
-                <Box>
-                  <Typography variant="h4" fontWeight="bold" color="#1976d2">
-                    {getUpcomingAudits().length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Yaklaşan Denetim (30 gün)
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#ffebee', border: '1px solid #f44336' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2}>
-                <WarningIcon sx={{ color: '#d32f2f', fontSize: 40 }} />
-                <Box>
-                  <Typography variant="h4" fontWeight="bold" color="#d32f2f">
-                    {getDelayedAudits().length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Gecikmiş Denetim
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#e8f5e8', border: '1px solid #4caf50' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2}>
-                <CheckCircleIcon sx={{ color: '#388e3c', fontSize: 40 }} />
-                <Box>
-                  <Typography variant="h4" fontWeight="bold" color="#388e3c">
-                    {audits.filter(a => a.status === 'tamamlandı').length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Tamamlanan Denetim
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card sx={{ bgcolor: '#fff3e0', border: '1px solid #ff9800' }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2}>
-                <BusinessIcon sx={{ color: '#f57c00', fontSize: 40 }} />
-                <Box>
-                  <Typography variant="h4" fontWeight="bold" color="#f57c00">
-                    {suppliers.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Toplam Tedarikçi
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
       {/* Otomatik Denetim Önerileri */}
       {autoAuditRecommendations.length > 0 && (
@@ -2462,265 +2776,66 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <Typography variant="body2" color="primary.main" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
                 +{autoAuditRecommendations.length - 3} öneri daha (aşağıdaki detaylı tabloda görüntülenebilir)
               </Typography>
-      {/* A/B/C/D Tedarikçi Gruplandırması */}
-      <Typography variant="h6" fontWeight="bold" mb={3} sx={{ color: '#1976d2' }}>
-        Tedarikçi Grupları (A/B/C/D)
-      </Typography>
-
-      <Grid container spacing={3} mb={4}>
-        {(['A', 'B', 'C', 'D'] as const).map(grade => (
-          <Grid item xs={12} md={3} key={grade}>
-            <Card sx={{ 
-              border: `2px solid ${getGradeColor(grade)}`,
-              borderRadius: 2,
-              height: '100%'
-            }}>
-              <CardHeader
-                avatar={
-                  <Avatar sx={{ bgcolor: getGradeColor(grade), fontWeight: 'bold' }}>
-                    {grade}
-                  </Avatar>
-                }
-                title={`Grup ${grade}`}
-                subheader={`${groupedSuppliers[grade].length} Tedarikçi`}
-                titleTypographyProps={{ fontWeight: 'bold' }}
-              />
-              <CardContent>
-                <Box sx={{ maxHeight: 200, overflowY: 'auto' }}>
-                  {groupedSuppliers[grade].length > 0 ? (
-                    groupedSuppliers[grade].map(supplier => {
-                      const supplierAudits = audits.filter(a => a.supplierId === supplier.id);
-                      const nextAudit = supplierAudits.find(a => a.status === 'planlı');
-                      const delayedAudit = supplierAudits.find(a => a.isDelayed);
-                      
-                      return (
-                        <Box key={supplier.id} sx={{ 
-                          p: 1.5, 
-                          mb: 1, 
-                          bgcolor: '#f9f9f9', 
-                          borderRadius: 1,
-                          border: delayedAudit ? '1px solid #f44336' : '1px solid #e0e0e0'
-                        }}>
-                          <Typography variant="body2" fontWeight="bold">
-                            {supplier.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Performans: {supplier.performanceScore}
-                          </Typography>
-                          {nextAudit && (
-                            <Typography variant="caption" display="block" color="primary.main">
-                              Sonraki: {new Date(nextAudit.auditDate).toLocaleDateString('tr-TR')}
-                            </Typography>
-                          )}
-                          {delayedAudit && (
-                            <Chip 
-                              size="small" 
-                              label="Gecikmiş" 
-                              color="error" 
-                              sx={{ mt: 0.5, fontSize: '0.7rem' }}
-                            />
-                          )}
-                        </Box>
-                      );
-                    })
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" style={{ fontStyle: 'italic' }}>
-                      Bu grupta tedarikçi bulunmamaktadır
-                    </Typography>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      {/* Gecikmiş Denetimler */}
-      {getDelayedAudits().length > 0 && (
-        <Card sx={{ mb: 3, border: '1px solid #f44336' }}>
-          <CardHeader 
-            title="Gecikmiş Denetimler" 
-            titleTypographyProps={{ color: '#d32f2f', fontWeight: 'bold' }}
-            avatar={<WarningIcon sx={{ color: '#d32f2f' }} />}
-          />
-          <CardContent>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Tedarikçi</TableCell>
-                    <TableCell>Planlandığı Tarih</TableCell>
-                    <TableCell>Gecikme (Gün)</TableCell>
-                    <TableCell>Gecikme Nedeni</TableCell>
-                    <TableCell>İşlemler</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {getDelayedAudits().map(audit => {
-                    const supplier = suppliers.find(s => s.id === audit.supplierId);
-                    return (
-                      <TableRow key={audit.id}>
-                        <TableCell>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <Avatar sx={{ 
-                              bgcolor: getGradeColor(supplier?.supplierGrade || 'D'), 
-                              width: 24, 
-                              height: 24, 
-                              fontSize: '0.8rem' 
-                            }}>
-                              {supplier?.supplierGrade || 'D'}
-                            </Avatar>
-                            {supplier?.name || 'Bilinmiyor'}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {audit.plannedDate ? new Date(audit.plannedDate).toLocaleDateString('tr-TR') : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={`${audit.delayDays || 0} gün`} 
-                            color="error" 
-                            size="small" 
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ maxWidth: 200, wordWrap: 'break-word' }}>
-                            {audit.delayReason || 'Belirtilmemiş'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Button 
-                            size="small" 
-                            variant="contained" 
-                            color="error"
-                            onClick={() => {
-                              // Gecikmiş denetime müdahale
-                              showSnackbar('Denetim acil olarak yeniden planlandı', 'success');
-                            }}
-                          >
-                            Acil Planla
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
+            </Box>
+          )}
+        </Paper>
       )}
 
-      {/* Denetim Takvimi */}
-      <Card>
-        <CardHeader 
-          title="Denetim Takvimi" 
-          subheader="Tüm denetim planları ve durumları"
-        />
-        <CardContent>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Tedarikçi</TableCell>
-                  <TableCell>Grup</TableCell>
-                  <TableCell>Denetim Tarihi</TableCell>
-                  <TableCell>Denetim Türü</TableCell>
-                  <TableCell>Denetçi</TableCell>
-                  <TableCell>Durum</TableCell>
-                  <TableCell>İşlemler</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {audits.map(audit => {
-                  const supplier = suppliers.find(s => s.id === audit.supplierId);
-                  return (
-                    <TableRow key={audit.id}>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Avatar sx={{ 
-                            bgcolor: getGradeColor(supplier?.supplierGrade || 'D'), 
-                            width: 24, 
-                            height: 24, 
-                            fontSize: '0.8rem' 
-                          }}>
-                            {supplier?.supplierGrade || 'D'}
-                          </Avatar>
-                          {supplier?.name || 'Bilinmiyor'}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={`Grup ${supplier?.supplierGrade || 'D'}`}
-                          sx={{ bgcolor: getGradeColor(supplier?.supplierGrade || 'D'), color: 'white' }}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {new Date(audit.auditDate).toLocaleDateString('tr-TR')}
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={
-                            audit.auditType === 'planlı' ? 'Planlı' :
-                            audit.auditType === 'ani' ? 'Ani' :
-                            audit.auditType === 'takip' ? 'Takip' : 'Acil'
+      <Grid container spacing={3}>
+        {/* Yaklaşan Denetimler - DÜZELTME: audits array'inden veriler çekiliyor */}
+        <Grid item xs={12} md={8}>
+          <Card>
+            <CardHeader title="Yaklaşan Denetimler" />
+            <CardContent>
+              <List>
+                {audits
+                  .filter(a => {
+                    const auditDate = new Date(a.auditDate);
+                    const today = new Date();
+                    const daysDiff = Math.ceil((auditDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+                    return a.status === 'planlı' && daysDiff <= 90;
+                  })
+                  .sort((a, b) => new Date(a.auditDate).getTime() - new Date(b.auditDate).getTime())
+                  .map(audit => {
+                    const auditDate = new Date(audit.auditDate);
+                    const today = new Date();
+                    const daysDiff = Math.ceil((auditDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+                    const supplier = suppliers.find(s => s.id === audit.supplierId);
+                    
+                    return (
+                      <ListItem key={audit.id} divider>
+                        <ListItemIcon>
+                          <ScheduleIcon color={daysDiff <= 30 ? 'error' : 'warning'} />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={supplier ? supplier.name : 'Bilinmiyor'}
+                          secondary={
+                            <Box>
+                              <Typography variant="body2">
+                                Denetim Tarihi: {auditDate.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                Denetçi: {audit.auditorName || 'Atanmadı'}
+                              </Typography>
+                              <Chip 
+                                size="small" 
+                                label={daysDiff <= 0 ? 'Gecikmiş' : `${daysDiff} gün kaldı`}
+                                color={daysDiff <= 0 ? 'error' : daysDiff <= 30 ? 'warning' : 'info'}
+                              />
+                            </Box>
                           }
-                          variant="outlined"
-                          size="small"
                         />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {audit.auditorName}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={
-                            audit.status === 'planlı' ? 'Planlı' :
-                            audit.status === 'devam_ediyor' ? 'Devam Ediyor' :
-                            audit.status === 'tamamlandı' ? 'Tamamlandı' :
-                            audit.status === 'gecikmiş' ? 'Gecikmiş' : 'İptal'
-                          }
-                          color={
-                            audit.status === 'tamamlandı' ? 'success' :
-                            audit.status === 'devam_ediyor' ? 'info' :
-                            audit.status === 'gecikmiş' ? 'error' :
-                            audit.status === 'iptal' ? 'default' : 'warning'
-                          }
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
                         <Box display="flex" gap={1}>
-                          <IconButton 
+                          <Button 
                             size="small" 
+                            variant="outlined"
                             color="primary"
-                            onClick={() => handleEditItem(audit, 'audit')}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton 
-                            size="small" 
-                            color="error"
-                            onClick={() => handleDeleteItem(audit.id, 'audit')}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
-      </Card>
-    </Box>
-    );
-  };
+                            onClick={() => {
+                              if (supplier) {
+                                scheduleAutoAudit(supplier);
+                                showSnackbar(`${supplier.name} denetimi başlatıldı`, 'success');
+                              }
+                            }}
                           >
                             Denetle
                           </Button>
@@ -4219,6 +4334,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <Tab icon={<BusinessIcon />} label="Tedarikçi Listesi" />
             <Tab icon={<ScheduleIcon />} label="Denetim Takibi" />
             <Tab icon={<BugReportIcon />} label="Uygunsuzluk Yönetimi" />
+            <Tab icon={<WarningIcon />} label="Hata Takibi" />
             <Tab icon={<AssessmentIcon />} label="Performans Analizi" />
           </Tabs>
         </Paper>
@@ -4239,6 +4355,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                    console.log('🎯 Uygunsuzluk Yönetimi tab\'ı render ediliyor...');
                    return renderNonconformityManagement();
                  case 5:
+                   return renderDefectTracking();
+                 case 6:
                    return renderPerformanceAnalysis();
                  default:
                    return renderDashboard();
@@ -4344,20 +4462,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         <MenuItem value="kritik">Kritik</MenuItem>
                         <MenuItem value="rutin">Rutin</MenuItem>
                         <MenuItem value="genel">Genel</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Tedarikçi Grubu</InputLabel>
-                      <Select
-                        value={formData.supplierGrade || 'B'}
-                        onChange={(e) => setFormData({ ...formData, supplierGrade: e.target.value })}
-                      >
-                        <MenuItem value="A">A Grubu - En İyi Performans</MenuItem>
-                        <MenuItem value="B">B Grubu - İyi Performans</MenuItem>
-                        <MenuItem value="C">C Grubu - Orta Performans</MenuItem>
-                        <MenuItem value="D">D Grubu - Düşük Performans</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
