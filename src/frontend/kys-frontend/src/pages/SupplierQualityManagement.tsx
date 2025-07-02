@@ -5180,7 +5180,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         });
                       }}
                       InputProps={{
-                        endAdornment: <Typography variant="caption" color="text.secondary">/100</Typography>
+                        endAdornment: <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', minWidth: 'auto' }}>%</Typography>
                       }}
                       inputProps={{ 
                         min: 0, 
@@ -5188,7 +5188,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         step: 1,
                         'aria-label': 'Kalite Skoru'
                       }}
-                      helperText="0-100 arası değer girin"
+                      helperText="0-100 arası puan"
                       error={formData.qualityScore !== undefined && (formData.qualityScore < 0 || formData.qualityScore > 100)}
                     />
                   </Grid>
@@ -5211,7 +5211,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         });
                       }}
                       InputProps={{
-                        endAdornment: <Typography variant="caption" color="text.secondary">/100</Typography>
+                        endAdornment: <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', minWidth: 'auto' }}>%</Typography>
                       }}
                       inputProps={{ 
                         min: 0, 
@@ -5219,7 +5219,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         step: 1,
                         'aria-label': 'Teslimat Skoru'
                       }}
-                      helperText="0-100 arası değer girin"
+                      helperText="0-100 arası puan"
                       error={formData.deliveryScore !== undefined && (formData.deliveryScore < 0 || formData.deliveryScore > 100)}
                     />
                   </Grid>
@@ -5254,7 +5254,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                formData.deliveryScore !== undefined ? formData.deliveryScore : (selectedItem ? selectedItem.deliveryScore : 90)
                              )}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">/100</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>%</Typography>
                         </Box>
                       </Box>
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
