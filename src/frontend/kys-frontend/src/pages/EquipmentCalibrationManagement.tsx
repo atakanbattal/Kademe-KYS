@@ -110,17 +110,12 @@ interface Equipment {
   purchaseDate: string;
   installationDate: string;
   warrantyExpiry: string;
-  status: 'active' | 'inactive' | 'maintenance' | 'calibration' | 'out_of_service';
+  status: 'active' | 'inactive' | 'calibration' | 'out_of_service';
   calibrationRequired: boolean;
   calibrationFrequency: number; // months
   lastCalibrationDate: string;
   nextCalibrationDate: string;
   calibrationStatus: 'valid' | 'due' | 'overdue' | 'invalid';
-  maintenanceRequired: boolean;
-  maintenanceFrequency: number; // months
-  lastMaintenanceDate: string;
-  nextMaintenanceDate: string;
-  maintenanceStatus: 'good' | 'due' | 'overdue' | 'critical';
   criticalEquipment: boolean;
   specifications: string;
   operatingManual: string;
@@ -128,7 +123,6 @@ interface Equipment {
   qrCode?: string;
   images: string[];
   certificates: CalibrationCertificate[];
-  maintenanceRecords: MaintenanceRecord[];
   // Yeni eklenen alanlar
   measurementRange?: string; // Hangi değerler arasında ölçüm yaptığı
   measurementUncertainty?: string; // Ölçüm belirsizliği ±
@@ -173,22 +167,6 @@ interface MeasurementResult {
   conformity: 'pass' | 'fail';
 }
 
-interface MaintenanceRecord {
-  id: string;
-  equipmentId: string;
-  maintenanceDate: string;
-  maintenanceType: 'preventive' | 'corrective' | 'predictive' | 'emergency';
-  description: string;
-  performedBy: string;
-  partsReplaced: string[];
-  nextMaintenanceDate: string;
-  workOrderNumber: string;
-  duration: number; // hours
-  status: 'completed' | 'pending' | 'in_progress' | 'cancelled';
-  notes: string;
-  attachments: string[];
-}
-
 // Interfaces removed - not currently used in the component
 
 interface FilterState {
@@ -198,7 +176,6 @@ interface FilterState {
   department: string;
   status: string;
   calibrationStatus: string;
-  maintenanceStatus: string;
   responsiblePerson: string;
   dateRange: {
     start: string;
@@ -3318,7 +3295,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [expanded, setExpanded] = useState<string | false>('filters');
   const [openDialog, setOpenDialog] = useState(false);
-  const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view' | 'calibration' | 'maintenance'>('create');
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view' | 'calibration'>('create');
   const [dialogTitle, setDialogTitle] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [activeStep, setActiveStep] = useState(0);
@@ -3331,7 +3308,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
     department: '',
     status: '',
     calibrationStatus: '',
-    maintenanceStatus: '',
     responsiblePerson: '',
     dateRange: {
       start: '',
@@ -3355,8 +3331,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
     status: 'active',
     calibrationRequired: false,
     calibrationFrequency: 12,
-    maintenanceRequired: true,
-    maintenanceFrequency: 6,
     criticalEquipment: false,
     specifications: '',
     notes: '',
@@ -3556,10 +3530,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
       if (filters.department && equipment.department !== filters.department) return false;
       if (filters.status && equipment.status !== filters.status) return false;
       if (filters.calibrationStatus && equipment.calibrationStatus !== filters.calibrationStatus) return false;
-      if (filters.maintenanceStatus && equipment.maintenanceStatus !== filters.maintenanceStatus) return false;
       if (filters.responsiblePerson && !equipment.responsiblePersons.includes(filters.responsiblePerson)) return false;
       if (filters.criticalOnly && !equipment.criticalEquipment) return false;
-      if (filters.overdueOnly && equipment.calibrationStatus !== 'overdue' && equipment.maintenanceStatus !== 'overdue') return false;
+      if (filters.overdueOnly && equipment.calibrationStatus !== 'overdue') return false;
       return true;
     });
   }, [equipmentList, filters]);
@@ -3571,12 +3544,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
     const activeEquipment = filteredEquipment.filter(eq => eq.status === 'active').length;
     const criticalEquipment = filteredEquipment.filter(eq => eq.criticalEquipment).length;
     const calibrationDue = filteredEquipment.filter(eq => eq.calibrationStatus === 'due' || eq.calibrationStatus === 'overdue').length;
-    const maintenanceDue = filteredEquipment.filter(eq => eq.maintenanceStatus === 'due' || eq.maintenanceStatus === 'overdue').length;
 
     // Status distribution for charts
     const statusDistribution = [
       { name: 'Aktif', value: filteredEquipment.filter(eq => eq.status === 'active').length, color: '#4caf50' },
-      { name: 'Bakımda', value: filteredEquipment.filter(eq => eq.status === 'maintenance').length, color: '#ff9800' },
       { name: 'Kalibrasyonda', value: filteredEquipment.filter(eq => eq.status === 'calibration').length, color: '#2196f3' },
       { name: 'Devre Dışı', value: filteredEquipment.filter(eq => eq.status === 'out_of_service').length, color: '#f44336' },
     ].filter(item => item.value > 0);
@@ -3599,7 +3570,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
       activeEquipment,
       criticalEquipment,
       calibrationDue,
-      maintenanceDue,
       statusDistribution,
       calibrationStatusDistribution,
       categoryDistribution,
@@ -3627,9 +3597,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
         status: 'active',
         calibrationRequired: false,
         calibrationFrequency: 12,
-        maintenanceRequired: true,
-        maintenanceFrequency: 6,
-        criticalEquipment: false,
+                        criticalEquipment: false,
         specifications: '',
         notes: '',
         measurementRange: '',
@@ -3701,9 +3669,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
       status: 'active',
       calibrationRequired: false,
       calibrationFrequency: 12,
-      maintenanceRequired: true,
-      maintenanceFrequency: 6,
-      criticalEquipment: false,
+                  criticalEquipment: false,
       specifications: '',
       notes: '',
       measurementRange: '',
@@ -3745,20 +3711,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
       lastCalibrationDate: equipment.lastCalibrationDate,
       nextCalibrationDate: equipment.nextCalibrationDate,
       calibrationStatus: equipment.calibrationStatus,
-      maintenanceRequired: equipment.maintenanceRequired,
-      maintenanceFrequency: equipment.maintenanceFrequency,
-      lastMaintenanceDate: equipment.lastMaintenanceDate,
-      nextMaintenanceDate: equipment.nextMaintenanceDate,
-      maintenanceStatus: equipment.maintenanceStatus,
-      criticalEquipment: equipment.criticalEquipment,
+                                    criticalEquipment: equipment.criticalEquipment,
       specifications: equipment.specifications,
       operatingManual: equipment.operatingManual,
       notes: equipment.notes,
       qrCode: equipment.qrCode,
       images: equipment.images || [],
       certificates: equipment.certificates || [],
-      maintenanceRecords: equipment.maintenanceRecords || [],
-      measurementRange: equipment.measurementRange || '',
+            measurementRange: equipment.measurementRange || '',
       measurementUncertainty: equipment.measurementUncertainty || '',
       customMeasurementRange: equipment.customMeasurementRange || '',
       customMeasurementUncertainty: equipment.customMeasurementUncertainty,
@@ -3779,12 +3739,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
     setOpenDialog(true);
   };
 
-  const handleMaintenance = (equipment: Equipment) => {
-    setSelectedEquipment(equipment);
-    setDialogMode('maintenance');
-    setDialogTitle(`Bakım İşlemi - ${equipment.name}`);
-    setOpenDialog(true);
-  };
+  
 
   const handleDeleteEquipment = (equipment: Equipment) => {
     if (window.confirm(`"${equipment.name}" ekipmanını silmek istediğinize emin misiniz?`)) {
@@ -3808,8 +3763,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
       case 'fail':
       case 'critical':
         return <ErrorIcon />;
-      case 'maintenance':
-        return <BuildIcon />;
+      
       case 'calibration':
         return <ScienceIcon />;
       default:
@@ -4040,19 +3994,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
       lastCalibrationDate: formData.lastCalibrationDate || new Date().toISOString().split('T')[0],
       nextCalibrationDate: formData.nextCalibrationDate || '',
       calibrationStatus: 'valid',
-      maintenanceRequired: true,
-      maintenanceFrequency: 6,
-      lastMaintenanceDate: new Date().toISOString().split('T')[0],
-      nextMaintenanceDate: new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      maintenanceStatus: 'good',
-      criticalEquipment: formData.criticalEquipment || false,
+                                    criticalEquipment: formData.criticalEquipment || false,
       specifications: formData.specifications || '',
       operatingManual: '',
       notes: formData.notes || '',
       images: [],
       certificates: [],
-      maintenanceRecords: [],
-      // Yeni alanlar
+            // Yeni alanlar
       measurementRange: formData.measurementRange === 'Diğer' ? formData.customMeasurementRange : formData.measurementRange,
       measurementUncertainty: formData.measurementUncertainty === 'Diğer' ? formData.customMeasurementUncertainty : formData.measurementUncertainty,
       calibrationCompany: formData.calibrationCompany || '',
@@ -4211,8 +4159,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   department: '',
                   status: '',
                   calibrationStatus: '',
-                  maintenanceStatus: '',
-                  responsiblePerson: '',
+                                    responsiblePerson: '',
                   dateRange: { start: '', end: '' },
                   criticalOnly: false,
                   overdueOnly: false
@@ -4230,7 +4177,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
         <Tab label="Dashboard" icon={<DashboardIcon />} />
         <Tab label="Ekipman Listesi" icon={<EngineeringIcon />} />
         <Tab label="Kalibrasyon Takibi" icon={<ScienceIcon />} />
-        <Tab label="Bakım Takibi" icon={<BuildIcon />} />
+
         <Tab label="Planlar ve Uyarılar" icon={<ScheduleIcon />} />
         <Tab label="Raporlar" icon={<AssessmentIcon />} />
       </Tabs>
@@ -4309,23 +4256,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 </CardContent>
               </EquipmentCard>
             </Box>
-            <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <EquipmentCard>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box>
-                      <Typography variant="h4" fontWeight={700} color="info.main">
-                        {metrics.maintenanceDue}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Bakım Gerekli
-                      </Typography>
-                    </Box>
-                    <BuildIcon sx={{ fontSize: 40, color: 'info.main' }} />
-                  </Box>
-                </CardContent>
-              </EquipmentCard>
-            </Box>
+
           </Box>
 
           {/* Grafikler */}
@@ -4724,7 +4655,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       <StatusChip
                         label={
                           equipment.status === 'active' ? 'Aktif' :
-                          equipment.status === 'maintenance' ? 'Bakımda' :
+                          
                           equipment.status === 'calibration' ? 'Kalibrasyon' :
                           equipment.status === 'inactive' ? 'Pasif' : 'Devre Dışı'
                         }
@@ -4775,13 +4706,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <StatusChip
                           label={
-                            equipment.maintenanceStatus === 'good' ? 'İyi' :
-                            equipment.maintenanceStatus === 'due' ? 'Yaklaşan' :
-                            equipment.maintenanceStatus === 'overdue' ? 'Geciken' : 'Kritik'
+                            'İyi'
                           }
-                          statustype={equipment.maintenanceStatus}
+                          statustype="good"
                           size="small"
-                          icon={getStatusIcon(equipment.maintenanceStatus)}
+                          icon={getStatusIcon("good")}
                           sx={{ 
                             height: '20px',
                             fontSize: '0.6rem',
@@ -4799,7 +4728,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          {formatDate(equipment.nextMaintenanceDate)}
+                          "-"
                         </Typography>
                       </Box>
                     </TableCell>
@@ -4850,21 +4779,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <ScienceIcon sx={{ fontSize: '16px' }} />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Bakım">
-                          <IconButton 
-                            size="small"
-                            onClick={() => handleMaintenance(equipment)}
-                            sx={{ 
-                              padding: '4px',
-                              '&:hover': { 
-                                backgroundColor: 'info.50',
-                                transform: 'scale(1.1)'
-                              }
-                            }}
-                          >
-                            <BuildIcon sx={{ fontSize: '16px' }} />
-                          </IconButton>
-                        </Tooltip>
+                        
                         <Tooltip title="Sil">
                           <IconButton 
                             size="small"
@@ -4985,93 +4900,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
         </Box>
       )}
 
-      {/* Bakım Takibi Tab */}
-      {activeTab === 3 && (
-        <Box>
-          <Typography variant="h5" gutterBottom>Bakım Takip Sistemi</Typography>
-          
-
-
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-            {/* Yaklaşan Bakımlar */}
-            <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <WarningIcon color="warning" />
-                  Yaklaşan Bakımlar
-                </Typography>
-                <List>
-                  {metrics.filteredEquipment
-                    .filter(eq => eq.maintenanceStatus === 'due')
-                    .map((equipment) => (
-                    <ListItem key={equipment.id} sx={{ px: 0 }}>
-                      <ListItemIcon>
-                        <BuildIcon color="warning" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={equipment.name}
-                        secondary={
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Kod: {equipment.equipmentCode}
-                            </Typography>
-                            <Typography variant="body2" color="warning.main">
-                              Tarih: {formatDate(equipment.nextMaintenanceDate)} 
-                              ({getDaysUntilDue(equipment.nextMaintenanceDate)} gün kaldı)
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                      <Button variant="outlined" size="small" startIcon={<BuildIcon />}>
-                        Bakım Planla
-                      </Button>
-                    </ListItem>
-                  ))}
-                </List>
-              </Paper>
-            </Box>
-
-            {/* Vadesi Geçen Bakımlar */}
-            <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <ErrorIcon color="error" />
-                  Vadesi Geçen Bakımlar
-                </Typography>
-                <List>
-                  {metrics.filteredEquipment
-                    .filter(eq => eq.maintenanceStatus === 'overdue')
-                    .map((equipment) => (
-                    <ListItem key={equipment.id} sx={{ px: 0 }}>
-                      <ListItemIcon>
-                        <ErrorIcon color="error" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={equipment.name}
-                        secondary={
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Kod: {equipment.equipmentCode}
-                            </Typography>
-                            <Typography variant="body2" color="error.main">
-                              Vadesi: {formatDate(equipment.nextMaintenanceDate)} 
-                              ({Math.abs(getDaysUntilDue(equipment.nextMaintenanceDate))} gün geçmiş)
-                            </Typography>
-                          </Box>
-                        }
-                      />
-                      <Button variant="contained" color="error" size="small" startIcon={<UrgentIcon />}>
-                        Acil Bakım
-                      </Button>
-                    </ListItem>
-                  ))}
-                </List>
-              </Paper>
-            </Box>
-          </Box>
-        </Box>
-      )}
-
       {/* Planlar ve Uyarılar Tab */}
       {activeTab === 4 && (
         <Box>
@@ -5093,13 +4921,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </Typography>
                   </Alert>
                 )}
-                {metrics.maintenanceDue > 0 && (
-                  <Alert severity="info" sx={{ flex: '1 1 300px' }}>
-                    <Typography variant="body2">
-                      <strong>{metrics.maintenanceDue}</strong> ekipmanın bakımı yaklaşıyor!
-                    </Typography>
-                  </Alert>
-                )}
+                
                 {metrics.filteredEquipment.filter(eq => eq.calibrationStatus === 'overdue').length > 0 && (
                   <Alert severity="error" sx={{ flex: '1 1 300px' }}>
                     <Typography variant="body2">
@@ -5133,8 +4955,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         <BuildIcon color="primary" />
                       </ListItemIcon>
                       <ListItemText
-                        primary={`${metrics.maintenanceDue} Bakım İşlemi`}
-                        secondary={`${metrics.maintenanceDue > 0 ? 'Vadesi yaklaşan bakımlar' : 'Planlanan bakım yok'}`}
+                        primary="Bakım İşlemi"
+                        secondary="Planlanan bakım yok"
                       />
                     </ListItem>
                     <ListItem>
@@ -5167,7 +4989,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <ListItem>
                       <ListItemText
                         primary="Bakım Durumu"
-                        secondary={`${metrics.filteredEquipment.filter(eq => eq.maintenanceStatus === 'good').length} iyi durumda, ${metrics.filteredEquipment.filter(eq => eq.maintenanceStatus === 'due').length} bakım gerekli, ${metrics.filteredEquipment.filter(eq => eq.maintenanceStatus === 'critical').length} kritik`}
+                        secondary="Kalibrasyon durumu takip ediliyor"
                       />
                     </ListItem>
                     <ListItem>
@@ -5320,9 +5142,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 600 }}>
               {dialogMode === 'create' ? 'Yeni Ekipman Kaydı' :
-           dialogMode === 'edit' ? 'Ekipman Düzenle' :
-           dialogMode === 'calibration' ? 'Kalibrasyon Kaydı' :
-               dialogMode === 'maintenance' ? 'Bakım Kaydı' : 'Ekipman Detayları'}
+                       dialogMode === 'edit' ? 'Ekipman Düzenle' :
+            dialogMode === 'calibration' ? 'Kalibrasyon Kaydı' : 'Ekipman Detayları'}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
               {dialogMode === 'edit' ? 'Mevcut ekipman bilgilerini güncelleyin' : ''}
