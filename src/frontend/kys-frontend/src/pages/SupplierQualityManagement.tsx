@@ -142,11 +142,46 @@ interface AutoAuditRecommendation {
 // Tedarik türü alt kategorileri
 const SUPPLY_SUBCATEGORIES = {
   malzeme: [
+    // Ham Maddeler
     'Ham Madde (Çelik, Alüminyum, Plastik)',
     'Yarı Mamul (Profil, Sac, Boru)',
+    
+    // Otomotiv Parçaları
+    'Şanzıman ve Aktarım Organları',
+    'Motor Parçaları (Piston, Volan, Blok)',
+    'Fren Sistemi Parçaları',
+    'Süspansiyon ve Direksiyon Parçaları',
+    'Egzoz Sistemi Parçaları',
+    'Soğutma Sistemi Parçaları',
+    'Elektrik ve Elektronik Parçalar',
+    'Karoseri ve Şasi Parçaları',
+    'Hidrolik Sistem Parçaları',
+    'Lastik ve Jant',
+    
+    // Makine Parçaları
+    'Yataklar ve Yatak Yuvaları',
+    'Dişli ve Dişli Kutuları',
+    'Kavrama ve Fren Sistemi',
+    'Hidrolik ve Pnömatik Komponentler',
+    'Mil ve Şaft Parçaları',
+    'Kayış ve Zincir Parçaları',
+    
+    // Standart Parçalar
     'Standart Parçalar (Vida, Somun, Rondela)',
+    'Bağlantı Elemanları ve Fittings',
+    'Conta ve Sızdırmazlık Elemanları',
+    'Yay ve Amortisör Parçaları',
+    
+    // Elektronik ve Elektrik
     'Elektronik Komponentler',
+    'Sensörler ve Aktüatörler',
+    'Kablaj ve Elektrik Bağlantıları',
+    'Kontrol Sistemleri',
+    
+    // Kimyasal ve Yardımcı Maddeler
     'Kimyasal Maddeler (Boya, Temizlik)',
+    'Yağlama Malzemeleri',
+    'Yapıştırıcı ve Sızdırmazlık Malzemeleri',
     'Ambalaj Malzemeleri'
   ],
   hizmet: [
@@ -155,13 +190,19 @@ const SUPPLY_SUBCATEGORIES = {
     'Lojistik ve Nakliye',
     'Kalibrasyon Hizmetleri',
     'Test ve Muayene Hizmetleri',
-    'Danışmanlık Hizmetleri'
+    'Danışmanlık Hizmetleri',
+    'Makine İşleme Hizmetleri',
+    'Isıl İşlem Hizmetleri',
+    'Yüzey Kaplama Hizmetleri',
+    'Temizlik ve Bakım Hizmetleri'
   ],
   hibrit: [
     'Tasarım + Üretim',
     'Montaj + Bakım',
     'Malzeme + Lojistik',
-    'Test + Sertifikasyon'
+    'Test + Sertifikasyon',
+    'İşleme + Kaplama',
+    'Üretim + Test'
   ]
 };
 
