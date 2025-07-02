@@ -1642,7 +1642,17 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   };
 
   // Performans skoruna göre grade hesaplama fonksiyonu
-  const getPerformanceGrade = (score: number) => {
+  const getPerformanceGrade = (score: number, supplier?: Supplier) => {
+    // Henüz denetlenmemiş tedarikçiler için özel durum
+    if (supplier && score === 0 && (!supplier.lastAuditDate || supplier.lastAuditDate === '')) {
+      return { 
+        grade: 'N/A', 
+        color: 'default', 
+        bgColor: '#9e9e9e', 
+        description: 'Henüz Değerlendirilmedi' 
+      };
+    }
+    
     if (score >= 85) return { grade: 'A', color: 'success', bgColor: '#4caf50', description: 'Mükemmel' };
     if (score >= 70) return { grade: 'B', color: 'info', bgColor: '#2196f3', description: 'İyi' };
     if (score >= 50) return { grade: 'C', color: 'warning', bgColor: '#ff9800', description: 'Orta' };
@@ -2327,7 +2337,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               </Avatar>
               <Box>
                 <Typography variant="h4" fontWeight="bold">
-                  {Math.round(suppliers.reduce((acc, s) => acc + s.performanceScore, 0) / suppliers.length) || 0}
+                  {(() => {
+                    const evaluatedSuppliers = suppliers.filter(s => s.lastAuditDate && s.lastAuditDate !== '');
+                    return evaluatedSuppliers.length > 0 
+                      ? Math.round(evaluatedSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / evaluatedSuppliers.length)
+                      : 0;
+                  })()}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Ortalama Performans
@@ -2345,12 +2360,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           <CardContent>
             <Box height={300}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={suppliers.map(s => ({
-                  name: s.name.split(' ')[0],
-                  kalite: s.qualityScore,
-                  teslimat: s.deliveryScore,
-                  genel: s.performanceScore
-                }))}>
+                <BarChart data={suppliers
+                  .filter(s => s.lastAuditDate && s.lastAuditDate !== '') // Sadece değerlendirilen tedarikçiler
+                  .map(s => ({
+                    name: s.name.split(' ')[0],
+                    kalite: s.qualityScore,
+                    teslimat: s.deliveryScore,
+                    genel: s.performanceScore
+                  }))}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis domain={[0, 100]} />
@@ -2447,7 +2464,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               {suppliers
                 .filter(s => {
                   const auditOverdue = new Date(s.nextAuditDate) < new Date();
-                  const lowPerformance = s.performanceScore < 70;
+                  const lowPerformance = s.performanceScore < 70 && s.lastAuditDate && s.lastAuditDate !== '';
                   const openNonconformities = nonconformities.filter(nc => nc.supplierId === s.id && nc.status === 'açık').length > 0;
                   return auditOverdue || lowPerformance || openNonconformities;
                 })
@@ -2483,7 +2500,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 ))}
               {suppliers.filter(s => {
                 const auditOverdue = new Date(s.nextAuditDate) < new Date();
-                const lowPerformance = s.performanceScore < 70;
+                const lowPerformance = s.performanceScore < 70 && s.lastAuditDate && s.lastAuditDate !== '';
                 const openNonconformities = nonconformities.filter(nc => nc.supplierId === s.id && nc.status === 'açık').length > 0;
                 return auditOverdue || lowPerformance || openNonconformities;
               }).length === 0 && (
@@ -2550,14 +2567,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           width: 24,
                           height: 24,
                           borderRadius: '50%',
-                          backgroundColor: getPerformanceGrade(pair.performanceComparison.primaryScore).bgColor,
+                          backgroundColor: getPerformanceGrade(pair.performanceComparison.primaryScore, pair.primarySupplier).bgColor,
                           color: 'white',
                           fontWeight: 'bold',
                           fontSize: '0.75rem',
                           mr: 0.5
                         }}
                       >
-                        {getPerformanceGrade(pair.performanceComparison.primaryScore).grade}
+                        {getPerformanceGrade(pair.performanceComparison.primaryScore, pair.primarySupplier).grade}
                       </Box>
                       <Chip 
                         label={`${pair.performanceComparison.primaryScore}%`} 
@@ -2586,14 +2603,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                               width: 24,
                               height: 24,
                               borderRadius: '50%',
-                              backgroundColor: getPerformanceGrade(altScore).bgColor,
+                              backgroundColor: getPerformanceGrade(altScore, altSupplier).bgColor,
                               color: 'white',
                               fontWeight: 'bold',
                               fontSize: '0.75rem',
                               mr: 0.5
                             }}
                           >
-                            {getPerformanceGrade(altScore).grade}
+                            {getPerformanceGrade(altScore, altSupplier).grade}
                           </Box>
                         <Chip 
                             label={`${altScore}%`} 
@@ -2768,7 +2785,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         width: 40,
                         height: 40,
                         borderRadius: '50%',
-                        backgroundColor: getPerformanceGrade(supplier.performanceScore).bgColor,
+                        backgroundColor: getPerformanceGrade(supplier.performanceScore, supplier).bgColor,
                         color: 'white',
                         fontWeight: 'bold',
                         fontSize: '1.1rem',
@@ -2777,7 +2794,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         flexShrink: 0
                       }}
                     >
-                      {getPerformanceGrade(supplier.performanceScore).grade}
+                      {getPerformanceGrade(supplier.performanceScore, supplier).grade}
                     </Box>
                     
                     {/* Performans Detayları */}
@@ -2787,7 +2804,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           {supplier.performanceScore}%
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          ({getPerformanceGrade(supplier.performanceScore).description})
+                          ({getPerformanceGrade(supplier.performanceScore, supplier).description})
                         </Typography>
                       </Box>
                       
@@ -2802,17 +2819,18 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       <Box 
                         width={`${supplier.performanceScore}%`}
                         height="100%"
-                          bgcolor={getPerformanceGrade(supplier.performanceScore).bgColor}
+                          bgcolor={getPerformanceGrade(supplier.performanceScore, supplier).bgColor}
                           borderRadius={1}
                       />
                     </Box>
                       
                       {/* Grade Aralığı */}
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                        {getPerformanceGrade(supplier.performanceScore).grade === 'A' && '85-100 puan'} 
-                        {getPerformanceGrade(supplier.performanceScore).grade === 'B' && '70-84 puan'}
-                        {getPerformanceGrade(supplier.performanceScore).grade === 'C' && '50-69 puan'}
-                        {getPerformanceGrade(supplier.performanceScore).grade === 'D' && '0-49 puan'}
+                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'A' && '85-100 puan'} 
+                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'B' && '70-84 puan'}
+                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'C' && '50-69 puan'}
+                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'D' && '0-49 puan'}
+                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'N/A' && 'Henüz değerlendirilmedi'}
                     </Typography>
                     </Box>
                   </Box>
