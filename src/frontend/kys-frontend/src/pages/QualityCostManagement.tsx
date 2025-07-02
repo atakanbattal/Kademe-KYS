@@ -7033,19 +7033,14 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     onTargetUpdate: (value: any) => void;
   }> = ({ vehicleTargets, onTargetUpdate }) => {
     const [targetFormOpen, setTargetFormOpen] = useState(false);
-    const [editingTarget, setEditingTarget] = useState<VehicleTarget | null>(null);
-    const [targetFormData, setTargetFormData] = useState({
+    const [editingTarget, setEditingTarget] = useState<SimpleVehicleTarget | null>(null);
+    const [targetFormData, setTargetFormData] = useState<Partial<SimpleVehicleTarget>>({
       kategori: '',
       displayName: '',
       hedefler: {
         maksRetAdet: 2,
-        maksRetMaliyet: 5000,
         maksHurdaKg: 5,
-        maksHurdaMaliyet: 2500,
-        maksFireKg: 3,
-        maksFireMaliyet: 1500,
-        toplamMaksimumMaliyet: 9000,
-        hedefVerimlilik: 95
+        maksFireKg: 3
       },
       isActive: true
     });
@@ -7106,19 +7101,27 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       }
     };
 
-    const handleEditTarget = (target: VehicleTarget | SimpleVehicleTarget) => {
-      setEditingTarget(target);
-      // SimpleVehicleTarget formatına dönüştür
-      const simpleTarget = target as SimpleVehicleTarget;
-      setTargetFormData({
-        kategori: simpleTarget.kategori || (target as VehicleTarget).kategori || '',
-        displayName: simpleTarget.displayName || '',
-        hedefler: simpleTarget.hedefler || {
-          maksRetAdet: 2,
-          maksHurdaKg: 5,
-          maksFireKg: 3
+    const handleEditTarget = (target: any) => {
+      // Target'ı SimpleVehicleTarget'a dönüştür
+      const simpleTarget: SimpleVehicleTarget = {
+        id: target.id,
+        kategori: target.kategori || '',
+        displayName: target.displayName || '',
+        hedefler: {
+          maksRetAdet: target.hedefler?.maksRetAdet || 2,
+          maksHurdaKg: target.hedefler?.maksHurdaKg || 5,
+          maksFireKg: target.hedefler?.maksFireKg || 3
         },
-        isActive: simpleTarget.isActive !== false
+        isActive: target.isActive !== false,
+        createdDate: target.createdDate || new Date().toISOString()
+      };
+      
+      setEditingTarget(simpleTarget);
+      setTargetFormData({
+        kategori: simpleTarget.kategori,
+        displayName: simpleTarget.displayName,
+        hedefler: simpleTarget.hedefler,
+        isActive: simpleTarget.isActive
       });
       setTargetFormOpen(true);
     };
@@ -7328,10 +7331,16 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   label="Maksimum Hurda Ağırlığı"
                   type="number"
                   value={targetFormData.hedefler.maksHurdaKg}
-                  onChange={(e) => setTargetFormData({
-                    ...targetFormData, 
-                    hedefler: {...targetFormData.hedefler, maksHurdaKg: parseFloat(e.target.value) || 0}
-                  })}
+                  onChange={(e) => {
+                    const hurdaKg = parseFloat(e.target.value) || 0;
+                    setTargetFormData({
+                      ...targetFormData, 
+                      hedefler: {
+                        ...targetFormData.hedefler!, 
+                        maksHurdaKg: hurdaKg
+                      }
+                    });
+                  }}
                   InputProps={{
                     endAdornment: <InputAdornment position="end">kg/araç</InputAdornment>
                   }}
