@@ -155,6 +155,9 @@ const SUPPLY_SUBCATEGORIES = {
     'Elektrik ve Elektronik Parçalar',
     'Karoseri ve Şasi Parçaları',
     'Hidrolik Sistem Parçaları',
+    'Koltuk Sistemleri ve İç Donanım',
+    'Filtre Sistemleri (Hava, Yağ, Yakıt)',
+    'Kilit Sistemleri ve Güvenlik',
     'Lastik ve Jant',
     
     // Makine Parçaları
@@ -162,6 +165,8 @@ const SUPPLY_SUBCATEGORIES = {
     'Dişli ve Dişli Kutuları',
     'Kavrama ve Fren Sistemi',
     'Hidrolik ve Pnömatik Komponentler',
+    'Filtre Sistemleri (Endüstriyel)',
+    'Kilit ve Güvenlik Sistemleri',
     'Mil ve Şaft Parçaları',
     'Kayış ve Zincir Parçaları',
     
