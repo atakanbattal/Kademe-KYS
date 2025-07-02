@@ -1859,8 +1859,8 @@ const TankLeakTest: React.FC = () => {
         // Tamir sayfasına geç
         setActivePage('repair');
       } else {
-        // Test geçmişi sayfasına geç
-        setActivePage('history');
+      // Test geçmişi sayfasına geç
+      setActivePage('history');
       }
       
     } catch (error) {
@@ -2735,8 +2735,8 @@ const TankLeakTest: React.FC = () => {
                 <FormControl fullWidth required>
                   <InputLabel>Test Ekipmanı</InputLabel>
                   <Select
-                    value={testParameters.testEquipment}
-                    onChange={(e) => setTestParameters({ ...testParameters, testEquipment: e.target.value })}
+                  value={testParameters.testEquipment}
+                  onChange={(e) => setTestParameters({ ...testParameters, testEquipment: e.target.value })}
                     label="Test Ekipmanı"
                   >
                     {getTestEquipmentOptions(testParameters.testType).map((equipment) => (
@@ -3166,8 +3166,8 @@ const TankLeakTest: React.FC = () => {
                 <FormControl fullWidth required>
                   <InputLabel>Araç Modeli</InputLabel>
                   <Select
-                    value={vehicleInfo.model}
-                    onChange={(e) => setVehicleInfo({ ...vehicleInfo, model: e.target.value })}
+                  value={vehicleInfo.model}
+                  onChange={(e) => setVehicleInfo({ ...vehicleInfo, model: e.target.value })}
                     label="Araç Modeli"
                   >
                     {KADEME_VEHICLE_MODELS.map((model) => (
@@ -3373,7 +3373,7 @@ const TankLeakTest: React.FC = () => {
                     >
                       {errors.length > 0 ? 'TEST BAŞARISIZ' : 'TEST BAŞARILI'}
                     </Typography>
-                  </Box>
+                        </Box>
                   
                   <Typography variant="body1" sx={{ mb: 1 }}>
                     <strong>Durum:</strong> 
@@ -3409,7 +3409,7 @@ const TankLeakTest: React.FC = () => {
                       : 'Test başarıyla tamamlandı. Herhangi bir hata tespit edilmedi.'
                     }
                   </Typography>
-                </Box>
+                        </Box>
 
                 <TextField
                   label="Ek Açıklamalar/Notlar (İsteğe Bağlı)"
