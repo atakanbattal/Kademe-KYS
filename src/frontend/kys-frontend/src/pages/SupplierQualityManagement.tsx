@@ -116,6 +116,7 @@ interface DefectRecord {
   severity: 'kritik' | 'major' | 'minor';
   status: 'açık' | 'düzeltildi' | 'kabul';
   correctionCost: number;
+  dofId?: string;
 }
 
 // Otomatik denetim önerisi interface
@@ -4768,14 +4769,30 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="DÖF Oluştur">
+                      <Tooltip title={
+                        !nonconformity.dofId ? "DÖF Oluştur" : 
+                        nonconformity.dofId === 'creating' ? "DÖF Oluşturuluyor..." : 
+                        "DÖF Oluşturuldu"
+                      }>
                         <IconButton 
                           size="small" 
-                          color="warning"
+                          color={
+                            !nonconformity.dofId ? "warning" : 
+                            nonconformity.dofId === 'creating' ? "info" : 
+                            "success"
+                          }
                           onClick={() => createDOFFromNonconformity(nonconformity)}
                           disabled={!!nonconformity.dofId}
+                          sx={{
+                            '&.Mui-disabled': {
+                              color: nonconformity.dofId === 'creating' ? 'info.main' : 'success.main',
+                              opacity: 0.7
+                            }
+                          }}
                         >
-                          <ReportIcon />
+                          {!nonconformity.dofId ? <ReportIcon /> : 
+                           nonconformity.dofId === 'creating' ? <CircularProgress size={20} /> : 
+                           <CheckCircleIcon />}
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Sil">
@@ -4980,11 +4997,27 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="DÖF Oluştur">
+                      <Tooltip title={
+                        !defect.dofId ? "DÖF Oluştur" : 
+                        defect.dofId === 'creating' ? "DÖF Oluşturuluyor..." : 
+                        "DÖF Oluşturuldu"
+                      }>
                         <IconButton 
                           size="small" 
-                          color="warning"
+                          color={
+                            !defect.dofId ? "warning" : 
+                            defect.dofId === 'creating' ? "info" : 
+                            "success"
+                          }
                           onClick={() => {
+                            if (defect.dofId) return;
+                            
+                            // Defect için DÖF ID'sini 'creating' olarak işaretle
+                            const updatedDefects = defects.map(d => 
+                              d.id === defect.id ? { ...d, dofId: 'creating' } : d
+                            );
+                            setDefects(updatedDefects);
+                            
                             const mockNonconformity: NonconformityRecord = {
                               id: `temp-${Date.now()}`,
                               supplierId: defect.supplierId,
@@ -5001,8 +5034,17 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             };
                             createDOFFromNonconformity(mockNonconformity);
                           }}
+                          disabled={!!defect.dofId}
+                          sx={{
+                            '&.Mui-disabled': {
+                              color: defect.dofId === 'creating' ? 'info.main' : 'success.main',
+                              opacity: 0.7
+                            }
+                          }}
                         >
-                          <ReportIcon />
+                          {!defect.dofId ? <ReportIcon /> : 
+                           defect.dofId === 'creating' ? <CircularProgress size={20} /> : 
+                           <CheckCircleIcon />}
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Sil">
