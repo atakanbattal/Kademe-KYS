@@ -1921,9 +1921,20 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         
       case 'pair':
         // Form validasyonu
-        if (!formData.primarySupplierId || !formData.alternativeSupplierId || !formData.materialType) {
-          showSnackbar('Ana tedarikçi, alternatif tedarikçi ve malzeme türü seçimi zorunludur', 'error');
+        if (!formData.primarySupplierId || !formData.alternativeSupplierId) {
+          showSnackbar('Ana tedarikçi ve alternatif tedarikçi seçimi zorunludur', 'error');
           return;
+        }
+        
+        // Malzeme türü otomatik seçilmemişse ana tedarikçiden al
+        if (!formData.materialType) {
+          const primarySupplier = suppliers.find(s => s.id === formData.primarySupplierId);
+          if (primarySupplier?.materialTypes?.length > 0) {
+            formData.materialType = primarySupplier.materialTypes[0];
+          } else {
+            showSnackbar('Seçilen ana tedarikçinin malzeme türü bilgisi bulunamadı', 'error');
+            return;
+          }
         }
         
         if (formData.primarySupplierId === formData.alternativeSupplierId) {
