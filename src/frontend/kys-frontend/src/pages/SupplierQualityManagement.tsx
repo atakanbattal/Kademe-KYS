@@ -2631,7 +2631,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       </Typography>
                       <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
                         {pair.primarySupplier.supplySubcategories.length > 0 ? (
-                          pair.primarySupplier.supplySubcategories.slice(0, 2).map((subcategory, index) => (
+                          pair.primarySupplier.supplySubcategories.map((subcategory, index) => (
                             <Chip 
                               key={index}
                               label={subcategory} 
@@ -2645,15 +2645,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           <Typography variant="caption" color="text.secondary">
                             Belirtilmemiş
                           </Typography>
-                        )}
-                        {pair.primarySupplier.supplySubcategories.length > 2 && (
-                          <Chip 
-                            label={`+${pair.primarySupplier.supplySubcategories.length - 2}`} 
-                            color="primary"
-                            variant="outlined"
-                            size="small"
-                            sx={{ fontSize: '0.65rem' }}
-                          />
                         )}
                       </Box>
                     </Box>
@@ -2671,7 +2662,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             const uniqueSubcategories = Array.from(new Set(allSubcategories));
                             
                             return uniqueSubcategories.length > 0 ? (
-                              uniqueSubcategories.slice(0, 2).map((subcategory, index) => (
+                              uniqueSubcategories.map((subcategory, index) => (
                                 <Chip 
                                   key={index}
                                   label={subcategory} 
@@ -2685,19 +2676,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                               <Typography variant="caption" color="text.secondary">
                                 Belirtilmemiş
                               </Typography>
-                            );
-                          })()}
-                          {(() => {
-                            const allSubcategories = pair.alternativeSuppliers.flatMap(supplier => supplier.supplySubcategories);
-                            const uniqueSubcategories = Array.from(new Set(allSubcategories));
-                            return uniqueSubcategories.length > 2 && (
-                              <Chip 
-                                label={`+${uniqueSubcategories.length - 2}`} 
-                                color="warning"
-                                variant="outlined"
-                                size="small"
-                                sx={{ fontSize: '0.65rem' }}
-                              />
                             );
                           })()}
                         </Box>
@@ -2893,7 +2871,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   <Box>
                     {supplier.supplySubcategories.length > 0 ? (
                       <Box display="flex" flexWrap="wrap" gap={0.5}>
-                        {supplier.supplySubcategories.slice(0, 2).map((subcategory, index) => (
+                        {supplier.supplySubcategories.map((subcategory, index) => (
                           <Chip 
                             key={index}
                             label={subcategory} 
@@ -2903,15 +2881,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             sx={{ fontSize: '0.7rem' }}
                           />
                         ))}
-                        {supplier.supplySubcategories.length > 2 && (
-                          <Chip 
-                            label={`+${supplier.supplySubcategories.length - 2} daha`} 
-                            color="info"
-                            variant="outlined"
-                            size="small"
-                            sx={{ fontSize: '0.7rem' }}
-                          />
-                        )}
                       </Box>
                     ) : (
                       <Typography variant="caption" color="text.secondary">
