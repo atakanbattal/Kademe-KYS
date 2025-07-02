@@ -283,6 +283,10 @@ const SupplierQualityManagement: React.FC = () => {
     severity: 'success' as 'success' | 'error' | 'warning' | 'info'
   });
 
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [supplierTypeFilter, setSupplierTypeFilter] = useState('all');
+
   // Load initial data
   const [dataLoaded, setDataLoaded] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -2751,27 +2755,46 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     </Box>
   );
 
-  // Supplier List Component
-  const renderSupplierList = () => (
-    <Box>
-      <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
-        <Box display="flex" gap={2}>
-          <TextField
-            size="small"
-            placeholder="Tedarikçi ara..."
-            InputProps={{ endAdornment: <SearchIcon /> }}
-          />
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Tür</InputLabel>
-            <Select defaultValue="all">
-              <MenuItem value="all">Tümü</MenuItem>
-              <MenuItem value="onaylı">Onaylı</MenuItem>
-              <MenuItem value="alternatif">Alternatif</MenuItem>
-              <MenuItem value="potansiyel">Potansiyel</MenuItem>
-            </Select>
-          </FormControl>
+  // Supplier List Component with filtering
+  const renderSupplierList = () => {
+    // Filter suppliers based on search term and type
+    const filteredSuppliers = suppliers.filter(supplier => {
+      const matchesSearch = searchTerm === '' || 
+        supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.contact.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.supplySubcategories.some(sub => sub.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        supplier.materialTypes.some(mat => mat.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesType = supplierTypeFilter === 'all' || supplier.type === supplierTypeFilter;
+      
+      return matchesSearch && matchesType;
+    });
+
+    return (
+      <Box>
+        <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
+          <Box display="flex" gap={2}>
+            <TextField
+              size="small"
+              placeholder="Tedarikçi ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{ endAdornment: <SearchIcon /> }}
+            />
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Tür</InputLabel>
+              <Select 
+                value={supplierTypeFilter}
+                onChange={(e) => setSupplierTypeFilter(e.target.value)}
+              >
+                <MenuItem value="all">Tümü</MenuItem>
+                <MenuItem value="onaylı">Onaylı</MenuItem>
+                <MenuItem value="alternatif">Alternatif</MenuItem>
+                <MenuItem value="potansiyel">Potansiyel</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
         </Box>
-      </Box>
 
       <TableContainer component={Paper}>
         <Table>
@@ -2788,7 +2811,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             </TableRow>
           </TableHead>
           <TableBody>
-            {suppliers.map((supplier) => (
+            {filteredSuppliers.map((supplier) => (
               <TableRow key={supplier.id}>
                 <TableCell>
                   <Box>
@@ -2982,7 +3005,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Table>
       </TableContainer>
     </Box>
-  );
+    );
+  };
 
   // Audit Tracking Component
   const renderAuditTracking = () => (
