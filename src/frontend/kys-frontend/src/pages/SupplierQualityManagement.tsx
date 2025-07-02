@@ -3259,19 +3259,23 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           </Box>
         </Box>
 
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 1300 }}>
+      <TableContainer component={Paper} sx={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: 2 }}>
+        <Table sx={{ minWidth: 1380 }}>
           <TableHead>
-            <TableRow sx={{ bgcolor: 'primary.50' }}>
+            <TableRow sx={{ bgcolor: 'primary.50', '& .MuiTableCell-head': { borderBottom: '2px solid', borderColor: 'primary.200' } }}>
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '200px',
+                  width: '220px',
                   whiteSpace: 'nowrap',
-                  verticalAlign: 'middle'
+                  verticalAlign: 'middle',
+                  fontSize: '0.9rem',
+                  padding: '12px 16px'
                 }}
               >
-                Tedarikçi
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Tedarikçi Bilgileri
+                </Typography>
               </TableCell>
               <TableCell 
                 sx={{ 
@@ -3298,12 +3302,28 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '250px',
+                  width: '280px',
                   whiteSpace: 'nowrap',
-                  verticalAlign: 'middle'
+                  verticalAlign: 'middle',
+                  fontSize: '0.9rem'
                 }}
               >
-                Alt Kategoriler
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="subtitle2" fontWeight={700}>
+                    Alt Kategoriler
+                  </Typography>
+                  <Chip 
+                    size="small" 
+                    label="Hover" 
+                    color="info" 
+                    variant="outlined"
+                    sx={{ 
+                      fontSize: '0.65rem', 
+                      height: '18px',
+                      opacity: 0.7
+                    }} 
+                  />
+                </Box>
               </TableCell>
               <TableCell 
                 sx={{ 
@@ -3352,16 +3372,98 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredSuppliers.map((supplier) => (
-              <TableRow key={supplier.id}>
-                <TableCell sx={{ width: '200px', verticalAlign: 'top' }}>
+            {filteredSuppliers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} sx={{ textAlign: 'center', padding: '48px 24px' }}>
+                  <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+                    <BusinessIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
+                    <Typography variant="h6" color="text.secondary" fontWeight={500}>
+                      {searchTerm || supplierTypeFilter !== 'all' 
+                        ? 'Filtrelere uygun tedarikçi bulunamadı' 
+                        : 'Henüz tedarikçi eklenmemiş'
+                      }
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ maxWidth: '400px' }}>
+                      {searchTerm || supplierTypeFilter !== 'all' 
+                        ? 'Arama kriterlerinizi değiştirerek tekrar deneyin veya yeni tedarikçi ekleyin.'
+                        : 'Tedarikçi eklemeye başlamak için üstteki "Yeni Tedarikçi" butonunu kullanın.'
+                      }
+                    </Typography>
+                    {!searchTerm && supplierTypeFilter === 'all' && (
+                      <Button 
+                        variant="contained" 
+                        startIcon={<AddIcon />} 
+                        onClick={handleCreateSupplier}
+                        sx={{ mt: 2 }}
+                      >
+                        İlk Tedarikçinizi Ekleyin
+                      </Button>
+                    )}
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredSuppliers.map((supplier) => (
+              <TableRow 
+                key={supplier.id}
+                sx={{
+                  '&:hover': {
+                    backgroundColor: 'primary.50',
+                    transform: 'scale(1.005)',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  },
+                  '&:nth-of-type(even)': {
+                    backgroundColor: 'grey.25'
+                  },
+                  cursor: 'pointer'
+                }}
+              >
+                <TableCell sx={{ width: '220px', verticalAlign: 'top', padding: '12px 16px' }}>
                   <Box>
-                    <Typography variant="body2" fontWeight="bold" noWrap>
-                      {supplier.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" noWrap>
-                      {supplier.contact.contactPerson}
-                    </Typography>
+                    <Tooltip title={supplier.name} placement="top" arrow>
+                      <Typography 
+                        variant="body2" 
+                        fontWeight="bold" 
+                        sx={{ 
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          maxWidth: '180px',
+                          fontSize: '0.9rem',
+                          lineHeight: 1.4,
+                          cursor: 'help'
+                        }}
+                      >
+                        {supplier.name}
+                      </Typography>
+                    </Tooltip>
+                    <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
+                      <Box 
+                        sx={{ 
+                          width: '6px', 
+                          height: '6px', 
+                          backgroundColor: 'primary.main', 
+                          borderRadius: '50%' 
+                        }} 
+                      />
+                      <Tooltip title={`İletişim: ${supplier.contact.contactPerson}`} placement="bottom" arrow>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary"
+                          sx={{ 
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '160px',
+                            fontSize: '0.75rem',
+                            cursor: 'help'
+                          }}
+                        >
+                          {supplier.contact.contactPerson}
+                        </Typography>
+                      </Tooltip>
+                    </Box>
                   </Box>
                 </TableCell>
                 <TableCell sx={{ width: '130px', textAlign: 'center', verticalAlign: 'middle' }}>
@@ -3380,57 +3482,141 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   />
                 </TableCell>
-                <TableCell sx={{ width: '250px', verticalAlign: 'top' }}>
-                  <Box sx={{ maxHeight: '80px', overflow: 'auto' }}>
+                <TableCell sx={{ width: '280px', verticalAlign: 'top', padding: '12px 8px' }}>
+                  <Box sx={{ 
+                    maxHeight: '100px', 
+                    overflow: 'auto',
+                    '&::-webkit-scrollbar': {
+                      width: '4px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: '#f1f1f1',
+                      borderRadius: '2px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#c1c1c1',
+                      borderRadius: '2px',
+                    },
+                  }}>
                     {supplier.supplySubcategories.length > 0 ? (
-                      <Box display="flex" flexWrap="wrap" gap={0.5}>
-                        {supplier.supplySubcategories.map((subcategory, index) => (
-                          <Chip 
-                            key={index}
-                            label={subcategory} 
-                            color="secondary"
-                            variant="outlined"
-                            size="small"
-                            sx={{ fontSize: '0.65rem', height: '20px' }}
-                          />
-                        ))}
+                      <Box display="flex" flexWrap="wrap" gap={0.75}>
+                        {supplier.supplySubcategories.map((subcategory, index) => {
+                          // Alt kategori ismini kısalt
+                          const shortLabel = subcategory.length > 25 
+                            ? subcategory.substring(0, 25) + '...' 
+                            : subcategory;
+                          
+                          return (
+                            <Tooltip 
+                              key={index}
+                              title={subcategory}
+                              placement="top"
+                              arrow
+                            >
+                              <Chip 
+                                label={shortLabel} 
+                                color="info"
+                                variant="outlined"
+                                size="small"
+                                sx={{ 
+                                  fontSize: '0.75rem', 
+                                  height: '26px',
+                                  maxWidth: '140px',
+                                  fontWeight: 500,
+                                  cursor: 'help',
+                                  border: '1.5px solid',
+                                  borderColor: 'info.main',
+                                  backgroundColor: 'info.50',
+                                  '&:hover': {
+                                    backgroundColor: 'info.100',
+                                    borderColor: 'info.dark',
+                                    transform: 'scale(1.02)',
+                                    transition: 'all 0.2s ease'
+                                  }
+                                }}
+                              />
+                            </Tooltip>
+                          );
+                        })}
                       </Box>
                     ) : (
-                      <Typography variant="caption" color="text.secondary">
-                        Belirtilmemiş
-                      </Typography>
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          minHeight: '26px',
+                          padding: '4px 8px',
+                          backgroundColor: 'grey.50',
+                          borderRadius: '13px',
+                          border: '1px dashed',
+                          borderColor: 'grey.300'
+                        }}
+                      >
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary"
+                          sx={{ fontStyle: 'italic', fontSize: '0.75rem' }}
+                        >
+                          Kategori belirtilmemiş
+                        </Typography>
+                      </Box>
                     )}
                   </Box>
                 </TableCell>
-                <TableCell sx={{ width: '180px', textAlign: 'center', verticalAlign: 'middle' }}>
-                  <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
+                <TableCell sx={{ width: '180px', textAlign: 'center', verticalAlign: 'middle', padding: '12px 8px' }}>
+                  <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
                     {/* Grade Badge */}
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: 36,
-                        height: 36,
+                        width: 40,
+                        height: 40,
                         borderRadius: '50%',
                         backgroundColor: getPerformanceGrade(supplier.performanceScore, supplier).bgColor,
                         color: 'white',
                         fontWeight: 'bold',
-                        fontSize: '1rem',
-                        boxShadow: 1,
-                        minWidth: 36,
-                        flexShrink: 0
+                        fontSize: '1.1rem',
+                        boxShadow: '0 3px 8px rgba(0,0,0,0.2)',
+                        border: '2px solid white',
+                        position: 'relative',
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          top: '-2px',
+                          left: '-2px',
+                          right: '-2px',
+                          bottom: '-2px',
+                          borderRadius: '50%',
+                          border: '2px solid',
+                          borderColor: getPerformanceGrade(supplier.performanceScore, supplier).bgColor,
+                          opacity: 0.3
+                        }
                       }}
                     >
                       {getPerformanceGrade(supplier.performanceScore, supplier).grade}
                     </Box>
                     
                     {/* Performans Detayları */}
-                    <Box>
-                      <Typography variant="body2" fontWeight="bold" textAlign="center">
+                    <Box textAlign="center">
+                      <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.9rem' }}>
                         {supplier.performanceScore}%
                       </Typography>
-                      <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
+                      <Typography 
+                        variant="caption" 
+                        color="text.secondary" 
+                        sx={{ 
+                          fontSize: '0.7rem',
+                          display: 'block',
+                          lineHeight: 1.2,
+                          maxWidth: '120px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
                         {getPerformanceGrade(supplier.performanceScore, supplier).description}
                       </Typography>
                     </Box>
@@ -3508,7 +3694,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </Box>
                 </TableCell>
               </TableRow>
-            ))}
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
