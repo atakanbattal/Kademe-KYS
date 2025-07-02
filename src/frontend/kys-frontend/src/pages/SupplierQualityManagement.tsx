@@ -2633,8 +2633,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="ortalama" fill="#3f51b5" name="Ortalama Performans" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="hedef" fill="#e0e0e0" name="Hedef" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="ortalama" fill="#1976d2" name="Ortalama Performans" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="hedef" fill="#f57c00" name="Hedef" radius={[4, 4, 0, 0]} stroke="#e65100" strokeWidth={2} />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
