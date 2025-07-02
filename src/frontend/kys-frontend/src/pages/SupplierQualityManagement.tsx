@@ -27,7 +27,6 @@ import {
 interface Supplier {
   id: string;
   name: string;
-  code: string;
   type: 'onaylı' | 'alternatif' | 'potansiyel' | 'bloklu';
   category: 'stratejik' | 'kritik' | 'rutin' | 'genel';
   // Yeni tedarik türü alanları
@@ -474,7 +473,6 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-001',
         name: 'Seçkinler Metal A.Ş.',
-        code: 'SM001',
         type: 'onaylı',
         category: 'stratejik',
         supplyType: 'malzeme',
@@ -503,7 +501,7 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-002',
         name: 'Nisa Metal Ltd.',
-        code: 'NM002',
+
         type: 'alternatif',
         category: 'stratejik',
         supplyType: 'hizmet',
@@ -532,7 +530,6 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-003',
         name: 'Demir Döküm Sanayi A.Ş.',
-        code: 'DD003',
         type: 'onaylı',
         category: 'kritik',
         supplyType: 'malzeme',
@@ -561,7 +558,6 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-004',
         name: 'Altın Kaynak Teknolojileri Ltd.',
-        code: 'AK004',
         type: 'alternatif',
         category: 'kritik',
         supplyType: 'hizmet',
@@ -591,7 +587,6 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-005',
         name: 'Problematik Metal San. Tic.',
-        code: 'PM005',
         type: 'onaylı',
         category: 'kritik',
         supplyType: 'malzeme',
@@ -620,7 +615,6 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-006',
         name: 'Kalitesiz Üretim A.Ş.',
-        code: 'KU006',
         type: 'onaylı',
         category: 'kritik',
         supplyType: 'malzeme',
@@ -650,7 +644,6 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-007',
         name: 'Premium Çelik Teknolojileri A.Ş.',
-        code: 'PC007',
         type: 'onaylı',
         category: 'stratejik',
         supplyType: 'malzeme',
@@ -679,7 +672,6 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-008',
         name: 'Güven Makine Parçaları Ltd.',
-        code: 'GM008',
         type: 'alternatif',
         category: 'rutin',
         supplyType: 'hibrit',
@@ -708,7 +700,6 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-009',
         name: 'Elektronik Sistem Çözümleri A.Ş.',
-        code: 'ES009',
         type: 'onaylı',
         category: 'genel',
         supplyType: 'malzeme',
@@ -737,7 +728,6 @@ const SupplierQualityManagement: React.FC = () => {
       {
         id: 'SUP-010',
         name: 'Kimya Endüstri Malzemeleri Ltd.',
-        code: 'KE010',
         type: 'potansiyel',
         category: 'genel',
         supplyType: 'malzeme',
@@ -1342,7 +1332,7 @@ const SupplierQualityManagement: React.FC = () => {
       // DÖF form prefill data oluştur
       const dofPrefillData = {
         title: `Tedarikçi Uygunsuzluğu - ${supplier.name}`,
-        description: `Tedarikçi: ${supplier.name} (${supplier.code})
+        description: `Tedarikçi: ${supplier.name}
 Uygunsuzluk Başlığı: ${nonconformity.title}
 Açıklama: ${nonconformity.description}
 Kategori: ${nonconformity.category}
@@ -1360,7 +1350,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         sourceId: nonconformity.id,
         supplierInfo: {
           name: supplier.name,
-          code: supplier.code,
           category: supplier.category,
           contactPerson: supplier.contact.contactPerson
         }
@@ -1400,7 +1389,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     setSelectedItem(null);
     setFormData({
       name: '',
-      code: '',
       type: 'onaylı',
       category: 'genel',
       supplyType: 'malzeme',
@@ -2746,7 +2734,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       {supplier.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {supplier.code} • {supplier.contact.contactPerson}
+                      {supplier.contact.contactPerson}
                     </Typography>
                   </Box>
                 </TableCell>
@@ -3403,7 +3391,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                     mt: 0.5
                                   }}
                                 >
-                                  {supplier ? supplier.code : audit.supplierId}
+                                  {supplier ? supplier.name : audit.supplierId}
                                 </Typography>
                               </Box>
                             </TableCell>
@@ -4507,7 +4495,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                               {supplier.name}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {supplier.code} • {supplier.category}
+                              {supplier.category}
                             </Typography>
                           </Box>
                           <Box display="flex" alignItems="center" gap={0.5}>
@@ -4566,7 +4554,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                 </Typography>
                               </Box>
                               <Typography variant="caption" color="text.secondary" display="block">
-                                {supplier.code}
+                                {supplier.category}
                               </Typography>
                               <Box 
                                 sx={{
@@ -5577,7 +5565,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           <MenuItem key={supplier.id} value={supplier.id}>
                             <Box display="flex" alignItems="center" gap={1}>
                               <CheckCircleIcon color="success" fontSize="small" />
-                              {supplier.name} ({supplier.code})
+                              {supplier.name}
                             </Box>
                           </MenuItem>
                         ))}
@@ -5597,10 +5585,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           .filter(s => (s.type === 'alternatif' || s.type === 'onaylı') && s.id !== formData.primarySupplierId)
                           .map(supplier => (
                             <MenuItem key={supplier.id} value={supplier.id}>
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <SwapHorizIcon color="warning" fontSize="small" />
-                                {supplier.name} ({supplier.code})
-                              </Box>
+                                                          <Box display="flex" alignItems="center" gap={1}>
+                              <SwapHorizIcon color="warning" fontSize="small" />
+                              {supplier.name}
+                            </Box>
                             </MenuItem>
                           ))
                         }
