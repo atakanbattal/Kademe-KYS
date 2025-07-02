@@ -937,24 +937,24 @@ const TankLeakTest: React.FC = () => {
       try {
         const tests = JSON.parse(storedTests);
         if (Array.isArray(tests) && tests.length > 0) {
-          console.log('🔍 Tank test verileri yüklendi:', tests.length, 'kayıt');
-          console.log('📋 İlk kayıt örneği:', tests[0]);
-          console.log('🔧 tankInfo içeriği:', tests[0]?.tankInfo);
-          console.log('⚙️ testParameters içeriği:', tests[0]?.testParameters);
-          console.log('✅ testResult içeriği:', tests[0]?.testResult);
+                      console.log('Tank test verileri yüklendi:', tests.length, 'kayıt');
+            console.log('İlk kayıt örneği:', tests[0]);
+            console.log('tankInfo içeriği:', tests[0]?.tankInfo);
+            console.log('testParameters içeriği:', tests[0]?.testParameters);
+            console.log('testResult içeriği:', tests[0]?.testResult);
           setSavedTests(tests);
           calculateStatistics(tests);
         } else {
           // Boş array ise örnek veri oluştur
           const sampleTests = generateSampleTestData();
-          console.log('🔄 Yeni örnek veriler oluşturuldu:', sampleTests.length, 'kayıt');
-          console.log('📋 Oluşturulan ilk kayıt:', sampleTests[0]);
+                      console.log('Yeni örnek veriler oluşturuldu:', sampleTests.length, 'kayıt');
+                      console.log('Oluşturulan ilk kayıt:', sampleTests[0]);
           setSavedTests(sampleTests);
           localStorage.setItem('tankLeakTests', JSON.stringify(sampleTests));
           calculateStatistics(sampleTests);
         }
       } catch (error) {
-        console.error('❌ Tank test verileri parse edilemedi:', error);
+        console.error('Tank test verileri parse edilemedi:', error);
         const sampleTests = generateSampleTestData();
         setSavedTests(sampleTests);
         localStorage.setItem('tankLeakTests', JSON.stringify(sampleTests));
@@ -983,13 +983,13 @@ const TankLeakTest: React.FC = () => {
       try {
         const repairs = JSON.parse(storedRepairs);
         if (Array.isArray(repairs)) {
-          console.log('🔧 Tamir kayıtları yüklendi:', repairs.length, 'kayıt');
-          console.log('📋 İlk tamir kaydı:', repairs[0]);
+          console.log('Tamir kayıtları yüklendi:', repairs.length, 'kayıt');
+                      console.log('İlk tamir kaydı:', repairs[0]);
           setRepairRecords(repairs);
           calculateTankRepairHistory(repairs);
         }
       } catch (error) {
-        console.error('❌ Tamir kayıtları parse edilemedi:', error);
+        console.error('Tamir kayıtları parse edilemedi:', error);
       }
     } else {
       // Örnek tamir kayıtları oluştur
@@ -1208,10 +1208,10 @@ const TankLeakTest: React.FC = () => {
 
       // Tamir kaydı oluşturuldu - sessiz işlem
 
-      console.log('🔧 Yeni tamir kaydı oluşturuldu:', newRepairRecord);
+      console.log('Yeni tamir kaydı oluşturuldu:', newRepairRecord);
       
     } catch (error) {
-      console.error('❌ Tamir kaydı oluşturulurken hata:', error);
+              console.error('Tamir kaydı oluşturulurken hata:', error);
       // Hata bildirimi kaldırıldı - sessiz hata yönetimi
     }
   };
@@ -1262,9 +1262,9 @@ const TankLeakTest: React.FC = () => {
       calculateStatistics(updatedTests);
       calculateTankRepairHistory(updatedRepairs);
       
-      console.log('🗑️ Test kaydı silindi:', testId);
+      console.log('Test kaydı silindi:', testId);
     } catch (error) {
-      console.error('❌ Test kaydı silinirken hata:', error);
+              console.error('Test kaydı silinirken hata:', error);
     }
   };
 
@@ -1294,15 +1294,15 @@ const TankLeakTest: React.FC = () => {
       // İstatistikleri güncelle
       calculateTankRepairHistory(updatedRepairs);
       
-      console.log('🗑️ Tamir kaydı silindi:', repairId);
+      console.log('Tamir kaydı silindi:', repairId);
     } catch (error) {
-      console.error('❌ Tamir kaydı silinirken hata:', error);
+              console.error('Tamir kaydı silinirken hata:', error);
     }
   };
 
   // Generate sample repair data
   const generateSampleRepairData = (): RepairRecord[] => {
-    console.log('🔧 generateSampleRepairData başladı...');
+    console.log('generateSampleRepairData başladı...');
     
     const sampleRepairs: RepairRecord[] = [];
     const repairTypes: Array<'welding' | 'patching' | 'replacement' | 'cleaning' | 'adjustment' | 'other'> = 
@@ -1410,7 +1410,7 @@ const TankLeakTest: React.FC = () => {
 
   // Örnek test verisi oluşturma fonksiyonu
   const generateSampleTestData = (): TestRecord[] => {
-    console.log('🔧 generateSampleTestData başladı...');
+    console.log('generateSampleTestData başladı...');
     
     const sampleTests: TestRecord[] = [];
     const testResults: Array<'passed' | 'failed' | 'conditional'> = ['passed', 'failed', 'conditional'];
@@ -1759,11 +1759,11 @@ const TankLeakTest: React.FC = () => {
 
       // Sonuç bildirimi
       if (automaticTestResult.result === 'failed') {
-        alert(`⚠️ Test Başarısız!\n\n${errors.length} adet hata tespit edildi.\n\n✅ Tamir formu otomatik olarak oluşturuldu.\n\nTamir & Tadilat sekmesinde detayları görebilirsiniz.`);
+        alert(`Test Başarısız!\n\n${errors.length} adet hata tespit edildi.\n\nTamir formu otomatik olarak oluşturuldu.\n\nTamir & Tadilat sekmesinde detayları görebilirsiniz.`);
         // Tamir sayfasına geç
         setActivePage('repair');
       } else {
-        alert('✅ Test Başarılı!\n\nTüm kontroller geçti. Tank sızdırmazlık testi başarıyla tamamlandı.');
+        alert('Test Başarılı!\n\nTüm kontroller geçti. Tank sızdırmazlık testi başarıyla tamamlandı.');
         // Test geçmişi sayfasına geç
         setActivePage('history');
       }
@@ -1827,7 +1827,7 @@ const TankLeakTest: React.FC = () => {
       // Temel veriler eksikse PDF oluşturma
       if (!test.tankInfo || !test.testResult) {
         alert('Test verileri eksik! PDF oluşturulamaz.');
-        console.error('❌ PDF oluşturulamaz - eksik veriler:', { tankInfo: !!test.tankInfo, testResult: !!test.testResult });
+        console.error('PDF oluşturulamaz - eksik veriler:', { tankInfo: !!test.tankInfo, testResult: !!test.testResult });
         return;
       }
 
@@ -3256,11 +3256,11 @@ const TankLeakTest: React.FC = () => {
                 {/* Otomatik Test Sonucu Gösterimi */}
                 <Box sx={{ 
                   p: 3, 
-                  border: '2px solid', 
+                  border: '1px solid', 
                   borderRadius: 2,
-                  borderColor: errors.length > 0 ? 'error.main' : 'success.main',
-                  backgroundColor: errors.length > 0 ? 'error.light' : 'success.light',
-                  color: errors.length > 0 ? 'error.dark' : 'success.dark'
+                  borderColor: 'divider',
+                  backgroundColor: 'background.paper',
+                  boxShadow: 1
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                     {errors.length > 0 ? (
@@ -3268,13 +3268,25 @@ const TankLeakTest: React.FC = () => {
                     ) : (
                       <CheckCircleIcon color="success" sx={{ fontSize: 30 }} />
                     )}
-                    <Typography variant="h6" fontWeight="bold">
+                    <Typography 
+                      variant="h6" 
+                      fontWeight="bold"
+                      color={errors.length > 0 ? 'error.main' : 'success.main'}
+                    >
                       {errors.length > 0 ? 'TEST BAŞARISIZ' : 'TEST BAŞARILI'}
                     </Typography>
                   </Box>
                   
                   <Typography variant="body1" sx={{ mb: 1 }}>
-                    <strong>Durum:</strong> {errors.length > 0 ? 'Başarısız' : 'Başarılı'}
+                    <strong>Durum:</strong> 
+                    <Typography 
+                      component="span" 
+                      color={errors.length > 0 ? 'error.main' : 'success.main'}
+                      fontWeight="medium"
+                      sx={{ ml: 1 }}
+                    >
+                      {errors.length > 0 ? 'Başarısız' : 'Başarılı'}
+                    </Typography>
                   </Typography>
                   
                   <Typography variant="body1" sx={{ mb: 1 }}>
@@ -3288,12 +3300,12 @@ const TankLeakTest: React.FC = () => {
                   {errors.length > 0 && (
                     <Alert severity="warning" sx={{ mb: 2 }}>
                       <Typography variant="body2">
-                        ⚠️ Hata tespit edildi! Test kaydedildikten sonra otomatik olarak <strong>Tamir & Tadilat formu</strong> oluşturulacak.
+                        Hata tespit edildi! Test kaydedildikten sonra otomatik olarak <strong>Tamir & Tadilat formu</strong> oluşturulacak.
                       </Typography>
                     </Alert>
                   )}
                   
-                  <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                  <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
                     {errors.length > 0 
                       ? `Tespit edilen ${errors.length} adet hata nedeniyle test başarısız. Tamir gerekli.`
                       : 'Test başarıyla tamamlandı. Herhangi bir hata tespit edilmedi.'
@@ -3322,15 +3334,12 @@ const TankLeakTest: React.FC = () => {
               startIcon={<SaveIcon />}
               size="large"
               sx={{ 
-                minWidth: 250,
-                backgroundColor: errors.length > 0 ? 'error.main' : 'success.main',
-                '&:hover': {
-                  backgroundColor: errors.length > 0 ? 'error.dark' : 'success.dark'
-                }
+                minWidth: 250
               }}
               onClick={handleSaveTest}
+              color={errors.length > 0 ? 'error' : 'success'}
             >
-              {errors.length > 0 ? '⚠️ Testi Kaydet (Başarısız + Tamir Oluştur)' : '✅ Testi Kaydet (Başarılı)'}
+              {errors.length > 0 ? 'Testi Kaydet (Başarısız + Tamir Oluştur)' : 'Testi Kaydet (Başarılı)'}
             </Button>
             <Button
               variant="outlined"
