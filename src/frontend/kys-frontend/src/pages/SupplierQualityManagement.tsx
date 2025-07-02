@@ -2511,6 +2511,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <TableRow sx={{ bgcolor: 'primary.50' }}>
               <TableCell sx={{ fontWeight: 'bold' }}>Ana Tedarikçi</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Alternatif Tedarikçi(ler)</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Alt Kategoriler</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Performans Karşılaştırması</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Son Değerlendirme</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>İşlemler</TableCell>
@@ -2589,6 +2590,77 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     </Box>
                     );
                   })}
+                </TableCell>
+                <TableCell>
+                  <Box>
+                    {/* Ana Tedarikçi Alt Kategorileri */}
+                    <Box mb={1}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                        Ana:
+                      </Typography>
+                      <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
+                        {pair.primarySupplier.supplySubcategories.length > 0 ? (
+                          pair.primarySupplier.supplySubcategories.slice(0, 2).map((subcategory, index) => (
+                            <Chip 
+                              key={index}
+                              label={subcategory} 
+                              color="primary"
+                              variant="outlined"
+                              size="small"
+                              sx={{ fontSize: '0.65rem' }}
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            Belirtilmemiş
+                          </Typography>
+                        )}
+                        {pair.primarySupplier.supplySubcategories.length > 2 && (
+                          <Chip 
+                            label={`+${pair.primarySupplier.supplySubcategories.length - 2}`} 
+                            color="primary"
+                            variant="outlined"
+                            size="small"
+                            sx={{ fontSize: '0.65rem' }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
+                    
+                    {/* Alternatif Tedarikçi Alt Kategorileri */}
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                        Alt:
+                      </Typography>
+                      <Box display="flex" flexWrap="wrap" gap={0.5} mt={0.5}>
+                        {pair.alternativeSuppliers[0]?.supplySubcategories.length > 0 ? (
+                          pair.alternativeSuppliers[0].supplySubcategories.slice(0, 2).map((subcategory, index) => (
+                            <Chip 
+                              key={index}
+                              label={subcategory} 
+                              color="warning"
+                              variant="outlined"
+                              size="small"
+                              sx={{ fontSize: '0.65rem' }}
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            Belirtilmemiş
+                          </Typography>
+                        )}
+                        {(pair.alternativeSuppliers[0]?.supplySubcategories.length || 0) > 2 && (
+                          <Chip 
+                            label={`+${(pair.alternativeSuppliers[0]?.supplySubcategories.length || 0) - 2}`} 
+                            color="warning"
+                            variant="outlined"
+                            size="small"
+                            sx={{ fontSize: '0.65rem' }}
+                          />
+                        )}
+                      </Box>
+                    </Box>
+                  </Box>
                 </TableCell>
                 <TableCell>
                   <Box>
@@ -2708,6 +2780,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               <TableCell sx={{ fontWeight: 'bold' }}>Tedarikçi</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Tür</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Alt Kategoriler</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Performans</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Son Denetim</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Durum</TableCell>
@@ -2740,6 +2813,37 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     variant="outlined"
                     size="small"
                   />
+                </TableCell>
+                <TableCell>
+                  <Box>
+                    {supplier.supplySubcategories.length > 0 ? (
+                      <Box display="flex" flexWrap="wrap" gap={0.5}>
+                        {supplier.supplySubcategories.slice(0, 2).map((subcategory, index) => (
+                          <Chip 
+                            key={index}
+                            label={subcategory} 
+                            color="secondary"
+                            variant="outlined"
+                            size="small"
+                            sx={{ fontSize: '0.7rem' }}
+                          />
+                        ))}
+                        {supplier.supplySubcategories.length > 2 && (
+                          <Chip 
+                            label={`+${supplier.supplySubcategories.length - 2} daha`} 
+                            color="info"
+                            variant="outlined"
+                            size="small"
+                            sx={{ fontSize: '0.7rem' }}
+                          />
+                        )}
+                      </Box>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">
+                        Belirtilmemiş
+                      </Typography>
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell>
                   <Box display="flex" alignItems="center" gap={2}>
