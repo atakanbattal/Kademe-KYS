@@ -2441,32 +2441,66 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     const activeSuppliersList = suppliers.filter(s => s.status === 'aktif');
     let filteredSuppliers: Supplier[] = [];
     
+    // Performans puanlarını güvenli hale getir (NaN veya undefined kontrolü)
+    const suppliersWithValidScores = activeSuppliersList.map(supplier => ({
+      ...supplier,
+      performanceScore: isNaN(supplier.performanceScore) || supplier.performanceScore === undefined 
+        ? calculatePerformanceScore(supplier.qualityScore || 0, supplier.deliveryScore || 0)
+        : supplier.performanceScore,
+      qualityScore: supplier.qualityScore || 0,
+      deliveryScore: supplier.deliveryScore || 0
+    }));
+    
     switch (performanceFilter) {
       case 'top5':
-        filteredSuppliers = [...activeSuppliersList]
-          .sort((a, b) => b.performanceScore - a.performanceScore)
+        filteredSuppliers = [...suppliersWithValidScores]
+          .sort((a, b) => {
+            const scoreA = a.performanceScore || 0;
+            const scoreB = b.performanceScore || 0;
+            return scoreB - scoreA; // Yüksekten düşüğe
+          })
           .slice(0, 5);
         break;
       case 'bottom5':
-        filteredSuppliers = [...activeSuppliersList]
-          .sort((a, b) => a.performanceScore - b.performanceScore)
+        filteredSuppliers = [...suppliersWithValidScores]
+          .sort((a, b) => {
+            const scoreA = a.performanceScore || 0;
+            const scoreB = b.performanceScore || 0;
+            return scoreA - scoreB; // Düşükten yükseğe
+          })
           .slice(0, 5);
         break;
       case 'recent5':
-        filteredSuppliers = [...activeSuppliersList]
-          .sort((a, b) => new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime())
+        filteredSuppliers = [...suppliersWithValidScores]
+          .sort((a, b) => {
+            const dateA = new Date(a.registrationDate || '1970-01-01').getTime();
+            const dateB = new Date(b.registrationDate || '1970-01-01').getTime();
+            return dateB - dateA; // Yeniden eskiye
+          })
           .slice(0, 5);
         break;
       case 'risk5':
         const riskOrder = { 'kritik': 4, 'yüksek': 3, 'orta': 2, 'düşük': 1 };
-        filteredSuppliers = [...activeSuppliersList]
-          .sort((a, b) => (riskOrder[b.riskLevel] || 0) - (riskOrder[a.riskLevel] || 0))
+        filteredSuppliers = [...suppliersWithValidScores]
+          .sort((a, b) => {
+            const riskA = riskOrder[a.riskLevel] || 0;
+            const riskB = riskOrder[b.riskLevel] || 0;
+            return riskB - riskA; // Yüksek riskten düşük riske
+          })
           .slice(0, 5);
         break;
       default: // 'all'
-        filteredSuppliers = activeSuppliersList.slice(0, 8); // En fazla 8 tedarikçi
+        filteredSuppliers = suppliersWithValidScores.slice(0, 8); // En fazla 8 tedarikçi
         break;
     }
+    
+    // Debug için console log
+    console.log('🔍 Performans Filtresi:', {
+      filter: performanceFilter,
+      totalActive: activeSuppliersList.length,
+      filtered: filteredSuppliers.length,
+      scores: filteredSuppliers.map(s => ({ name: s.name, score: s.performanceScore }))
+    });
     
     const performanceData = filteredSuppliers.map(s => ({
       name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
