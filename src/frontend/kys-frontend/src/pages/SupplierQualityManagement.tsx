@@ -2954,48 +2954,126 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Box>
 
       <TableContainer component={Paper}>
-        <Table>
+        <Table sx={{ minWidth: 1200 }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'primary.50' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Tedarikçi</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Tür</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Alt Kategoriler</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Performans</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Son Denetim</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Durum</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>İşlemler</TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '200px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle'
+                }}
+              >
+                Tedarikçi
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '100px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center'
+                }}
+              >
+                Tür
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '100px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center'
+                }}
+              >
+                Kategori
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '250px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle'
+                }}
+              >
+                Alt Kategoriler
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '200px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center'
+                }}
+              >
+                Performans
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '120px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center'
+                }}
+              >
+                Son Denetim
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '100px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center'
+                }}
+              >
+                Durum
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '130px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center'
+                }}
+              >
+                İşlemler
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredSuppliers.map((supplier) => (
               <TableRow key={supplier.id}>
-                <TableCell>
+                <TableCell sx={{ width: '200px', verticalAlign: 'top' }}>
                   <Box>
-                    <Typography variant="body2" fontWeight="bold">
+                    <Typography variant="body2" fontWeight="bold" noWrap>
                       {supplier.name}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" noWrap>
                       {supplier.contact.contactPerson}
                     </Typography>
                   </Box>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: '100px', textAlign: 'center', verticalAlign: 'middle' }}>
                   <Chip 
                     label={supplier.type.charAt(0).toUpperCase() + supplier.type.slice(1)} 
                     color={supplier.type === 'onaylı' ? 'success' : 'warning'}
                     size="small"
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: '100px', textAlign: 'center', verticalAlign: 'middle' }}>
                   <Chip 
                     label={supplier.category.charAt(0).toUpperCase() + supplier.category.slice(1)} 
                     variant="outlined"
                     size="small"
                   />
                 </TableCell>
-                <TableCell>
-                  <Box>
+                <TableCell sx={{ width: '250px', verticalAlign: 'top' }}>
+                  <Box sx={{ maxHeight: '80px', overflow: 'auto' }}>
                     {supplier.supplySubcategories.length > 0 ? (
                       <Box display="flex" flexWrap="wrap" gap={0.5}>
                         {supplier.supplySubcategories.map((subcategory, index) => (
@@ -3005,7 +3083,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             color="secondary"
                             variant="outlined"
                             size="small"
-                            sx={{ fontSize: '0.7rem' }}
+                            sx={{ fontSize: '0.65rem', height: '20px' }}
                           />
                         ))}
                       </Box>
@@ -3016,23 +3094,23 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     )}
                   </Box>
                 </TableCell>
-                <TableCell>
-                  <Box display="flex" alignItems="center" gap={2}>
+                <TableCell sx={{ width: '200px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
                     {/* Grade Badge */}
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: 40,
-                        height: 40,
+                        width: 36,
+                        height: 36,
                         borderRadius: '50%',
                         backgroundColor: getPerformanceGrade(supplier.performanceScore, supplier).bgColor,
                         color: 'white',
                         fontWeight: 'bold',
-                        fontSize: '1.1rem',
+                        fontSize: '1rem',
                         boxShadow: 1,
-                        minWidth: 40,
+                        minWidth: 36,
                         flexShrink: 0
                       }}
                     >
@@ -3040,60 +3118,33 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     </Box>
                     
                     {/* Performans Detayları */}
-                    <Box flex={1}>
-                      <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                        <Typography variant="body2" fontWeight="bold">
-                          {supplier.performanceScore}%
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          ({getPerformanceGrade(supplier.performanceScore, supplier).description})
-                        </Typography>
-                      </Box>
-                      
-                      {/* Progress Bar */}
-                      <Box 
-                        width="100%" 
-                        height={6} 
-                      bgcolor="grey.300" 
-                      borderRadius={1}
-                      overflow="hidden"
-                    >
-                      <Box 
-                        width={`${supplier.performanceScore}%`}
-                        height="100%"
-                          bgcolor={getPerformanceGrade(supplier.performanceScore, supplier).bgColor}
-                          borderRadius={1}
-                      />
-                    </Box>
-                      
-                      {/* Grade Aralığı */}
-                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'A' && '85-100 puan'} 
-                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'B' && '70-84 puan'}
-                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'C' && '50-69 puan'}
-                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'D' && '0-49 puan'}
-                        {getPerformanceGrade(supplier.performanceScore, supplier).grade === 'N/A' && 'Henüz değerlendirilmedi'}
-                    </Typography>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold" textAlign="center">
+                        {supplier.performanceScore}%
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
+                        {getPerformanceGrade(supplier.performanceScore, supplier).description}
+                      </Typography>
                     </Box>
                   </Box>
                 </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
+                <TableCell sx={{ width: '120px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <Typography variant="body2" textAlign="center">
                     {new Date(supplier.lastAuditDate).toLocaleDateString('tr-TR')}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
                     Sonraki: {new Date(supplier.nextAuditDate).toLocaleDateString('tr-TR')}
                   </Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ width: '100px', textAlign: 'center', verticalAlign: 'middle' }}>
                   <Chip 
                     label={supplier.status.charAt(0).toUpperCase() + supplier.status.slice(1)}
                     color={supplier.status === 'aktif' ? 'success' : 'error'}
                     size="small"
                   />
                 </TableCell>
-                <TableCell>
-                  <Box display="flex" gap={1}>
+                <TableCell sx={{ width: '130px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <Box display="flex" gap={0.5} justifyContent="center">
                     <Tooltip title="Görüntüle">
                       <IconButton 
                         size="small" 
