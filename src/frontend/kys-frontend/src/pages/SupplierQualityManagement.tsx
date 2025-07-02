@@ -304,68 +304,34 @@ const SupplierQualityManagement: React.FC = () => {
   const [dataLoaded, setDataLoaded] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  // localStorage Protection System - Component mount/unmount koruma
+  // ✅ Sadeleştirilmiş başlangıç - Veri yükleme
   useEffect(() => {
-    console.log('🛡️ SupplierQualityManagement component MOUNT - localStorage koruması aktif');
-    
-    // Component mount olduğunda localStorage'ı backup'la
-    const backupData = () => {
-      const currentSuppliers = localStorage.getItem('suppliers');
-      if (currentSuppliers && currentSuppliers !== '[]' && currentSuppliers !== 'null') {
-        localStorage.setItem('suppliers-backup', currentSuppliers);
-        console.log('💾 Tedarikçi verileri backup\'landı');
-      }
-    };
-    
-    backupData();
+    console.log('🛡️ SupplierQualityManagement component MOUNT - veri yükleniyor');
     loadStoredData();
-    
-    // Component unmount olduğunda cleanup
-    return () => {
-      console.log('🛡️ SupplierQualityManagement component UNMOUNT - veri koruması');
-      // Unmount sırasında localStorage'ı koruma
-      const currentData = localStorage.getItem('suppliers');
-      if (!currentData || currentData === '[]' || currentData === 'null') {
-        // Veri silinmişse backup'tan restore et
-        const backupData = localStorage.getItem('suppliers-backup');
-        if (backupData) {
-          localStorage.setItem('suppliers', backupData);
-          console.log('🔄 Tedarikçi verileri backup\'tan restore edildi');
-        }
-      }
-    };
   }, []);
 
-  // localStorage Monitoring System - Sürekli veri koruması
+  // ✅ Basitleştirilmiş localStorage koruma - Sadece gerektiğinde çalışır
   useEffect(() => {
+    // Sadece veri yüklendikten sonra ve kullanıcı etkileşimi var ise korumasını aç
+    if (!dataLoaded || suppliers.length === 0) return;
+    
     const monitorInterval = setInterval(() => {
       const currentSuppliers = localStorage.getItem('suppliers');
-      const currentCount = suppliers.length;
       
-      // localStorage'da veri yoksa ama state'te veri varsa
-      if ((!currentSuppliers || currentSuppliers === '[]' || currentSuppliers === 'null') && currentCount > 0) {
-        console.log('🚨 UYARI: localStorage\'da tedarikçi verisi silinmiş, state\'ten restore ediliyor!');
+      // Sadece localStorage tamamen silinmişse restore et
+      if (!currentSuppliers || currentSuppliers === 'null') {
+        console.log('🛡️ localStorage tamamen silinmiş, otomatik restore yapılıyor');
         localStorage.setItem('suppliers', JSON.stringify(suppliers));
-        console.log('🔧 localStorage restore edildi:', currentCount, 'tedarikçi');
+        localStorage.setItem('supplier-nonconformities', JSON.stringify(nonconformities));
+        localStorage.setItem('supplier-defects', JSON.stringify(defects));
+        localStorage.setItem('supplier-pairs', JSON.stringify(supplierPairs));
+        localStorage.setItem('supplier-audits', JSON.stringify(audits));
+        console.log('✅ Tüm veriler otomatik restore edildi');
       }
-      
-      // localStorage'da veri varsa ama state'te yoksa (component mount durumu değil)
-      if (currentSuppliers && currentSuppliers !== '[]' && currentSuppliers !== 'null' && currentCount === 0 && dataLoaded) {
-        console.log('🚨 UYARI: State\'te veri yok ama localStorage\'da var, state restore ediliyor!');
-        try {
-          const storedData = JSON.parse(currentSuppliers);
-          if (storedData.length > 0) {
-            setSuppliers(storedData);
-            console.log('🔧 State restore edildi:', storedData.length, 'tedarikçi');
-          }
-        } catch (e) {
-          console.error('❌ State restore hatası:', e);
-        }
-      }
-    }, 2000); // Her 2 saniyede kontrol et
+    }, 5000); // 5 saniyede bir kontrol et (daha az agresif)
     
     return () => clearInterval(monitorInterval);
-  }, [suppliers, dataLoaded]);
+  }, [dataLoaded, suppliers.length]); // suppliers dependency'sini kaldır
 
   // Veri tutarlılığı kontrolü - Veriler yüklendikten sonra
   useEffect(() => {
