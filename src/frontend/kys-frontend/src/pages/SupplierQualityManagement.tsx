@@ -15,7 +15,9 @@ import {
   BugReport as BugReportIcon, Report as ReportIcon, CheckCircle as CheckCircleIcon,
   SwapHoriz as SwapHorizIcon, Visibility as ViewIcon, ExpandMore as ExpandMoreIcon,
   TrendingUp as TrendingUpIcon, Security as SecurityIcon, Star as StarIcon,
-  Search as SearchIcon, Error as ErrorIcon
+  Search as SearchIcon, Error as ErrorIcon, FilterList as FilterListIcon,
+  TrendingDown as TrendingDownIcon, AccessTime as AccessTimeIcon,
+  NotificationsActive as NotificationsActiveIcon
 } from '@mui/icons-material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
@@ -289,6 +291,9 @@ const SupplierQualityManagement: React.FC = () => {
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [supplierTypeFilter, setSupplierTypeFilter] = useState('all');
+  
+  // Performance chart filter state
+  const [performanceFilter, setPerformanceFilter] = useState<'top5' | 'bottom5' | 'recent5' | 'risk5' | 'all'>('top5');
 
   // Supplier switch dialog states
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
@@ -2432,16 +2437,43 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       };
     }).filter(cat => cat.adet > 0); // Sadece tedarikçisi olan kategorileri göster
     
-    // Performans karşılaştırması için tedarikçiler - tüm aktif tedarikçiler
-    const performanceData = suppliers
-      .filter(s => s.status === 'aktif')
-      .slice(0, 8) // En fazla 8 tedarikçi göster
-      .map(s => ({
-        name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
-        kalite: s.qualityScore,
-        teslimat: s.deliveryScore,
-        genel: s.performanceScore
-      }));
+    // Performans karşılaştırması için tedarikçiler - filtreye göre
+    const activeSuppliersList = suppliers.filter(s => s.status === 'aktif');
+    let filteredSuppliers: Supplier[] = [];
+    
+    switch (performanceFilter) {
+      case 'top5':
+        filteredSuppliers = [...activeSuppliersList]
+          .sort((a, b) => b.performanceScore - a.performanceScore)
+          .slice(0, 5);
+        break;
+      case 'bottom5':
+        filteredSuppliers = [...activeSuppliersList]
+          .sort((a, b) => a.performanceScore - b.performanceScore)
+          .slice(0, 5);
+        break;
+      case 'recent5':
+        filteredSuppliers = [...activeSuppliersList]
+          .sort((a, b) => new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime())
+          .slice(0, 5);
+        break;
+      case 'risk5':
+        const riskOrder = { 'kritik': 4, 'yüksek': 3, 'orta': 2, 'düşük': 1 };
+        filteredSuppliers = [...activeSuppliersList]
+          .sort((a, b) => (riskOrder[b.riskLevel] || 0) - (riskOrder[a.riskLevel] || 0))
+          .slice(0, 5);
+        break;
+      default: // 'all'
+        filteredSuppliers = activeSuppliersList.slice(0, 8); // En fazla 8 tedarikçi
+        break;
+    }
+    
+    const performanceData = filteredSuppliers.map(s => ({
+      name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
+      kalite: s.qualityScore,
+      teslimat: s.deliveryScore,
+      genel: s.performanceScore
+    }));
 
     return (
       <Grid container spacing={3}>
@@ -2680,31 +2712,106 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               title="Tedarikçi Performans Karşılaştırması" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #e1f5fe 100%)' }}
+              action={
+                <Box display="flex" gap={1} flexWrap="wrap">
+                  <Tooltip title="En İyi 5">
+                    <Button
+                      size="small"
+                      variant={performanceFilter === 'top5' ? 'contained' : 'outlined'}
+                      color="success"
+                      startIcon={<StarIcon />}
+                      onClick={() => setPerformanceFilter('top5')}
+                      sx={{ minWidth: 'auto', px: 1 }}
+                    >
+                      En İyi 5
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="En Düşük 5">
+                    <Button
+                      size="small"
+                      variant={performanceFilter === 'bottom5' ? 'contained' : 'outlined'}
+                      color="error"
+                      startIcon={<TrendingDownIcon />}
+                      onClick={() => setPerformanceFilter('bottom5')}
+                      sx={{ minWidth: 'auto', px: 1 }}
+                    >
+                      En Düşük 5
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Son Eklenen 5">
+                    <Button
+                      size="small"
+                      variant={performanceFilter === 'recent5' ? 'contained' : 'outlined'}
+                      color="info"
+                      startIcon={<AccessTimeIcon />}
+                      onClick={() => setPerformanceFilter('recent5')}
+                      sx={{ minWidth: 'auto', px: 1 }}
+                    >
+                      Yeniler
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="En Riskli 5">
+                    <Button
+                      size="small"
+                      variant={performanceFilter === 'risk5' ? 'contained' : 'outlined'}
+                      color="warning"
+                      startIcon={<NotificationsActiveIcon />}
+                      onClick={() => setPerformanceFilter('risk5')}
+                      sx={{ minWidth: 'auto', px: 1 }}
+                    >
+                      Riskli
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Tümünü Göster">
+                    <Button
+                      size="small"
+                      variant={performanceFilter === 'all' ? 'contained' : 'outlined'}
+                      color="primary"
+                      startIcon={<FilterListIcon />}
+                      onClick={() => setPerformanceFilter('all')}
+                      sx={{ minWidth: 'auto', px: 1 }}
+                    >
+                      Tümü
+                    </Button>
+                  </Tooltip>
+                </Box>
+              }
             />
             <CardContent>
               {performanceData.length > 0 ? (
-                <Box height={350}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={performanceData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                      <ChartTooltip 
-                        formatter={(value: any, name: any) => [`${value} puan`, name]}
-                        labelStyle={{ fontWeight: 'bold' }}
-                        contentStyle={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          border: '1px solid #ddd',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                        }}
-                      />
-                      <Legend />
-                      <Bar dataKey="kalite" fill="#2196f3" name="Kalite" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="genel" fill="#1976d2" name="Genel" radius={[2, 2, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <Box>
+                  <Box height={350}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={performanceData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                        <ChartTooltip 
+                          formatter={(value: any, name: any) => [`${value} puan`, name]}
+                          labelStyle={{ fontWeight: 'bold' }}
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            border: '1px solid #ddd',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                          }}
+                        />
+                        <Legend />
+                        <Bar dataKey="kalite" fill="#2196f3" name="Kalite" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="genel" fill="#1976d2" name="Genel" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                  <Box mt={1} textAlign="center">
+                    <Typography variant="caption" color="text.secondary">
+                      {performanceFilter === 'top5' && `En yüksek performanslı 5 tedarikçi gösteriliyor (${filteredSuppliers.length} kayıt)`}
+                      {performanceFilter === 'bottom5' && `En düşük performanslı 5 tedarikçi gösteriliyor (${filteredSuppliers.length} kayıt)`}
+                      {performanceFilter === 'recent5' && `Son eklenen 5 tedarikçi gösteriliyor (${filteredSuppliers.length} kayıt)`}
+                      {performanceFilter === 'risk5' && `En riskli 5 tedarikçi gösteriliyor (${filteredSuppliers.length} kayıt)`}
+                      {performanceFilter === 'all' && `Tüm aktif tedarikçiler gösteriliyor (${filteredSuppliers.length} kayıt)`}
+                    </Typography>
+                  </Box>
                 </Box>
               ) : (
                 <Box height={350} display="flex" alignItems="center" justifyContent="center" flexDirection="column" gap={2}>
