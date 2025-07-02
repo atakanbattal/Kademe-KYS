@@ -5548,13 +5548,33 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       <InputLabel>Ana Tedarikçi</InputLabel>
                       <Select
                         value={formData.primarySupplierId || ''}
-                        onChange={(e) => setFormData({ ...formData, primarySupplierId: e.target.value })}
+                        onChange={(e) => {
+                          const selectedSupplierId = e.target.value;
+                          const selectedSupplier = suppliers.find(s => s.id === selectedSupplierId);
+                          
+                          // Seçilen tedarikçinin malzeme türlerinden ilkini otomatik seç
+                          const autoMaterialType = selectedSupplier?.materialTypes?.[0] || '';
+                          
+                          setFormData({ 
+                            ...formData, 
+                            primarySupplierId: selectedSupplierId,
+                            materialType: autoMaterialType
+                          });
+                        }}
                       >
                         {suppliers.filter(s => s.type === 'onaylı').map(supplier => (
                           <MenuItem key={supplier.id} value={supplier.id}>
                             <Box display="flex" alignItems="center" gap={1}>
                               <CheckCircleIcon color="success" fontSize="small" />
                               {supplier.name} ({supplier.code})
+                              {supplier.materialTypes.length > 0 && (
+                                <Chip 
+                                  size="small" 
+                                  label={`${supplier.materialTypes.length} malzeme`}
+                                  variant="outlined"
+                                  sx={{ ml: 1, fontSize: '0.7rem' }}
+                                />
+                              )}
                             </Box>
                           </MenuItem>
                         ))}
@@ -5569,16 +5589,54 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       <Select
                         value={formData.alternativeSupplierId || ''}
                         onChange={(e) => setFormData({ ...formData, alternativeSupplierId: e.target.value })}
+                        disabled={!formData.materialType}
                       >
-                        {suppliers.filter(s => s.type === 'alternatif' || s.type === 'onaylı').map(supplier => (
-                          <MenuItem key={supplier.id} value={supplier.id}>
-                            <Box display="flex" alignItems="center" gap={1}>
-                              <SwapHorizIcon color="warning" fontSize="small" />
-                              {supplier.name} ({supplier.code})
-                            </Box>
-                          </MenuItem>
-                        ))}
+                        {(() => {
+                          // Seçili malzeme türünü işleyebilen alternatif tedarikçileri göster
+                          if (formData.materialType) {
+                            return suppliers
+                              .filter(s => 
+                                (s.type === 'alternatif' || s.type === 'onaylı') && 
+                                s.id !== formData.primarySupplierId &&
+                                s.materialTypes.includes(formData.materialType)
+                              )
+                              .map(supplier => (
+                                <MenuItem key={supplier.id} value={supplier.id}>
+                                  <Box display="flex" alignItems="center" gap={1}>
+                                    <SwapHorizIcon color="warning" fontSize="small" />
+                                    {supplier.name} ({supplier.code})
+                                    <Chip 
+                                      size="small" 
+                                      label={supplier.type}
+                                      color={supplier.type === 'onaylı' ? 'success' : 'warning'}
+                                      variant="outlined"
+                                      sx={{ ml: 1, fontSize: '0.7rem' }}
+                                    />
+                                  </Box>
+                                </MenuItem>
+                              ));
+                          } else {
+                            return (
+                              <MenuItem disabled>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <WarningIcon color="warning" fontSize="small" />
+                                  Önce malzeme türü seçiniz
+                                </Box>
+                              </MenuItem>
+                            );
+                          }
+                        })()}
                       </Select>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {formData.materialType ? 
+                          `${formData.materialType} için uygun ${suppliers.filter(s => 
+                            (s.type === 'alternatif' || s.type === 'onaylı') && 
+                            s.id !== formData.primarySupplierId &&
+                            s.materialTypes.includes(formData.materialType || '')
+                          ).length} alternatif tedarikçi` :
+                          'Malzeme türü seçildikten sonra uygun alternatifler listelenecek'
+                        }
+                      </Typography>
                     </FormControl>
                   </Grid>
 
@@ -5589,76 +5647,38 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       <Select
                         value={formData.materialType || ''}
                         onChange={(e) => setFormData({ ...formData, materialType: e.target.value })}
+                        disabled={!formData.primarySupplierId}
                       >
-                        {/* Çelik Alt Kategorileri */}
-                        <MenuItem value="St 37 Yapı Çeliği">St 37 Yapı Çeliği</MenuItem>
-                        <MenuItem value="St 52 Yüksek Mukavemetli Çelik">St 52 Yüksek Mukavemetli Çelik</MenuItem>
-                        <MenuItem value="S 235 JR Yapı Çeliği">S 235 JR Yapı Çeliği</MenuItem>
-                        <MenuItem value="S 355 JR Yüksek Mukavemetli Çelik">S 355 JR Yüksek Mukavemetli Çelik</MenuItem>
-                        <MenuItem value="DKP Saç (Derin Çekme)">DKP Saç (Derin Çekme)</MenuItem>
-                        <MenuItem value="DDQ Saç (Ekstra Derin Çekme)">DDQ Saç (Ekstra Derin Çekme)</MenuItem>
-                        <MenuItem value="Galvanizli Saç">Galvanizli Saç</MenuItem>
-                        <MenuItem value="Elektro Galvanizli Saç">Elektro Galvanizli Saç</MenuItem>
-                        
-                        {/* Paslanmaz Çelik Alt Kategorileri */}
-                        <MenuItem value="AISI 304 Paslanmaz Çelik">AISI 304 Paslanmaz Çelik</MenuItem>
-                        <MenuItem value="AISI 316 Paslanmaz Çelik">AISI 316 Paslanmaz Çelik</MenuItem>
-                        <MenuItem value="AISI 430 Paslanmaz Çelik">AISI 430 Paslanmaz Çelik</MenuItem>
-                        <MenuItem value="Duplex 2205 Paslanmaz Çelik">Duplex 2205 Paslanmaz Çelik</MenuItem>
-                        
-                        {/* Alüminyum Alt Kategorileri */}
-                        <MenuItem value="Al 99.5 Saf Alüminyum">Al 99.5 Saf Alüminyum</MenuItem>
-                        <MenuItem value="AA 5754 Alüminyum Alaşımı">AA 5754 Alüminyum Alaşımı</MenuItem>
-                        <MenuItem value="AA 6061 Alüminyum Alaşımı">AA 6061 Alüminyum Alaşımı</MenuItem>
-                        <MenuItem value="AA 7075 Yüksek Mukavemetli Alüminyum">AA 7075 Yüksek Mukavemetli Alüminyum</MenuItem>
-                        <MenuItem value="Anodize Alüminyum">Anodize Alüminyum</MenuItem>
-                        
-                        {/* Döküm Alt Kategorileri */}
-                        <MenuItem value="GGG-40 Küresel Grafitli Döküm">GGG-40 Küresel Grafitli Döküm</MenuItem>
-                        <MenuItem value="GGG-50 Küresel Grafitli Döküm">GGG-50 Küresel Grafitli Döküm</MenuItem>
-                        <MenuItem value="GG-20 Gri Döküm">GG-20 Gri Döküm</MenuItem>
-                        <MenuItem value="GG-25 Gri Döküm">GG-25 Gri Döküm</MenuItem>
-                        <MenuItem value="Çelik Döküm GS-45">Çelik Döküm GS-45</MenuItem>
-                        
-                        {/* Plastik Alt Kategorileri */}
-                        <MenuItem value="PE-HD Polietilen (Yüksek Yoğunluklu)">PE-HD Polietilen (Yüksek Yoğunluklu)</MenuItem>
-                        <MenuItem value="PE-LD Polietilen (Düşük Yoğunluklu)">PE-LD Polietilen (Düşük Yoğunluklu)</MenuItem>
-                        <MenuItem value="PP Polipropilen">PP Polipropilen</MenuItem>
-                        <MenuItem value="PVC Polivinil Klorür">PVC Polivinil Klorür</MenuItem>
-                        <MenuItem value="ABS Akrilonitril Butadien Stiren">ABS Akrilonitril Butadien Stiren</MenuItem>
-                        <MenuItem value="PA6 Polyamid (Naylon 6)">PA6 Polyamid (Naylon 6)</MenuItem>
-                        <MenuItem value="POM Polyoxymethylene (Poliaçetal)">POM Polyoxymethylene (Poliaçetal)</MenuItem>
-                        
-                        {/* Elektronik Komponentler */}
-                        <MenuItem value="PCB Baskı Devre Kartları">PCB Baskı Devre Kartları</MenuItem>
-                        <MenuItem value="SMD Yüzey Montaj Elemanları">SMD Yüzey Montaj Elemanları</MenuItem>
-                        <MenuItem value="IC Entegre Devreler">IC Entegre Devreler</MenuItem>
-                        <MenuItem value="Kondansatörler">Kondansatörler</MenuItem>
-                        <MenuItem value="Dirençler ve Potansiyometreler">Dirençler ve Potansiyometreler</MenuItem>
-                        <MenuItem value="Konnektörler ve Soketler">Konnektörler ve Soketler</MenuItem>
-                        
-                        {/* Kauçuk Alt Kategorileri */}
-                        <MenuItem value="NBR Nitril Kauçuk">NBR Nitril Kauçuk</MenuItem>
-                        <MenuItem value="EPDM Etilen Propilen Kauçuk">EPDM Etilen Propilen Kauçuk</MenuItem>
-                        <MenuItem value="SBR Stirol Butadien Kauçuk">SBR Stirol Butadien Kauçuk</MenuItem>
-                        <MenuItem value="FKM Fluoro Kauçuk (Viton)">FKM Fluoro Kauçuk (Viton)</MenuItem>
-                        <MenuItem value="Silikon Kauçuk">Silikon Kauçuk</MenuItem>
-                        
-                        {/* Bağlantı Elemanları */}
-                        <MenuItem value="DIN 912 İmbus Cıvata">DIN 912 İmbus Cıvata</MenuItem>
-                        <MenuItem value="DIN 931 Altı Köşe Cıvata">DIN 931 Altı Köşe Cıvata</MenuItem>
-                        <MenuItem value="DIN 934 Altı Köşe Somun">DIN 934 Altı Köşe Somun</MenuItem>
-                        <MenuItem value="DIN 125 Düz Pul">DIN 125 Düz Pul</MenuItem>
-                        <MenuItem value="DIN 127 Yay Rondela">DIN 127 Yay Rondela</MenuItem>
-                        <MenuItem value="Metrik Vida M6-M30">Metrik Vida M6-M30</MenuItem>
-                        
-                        {/* Diğer Özel Malzemeler */}
-                        <MenuItem value="Bronz Yatak Malzemesi">Bronz Yatak Malzemesi</MenuItem>
-                        <MenuItem value="Pirinç Alaşım">Pirinç Alaşım</MenuItem>
-                        <MenuItem value="Tungsten Karbür">Tungsten Karbür</MenuItem>
-                        <MenuItem value="Seramik Malzemeler">Seramik Malzemeler</MenuItem>
-                        <MenuItem value="Kompozit Malzemeler">Kompozit Malzemeler</MenuItem>
+                        {(() => {
+                          // Seçili ana tedarikçinin malzeme türlerini göster
+                          const selectedSupplier = suppliers.find(s => s.id === formData.primarySupplierId);
+                          if (selectedSupplier?.materialTypes?.length > 0) {
+                            return selectedSupplier.materialTypes.map(materialType => (
+                              <MenuItem key={materialType} value={materialType}>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <Box width={8} height={8} bgcolor="primary.main" borderRadius="50%" />
+                                  {materialType}
+                                </Box>
+                              </MenuItem>
+                            ));
+                          } else {
+                            return (
+                              <MenuItem disabled>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <WarningIcon color="warning" fontSize="small" />
+                                  Önce ana tedarikçi seçiniz
+                                </Box>
+                              </MenuItem>
+                            );
+                          }
+                        })()}
                       </Select>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                        {formData.primarySupplierId ? 
+                          `Ana tedarikçinin sahip olduğu ${suppliers.find(s => s.id === formData.primarySupplierId)?.materialTypes?.length || 0} malzeme türü gösteriliyor` :
+                          'Ana tedarikçi seçildikten sonra malzeme türleri listelenecek'
+                        }
+                      </Typography>
                     </FormControl>
                   </Grid>
 
