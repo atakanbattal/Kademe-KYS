@@ -730,9 +730,10 @@ const DocumentManagement: React.FC = () => {
     { name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
   ];
 
-  // Initialize sample documents with approval data
+  // Initialize sample documents with approval data - ONLY ON FIRST LOAD
   React.useEffect(() => {
-    if (documents.length === 0) {
+    const isInitialized = localStorage.getItem('documentManagement_initialized');
+    if (!isInitialized && documents.length === 0) {
       const sampleDocuments: Document[] = [
         {
           id: '1',
@@ -866,12 +867,14 @@ const DocumentManagement: React.FC = () => {
         }
       ];
       setDocuments(sampleDocuments);
+      localStorage.setItem('documentManagement_initialized', 'true');
     }
-  }, [documents.length]);
+  }, []);
 
-  // Initialize sample personnel documents
+  // Initialize sample personnel documents - ONLY ON FIRST LOAD
   React.useEffect(() => {
-    if (personnelDocuments.length === 0) {
+    const isPersonnelInitialized = localStorage.getItem('documentManagement_personnel_initialized');
+    if (!isPersonnelInitialized && personnelDocuments.length === 0) {
       const sampleDocuments: PersonnelDocument[] = [
         {
           id: '1',
@@ -1000,6 +1003,7 @@ const DocumentManagement: React.FC = () => {
         }
       ];
       setPersonnelDocuments(sampleDocuments);
+      localStorage.setItem('documentManagement_personnel_initialized', 'true');
     }
   }, []);
 
