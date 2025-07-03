@@ -3467,8 +3467,33 @@ const EquipmentCalibrationManagement: React.FC = () => {
   // Memoized filtered equipment list - sadece equipmentList veya filters değiştiğinde yeniden hesapla
   const filteredEquipment = useMemo(() => {
     return equipmentList.filter(equipment => {
-      if (filters.searchTerm && !equipment.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) &&
-          !equipment.equipmentCode.toLowerCase().includes(filters.searchTerm.toLowerCase())) return false;
+      // 🔍 GENİŞLETİLMİŞ ARAMA FONKSİYONU - Kalibrasyon sertifika numarası dahil
+      if (filters.searchTerm) {
+        const searchLower = filters.searchTerm.toLowerCase();
+        const searchFields = [
+          equipment.name,
+          equipment.equipmentCode,
+          equipment.serialNumber,
+          equipment.manufacturer,
+          equipment.model,
+          equipment.lastCalibrationCertificateNumber, // ✅ Kalibrasyon sertifika numarası
+          equipment.calibrationCompany,
+          equipment.specifications,
+          equipment.notes,
+          // Sertifikalar array'inde arama
+          ...(equipment.certificates || []).map(cert => cert.certificateNumber),
+          ...(equipment.certificates || []).map(cert => cert.calibratorCompany),
+          // Sorumlu personel bilgileri
+          equipment.responsiblePersonName,
+          equipment.responsiblePersonSicilNo
+        ];
+        
+        const hasMatch = searchFields.some(field => 
+          field && field.toString().toLowerCase().includes(searchLower)
+        );
+        
+        if (!hasMatch) return false;
+      }
       if (filters.category && equipment.category !== filters.category) return false;
       if (filters.location && equipment.location !== filters.location) return false;
       if (filters.department && equipment.department !== filters.department) return false;
@@ -4519,7 +4544,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
               <Box sx={{ flex: '1 1 250px', minWidth: '250px' }}>
                 <UltimateStableSearchInput
                   label="Ekipman Arama"
-                  placeholder="Ekipman adı, kodu veya üretici ile arayın..."
+                  placeholder="Ekipman adı, kodu, seri no, sertifika no, üretici ile arayın..."
                   defaultValue={filters.searchTerm}
                   onChange={(value: string) => handleFilterChange('searchTerm', value)}
                   fullWidth
@@ -4769,8 +4794,21 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       fontWeight: 600,
                       fontSize: '0.8rem',
                       padding: '12px 8px',
-                      width: '150px',
-                      minWidth: '150px'
+                      width: '130px',
+                      minWidth: '130px'
+                    }}
+                  >
+                    Sertifika No
+                  </TableCell>
+                  <TableCell 
+                    sx={{ 
+                      background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      padding: '12px 8px',
+                      width: '120px',
+                      minWidth: '120px'
                     }}
                   >
                     Kalibrasyon
@@ -5032,6 +5070,37 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </TableCell>
                     <TableCell sx={{ padding: '8px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '110px',
+                            color: equipment.lastCalibrationCertificateNumber ? 'primary.main' : 'text.disabled'
+                          }}
+                        >
+                          {equipment.lastCalibrationCertificateNumber || 'Yok'}
+                        </Typography>
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary"
+                          sx={{ 
+                            fontSize: '0.65rem',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '110px'
+                          }}
+                        >
+                          {equipment.calibrationCompany || 'Belirtilmemiş'}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ padding: '8px' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <StatusChip
                           label={
                             equipment.calibrationStatus === 'valid' ? 'Geçerli' :
@@ -5185,7 +5254,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
                     <UltimateStableSearchInput
                       label="Ekipman Arama"
-                      placeholder="Kalibrasyon gereken ekipmanları arayın..."
+                      placeholder="Ekipman adı, sertifika no, kalibratör ile arayın..."
                       defaultValue={filters.searchTerm}
                       onChange={(value: string) => handleFilterChange('searchTerm', value)}
                       fullWidth
