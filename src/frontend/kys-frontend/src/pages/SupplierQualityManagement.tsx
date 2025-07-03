@@ -490,9 +490,9 @@ const SupplierQualityManagement: React.FC = () => {
       }
       
       // Veri yükleme tamamlandı - otomatik mock veri yükleme kaldırıldı
-      setDataLoaded(true);
-      setIsLoading(false);
-      console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı');
+        setDataLoaded(true);
+        setIsLoading(false);
+        console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı');
       
     } catch (error) {
       console.error('❌ localStorage veri yükleme hatası:', error);
@@ -1713,7 +1713,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Tedarikçi ve ilgili tüm kayıtlar silindi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar(
             `${supplierToDelete.name} tedarikçisi ve ilgili tüm kayıtlar başarıyla silindi`,
@@ -1725,7 +1725,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           setSupplierPairs(updatedPairs);
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Eşleştirme silindi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           showSnackbar('Eşleştirme başarıyla silindi', 'success');
           break;
         case 'nonconformity':
@@ -1733,7 +1733,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           setNonconformities(updatedNonconformities);
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Uygunsuzluk silindi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           showSnackbar('Uygunsuzluk başarıyla silindi', 'success');
           break;
         case 'defect':
@@ -1741,7 +1741,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           setDefects(updatedDefects);
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Hata silindi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           showSnackbar('Hata kaydı başarıyla silindi', 'success');
           break;
         case 'audit':
@@ -1749,7 +1749,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           setAudits(updatedAudits);
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Denetim silindi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           showSnackbar('Denetim planı başarıyla silindi', 'success');
           break;
       }
@@ -1925,7 +1925,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Tedarikçi güncellendi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar(`Tedarikçi başarıyla güncellendi. Genel performans skoru: ${calculatedPerformanceScore}`, 'success');
         } else {
@@ -1939,7 +1939,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Yeni tedarikçi eklendi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar(`Yeni tedarikçi başarıyla eklendi. Genel performans skoru: ${calculatedPerformanceScore}`, 'success');
         }
@@ -1980,7 +1980,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Uygunsuzluk güncellendi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Uygunsuzluk başarıyla güncellendi', 'success');
         } else {
@@ -1989,7 +1989,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Yeni uygunsuzluk eklendi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Yeni uygunsuzluk başarıyla eklendi', 'success');
         }
@@ -2009,7 +2009,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Hata güncellendi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Hata kaydı başarıyla güncellendi', 'success');
         } else {
@@ -2018,7 +2018,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           
           // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
           console.log('🔄 Yeni hata eklendi, otomatik kaydetme useEffect tarafından yapılacak');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
+            window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Yeni hata kaydı başarıyla eklendi', 'success');
         }
@@ -2041,7 +2041,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           primarySupplier = suppliers.find(s => s.id === formData.primarySupplierId);
           if (!primarySupplier) {
             showSnackbar('Seçilen ana tedarikçi bulunamadı', 'error');
-            return;
+          return;
           }
         }
         
@@ -2052,7 +2052,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         for (const altId of alternativeSupplierIds) {
           if (altId === formData.primarySupplierId) {
             showSnackbar('Ana tedarikçi ile alternatif tedarikçi aynı olamaz', 'error');
-            return;
+          return;
           }
           
           const altSupplier = suppliers.find(s => s.id === altId);
@@ -2443,9 +2443,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       }));
 
     return (
-      <Grid container spacing={3}>
+    <Grid container spacing={3}>
         {/* Tedarikçi Sayısı */}
-        <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={3}>
           <Card elevation={3} sx={{ 
             borderRadius: 3, 
             background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
@@ -2453,29 +2453,29 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             height: '140px'
           }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Box display="flex" alignItems="center" gap={2}>
+            <Box display="flex" alignItems="center" gap={2}>
                 <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
                   <BusinessIcon fontSize="large" />
-                </Avatar>
+              </Avatar>
                 <Box flex={1}>
-                  <Typography variant="h4" fontWeight="bold">
+                <Typography variant="h4" fontWeight="bold">
                     {totalSuppliers}
-                  </Typography>
+                </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>
                     Toplam Tedarikçi
-                  </Typography>
+                </Typography>
                   {totalSuppliers > 0 && (
                     <Typography variant="caption" sx={{ opacity: 0.8 }}>
                       {activeSuppliers.length} aktif
                     </Typography>
                   )}
-                </Box>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
 
-        <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={3}>
           <Card elevation={3} sx={{ 
             borderRadius: 3, 
             background: avgPerformance >= 85 ? 'linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%)' : 
@@ -2485,29 +2485,29 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             height: '140px'
           }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Box display="flex" alignItems="center" gap={2}>
+            <Box display="flex" alignItems="center" gap={2}>
                 <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
                   <AssessmentIcon fontSize="large" />
-                </Avatar>
+              </Avatar>
                 <Box flex={1}>
-                  <Typography variant="h4" fontWeight="bold">
+                <Typography variant="h4" fontWeight="bold">
                     {totalSuppliers > 0 ? avgPerformance : 0}
-                  </Typography>
+                </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>
                     Ortalama Performans
-                  </Typography>
+                </Typography>
                   {totalSuppliers > 0 && (
                     <Typography variant="caption" sx={{ opacity: 0.8 }}>
                       {suppliers.length} tedarikçi ortalaması
                     </Typography>
                   )}
-                </Box>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
 
-        <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={3}>
           <Card elevation={3} sx={{ 
             borderRadius: 3, 
             background: 'linear-gradient(135deg, #d32f2f 0%, #c62828 100%)',
@@ -2515,29 +2515,29 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             height: '140px'
           }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Box display="flex" alignItems="center" gap={2}>
+            <Box display="flex" alignItems="center" gap={2}>
                 <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
                   <WarningIcon fontSize="large" />
-                </Avatar>
+              </Avatar>
                 <Box flex={1}>
-                  <Typography variant="h4" fontWeight="bold">
+                <Typography variant="h4" fontWeight="bold">
                     {openNonconformities.length}
-                  </Typography>
+                </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>
                     Açık Sorun
-                  </Typography>
+                </Typography>
                   {totalNonconformities > 0 && (
                     <Typography variant="caption" sx={{ opacity: 0.8 }}>
                       {totalNonconformities} toplam kayıt
                     </Typography>
                   )}
-                </Box>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
 
-        <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={3}>
           <Card elevation={3} sx={{ 
             borderRadius: 3, 
             background: 'linear-gradient(135deg, #e65100 0%, #d84315 100%)',
@@ -2545,27 +2545,27 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             height: '140px'
           }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Box display="flex" alignItems="center" gap={2}>
+            <Box display="flex" alignItems="center" gap={2}>
                 <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
                   <CheckCircleIcon fontSize="large" />
-                </Avatar>
+              </Avatar>
                 <Box flex={1}>
-                  <Typography variant="h4" fontWeight="bold">
+                <Typography variant="h4" fontWeight="bold">
                     %{resolutionRate}
-                  </Typography>
+                </Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>
                     Çözüm Oranı
-                  </Typography>
+                </Typography>
                   {totalNonconformities > 0 && (
                     <Typography variant="caption" sx={{ opacity: 0.8 }}>
                       {resolvedNonconformities}/{totalNonconformities}
                     </Typography>
                   )}
-                </Box>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
 
         {/* Kategori Bazlı Performans Analizi */}
         <Grid item xs={12} md={6}>
@@ -2575,10 +2575,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%)' }}
             />
-            <CardContent>
+          <CardContent>
               {categoryData.length > 0 ? (
                 <Box height={280}>
-                  <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={categoryData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="category" tick={{ fontSize: 12 }} />
@@ -2595,12 +2595,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           borderRadius: '8px'
                         }}
                       />
-                      <Legend />
+                  <Legend />
                       <Bar dataKey="ortalama" fill="#1976d2" name="Ortalama Performans" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="hedef" fill="#f57c00" name="Hedef" radius={[4, 4, 0, 0]} stroke="#e65100" strokeWidth={2} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Box>
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
               ) : (
                 <Box height={280} display="flex" alignItems="center" justifyContent="center" flexDirection="column" gap={2}>
                   <BusinessIcon sx={{ fontSize: 48, color: 'grey.400' }} />
@@ -2610,15 +2610,15 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </Typography>
                 </Box>
               )}
-            </CardContent>
-          </Card>
-        </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
 
         {/* Risk Dağılımı */}
         <Grid item xs={12} md={6}>
           <Card elevation={3} sx={{ borderRadius: 3, height: '100%' }}>
-            <CardHeader 
-              title="Risk Dağılımı" 
+          <CardHeader 
+            title="Risk Dağılımı" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)' }}
             />
@@ -2634,7 +2634,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     <Grid item xs={6} key={risk.level}>
                       <Card 
                         elevation={2} 
-                        sx={{ 
+            sx={{ 
                           p: 2, 
                           textAlign: 'center', 
                           background: `linear-gradient(135deg, ${risk.color}15 0%, ${risk.color}25 100%)`,
@@ -2679,21 +2679,21 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               title="Tedarikçi Performans Karşılaştırması" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #e1f5fe 100%)' }}
-            />
-            <CardContent>
+          />
+          <CardContent>
               {performanceData.length > 0 ? (
                 <Box height={350}>
-                  <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={performanceData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                       <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                      <ChartTooltip 
+                  <ChartTooltip 
                         formatter={(value: any, name: any) => [`${value} puan`, name]}
                         labelStyle={{ fontWeight: 'bold' }}
-                        contentStyle={{ 
+                    contentStyle={{ 
                           backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          border: '1px solid #ddd',
+                      border: '1px solid #ddd',
                           borderRadius: '8px',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                         }}
@@ -2703,8 +2703,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat" radius={[2, 2, 0, 0]} />
                       <Bar dataKey="genel" fill="#1976d2" name="Genel" radius={[2, 2, 0, 0]} />
                     </BarChart>
-                  </ResponsiveContainer>
-                </Box>
+              </ResponsiveContainer>
+            </Box>
               ) : (
                 <Box height={350} display="flex" alignItems="center" justifyContent="center" flexDirection="column" gap={2}>
                   <AssessmentIcon sx={{ fontSize: 48, color: 'grey.400' }} />
@@ -2714,9 +2714,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </Typography>
                 </Box>
               )}
-            </CardContent>
-          </Card>
-        </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
 
         {/* İstatistikler */}
         <Grid item xs={12} md={4}>
@@ -2726,7 +2726,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%)' }}
             />
-            <CardContent>
+          <CardContent>
               <Box display="flex" flexDirection="column" gap={3} height={350} justifyContent="space-between">
                 {/* Çözüm Oranı */}
                 <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
@@ -2779,13 +2779,13 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </Typography>
                 </Box>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-
+          </CardContent>
+        </Card>
       </Grid>
-    );
+
+
+    </Grid>
+  );
   };
 
   // Supplier Pairing Component
@@ -2823,7 +2823,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     };
 
     return (
-      <Box>
+    <Box>
         {/* Özet İstatistikler */}
         <Grid container spacing={2} mb={3}>
           <Grid item xs={12} sm={6} md={2.4}>
@@ -2928,8 +2928,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 onClick={handleCreatePair}
                 sx={{ height: 40 }}
               >
-                Yeni Eşleştirme
-              </Button>
+          Yeni Eşleştirme
+        </Button>
             </Grid>
           </Grid>
         </Card>
@@ -2962,14 +2962,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     color={pair.category === 'stratejik' ? 'error' : 
                            pair.category === 'kritik' ? 'warning' : 
                            pair.category === 'rutin' ? 'info' : 'default'}
-                    variant="outlined"
+                    variant="outlined" 
                     sx={{ fontWeight: 'bold' }}
                   />
                   <Chip 
                     label={pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? 'Tam Eşleştirme' :
                            !pair.primarySupplier ? 'Ana Tedarikçi Eksik' : 'Alternatif Eksik'}
                     color={pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? 'success' : 'warning'}
-                    size="small"
+                    size="small" 
                   />
                 </Box>
                 <Box display="flex" gap={1}>
@@ -3024,28 +3024,28 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     {pair.primarySupplier ? (
                       <>
                         <Typography variant="h6" fontWeight="bold" mb={1.5}>
-                          {pair.primarySupplier.name}
-                        </Typography>
+                      {pair.primarySupplier.name}
+                    </Typography>
                         
                         {/* Performance Badge */}
                         <Box display="flex" alignItems="center" gap={1.5} mb={2}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                               width: 40,
                               height: 40,
-                              borderRadius: '50%',
+                          borderRadius: '50%',
                               backgroundColor: getPerformanceGrade(pair.performanceComparison.primaryScore || 0, pair.primarySupplier).bgColor,
-                              color: 'white',
-                              fontWeight: 'bold',
+                          color: 'white',
+                          fontWeight: 'bold',
                               fontSize: '1.1rem',
                               boxShadow: 2
-                            }}
-                          >
+                        }}
+                      >
                             {getPerformanceGrade(pair.performanceComparison.primaryScore || 0, pair.primarySupplier).grade}
-                          </Box>
+                      </Box>
                           <Box>
                             <Typography variant="h5" fontWeight="bold" color="success.main">
                               {pair.performanceComparison.primaryScore || 0}%
@@ -3064,12 +3064,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           <Box display="flex" flexWrap="wrap" gap={0.5}>
                             {pair.primarySupplier.supplySubcategories.length > 0 ? (
                               pair.primarySupplier.supplySubcategories.map((subcategory, index) => (
-                                <Chip 
+                      <Chip 
                                   key={index}
                                   label={subcategory} 
-                                  color="success"
+                        color="success" 
                                   variant="outlined"
-                                  size="small"
+                        size="small" 
                                   sx={{ fontSize: '0.7rem', height: '24px' }}
                                 />
                               ))
@@ -3078,8 +3078,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                 Kategori belirtilmemiş
                               </Typography>
                             )}
-                          </Box>
-                        </Box>
+                    </Box>
+                  </Box>
                       </>
                     ) : (
                       <Box textAlign="center" py={3}>
@@ -3119,9 +3119,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     
                     {pair.alternativeSuppliers.length > 0 ? (
                       <Box sx={{ maxHeight: '280px', overflow: 'auto' }}>
-                        {pair.alternativeSuppliers.map((altSupplier, index) => {
-                          const altScore = pair.performanceComparison.alternativeScores.find(s => s.id === altSupplier.id)?.score || 0;
-                          return (
+                  {pair.alternativeSuppliers.map((altSupplier, index) => {
+                    const altScore = pair.performanceComparison.alternativeScores.find(s => s.id === altSupplier.id)?.score || 0;
+                    return (
                             <Card 
                               key={altSupplier.id} 
                               elevation={0}
@@ -3136,27 +3136,27 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             >
                               <Box display="flex" justifyContent="between" alignItems="center" mb={1}>
                                 <Typography variant="subtitle1" fontWeight="bold">
-                                  {altSupplier.name}
-                                </Typography>
+                        {altSupplier.name}
+                      </Typography>
                               </Box>
                               
                               <Box display="flex" alignItems="center" gap={1.5} mb={1}>
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                                     width: 32,
                                     height: 32,
-                                    borderRadius: '50%',
+                              borderRadius: '50%',
                                     backgroundColor: getPerformanceGrade(altScore, altSupplier).bgColor,
-                                    color: 'white',
-                                    fontWeight: 'bold',
+                              color: 'white',
+                              fontWeight: 'bold',
                                     fontSize: '0.9rem'
-                                  }}
-                                >
+                            }}
+                          >
                                   {getPerformanceGrade(altScore, altSupplier).grade}
-                                </Box>
+                          </Box>
                                 <Box>
                                   <Typography variant="h6" fontWeight="bold" color="info.main">
                                     {altScore}%
@@ -3170,12 +3170,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                               <Box display="flex" flexWrap="wrap" gap={0.5}>
                                 {altSupplier.supplySubcategories.length > 0 ? (
                                   altSupplier.supplySubcategories.slice(0, 3).map((subcategory, idx) => (
-                                    <Chip 
+                        <Chip 
                                       key={idx}
                                       label={subcategory} 
                                       color="info"
                                       variant="outlined"
-                                      size="small"
+                          size="small" 
                                       sx={{ fontSize: '0.65rem', height: '20px' }}
                                     />
                                   ))
@@ -3192,10 +3192,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                     sx={{ fontSize: '0.65rem', height: '20px' }}
                                   />
                                 )}
-                              </Box>
+                      </Box>
                             </Card>
-                          );
-                        })}
+                    );
+                  })}
                       </Box>
                     ) : (
                       <Box textAlign="center" py={3}>
@@ -3244,12 +3244,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             borderRadius: 2, 
                             mb: 2,
                             background: (pair.performanceComparison.primaryScore || 0) > 
-                              Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
+                      Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
                               ? 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)' 
                               : 'linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%)',
                             border: '1px solid',
                             borderColor: (pair.performanceComparison.primaryScore || 0) > 
-                              Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
+                       Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
                               ? 'success.200' : 'warning.200'
                           }}
                         >
@@ -3264,11 +3264,11 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             {(pair.performanceComparison.primaryScore || 0) > 
                              Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
                               ? '✓ Ana Tedarikçi Üstün' : '⚠ Alternatif Değerlendir'}
-                          </Typography>
+                    </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {pair.performanceComparison.recommendation}
-                          </Typography>
-                        </Box>
+                      {pair.performanceComparison.recommendation}
+                    </Typography>
+                  </Box>
 
                         {/* Review Dates */}
                         <Box sx={{ p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
@@ -3276,11 +3276,11 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             Son Değerlendirme
                           </Typography>
                           <Typography variant="body2" fontWeight="bold" mb={0.5}>
-                            {new Date(pair.lastReviewDate).toLocaleDateString('tr-TR')}
-                          </Typography>
+                    {new Date(pair.lastReviewDate).toLocaleDateString('tr-TR')}
+                  </Typography>
                           <Typography variant="caption" color="text.secondary" display="block">
-                            Sonraki: {new Date(pair.nextReviewDate).toLocaleDateString('tr-TR')}
-                          </Typography>
+                    Sonraki: {new Date(pair.nextReviewDate).toLocaleDateString('tr-TR')}
+                  </Typography>
                         </Box>
                       </Box>
                     ) : pair.primarySupplier && pair.alternativeSuppliers.length === 0 ? (
@@ -3293,7 +3293,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           Risk azaltmak için alternatif tedarikçi eklenmeli
                         </Typography>
                         <Button
-                          size="small"
+                        size="small" 
                           variant="outlined"
                           startIcon={<LinkIcon />}
                           onClick={() => handleEditItem(pair, 'pair')}
@@ -3311,9 +3311,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           Alternatifler arasından ana tedarikçi seçilmeli
                         </Typography>
                         <Button
-                          size="small"
+                        size="small" 
                           variant="outlined"
-                          color="warning"
+                        color="warning" 
                           startIcon={<StarIcon />}
                           onClick={() => handleOpenSwitchDialog(pair)}
                         >
@@ -3437,7 +3437,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       
       if (sortDirection === 'asc') {
         return aValue.localeCompare(bValue);
-      } else {
+                          } else {
         return bValue.localeCompare(aValue);
       }
     });
@@ -3485,14 +3485,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     };
 
     return (
-      <Box>
+    <Box>
         {/* Enhanced Filter Panel */}
         <Card elevation={1} sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
           <Grid container spacing={2} alignItems="center" mb={2}>
             <Grid item xs={12} md={3}>
-              <TextField
+          <TextField
                 fullWidth
-                size="small"
+            size="small"
                 placeholder="Tedarikçi ara (ad, kişi, kategori)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -3510,13 +3510,13 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   onChange={(e) => setSupplierTypeFilter(e.target.value)}
                   sx={{ bgcolor: 'white' }}
                 >
-                  <MenuItem value="all">Tümü</MenuItem>
-                  <MenuItem value="onaylı">Onaylı</MenuItem>
-                  <MenuItem value="alternatif">Alternatif</MenuItem>
-                  <MenuItem value="potansiyel">Potansiyel</MenuItem>
+              <MenuItem value="all">Tümü</MenuItem>
+              <MenuItem value="onaylı">Onaylı</MenuItem>
+              <MenuItem value="alternatif">Alternatif</MenuItem>
+              <MenuItem value="potansiyel">Potansiyel</MenuItem>
                   <MenuItem value="bloklu">Bloklu</MenuItem>
-                </Select>
-              </FormControl>
+            </Select>
+          </FormControl>
             </Grid>
             <Grid item xs={6} md={2}>
               <FormControl fullWidth size="small">
@@ -3622,8 +3622,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 <MenuItem value={50}>50</MenuItem>
               </Select>
             </FormControl>
-          </Box>
         </Box>
+      </Box>
 
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 1400 }}>
@@ -3867,8 +3867,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     {/* Performans Detayları */}
                     <Box>
                       <Typography variant="body2" fontWeight="bold" textAlign="center">
-                        {supplier.performanceScore}%
-                      </Typography>
+                          {supplier.performanceScore}%
+                        </Typography>
                       {getPerformanceGrade(supplier.performanceScore, supplier).description && (
                         <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
                           {getPerformanceGrade(supplier.performanceScore, supplier).description}
@@ -3971,7 +3971,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         sx={{ borderTop: '1px solid', borderColor: 'divider' }}
       />
     </Box>
-    );
+  );
   };
 
   // Audit Tracking Component
@@ -5964,7 +5964,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Grid>
       </Grid>
     </Box>
-  );
+    );
   };
 
   // Loading durumunda gösterilecek içerik
@@ -6668,8 +6668,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       )}
                       renderOption={(props, option) => (
                         <Box component="li" {...props}>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <CheckCircleIcon color="success" fontSize="small" />
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <CheckCircleIcon color="success" fontSize="small" />
                             <Box>
                               <Typography variant="body2" fontWeight="500">
                                 {option.name}
@@ -6718,8 +6718,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       )}
                       renderOption={(props, option) => (
                         <Box component="li" {...props}>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <SwapHorizIcon color="warning" fontSize="small" />
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <SwapHorizIcon color="warning" fontSize="small" />
                             <Box>
                               <Typography variant="body2" fontWeight="500">
                                 {option.name}

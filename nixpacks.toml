@@ -1,5 +1,7 @@
 [phases.build]
 cmds = [
+  "cd src/frontend/kys-frontend && npm install",
+  "cd src/frontend/kys-frontend && GENERATE_SOURCEMAP=false npm run build",
   "cd src/backend && npm install",
   "cd src/backend && npm run build"
 ]
@@ -8,4 +10,5 @@ cmds = [
 cmd = "cd src/backend && npm start"
 
 [variables]
-NODE_ENV = "production" 
+NODE_ENV = "production"
+GENERATE_SOURCEMAP = "false" 
