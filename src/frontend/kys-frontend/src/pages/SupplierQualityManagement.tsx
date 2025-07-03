@@ -354,25 +354,29 @@ const SupplierQualityManagement: React.FC = () => {
   // ❌ Veri tutarlılığı kontrolü DEVRE DIŞI - Çakışma sorunu yaratıyordu
   // syncDataConsistency fonksiyonu otomatik kaydetme ile çakışıp veri kaybına neden oluyordu
 
-  // 🚀 OTOMATİK KAYDETME SİSTEMİ - Veri kaybolmasını önlemek için
-  // Suppliers değiştiğinde otomatik kaydet
+  // 🚀 SÜPER GÜÇLENDİRİLMİŞ OTOMATİK KAYDETME SİSTEMİ - Veri kaybolmasını önlemek için
+  // Suppliers değiştiğinde otomatik kaydet - VERİ KAYBI ENGELLEME V2.0
   useEffect(() => {
     if (dataLoaded) {
       try {
         localStorage.setItem('suppliers', JSON.stringify(suppliers));
-        console.log('✅ Suppliers otomatik localStorage\'a kaydedildi');
+        localStorage.setItem('suppliers-backup', JSON.stringify(suppliers));
+        localStorage.setItem('suppliers-timestamp', Date.now().toString());
+        console.log('✅ Suppliers otomatik localStorage\'a kaydedildi - BACKUP DAHIL');
       } catch (error) {
         console.error('❌ Suppliers localStorage kaydetme hatası:', error);
       }
     }
   }, [suppliers, dataLoaded]);
 
-  // Supplier pairs değiştiğinde otomatik kaydet
+  // Supplier pairs değiştiğinde otomatik kaydet - VERİ KAYBI ENGELLEME V2.0
   useEffect(() => {
     if (dataLoaded) {
       try {
         localStorage.setItem('supplier-pairs', JSON.stringify(supplierPairs));
-        console.log('✅ Supplier pairs otomatik localStorage\'a kaydedildi');
+        localStorage.setItem('supplier-pairs-backup', JSON.stringify(supplierPairs));
+        localStorage.setItem('supplier-pairs-timestamp', Date.now().toString());
+        console.log('✅ Supplier pairs otomatik localStorage\'a kaydedildi - BACKUP DAHIL');
       } catch (error) {
         console.error('❌ Supplier pairs localStorage kaydetme hatası:', error);
       }
@@ -431,12 +435,23 @@ const SupplierQualityManagement: React.FC = () => {
 
   const loadStoredData = () => {
     try {
-      // localStorage'dan verileri yükle
-      const storedSuppliers = localStorage.getItem('suppliers');
-      const storedNonconformities = localStorage.getItem('supplier-nonconformities');
-      const storedDefects = localStorage.getItem('supplier-defects');
-      const storedPairs = localStorage.getItem('supplier-pairs');
-      const storedAudits = localStorage.getItem('supplier-audits');
+      // 🚨 ACİL KURTARMA SİSTEMİ - VERİ KAYBI ENGELLEME V2.0
+      // localStorage'dan verileri yükle - BACKUP kontrollü
+      let storedSuppliers = localStorage.getItem('suppliers');
+      let storedNonconformities = localStorage.getItem('supplier-nonconformities');
+      let storedDefects = localStorage.getItem('supplier-defects');
+      let storedPairs = localStorage.getItem('supplier-pairs');
+      let storedAudits = localStorage.getItem('supplier-audits');
+      
+      // Eğer ana veri yoksa veya bozuksa backup'tan yükle
+      if (!storedSuppliers || storedSuppliers === 'null' || storedSuppliers === '[]') {
+        storedSuppliers = localStorage.getItem('suppliers-backup');
+        console.log('🔄 Suppliers backup\'tan yüklendi');
+      }
+      if (!storedPairs || storedPairs === 'null' || storedPairs === '[]') {
+        storedPairs = localStorage.getItem('supplier-pairs-backup');
+        console.log('🔄 Supplier pairs backup\'tan yüklendi');
+      }
       
       console.log('🔍 localStorage kontrol:', {
         suppliers: !!storedSuppliers,
