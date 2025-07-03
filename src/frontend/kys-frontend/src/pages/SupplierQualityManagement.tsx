@@ -2722,11 +2722,11 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     
     // Chart için veri hazırlama
     const chartData = performanceData.map(s => ({
-      name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
-      kalite: s.qualityScore,
-      teslimat: s.deliveryScore,
-      genel: s.performanceScore
-    }));
+        name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
+        kalite: s.qualityScore,
+        teslimat: s.deliveryScore,
+        genel: s.performanceScore
+      }));
 
     return (
     <Grid container spacing={3}>
@@ -2986,7 +2986,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
 
                 {/* İstatistik Kartları */}
                 <Box display="flex" gap={3} alignItems="center" flexWrap="wrap">
-                  {/* Çözüm Oranı */}
+                {/* Çözüm Oranı */}
                   <Box display="flex" alignItems="center" gap={2} 
                     sx={{ 
                       bgcolor: 'rgba(33, 150, 243, 0.08)', 
@@ -2998,28 +2998,28 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   >
                     <Box textAlign="center">
                       <Typography variant="h5" fontWeight="bold" color="primary.main">
-                        %{resolutionRate}
-                      </Typography>
+                    %{resolutionRate}
+                  </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Çözüm Oranı
-                      </Typography>
+                  </Typography>
                     </Box>
                     <Box sx={{ width: 60, height: 4 }}>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={resolutionRate} 
-                        sx={{ 
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={resolutionRate} 
+                      sx={{ 
                           height: 4, 
                           borderRadius: 2,
                           backgroundColor: 'rgba(33, 150, 243, 0.2)',
-                          '& .MuiLinearProgress-bar': {
-                            backgroundColor: resolutionRate >= 90 ? '#4caf50' : 
-                                             resolutionRate >= 75 ? '#ff9800' : '#f44336'
-                          }
-                        }} 
-                      />
-                    </Box>
+                        '& .MuiLinearProgress-bar': {
+                          backgroundColor: resolutionRate >= 90 ? '#4caf50' : 
+                                           resolutionRate >= 75 ? '#ff9800' : '#f44336'
+                        }
+                      }} 
+                    />
                   </Box>
+                </Box>
 
                   {/* Açık Sorunlar */}
                   <Box display="flex" alignItems="center" gap={2}
@@ -3033,18 +3033,18 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   >
                     <Box textAlign="center">
                       <Typography variant="h5" fontWeight="bold" color="warning.main">
-                        {openNonconformities.length}
-                      </Typography>
+                    {openNonconformities.length}
+                  </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Açık Sorun
-                      </Typography>
+                  </Typography>
                     </Box>
-                    <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary">
                       / {totalNonconformities}
-                    </Typography>
-                  </Box>
+                  </Typography>
+                </Box>
 
-                  {/* Risk Seviyesi */}
+                {/* Risk Seviyesi */}
                   <Box display="flex" alignItems="center" gap={2}
                     sx={{ 
                       bgcolor: 'rgba(244, 67, 54, 0.08)', 
@@ -3056,7 +3056,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   >
                     <Box textAlign="center">
                       <Typography variant="h5" fontWeight="bold" color="error.main">
-                        {criticalSuppliers.length}
+                    {criticalSuppliers.length}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Yüksek Risk
@@ -3134,8 +3134,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       <Box textAlign="center">
                         <Typography variant="h4" fontWeight="bold" color="primary.main">
                           {Math.round(chartData.reduce((acc, item) => acc + item.genel, 0) / chartData.length)}%
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
                           Ortalama Genel Performans
                         </Typography>
                       </Box>
@@ -3339,11 +3339,11 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                       <Box>
                                         <Typography variant="body1" fontWeight={500}>
                                           {supplier.name.length > 20 ? supplier.name.substring(0, 20) + '...' : supplier.name}
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary">
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
                                           {supplier.category}
-                                        </Typography>
-                                      </Box>
+                  </Typography>
+                </Box>
                                     </TableCell>
                                     <TableCell align="center">
                                       <Box display="flex" flexDirection="column" alignItems="center">
@@ -3369,7 +3369,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                             }
                                           }} 
                                         />
-                                      </Box>
+              </Box>
                                     </TableCell>
                                     <TableCell align="center">
                                       <Typography variant="body2" fontWeight={500}>
@@ -7713,7 +7713,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                               <Typography variant="body2" fontWeight="500">
                                 {option.name}
                               </Typography>
-                              <Box display="flex" alignItems="center" gap={1}>
+                            <Box display="flex" alignItems="center" gap={1}>
                                 <Chip 
                                   label={option.type} 
                                   size="small" 
@@ -7750,7 +7750,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                     sx={{ fontSize: '0.7rem', height: 18, ml: 'auto' }}
                                   />
                                 )}
-                              </Box>
+                            </Box>
                             </Box>
                           </Box>
                         </Box>

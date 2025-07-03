@@ -994,9 +994,11 @@ const fetchDOF8DData = (): DOF8DData => {
 
 const fetchVehicleQualityData = (): VehicleQualityData => {
   try {
-    const wasteRecords = JSON.parse(localStorage.getItem('wasteRecords') || '[]');
+    // ✅ DOĞRU localStorage key'i: productionQualityData
+    const productionData = JSON.parse(localStorage.getItem('productionQualityData') || '[]');
     
-    if (!Array.isArray(wasteRecords) || wasteRecords.length === 0) {
+    if (!Array.isArray(productionData) || productionData.length === 0) {
+      console.warn('⚠️ Üretim kalite verisi bulunamadı');
       return {
         totalVehicles: 0,
         qualityIssues: 0,
@@ -1005,28 +1007,41 @@ const fetchVehicleQualityData = (): VehicleQualityData => {
       };
     }
 
-    // Toplam araç sayısı (benzersiz araç modelleri)
-    const uniqueVehicles = new Set(wasteRecords.map((r: any) => r.vehicleModel));
-    const totalVehicles = uniqueVehicles.size;
+    // Toplam araç kayıt sayısı
+    const totalVehicles = productionData.length;
     
-    // Kalite sorunları (tüm kayıtlar sorun kayıtları olduğu için)
-    const qualityIssues = wasteRecords.length;
+    // Tüm hata detaylarını çek (tekrarlama sayısı dahil)
+    const allDefects = productionData.flatMap((record: any) => record.defects || []);
+    const totalDefectsWithRepeats = allDefects.reduce((sum: number, defect: any) => 
+      sum + (defect.repeatCount || 1), 0);
     
-    // Hata oranı (kayıt sayısı / benzersiz araç sayısı * 100)
-    const defectRate = totalVehicles > 0 ? (qualityIssues / totalVehicles) * 100 : 0;
+    // Hata oranı hesaplama 
+    const defectRate = totalVehicles > 0 ? (totalDefectsWithRepeats / totalVehicles) * 100 : 0;
     
-    // Muayene uygunluk oranı (sabit değer - gerçek hayatta farklı olabilir)
-    const inspectionCompliance = 96.5;
+    // Muayene uygunluk oranı - geçen kayıtlar / toplam kayıtlar
+    const passedInspections = productionData.filter((record: any) => 
+      !record.defects || record.defects.length === 0 || 
+      record.defects.every((defect: any) => defect.status === 'resolved' || defect.status === 'closed')
+    ).length;
+    const inspectionCompliance = totalVehicles > 0 ? (passedInspections / totalVehicles) * 100 : 0;
 
     const result = {
       totalVehicles,
-      qualityIssues,
+      qualityIssues: totalDefectsWithRepeats,
       defectRate,
       inspectionCompliance
     };
 
+    console.log('📊 Üretim Kalite Verisi:', {
+      kayıtSayısı: totalVehicles,
+      toplamHata: totalDefectsWithRepeats,
+      hataOranı: defectRate.toFixed(2) + '%',
+      muayeneUygunluk: inspectionCompliance.toFixed(2) + '%'
+    });
+
     return result;
   } catch (error) {
+    console.error('❌ Üretim kalite verisi çekilemedi:', error);
     return {
       totalVehicles: 0,
       qualityIssues: 0,
@@ -1040,7 +1055,18 @@ const fetchSupplierQualityData = (): SupplierQualityData => {
   try {
     const suppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
     
+    // 🐛 DEBUG: localStorage verilerini kontrol et
+    console.log('🏭 Supplier Data Debug:', {
+      storageKey: 'suppliers',
+      rawData: localStorage.getItem('suppliers'),
+      parsedData: suppliers,
+      isArray: Array.isArray(suppliers),
+      length: Array.isArray(suppliers) ? suppliers.length : 'N/A',
+      sampleSupplier: Array.isArray(suppliers) && suppliers.length > 0 ? suppliers[0] : null
+    });
+
     if (!Array.isArray(suppliers) || suppliers.length === 0) {
+      console.warn('⚠️ Supplier verisi boş veya array değil');
       return {
         totalSuppliers: 0,
         qualifiedSuppliers: 0,
@@ -1060,6 +1086,16 @@ const fetchSupplierQualityData = (): SupplierQualityData => {
     const ratedSuppliers = suppliers.filter((s: any) => s.currentScore && s.currentScore > 0);
     const totalScore = ratedSuppliers.reduce((sum: number, s: any) => sum + s.currentScore, 0);
     const averageRating = ratedSuppliers.length > 0 ? totalScore / ratedSuppliers.length : 0;
+    
+    // 🐛 DEBUG: Tedarikçi puanlama detayı
+    console.log('📊 Supplier Rating Debug:', {
+      totalSuppliers,
+      ratedSuppliers: ratedSuppliers.length,
+      supplierScores: suppliers.map(s => ({ name: s.name || s.companyName, score: s.currentScore })),
+      filteredScores: ratedSuppliers.map(s => ({ name: s.name || s.companyName, score: s.currentScore })),
+      totalScore,
+      averageRating
+    });
     
     // Red oranı hesaplama
     const totalDeliveries = suppliers.reduce((sum: number, s: any) => 
@@ -1099,74 +1135,274 @@ const fetchSupplierQualityData = (): SupplierQualityData => {
 
 // Yeni modül veri çekme fonksiyonları
 const fetchDocumentManagementData = (): DocumentManagementData => {
-  const storedData = localStorage.getItem('documentManagementData');
-  
-  if (storedData) {
-    const data = JSON.parse(storedData);
-    return data;
-  } else {
-    // Varsayılan doküman verileri
-    const data = {
-      totalDocuments: 156,
-      activeDocuments: 142,
-      expiringDocuments: 8,
-      approvalPendingDocuments: 6,
-      documentComplianceRate: 94.2,
-      certificateValidityRate: 89.7
+  try {
+    // ✅ DOĞRU localStorage key'i: documentManagementData
+    const documentData = JSON.parse(localStorage.getItem('documentManagementData') || '[]');
+    
+    if (Array.isArray(documentData) && documentData.length > 0) {
+      const totalDocuments = documentData.length;
+      const activeDocuments = documentData.filter((doc: any) => 
+        doc.status === 'approved' || doc.status === 'active' || doc.status === 'published'
+      ).length;
+      
+      // Süresi yaklaşan dokümanlar (30 gün içinde)
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      const expiringDocuments = documentData.filter((doc: any) => {
+        if (!doc.expiryDate) return false;
+        const expiryDate = new Date(doc.expiryDate);
+        return expiryDate <= thirtyDaysFromNow && expiryDate > new Date();
+      }).length;
+      
+      const approvalPendingDocuments = documentData.filter((doc: any) => 
+        doc.status === 'pending' || doc.status === 'review' || doc.status === 'waiting_approval'
+      ).length;
+      
+      const documentComplianceRate = totalDocuments > 0 ? (activeDocuments / totalDocuments) * 100 : 0;
+      
+      // Sertifika geçerlilik oranı (sertifika tipli dokümanlar için)
+      const certificates = documentData.filter((doc: any) => 
+        doc.type === 'certificate' || doc.category === 'certificate' || doc.documentType === 'certificate'
+      );
+      const validCertificates = certificates.filter((cert: any) => {
+        if (!cert.expiryDate) return true; // Süresi belirtilmemişse geçerli kabul et
+        return new Date(cert.expiryDate) > new Date();
+      }).length;
+      const certificateValidityRate = certificates.length > 0 ? (validCertificates / certificates.length) * 100 : 100;
+
+      const result = {
+        totalDocuments,
+        activeDocuments,
+        expiringDocuments,
+        approvalPendingDocuments,
+        documentComplianceRate,
+        certificateValidityRate
+      };
+
+      console.log('📊 Doküman Yönetimi Verisi:', {
+        toplamDoküman: totalDocuments,
+        aktifDoküman: activeDocuments,
+        süresiBitenler: expiringDocuments,
+        onayBekleyenler: approvalPendingDocuments,
+        uygunlukOranı: documentComplianceRate.toFixed(2) + '%',
+        sertifikaGeçerlilik: certificateValidityRate.toFixed(2) + '%'
+      });
+
+      return result;
+    } else {
+      console.warn('⚠️ Doküman yönetimi verisi bulunamadı');
+      return {
+        totalDocuments: 0,
+        activeDocuments: 0,
+        expiringDocuments: 0,
+        approvalPendingDocuments: 0,
+        documentComplianceRate: 0,
+        certificateValidityRate: 0
+      };
+    }
+  } catch (error) {
+    console.error('❌ Doküman verileri çekilemedi:', error);
+    return {
+      totalDocuments: 0,
+      activeDocuments: 0,
+      expiringDocuments: 0,
+      approvalPendingDocuments: 0,
+      documentComplianceRate: 0,
+      certificateValidityRate: 0
     };
-    localStorage.setItem('documentManagementData', JSON.stringify({
-      ...data,
-      lastUpdated: new Date().toISOString()
-    }));
-    return data;
   }
 };
 
 const fetchAuditManagementData = (): AuditManagementData => {
-  const storedData = localStorage.getItem('auditManagementData');
-  
-  if (storedData) {
-    const data = JSON.parse(storedData);
-    return data;
-  } else {
-    // Varsayılan denetim verileri
-    const data = {
-      totalAudits: 24,
-      completedAudits: 22,
-      auditComplianceRate: 91.7,
-      averageAuditScore: 87.3,
-      openNonConformities: 5,
-      auditEffectivenessRate: 95.8
+  try {
+    // ✅ DOĞRU localStorage key'i: auditManagementData 
+    const auditData = JSON.parse(localStorage.getItem('auditManagementData') || '[]');
+    
+    if (Array.isArray(auditData) && auditData.length > 0) {
+      const totalAudits = auditData.length;
+      const completedAudits = auditData.filter((audit: any) => 
+        audit.status === 'completed' || audit.status === 'closed' || audit.auditStatus === 'completed'
+      ).length;
+      
+      const auditComplianceRate = totalAudits > 0 ? (completedAudits / totalAudits) * 100 : 0;
+      
+      // Ortalama denetim puanı (varsa)
+      const auditsWithScores = auditData.filter((audit: any) => 
+        audit.overallScore || audit.auditScore || audit.score
+      );
+      const totalScore = auditsWithScores.reduce((sum: number, audit: any) => 
+        sum + (audit.overallScore || audit.auditScore || audit.score || 0), 0
+      );
+      const averageAuditScore = auditsWithScores.length > 0 ? totalScore / auditsWithScores.length : 0;
+      
+      // Açık uygunsuzluklar
+      const openNonConformities = auditData.reduce((sum: number, audit: any) => {
+        const findings = audit.findings || audit.nonConformities || [];
+        const openFindings = findings.filter((finding: any) => 
+          finding.status === 'open' || finding.status === 'pending' || finding.status === 'in_progress'
+        );
+        return sum + openFindings.length;
+      }, 0);
+      
+      // Denetim etkinlik oranı (düzeltici aksiyonlar tamamlanma oranı)
+      let totalActions = 0;
+      let completedActions = 0;
+      auditData.forEach((audit: any) => {
+        const findings = audit.findings || audit.nonConformities || [];
+        findings.forEach((finding: any) => {
+          const actions = finding.correctiveActions || finding.actions || [];
+          totalActions += actions.length;
+          completedActions += actions.filter((action: any) => 
+            action.status === 'completed' || action.status === 'closed'
+          ).length;
+        });
+      });
+      const auditEffectivenessRate = totalActions > 0 ? (completedActions / totalActions) * 100 : 0;
+
+      const result = {
+        totalAudits,
+        completedAudits,
+        auditComplianceRate,
+        averageAuditScore,
+        openNonConformities,
+        auditEffectivenessRate
+      };
+
+      console.log('📊 Denetim Yönetimi Verisi:', {
+        toplamDenetim: totalAudits,
+        tamamlananDenetim: completedAudits,
+        uygunlukOranı: auditComplianceRate.toFixed(2) + '%',
+        ortalamaPuan: averageAuditScore.toFixed(1),
+        açıkUygunsuzluk: openNonConformities,
+        etkinlikOranı: auditEffectivenessRate.toFixed(2) + '%'
+      });
+
+      return result;
+    } else {
+      console.warn('⚠️ Denetim yönetimi verisi bulunamadı');
+      return {
+        totalAudits: 0,
+        completedAudits: 0,
+        auditComplianceRate: 0,
+        averageAuditScore: 0,
+        openNonConformities: 0,
+        auditEffectivenessRate: 0
+      };
+    }
+  } catch (error) {
+    console.error('❌ Denetim verileri çekilemedi:', error);
+    return {
+      totalAudits: 0,
+      completedAudits: 0,
+      auditComplianceRate: 0,
+      averageAuditScore: 0,
+      openNonConformities: 0,
+      auditEffectivenessRate: 0
     };
-    localStorage.setItem('auditManagementData', JSON.stringify({
-      ...data,
-      lastUpdated: new Date().toISOString()
-    }));
-    return data;
   }
 };
 
 const fetchRiskManagementData = (): RiskManagementData => {
-  const storedData = localStorage.getItem('riskManagementData');
-  
-  if (storedData) {
-    const data = JSON.parse(storedData);
-    return data;
-  } else {
-    // Varsayılan risk verileri
-    const data = {
-      totalRisks: 18,
-      highRisks: 3,
-      riskMitigationRate: 83.3,
-      riskAssessmentCoverage: 92.1,
-      averageRiskScore: 2.4,
-      riskTrendIndicator: -12.5 // Negatif = iyileşme
+  try {
+    // ✅ DOĞRU localStorage key'i: riskRecords
+    const riskData = JSON.parse(localStorage.getItem('riskRecords') || '[]');
+    
+    if (Array.isArray(riskData) && riskData.length > 0) {
+      const totalRisks = riskData.length;
+      
+      // Yüksek riskler (critical ve high severity)
+      const highRisks = riskData.filter((risk: any) => 
+        risk.riskLevel === 'high' || risk.riskLevel === 'critical' || 
+        risk.severity === 'high' || risk.severity === 'critical' ||
+        (risk.riskScore && risk.riskScore >= 15) // Risk puanı yüksek olanlar
+      ).length;
+      
+      // Risk azaltma oranı (mitigated + controlled riskler)
+      const mitigatedRisks = riskData.filter((risk: any) => 
+        risk.status === 'mitigated' || risk.status === 'controlled' || 
+        risk.mitigationStatus === 'completed' || risk.mitigationStatus === 'effective'
+      ).length;
+      const riskMitigationRate = totalRisks > 0 ? (mitigatedRisks / totalRisks) * 100 : 0;
+      
+      // Risk değerlendirme kapsamı (değerlendirme tarihi olan riskler)
+      const assessedRisks = riskData.filter((risk: any) => 
+        risk.lastAssessmentDate || risk.assessmentDate || risk.evaluationDate
+      ).length;
+      const riskAssessmentCoverage = totalRisks > 0 ? (assessedRisks / totalRisks) * 100 : 0;
+      
+      // Ortalama risk puanı
+      const risksWithScores = riskData.filter((risk: any) => 
+        risk.riskScore || risk.score || (risk.probability && risk.impact)
+      );
+      let totalScore = 0;
+      risksWithScores.forEach((risk: any) => {
+        if (risk.riskScore) {
+          totalScore += risk.riskScore;
+        } else if (risk.score) {
+          totalScore += risk.score;
+        } else if (risk.probability && risk.impact) {
+          // Olasılık x Etki hesaplaması (1-5 skala)
+          totalScore += risk.probability * risk.impact;
+        }
+      });
+      const averageRiskScore = risksWithScores.length > 0 ? totalScore / risksWithScores.length : 0;
+      
+      // Risk trend göstergesi (son 30 gün içinde azalan riskler)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const recentlyResolvedRisks = riskData.filter((risk: any) => {
+        const resolvedDate = new Date(risk.resolvedDate || risk.mitigationDate || risk.updatedAt || '');
+        return resolvedDate >= thirtyDaysAgo && (
+          risk.status === 'resolved' || risk.status === 'mitigated' || risk.status === 'closed'
+        );
+      }).length;
+      const recentlyCreatedRisks = riskData.filter((risk: any) => {
+        const createdDate = new Date(risk.createdDate || risk.identificationDate || risk.createdAt || '');
+        return createdDate >= thirtyDaysAgo;
+      }).length;
+      // Pozitif değer = kötüleşme, negatif değer = iyileşme
+      const riskTrendIndicator = recentlyCreatedRisks - recentlyResolvedRisks;
+
+      const result = {
+        totalRisks,
+        highRisks,
+        riskMitigationRate,
+        riskAssessmentCoverage,
+        averageRiskScore,
+        riskTrendIndicator
+      };
+
+      console.log('📊 Risk Yönetimi Verisi:', {
+        toplamRisk: totalRisks,
+        yüksekRisk: highRisks,
+        azaltmaOranı: riskMitigationRate.toFixed(2) + '%',
+        değerlendirmeKapsamı: riskAssessmentCoverage.toFixed(2) + '%',
+        ortalamaPuan: averageRiskScore.toFixed(1),
+        trendGöstergesi: riskTrendIndicator > 0 ? '+' + riskTrendIndicator : riskTrendIndicator.toString()
+      });
+
+      return result;
+    } else {
+      console.warn('⚠️ Risk yönetimi verisi bulunamadı');
+      return {
+        totalRisks: 0,
+        highRisks: 0,
+        riskMitigationRate: 0,
+        riskAssessmentCoverage: 0,
+        averageRiskScore: 0,
+        riskTrendIndicator: 0
+      };
+    }
+  } catch (error) {
+    console.error('❌ Risk verileri çekilemedi:', error);
+    return {
+      totalRisks: 0,
+      highRisks: 0,
+      riskMitigationRate: 0,
+      riskAssessmentCoverage: 0,
+      averageRiskScore: 0,
+      riskTrendIndicator: 0
     };
-    localStorage.setItem('riskManagementData', JSON.stringify({
-      ...data,
-      lastUpdated: new Date().toISOString()
-    }));
-    return data;
   }
 };
 
@@ -1243,6 +1479,189 @@ const fetchTankLeakTestData = (): TankLeakTestData => {
       testsThisMonth: 0,
       retestRequired: 0
     };
+  }
+};
+
+// ✅ YENİ MODÜLLERİN VERİ ÇEKME FONKSİYONLARI
+const fetchFanTestData = () => {
+  try {
+    const fanTestData = JSON.parse(localStorage.getItem('fanTestRecords') || '[]');
+    
+    if (Array.isArray(fanTestData) && fanTestData.length > 0) {
+      const totalTests = fanTestData.length;
+      const passedTests = fanTestData.filter((test: any) => 
+        test.overallResult === 'pass' || test.result === 'passed' || test.status === 'passed'
+      ).length;
+      const failedTests = fanTestData.filter((test: any) => 
+        test.overallResult === 'fail' || test.result === 'failed' || test.status === 'failed'
+      ).length;
+      const testSuccessRate = totalTests > 0 ? (passedTests / totalTests) * 100 : 0;
+
+      return {
+        totalTests,
+        passedTests,
+        failedTests,
+        testSuccessRate,
+        recordCount: totalTests
+      };
+    }
+    return { totalTests: 0, passedTests: 0, failedTests: 0, testSuccessRate: 0, recordCount: 0 };
+  } catch (error) {
+    return { totalTests: 0, passedTests: 0, failedTests: 0, testSuccessRate: 0, recordCount: 0 };
+  }
+};
+
+const fetchEquipmentCalibrationData = () => {
+  try {
+    const calibrationData = JSON.parse(localStorage.getItem('equipment_calibration_data') || '[]');
+    
+    // 🐛 DEBUG: localStorage verilerini kontrol et
+    console.log('🔧 Equipment Calibration Debug:', {
+      storageKey: 'equipment_calibration_data',
+      rawData: localStorage.getItem('equipment_calibration_data'),
+      parsedData: calibrationData,
+      isArray: Array.isArray(calibrationData),
+      length: Array.isArray(calibrationData) ? calibrationData.length : 'N/A'
+    });
+
+    if (Array.isArray(calibrationData) && calibrationData.length > 0) {
+      const totalEquipment = calibrationData.length;
+      const calibratedEquipment = calibrationData.filter((eq: any) => 
+        eq.calibrationStatus === 'calibrated' || eq.status === 'active' || eq.lastCalibrationDate
+      ).length;
+      
+      // Süresi yaklaşan kalibrasyonlar (30 gün içinde)
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      const upcomingCalibrations = calibrationData.filter((eq: any) => {
+        if (!eq.nextCalibrationDate) return false;
+        const nextDate = new Date(eq.nextCalibrationDate);
+        return nextDate <= thirtyDaysFromNow && nextDate > new Date();
+      }).length;
+      
+      const calibrationComplianceRate = totalEquipment > 0 ? (calibratedEquipment / totalEquipment) * 100 : 0;
+
+      console.log('📊 Kalibrasyon Hesaplama Sonucu:', {
+        totalEquipment,
+        calibratedEquipment,
+        calibrationComplianceRate: calibrationComplianceRate.toFixed(1) + '%'
+      });
+
+      return {
+        totalEquipment,
+        calibratedEquipment,
+        upcomingCalibrations,
+        calibrationComplianceRate,
+        recordCount: totalEquipment
+      };
+    } else {
+      console.warn('⚠️ Equipment calibration verisi boş veya array değil');
+      return { totalEquipment: 0, calibratedEquipment: 0, upcomingCalibrations: 0, calibrationComplianceRate: 0, recordCount: 0 };
+    }
+  } catch (error) {
+    console.error('❌ Equipment calibration veri hatası:', error);
+    return { totalEquipment: 0, calibratedEquipment: 0, upcomingCalibrations: 0, calibrationComplianceRate: 0, recordCount: 0 };
+  }
+};
+
+const fetchTrainingManagementData = () => {
+  try {
+    const trainingData = JSON.parse(localStorage.getItem('training-records') || '[]');
+    
+    if (Array.isArray(trainingData) && trainingData.length > 0) {
+      const totalTrainings = trainingData.length;
+      const completedTrainings = trainingData.filter((training: any) => 
+        training.status === 'completed' || training.trainingStatus === 'completed'
+      ).length;
+      
+      const trainingCompletionRate = totalTrainings > 0 ? (completedTrainings / totalTrainings) * 100 : 0;
+      
+      // Etkinlik puanı olan eğitimler
+      const trainingsWithEffectiveness = trainingData.filter((training: any) => 
+        training.effectivenessScore || training.evaluationScore
+      );
+      const totalEffectiveness = trainingsWithEffectiveness.reduce((sum: number, training: any) => 
+        sum + (training.effectivenessScore || training.evaluationScore || 0), 0
+      );
+      const averageEffectiveness = trainingsWithEffectiveness.length > 0 ? totalEffectiveness / trainingsWithEffectiveness.length : 0;
+
+      return {
+        totalTrainings,
+        completedTrainings,
+        trainingCompletionRate,
+        averageEffectiveness,
+        recordCount: totalTrainings
+      };
+    }
+    return { totalTrainings: 0, completedTrainings: 0, trainingCompletionRate: 0, averageEffectiveness: 0, recordCount: 0 };
+  } catch (error) {
+    return { totalTrainings: 0, completedTrainings: 0, trainingCompletionRate: 0, averageEffectiveness: 0, recordCount: 0 };
+  }
+};
+
+const fetchCustomerFeedbackData = () => {
+  try {
+    const customerData = JSON.parse(localStorage.getItem('customer-feedbacks') || '[]');
+    
+    if (Array.isArray(customerData) && customerData.length > 0) {
+      const totalFeedbacks = customerData.length;
+      
+      // Memnuniyet puanı olan geri bildirimler
+      const feedbacksWithRating = customerData.filter((feedback: any) => 
+        feedback.rating || feedback.satisfactionScore
+      );
+      const totalRating = feedbacksWithRating.reduce((sum: number, feedback: any) => 
+        sum + (feedback.rating || feedback.satisfactionScore || 0), 0
+      );
+      const averageCustomerSatisfaction = feedbacksWithRating.length > 0 ? totalRating / feedbacksWithRating.length : 0;
+      
+      // Çözülen şikayetler
+      const resolvedComplaints = customerData.filter((feedback: any) => 
+        feedback.status === 'resolved' || feedback.status === 'closed' || feedback.resolutionStatus === 'completed'
+      ).length;
+      const resolutionRate = totalFeedbacks > 0 ? (resolvedComplaints / totalFeedbacks) * 100 : 0;
+
+      return {
+        totalFeedbacks,
+        averageCustomerSatisfaction,
+        resolvedComplaints,
+        resolutionRate,
+        recordCount: totalFeedbacks
+      };
+    }
+    return { totalFeedbacks: 0, averageCustomerSatisfaction: 0, resolvedComplaints: 0, resolutionRate: 0, recordCount: 0 };
+  } catch (error) {
+    return { totalFeedbacks: 0, averageCustomerSatisfaction: 0, resolvedComplaints: 0, resolutionRate: 0, recordCount: 0 };
+  }
+};
+
+const fetchQuarantineData = () => {
+  try {
+    const quarantineData = JSON.parse(localStorage.getItem('quarantineRecords') || '[]');
+    
+    if (Array.isArray(quarantineData) && quarantineData.length > 0) {
+      const totalQuarantines = quarantineData.length;
+      const resolvedQuarantines = quarantineData.filter((item: any) => 
+        item.status === 'resolved' || item.status === 'released' || item.status === 'closed'
+      ).length;
+      const resolutionRate = totalQuarantines > 0 ? (resolvedQuarantines / totalQuarantines) * 100 : 0;
+      
+      // Aktif karantinalar
+      const activeQuarantines = quarantineData.filter((item: any) => 
+        item.status === 'active' || item.status === 'quarantined' || item.status === 'pending'
+      ).length;
+
+      return {
+        totalQuarantines,
+        activeQuarantines,
+        resolvedQuarantines,
+        resolutionRate,
+        recordCount: totalQuarantines
+      };
+    }
+    return { totalQuarantines: 0, activeQuarantines: 0, resolvedQuarantines: 0, resolutionRate: 0, recordCount: 0 };
+  } catch (error) {
+    return { totalQuarantines: 0, activeQuarantines: 0, resolvedQuarantines: 0, resolutionRate: 0, recordCount: 0 };
   }
 };
 
@@ -1756,36 +2175,198 @@ const calculateKPIValueForPeriod = (kpiId: string, period: string): number => {
   }
 };
 
-// Dinamik KPI Hesaplama Fonksiyonu
+// ✅ GERÇEK VERİLERLE KPI HESAPLAMA FONKSİYONU - TÜM MODÜLLER
 const calculateKPIValue = (kpiId: string): number => {
   try {
+    console.log(`🔢 KPI hesaplanıyor: ${kpiId}`);
+    
+    // Tüm modül verilerini çek
+    const qualityCostData = fetchQualityCostData();
+    const dofData = fetchDOF8DData();
+    const vehicleData = fetchVehicleQualityData();
+    const supplierData = fetchSupplierQualityData();
+    const documentData = fetchDocumentManagementData();
+    const auditData = fetchAuditManagementData();
+    const riskData = fetchRiskManagementData();
+    const tankTestData = fetchTankLeakTestData();
+    const fanTestData = fetchFanTestData();
+    const calibrationData = fetchEquipmentCalibrationData();
+    const trainingData = fetchTrainingManagementData();
+    const customerData = fetchCustomerFeedbackData();
+    const quarantineData = fetchQuarantineData();
+    
     switch (kpiId) {
-      // Tank test KPI'ları için direkt fetchTankLeakTestData kullan
-      case 'tank_total_tests': {
-        const data = fetchTankLeakTestData();
-        console.log(`📊 calculateKPIValue - tank_total_tests: ${data.totalTests}`);
-        return Math.max(0, data.totalTests);
+      // ============================================
+      // 💰 KALİTESİZLİK MALİYET KPI'LARI
+      // ============================================
+      case 'quality_cost_ratio': {
+        const estimatedRevenue = 50000000; // 50M TL varsayım
+        return qualityCostData.totalCost > 0 ? (qualityCostData.totalCost / estimatedRevenue) * 100 : 0;
       }
+      case 'rework_cost_ratio':
+        return qualityCostData.totalCost > 0 ? (qualityCostData.reworkCost / qualityCostData.totalCost) * 100 : 0;
+      case 'scrap_cost_ratio':
+        return qualityCostData.totalCost > 0 ? (qualityCostData.scrapCost / qualityCostData.totalCost) * 100 : 0;
+      case 'waste_cost_ratio':
+        return qualityCostData.totalCost > 0 ? (qualityCostData.wasteCost / qualityCostData.totalCost) * 100 : 0;
+      case 'warranty_cost_ratio':
+        return qualityCostData.totalCost > 0 ? (qualityCostData.warrantyCost / qualityCostData.totalCost) * 100 : 0;
+      case 'complaint_cost_ratio':
+        return qualityCostData.totalCost > 0 ? (qualityCostData.complaintCost / qualityCostData.totalCost) * 100 : 0;
       
-      case 'tank_failed_tests': {
-        const data = fetchTankLeakTestData();
-        console.log(`📊 calculateKPIValue - tank_failed_tests: ${data.failedTests}`);
-        return Math.max(0, data.failedTests);
+      // ============================================
+      // 📋 DÖF ve 8D KPI'LARI
+      // ============================================
+      case 'dof_closure_rate':
+        return dofData.closureRate;
+      case 'dof_overdue_rate':
+        return dofData.total > 0 ? (dofData.overdue / dofData.total) * 100 : 0;
+      case 'dof_avg_closure_time':
+        return dofData.averageClosureTime;
+      case 'critical_dof_count':
+        return dofData.overdue;
+      case '8d_completion_rate':
+        return dofData.closureRate;
+      
+      // ============================================
+      // 🚗 ARAÇ KALİTE TAKİBİ KPI'LARI
+      // ============================================
+      case 'vehicle_defect_rate':
+        return vehicleData.defectRate;
+      case 'inspection_compliance':
+        return vehicleData.inspectionCompliance;
+      case 'vehicle_total_waste_cost': {
+        const totalVehicleCost = qualityCostData.scrapCost + qualityCostData.wasteCost;
+        return vehicleData.totalVehicles > 0 ? totalVehicleCost / vehicleData.totalVehicles : 0;
       }
+      case 'most_problematic_part':
+        return vehicleData.qualityIssues;
       
+      // ============================================
+      // 🏭 TEDARİKÇİ KALİTE KPI'LARI
+      // ============================================
+      case 'supplier_qualification_rate':
+        return supplierData.qualificationRate;
+      case 'supplier_avg_rating':
+        return supplierData.averageRating;
+      case 'supplier_rejection_rate':
+        return supplierData.rejectionRate;
+      case 'on_time_delivery_rate':
+        return 94.5; // Bu veri henüz mevcut değil
+      case 'high_risk_supplier_count':
+        return supplierData.totalSuppliers - supplierData.qualifiedSuppliers;
+      
+      // ============================================
+      // 📄 DOKÜMAN YÖNETİMİ KPI'LARI
+      // ============================================
+      case 'document_compliance_rate':
+        return documentData.documentComplianceRate;
+      case 'certificate_validity_rate':
+        return documentData.certificateValidityRate;
+      case 'expiring_documents_count':
+        return documentData.expiringDocuments;
+      case 'pending_approval_count':
+        return documentData.approvalPendingDocuments;
+      
+      // ============================================
+      // 🔍 DENETİM YÖNETİMİ KPI'LARI  
+      // ============================================
+      case 'audit_compliance_rate':
+        return auditData.auditComplianceRate;
+      case 'avg_audit_score':
+        return auditData.averageAuditScore;
+      case 'open_nonconformities_count':
+        return auditData.openNonConformities;
+      case 'audit_effectiveness_rate':
+        return auditData.auditEffectivenessRate;
+      
+      // ============================================
+      // ⚠️ RİSK YÖNETİMİ KPI'LARI
+      // ============================================
+      case 'risk_mitigation_rate':
+        return riskData.riskMitigationRate;
+      case 'high_risk_count':
+        return riskData.highRisks;
+      case 'avg_risk_score':
+        return riskData.averageRiskScore;
+      case 'risk_assessment_coverage':
+        return riskData.riskAssessmentCoverage;
+      
+      // ============================================
+      // 🛢️ TANK TEST KPI'LARI
+      // ============================================
       case 'tank_test_success_rate': {
-        const data = fetchTankLeakTestData();
-        if (!data || data.totalTests === 0) return 92.5;
-        return isNaN(data.testSuccessRate) ? 92.5 : Math.max(0, Math.min(100, data.testSuccessRate));
+        if (!tankTestData || tankTestData.totalTests === 0) return 92.5;
+        return isNaN(tankTestData.testSuccessRate) ? 92.5 : Math.max(0, Math.min(100, tankTestData.testSuccessRate));
       }
+      case 'tank_total_tests':
+        return Math.max(0, tankTestData.totalTests);
+      case 'tank_failed_tests':
+        return Math.max(0, tankTestData.failedTests);
+      case 'tank_tests_this_month':
+        return tankTestData.testsThisMonth;
+      case 'retest_required_count':
+        return tankTestData.retestRequired;
+      case 'avg_pressure_drop':
+        return tankTestData.averagePressureDrop;
+      
+      // ============================================
+      // 🌪️ FAN TEST KPI'LARI
+      // ============================================
+      case 'fan_test_success_rate':
+        return fanTestData.testSuccessRate;
+      case 'fan_total_tests':
+        return fanTestData.totalTests;
+      case 'fan_failed_tests':
+        return fanTestData.failedTests;
+      
+      // ============================================
+      // ⚙️ EKİPMAN KALİBRASYON KPI'LARI
+      // ============================================
+      case 'calibration_compliance_rate':
+        return calibrationData.calibrationComplianceRate;
+      case 'upcoming_calibrations':
+        return calibrationData.upcomingCalibrations;
+      case 'total_equipment_count':
+        return calibrationData.totalEquipment;
+      
+      // ============================================
+      // 🎓 EĞİTİM YÖNETİMİ KPI'LARI
+      // ============================================
+      case 'training_completion_rate':
+        return trainingData.trainingCompletionRate;
+      case 'training_effectiveness':
+        return trainingData.averageEffectiveness;
+      case 'total_trainings':
+        return trainingData.totalTrainings;
+      
+      // ============================================
+      // 😊 MÜŞTERİ GERİ BİLDİRİM KPI'LARI
+      // ============================================
+      case 'customer_satisfaction':
+        return customerData.averageCustomerSatisfaction;
+      case 'complaint_resolution_rate':
+        return customerData.resolutionRate;
+      case 'total_feedbacks':
+        return customerData.totalFeedbacks;
+      
+      // ============================================
+      // 🔒 KARANTİNA YÖNETİMİ KPI'LARI
+      // ============================================
+      case 'quarantine_resolution_rate':
+        return quarantineData.resolutionRate;
+      case 'active_quarantines':
+        return quarantineData.activeQuarantines;
+      case 'total_quarantines':
+        return quarantineData.totalQuarantines;
       
       default:
-        console.warn(`Bilinmeyen KPI ID: ${kpiId}`);
-        return 100; // Varsayılan değer
+        console.warn(`⚠️ Bilinmeyen KPI: ${kpiId}`);
+        return 0;
     }
   } catch (error) {
-    console.error(`KPI hesaplama hatası (${kpiId}):`, error);
-    return 100; // Hata durumunda varsayılan değer
+    console.error(`❌ KPI hesaplama hatası (${kpiId}):`, error);
+    return 0;
   }
 };
 
@@ -2749,6 +3330,87 @@ const checkDataSourceHealth = (dataSource: string): boolean => {
     console.error('Veri kaynağı sağlık kontrolü hatası:', error);
     return false;
   }
+};
+
+// 🆕 KPI veri durumu kontrol fonksiyonu
+const checkKPIDataAvailability = (kpiId: string): { hasData: boolean; dataQuality: 'good' | 'poor' | 'missing'; message: string } => {
+  switch (kpiId) {
+    case 'calibration_compliance_rate':
+    case 'upcoming_calibrations':
+    case 'total_equipment_count': {
+      const hasData = localStorage.getItem('equipment_calibration_data') && 
+                      localStorage.getItem('equipment_calibration_data') !== '[]';
+      if (!hasData) {
+        return {
+          hasData: false,
+          dataQuality: 'missing',
+          message: 'Ekipman kalibrasyon verileri bulunamadı. Ekipman Kalibrasyon Yönetimi modülünden veri girişi yapın.'
+        };
+      }
+      break;
+    }
+    
+    case 'supplier_qualification_rate':
+    case 'supplier_avg_rating':
+    case 'supplier_rejection_rate': {
+      const hasData = localStorage.getItem('suppliers') && 
+                      localStorage.getItem('suppliers') !== '[]';
+      if (!hasData) {
+        return {
+          hasData: false,
+          dataQuality: 'missing',
+          message: 'Tedarikçi verileri bulunamadı. Tedarikçi Kalite Yönetimi modülünden veri girişi yapın.'
+        };
+      }
+      // Puanlama verisi kontrol et
+      try {
+        const suppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
+        const ratedSuppliers = suppliers.filter((s: any) => s.currentScore && s.currentScore > 0);
+        if (kpiId === 'supplier_avg_rating' && ratedSuppliers.length === 0) {
+          return {
+            hasData: false,
+            dataQuality: 'poor',
+            message: 'Tedarikçi puanlama verileri eksik. Tedarikçilere puan vermeniz gerekiyor.'
+          };
+        }
+      } catch (e) {
+        return { hasData: false, dataQuality: 'missing', message: 'Tedarikçi verisi okunamadı.' };
+      }
+      break;
+    }
+    
+    case 'training_completion_rate':
+    case 'training_effectiveness':
+    case 'total_trainings': {
+      const hasData = localStorage.getItem('training-records') && 
+                      localStorage.getItem('training-records') !== '[]';
+      if (!hasData) {
+        return {
+          hasData: false,
+          dataQuality: 'missing',
+          message: 'Eğitim kayıtları bulunamadı. Eğitim Yönetimi modülünden veri girişi yapın.'
+        };
+      }
+      break;
+    }
+    
+    case 'customer_satisfaction':
+    case 'complaint_resolution_rate':
+    case 'total_feedbacks': {
+      const hasData = localStorage.getItem('customer-feedbacks') && 
+                      localStorage.getItem('customer-feedbacks') !== '[]';
+      if (!hasData) {
+        return {
+          hasData: false,
+          dataQuality: 'missing',
+          message: 'Müşteri geri bildirim verileri bulunamadı. Müşteri Geri Bildirim Yönetimi modülünden veri girişi yapın.'
+        };
+      }
+      break;
+    }
+  }
+  
+  return { hasData: true, dataQuality: 'good', message: '' };
 };
 
 // Mock veriler oluşturalım (gerçek verilerin yokluğunda) - GERÇEK VERİ YOKSA MOCK
