@@ -1412,27 +1412,42 @@ const UltimateStableSearchInput = memo(({
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
 
-  // 🔥 STABLE SEARCH FIELD - Focus kaybı problemi için özel component
+  // 🔥 ULTRA STABLE SEARCH FIELD - Complete isolation approach
   const StableSearchField = React.memo(() => {
     const [searchValue, setSearchValue] = useState('');
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const searchFilterRef = useRef<string>(''); // Cache for current filter value
     
-    // Parent filter state'i ile senkronize et
-    useEffect(() => {
+    // Optimized debounced update with minimal re-renders
+    const debouncedUpdate = useCallback((value: string) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
       
       timeoutRef.current = setTimeout(() => {
-        setFilters(prev => ({ ...prev, searchTerm: searchValue }));
+        // Only update if value actually changed
+        if (searchFilterRef.current !== value) {
+          searchFilterRef.current = value;
+          setFilters(prev => ({ ...prev, searchTerm: value }));
+        }
       }, 380);
-      
+    }, []);
+    
+    // Input change handler with immediate local state update
+    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = event.target.value;
+      setSearchValue(newValue);
+      debouncedUpdate(newValue);
+    }, [debouncedUpdate]);
+    
+    // Cleanup on unmount
+    useEffect(() => {
       return () => {
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
       };
-    }, [searchValue]);
+    }, []);
     
     return (
       <TextField
@@ -1440,7 +1455,7 @@ const DOF8DManagement: React.FC = () => {
         label="Gelişmiş Arama"
         placeholder="DÖF numarası, başlık, açıklama..."
         value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
+        onChange={handleInputChange}
         autoComplete="off"
         spellCheck={false}
         InputProps={{
@@ -2115,25 +2130,32 @@ const DOF8DManagement: React.FC = () => {
   // Context7 - Disable heavy migration for performance
   // Migration devre dışı - performans için
 
-  // Context7 - Professional Enhanced Metrics Calculation
-  const metrics = useMemo(() => {
-    // Context7 - Filter records for LIST DISPLAY (includes closed records)
-    const filteredRecords = dofRecords.filter(record => {
+  // Context7 - Optimized Base Filtering (without search)
+  const baseFilteredRecords = useMemo(() => {
+    return dofRecords.filter(record => {
       if (filters.department && record.department !== filters.department) return false;
-      // Context7 - CRITICAL: Only filter by status if user specifically selected a status
-      // This ensures closed records remain visible unless explicitly filtered out
       if (filters.status && record.status !== filters.status) return false;
       if (filters.type && record.type !== filters.type) return false;
-      // ✅ Basitleştirilmiş arama - performans için
-      if (filters.searchTerm) {
-        const searchLower = filters.searchTerm.toLowerCase();
-        const mainText = `${record.title} ${record.description} ${record.dofNumber} ${record.department} ${record.responsible}`.toLowerCase();
-        if (!mainText.includes(searchLower)) return false;
-      }
       if (filters.year && !record.createdDate.startsWith(filters.year)) return false;
       if (filters.month && record.createdDate.split('-')[1] !== filters.month) return false;
-      return true; // Context7 - Show ALL records including closed ones by default
+      return true;
     });
+  }, [dofRecords, filters.department, filters.status, filters.type, filters.year, filters.month]);
+
+  // Context7 - Search Filtering (separate for performance)
+  const searchFilteredRecords = useMemo(() => {
+    if (!filters.searchTerm) return baseFilteredRecords;
+    
+    const searchLower = filters.searchTerm.toLowerCase();
+    return baseFilteredRecords.filter(record => {
+      const mainText = `${record.title} ${record.description} ${record.dofNumber} ${record.department} ${record.responsible}`.toLowerCase();
+      return mainText.includes(searchLower);
+    });
+  }, [baseFilteredRecords, filters.searchTerm]);
+
+  // Context7 - Professional Enhanced Metrics Calculation
+  const metrics = useMemo(() => {
+    const filteredRecords = searchFilteredRecords;
 
     // Basic metrics from filtered records
     const total = filteredRecords.length; // Total from filtered records
@@ -2221,7 +2243,7 @@ const DOF8DManagement: React.FC = () => {
       filteredRecords, // This is for list filtering
       monthlyTrend
     };
-  }, [dofRecords, filters]);
+  }, [searchFilteredRecords]);
 
   // ✅ Context7 - Optimized Delay Message Function
   const getDelayMessage = useCallback((remainingDays: number, status: string): string => {
@@ -2315,7 +2337,7 @@ const DOF8DManagement: React.FC = () => {
         // Büyükten küçüğe sıralama (en yeni en üstte)
         return bNum - aNum;
       });
-  }, [metrics.filteredRecords, filters.delayStatus, filters.priority, getDelayMessage]); // Context7 - Remove unnecessary dependencies
+  }, [metrics.filteredRecords, filters.delayStatus, filters.priority]); // Context7 - Optimized dependencies
 
   // Context7 - ENHANCED: Profesyonel DÖF Kapatma Sistemi
   const closeDOF = useCallback((recordId: string, closeReason: string = 'Manuel kapatma') => {
@@ -2677,12 +2699,12 @@ const DOF8DManagement: React.FC = () => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  const handleFilterChange = (field: keyof FilterState, value: any) => {
+  const handleFilterChange = useCallback((field: keyof FilterState, value: any) => {
     setFilters(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
   const openCreateDialog = () => {
     setDialogMode('create');
