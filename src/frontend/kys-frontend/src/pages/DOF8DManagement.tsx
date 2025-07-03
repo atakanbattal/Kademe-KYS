@@ -1318,36 +1318,45 @@ const MetricCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-// 🔥 ULTRA STABLE SEARCH INPUT - Focus kaybı problemi için tamamen uncontrolled
+// 🔥 ULTRA AGGRESSIVE SEARCH INPUT - 2 saniye focus kaybı problemi için
 const UltimateStableSearchInput = memo(({ 
   label, 
   placeholder, 
   onChange, 
-  initialValue = '', 
+  defaultValue = '', 
   debounceMs = 380,
   icon: Icon,
   fullWidth = true,
   sx = {},
+  resetTrigger,
   ...otherProps 
 }: {
   label: string;
   placeholder?: string;
   onChange: (value: string) => void;
-  initialValue?: string;
+  defaultValue?: string;
   debounceMs?: number;
   icon?: any;
   fullWidth?: boolean;
   sx?: any;
+  resetTrigger?: any;
   [key: string]: any;
 }) => {
-  const [internalValue, setInternalValue] = useState<string>(initialValue);
+  const [value, setValue] = useState<string>(defaultValue);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset value when resetTrigger changes
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0) {
+      setValue('');
+      onChange(''); // Clear the filter as well
+    }
+  }, [resetTrigger, onChange]);
 
   // Debounced onChange handler
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
-    setInternalValue(newValue);
+    setValue(newValue);
     
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -1367,21 +1376,12 @@ const UltimateStableSearchInput = memo(({
     };
   }, []);
 
-  // Reset fonksiyonu - gerekirse dışarıdan çağrılabilir
-  const resetInput = useCallback(() => {
-    setInternalValue('');
-    if (inputRef.current) {
-      inputRef.current.value = '';
-    }
-  }, []);
-
   return (
     <TextField
       {...otherProps}
-      ref={inputRef}
       fullWidth={fullWidth}
       label={label}
-      value={internalValue}
+      value={value}
       onChange={handleChange}
       placeholder={placeholder}
       autoComplete="off"
@@ -1411,73 +1411,6 @@ const UltimateStableSearchInput = memo(({
 
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
-
-  // 🔥 ULTIMATE ISOLATED SEARCH FIELD - Completely separate from parent state
-  const UltimateIsolatedSearchField = React.memo(() => {
-    const inputRef = useRef<HTMLInputElement>(null);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-    
-    // Completely isolated - no state connection to parent
-    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.value;
-      
-      // Clear previous timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      // Set new timeout - direct localStorage write (no parent state)
-      timeoutRef.current = setTimeout(() => {
-        // Write directly to a separate storage key
-        localStorage.setItem('dof-search-term', newValue);
-        
-        // Trigger custom event to notify parent
-        window.dispatchEvent(new CustomEvent('dof-search-change', { 
-          detail: { searchTerm: newValue } 
-        }));
-      }, 380);
-    }, []);
-    
-    // Cleanup on unmount
-    useEffect(() => {
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-      };
-    }, []);
-    
-    return (
-      <TextField
-        ref={inputRef}
-        fullWidth
-        label="Gelişmiş Arama"
-        placeholder="DÖF numarası, başlık, açıklama..."
-        defaultValue=""
-        onChange={handleInputChange}
-        autoComplete="off"
-        spellCheck={false}
-        InputProps={{
-          startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
-        }}
-        sx={{
-          '& .MuiInputLabel-root': {
-            fontWeight: 600,
-          },
-          '& .MuiOutlinedInput-root': {
-            height: 56,
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'primary.main',
-            },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'primary.main',
-              borderWidth: '2px',
-            },
-          },
-        }}
-      />
-    );
-  });
 
   // Tema entegreli StyledAccordion
   const StyledAccordion = styled(Accordion)(() => ({
@@ -1545,6 +1478,7 @@ const DOF8DManagement: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedRecord, setSelectedRecord] = useState<DOFRecord | null>(null);
+  const [searchResetTrigger, setSearchResetTrigger] = useState<number>(0);
   const [formData, setFormData] = useState<any>({
     type: 'corrective',
     title: '',
@@ -2129,35 +2063,25 @@ const DOF8DManagement: React.FC = () => {
   // Context7 - Disable heavy migration for performance
   // Migration devre dışı - performans için
 
-  // Context7 - Optimized Base Filtering (without search)
-  const baseFilteredRecords = useMemo(() => {
-    return dofRecords.filter(record => {
-      if (filters.department && record.department !== filters.department) return false;
-      if (filters.status && record.status !== filters.status) return false;
-      if (filters.type && record.type !== filters.type) return false;
-      if (filters.year && !record.createdDate.startsWith(filters.year)) return false;
-      if (filters.month && record.createdDate.split('-')[1] !== filters.month) return false;
-      return true;
-    });
-  }, [dofRecords, filters.department, filters.status, filters.type, filters.year, filters.month]);
-
-  // Context7 - Search Filtering (from isolated component)
-  const searchFilteredRecords = useMemo(() => {
-    // Get search term from localStorage (from isolated component)
-    const searchTerm = localStorage.getItem('dof-search-term') || '';
-    
-    if (!searchTerm) return baseFilteredRecords;
-    
-    const searchLower = searchTerm.toLowerCase();
-    return baseFilteredRecords.filter(record => {
-      const mainText = `${record.title} ${record.description} ${record.dofNumber} ${record.department} ${record.responsible}`.toLowerCase();
-      return mainText.includes(searchLower);
-    });
-  }, [baseFilteredRecords, filters.searchTerm]); // Keep filters.searchTerm for re-render trigger
-
   // Context7 - Professional Enhanced Metrics Calculation
   const metrics = useMemo(() => {
-    const filteredRecords = searchFilteredRecords;
+    // Context7 - Filter records for LIST DISPLAY (includes closed records)
+    const filteredRecords = dofRecords.filter(record => {
+      if (filters.department && record.department !== filters.department) return false;
+      // Context7 - CRITICAL: Only filter by status if user specifically selected a status
+      // This ensures closed records remain visible unless explicitly filtered out
+      if (filters.status && record.status !== filters.status) return false;
+      if (filters.type && record.type !== filters.type) return false;
+      // ✅ Basitleştirilmiş arama - performans için
+      if (filters.searchTerm) {
+        const searchLower = filters.searchTerm.toLowerCase();
+        const mainText = `${record.title} ${record.description} ${record.dofNumber} ${record.department} ${record.responsible}`.toLowerCase();
+        if (!mainText.includes(searchLower)) return false;
+      }
+      if (filters.year && !record.createdDate.startsWith(filters.year)) return false;
+      if (filters.month && record.createdDate.split('-')[1] !== filters.month) return false;
+      return true; // Context7 - Show ALL records including closed ones by default
+    });
 
     // Basic metrics from filtered records
     const total = filteredRecords.length; // Total from filtered records
@@ -2245,7 +2169,7 @@ const DOF8DManagement: React.FC = () => {
       filteredRecords, // This is for list filtering
       monthlyTrend
     };
-  }, [searchFilteredRecords]);
+  }, [dofRecords, filters]);
 
   // ✅ Context7 - Optimized Delay Message Function
   const getDelayMessage = useCallback((remainingDays: number, status: string): string => {
@@ -2339,7 +2263,7 @@ const DOF8DManagement: React.FC = () => {
         // Büyükten küçüğe sıralama (en yeni en üstte)
         return bNum - aNum;
       });
-  }, [metrics.filteredRecords, filters.delayStatus, filters.priority]); // Context7 - Optimized dependencies
+  }, [metrics.filteredRecords, filters.delayStatus, filters.priority, getDelayMessage]); // Context7 - Remove unnecessary dependencies
 
   // Context7 - ENHANCED: Profesyonel DÖF Kapatma Sistemi
   const closeDOF = useCallback((recordId: string, closeReason: string = 'Manuel kapatma') => {
@@ -2628,21 +2552,6 @@ const DOF8DManagement: React.FC = () => {
     }
   }, [formData.type, openAll8DAccordions]);
 
-  // 🔥 ULTIMATE SEARCH EVENT LISTENER - Listen to isolated search field
-  useEffect(() => {
-    const handleSearchChange = (event: CustomEvent) => {
-      const { searchTerm } = event.detail;
-      setFilters(prev => ({ ...prev, searchTerm }));
-    };
-
-    // Listen to custom event from isolated search field
-    window.addEventListener('dof-search-change', handleSearchChange as EventListener);
-
-    return () => {
-      window.removeEventListener('dof-search-change', handleSearchChange as EventListener);
-    };
-  }, []);
-
   // Context7 - KULLANICI KORUMA: SADECE ÇOK SPESİFİK SAMPLE DATA TEMİZLİK - GERÇEk VERİ KORUMA
   useEffect(() => {
     // Sadece çok spesifik sample data kayıtlarını temizle, gerçek kullanıcı verilerini KORU
@@ -2716,12 +2625,12 @@ const DOF8DManagement: React.FC = () => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  const handleFilterChange = useCallback((field: keyof FilterState, value: any) => {
+  const handleFilterChange = (field: keyof FilterState, value: any) => {
     setFilters(prev => ({
       ...prev,
       [field]: value
     }));
-  }, []);
+  };
 
   const openCreateDialog = () => {
     setDialogMode('create');
@@ -3203,7 +3112,16 @@ const DOF8DManagement: React.FC = () => {
               </FormControl>
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <UltimateIsolatedSearchField />
+              <UltimateStableSearchInput
+                label="Gelişmiş Arama"
+                placeholder="DÖF numarası, başlık, açıklama..."
+                defaultValue={filters.searchTerm}
+                onChange={(value: string) => handleFilterChange('searchTerm', value)}
+                debounceMs={380}
+                icon={SearchIcon}
+                fullWidth
+                resetTrigger={searchResetTrigger}
+              />
             </Box>
             <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
               <FormControl fullWidth>
@@ -3313,16 +3231,19 @@ const DOF8DManagement: React.FC = () => {
                 fullWidth
                 variant="outlined"
                 startIcon={<CloseIcon />}
-                onClick={() => setFilters({
-                  department: '',
-                  status: '',
-                  type: '',
-                  searchTerm: '',
-                  year: '',
-                  month: '',
-                  delayStatus: '',
-                  priority: '',
-                })}
+                onClick={() => {
+                  setFilters({
+                    department: '',
+                    status: '',
+                    type: '',
+                    searchTerm: '',
+                    year: '',
+                    month: '',
+                    delayStatus: '',
+                    priority: '',
+                  });
+                  setSearchResetTrigger(Date.now());
+                }}
                 sx={{ 
                   height: 56,
                   fontWeight: 600,
