@@ -3686,11 +3686,6 @@ const TankLeakTest: React.FC = () => {
                                     size="small"
                                     color="info"
                                     onClick={() => handleViewTestRecord(test)}
-                                    sx={{ 
-                                      bgcolor: 'info.light',
-                                      color: 'info.contrastText',
-                                      '&:hover': { bgcolor: 'info.main' }
-                                    }}
                                   >
                                     <VisibilityIcon />
                                   </IconButton>
@@ -3709,11 +3704,6 @@ const TankLeakTest: React.FC = () => {
                                       if (test.testResult) setTestResult(test.testResult);
                                       // Test formu sayfasına geç
                                       setActivePage('form');
-                                    }}
-                                    sx={{ 
-                                      bgcolor: 'warning.light',
-                                      color: 'warning.contrastText',
-                                      '&:hover': { bgcolor: 'warning.main' }
                                     }}
                                   >
                                     <EditIcon />
