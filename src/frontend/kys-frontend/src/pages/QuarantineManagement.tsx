@@ -1245,6 +1245,13 @@ const QuarantineManagement: React.FC = () => {
       });
     }
     
+    // Karantina tarihine göre sıralama (en yeni kayıtlar önce)
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.quarantineDate);
+      const dateB = new Date(b.quarantineDate);
+      return dateB.getTime() - dateA.getTime(); // Descending order (yeni → eski)
+    });
+    
     setFilteredData(filtered);
     setStats(calculateStats(filtered)); // İstatistikleri filtrelenmiş veriye göre güncelle
   }, [quarantineData, filters, calculateStats]);
