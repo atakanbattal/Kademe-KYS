@@ -4305,15 +4305,13 @@ const EquipmentCalibrationManagement: React.FC = () => {
           {/* Detaylı Kalibrasyon Takip Kartları */}
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4, alignItems: 'stretch' }}>
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <Card 
+              <EquipmentCard 
                 sx={{ 
                   height: 140,
-                  borderRadius: 3,
                   background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
                   color: 'white',
                   cursor: 'pointer',
-                  transition: 'transform 0.2s',
-                  '&:hover': { transform: 'translateY(-4px)' }
+                  '&::before': { display: 'none' }
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, calibrationStatus: 'overdue' }))}
               >
@@ -4335,19 +4333,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </Typography>
                   )}
                 </CardContent>
-              </Card>
+              </EquipmentCard>
             </Box>
             
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <Card 
+              <EquipmentCard 
                 sx={{ 
                   height: 140,
-                  borderRadius: 3,
                   background: 'linear-gradient(135deg, #f44336 0%, #ff5722 100%)',
                   color: 'white',
                   cursor: 'pointer',
-                  transition: 'transform 0.2s',
-                  '&:hover': { transform: 'translateY(-4px)' }
+                  '&::before': { display: 'none' }
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
               >
@@ -4369,19 +4365,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </Typography>
                   )}
                 </CardContent>
-              </Card>
+              </EquipmentCard>
             </Box>
             
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <Card 
+              <EquipmentCard 
                 sx={{ 
                   height: 140,
-                  borderRadius: 3,
                   background: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)',
                   color: 'white',
                   cursor: 'pointer',
-                  transition: 'transform 0.2s',
-                  '&:hover': { transform: 'translateY(-4px)' }
+                  '&::before': { display: 'none' }
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
               >
@@ -4403,19 +4397,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </Typography>
                   )}
                 </CardContent>
-              </Card>
+              </EquipmentCard>
             </Box>
             
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <Card 
+              <EquipmentCard 
                 sx={{ 
                   height: 140,
-                  borderRadius: 3,
                   background: 'linear-gradient(135deg, #ffc107 0%, #ffeb3b 100%)',
                   color: '#333',
                   cursor: 'pointer',
-                  transition: 'transform 0.2s',
-                  '&:hover': { transform: 'translateY(-4px)' }
+                  '&::before': { display: 'none' }
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
               >
@@ -4437,19 +4429,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     </Typography>
                   )}
                 </CardContent>
-              </Card>
+              </EquipmentCard>
             </Box>
             
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <Card 
+              <EquipmentCard 
                 sx={{ 
                   height: 140,
-                  borderRadius: 3,
                   background: 'linear-gradient(135deg, #4caf50 0%, #81c784 100%)',
                   color: 'white',
                   cursor: 'pointer',
-                  transition: 'transform 0.2s',
-                  '&:hover': { transform: 'translateY(-4px)' }
+                  '&::before': { display: 'none' }
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, calibrationStatus: 'valid' }))}
               >
@@ -4469,7 +4459,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     30+ gün geçerli
                   </Typography>
                 </CardContent>
-              </Card>
+              </EquipmentCard>
             </Box>
           </Box>
 
