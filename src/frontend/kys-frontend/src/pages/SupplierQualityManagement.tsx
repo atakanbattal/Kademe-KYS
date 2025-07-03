@@ -281,6 +281,9 @@ const SupplierQualityManagement: React.FC = () => {
   const [auditScore, setAuditScore] = useState<number>(0);
   const [auditFindings, setAuditFindings] = useState<string>('');
   const [auditActualDate, setAuditActualDate] = useState<string>('');
+  const [auditDelayReason, setAuditDelayReason] = useState<string>('');
+  const [delayDays, setDelayDays] = useState<number>(0);
+  const [isDelayed, setIsDelayed] = useState<boolean>(false);
   
   // Auto-audit settings
   const [autoAuditEnabled, setAutoAuditEnabled] = useState(true);
@@ -1722,12 +1725,44 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     }
   };
 
+  // Gecikme hesaplama fonksiyonu
+  const calculateDelayDays = (plannedDate: string, actualDate: string): number => {
+    const planned = new Date(plannedDate);
+    const actual = new Date(actualDate);
+    const diffTime = actual.getTime() - planned.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
   const handleExecuteAudit = (audit: AuditRecord) => {
     setSelectedAuditForExecution(audit);
     setAuditScore(0);
     setAuditFindings('');
-    setAuditActualDate(new Date().toISOString().split('T')[0]); // Bugünü default olarak ayarla
+    setAuditDelayReason('');
+    const today = new Date().toISOString().split('T')[0];
+    setAuditActualDate(today);
+    
+    // Gecikme hesaplama
+    const delayDays = calculateDelayDays(audit.auditDate, today);
+    setDelayDays(delayDays);
+    setIsDelayed(delayDays > 0);
+    
     setAuditExecutionDialogOpen(true);
+  };
+
+  // Denetim tarihini değiştirdiğinde gecikmeyi yeniden hesapla
+  const handleAuditDateChange = (newDate: string) => {
+    setAuditActualDate(newDate);
+    if (selectedAuditForExecution) {
+      const delayDays = calculateDelayDays(selectedAuditForExecution.auditDate, newDate);
+      setDelayDays(delayDays);
+      setIsDelayed(delayDays > 0);
+      
+      // Eğer gecikme kalktıysa gecikme açıklamasını temizle
+      if (delayDays === 0) {
+        setAuditDelayReason('');
+      }
+    }
   };
 
   const handleSaveAuditExecution = () => {
@@ -1740,6 +1775,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       showSnackbar('Lütfen denetim gerçekleşme tarihini seçin', 'error');
       return;
     }
+
+    // Gecikme varsa açıklama zorunlu
+    if (isDelayed && !auditDelayReason.trim()) {
+      showSnackbar('Gecikme varsa açıklama girmeniz zorunludur', 'error');
+      return;
+    }
       
     // Denetim kaydını güncelle
     const updatedAudits = audits.map(audit => 
@@ -1749,7 +1790,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             status: 'tamamlandı' as const,
             actualAuditDate: auditActualDate, // Seçilen gerçekleşme tarihini kullan
             score: auditScore,
-            findings: auditFindings ? auditFindings.split('\n').filter(f => f.trim()) : []
+            findings: auditFindings ? auditFindings.split('\n').filter(f => f.trim()) : [],
+            delayDays: delayDays,
+            isDelayed: isDelayed,
+            delayReason: isDelayed ? auditDelayReason : undefined
           }
         : audit
     );
@@ -1779,6 +1823,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     setAuditScore(0);
     setAuditFindings('');
     setAuditActualDate('');
+    setAuditDelayReason('');
+    setDelayDays(0);
+    setIsDelayed(false);
   };
 
   const handleEditItem = (item: any, type: string) => {
@@ -7658,11 +7705,48 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       type="date"
                       label="Denetim Gerçekleşme Tarihi"
                       value={auditActualDate}
-                      onChange={(e) => setAuditActualDate(e.target.value)}
+                      onChange={(e) => handleAuditDateChange(e.target.value)}
                       InputLabelProps={{ shrink: true }}
-                      sx={{ mb: 3 }}
+                      sx={{ mb: 2 }}
                       helperText="Denetimin gerçekten yapıldığı tarihi seçin"
                     />
+
+                    {/* Gecikme Durumu Uyarısı */}
+                    {isDelayed && (
+                      <Alert severity="warning" sx={{ mb: 3 }}>
+                        <Typography variant="body2" fontWeight="600">
+                          ⚠️ DENETİM GECİKMESİ TESPİT EDİLDİ
+                        </Typography>
+                        <Typography variant="body2">
+                          Planlanan tarih: {new Date(selectedAuditForExecution.auditDate).toLocaleDateString('tr-TR')}
+                        </Typography>
+                        <Typography variant="body2">
+                          Gerçekleşme tarihi: {new Date(auditActualDate).toLocaleDateString('tr-TR')}
+                        </Typography>
+                        <Typography variant="body1" color="error" fontWeight="600">
+                          Gecikme süresi: {delayDays} gün
+                        </Typography>
+                      </Alert>
+                    )}
+
+                    {/* Gecikme Açıklaması */}
+                    {isDelayed && (
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Gecikme Açıklaması *"
+                        value={auditDelayReason}
+                        onChange={(e) => setAuditDelayReason(e.target.value)}
+                        placeholder="Denetimin neden geciktiğini detaylı olarak açıklayın..."
+                        required
+                        error={isDelayed && !auditDelayReason.trim()}
+                        helperText={isDelayed && !auditDelayReason.trim() ? 
+                          "Gecikme durumunda açıklama girmeniz zorunludur" : 
+                          "Gecikme nedenini detaylı şekilde belirtiniz"}
+                        sx={{ mb: 3 }}
+                      />
+                    )}
                     
                     <FormControl fullWidth sx={{ mb: 3 }}>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -7732,6 +7816,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 setAuditScore(0);
                 setAuditFindings('');
                 setAuditActualDate('');
+                setAuditDelayReason('');
+                setDelayDays(0);
+                setIsDelayed(false);
               }} 
               color="inherit"
             >
@@ -7741,7 +7828,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               onClick={handleSaveAuditExecution} 
               variant="contained" 
               color="success"
-              disabled={auditScore === 0 || !auditActualDate}
+              disabled={auditScore === 0 || !auditActualDate || (isDelayed && !auditDelayReason.trim())}
               startIcon={<AssignmentTurnedInIcon />}
             >
               Denetimi Tamamla
