@@ -1485,12 +1485,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     );
     setSupplierPairs(updatedPairs);
     
-    // localStorage'a kaydet
-    setTimeout(() => {
-      localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
-      console.log('💾 Tedarikçi değişimi localStorage\'a kaydedildi');
-      window.dispatchEvent(new Event('supplierDataUpdated'));
-    }, 100);
+    // ✅ DOĞRUDAN KAYDETME - setTimeout kaldırıldı, veri kaybi engellendi
+    localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
+    console.log('💾 Tedarikçi değişimi localStorage\'a kaydedildi');
+    window.dispatchEvent(new Event('supplierDataUpdated'));
     
     showSnackbar(`${selectedAlternative.name} ana tedarikçi olarak seçildi`, 'success');
   };
@@ -1848,12 +1846,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
 
     setSupplierPairs(updatedPairs);
     
-    // localStorage'a kaydet
-    setTimeout(() => {
-      localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
-      console.log('💾 Tedarikçi eşleştirmeleri güncellendi ve localStorage\'a kaydedildi');
-      window.dispatchEvent(new Event('supplierDataUpdated'));
-    }, 100);
+    // ✅ DOĞRUDAN KAYDETME - setTimeout kaldırıldı, veri kaybi engellendi
+    localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
+    console.log('💾 Tedarikçi eşleştirmeleri güncellendi ve localStorage\'a kaydedildi');
+    window.dispatchEvent(new Event('supplierDataUpdated'));
   };
 
   const handleSaveDialog = () => {
@@ -2008,8 +2004,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           
           showSnackbar('Yeni uygunsuzluk başarıyla eklendi', 'success');
         }
-        // Performansları güncelle
-        setTimeout(() => updateSupplierPerformances(), 100);
+        // ✅ DOĞRUDAN GÜNCELLEME - setTimeout kaldırıldı, veri kaybi engellendi
+        updateSupplierPerformances();
         break;
         
       case 'defect':
@@ -2037,8 +2033,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           
           showSnackbar('Yeni hata kaydı başarıyla eklendi', 'success');
         }
-        // Performansları güncelle
-        setTimeout(() => updateSupplierPerformances(), 100);
+        // ✅ DOĞRUDAN GÜNCELLEME - setTimeout kaldırıldı, veri kaybi engellendi
+        updateSupplierPerformances();
         break;
         
       case 'pair':
@@ -2117,24 +2113,20 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           const updatedPairs = supplierPairs.map(sp => sp.id === selectedItem.id ? newPair : sp);
           setSupplierPairs(updatedPairs);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
-            console.log('💾 Güncellenmiş eşleştirme localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // ✅ DOĞRUDAN KAYDETME - setTimeout kaldırıldı, veri kaybi engellendi
+          localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
+          console.log('💾 Güncellenmiş eşleştirme localStorage\'a kaydedildi');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Tedarikçi eşleştirmesi başarıyla güncellendi', 'success');
         } else {
           const updatedPairs = [...supplierPairs, newPair];
           setSupplierPairs(updatedPairs);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
-            console.log('💾 Yeni eşleştirme localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // ✅ DOĞRUDAN KAYDETME - setTimeout kaldırıldı, veri kaybi engellendi
+          localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
+          console.log('💾 Yeni eşleştirme localStorage\'a kaydedildi');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Yeni tedarikçi eşleştirmesi başarıyla oluşturuldu', 'success');
         }
@@ -2175,24 +2167,20 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           const updatedAudits = audits.map(a => a.id === selectedItem.id ? newAudit : a);
           setAudits(updatedAudits);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-audits', JSON.stringify(updatedAudits));
-            console.log('💾 Güncellenmiş denetim localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // ✅ DOĞRUDAN KAYDETME - setTimeout kaldırıldı, veri kaybi engellendi
+          localStorage.setItem('supplier-audits', JSON.stringify(updatedAudits));
+          console.log('💾 Güncellenmiş denetim localStorage\'a kaydedildi');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Denetim planı başarıyla güncellendi', 'success');
         } else {
           const updatedAudits = [...audits, newAudit];
           setAudits(updatedAudits);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-audits', JSON.stringify(updatedAudits));
-            console.log('💾 Yeni denetim localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // ✅ DOĞRUDAN KAYDETME - setTimeout kaldırıldı, veri kaybi engellendi
+          localStorage.setItem('supplier-audits', JSON.stringify(updatedAudits));
+          console.log('💾 Yeni denetim localStorage\'a kaydedildi');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Yeni denetim planı başarıyla oluşturuldu', 'success');
         }
@@ -2205,12 +2193,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         );
         setSuppliers(updatedSuppliers);
         
-        // MANUEL localStorage kaydetme - tedarikçi denetim bilgileri güncellendiği için
-        setTimeout(() => {
-          localStorage.setItem('suppliers', JSON.stringify(updatedSuppliers));
-          console.log('💾 Tedarikçi denetim bilgileri localStorage\'a kaydedildi');
-          window.dispatchEvent(new Event('supplierDataUpdated'));
-        }, 100);
+        // ✅ DOĞRUDAN KAYDETME - setTimeout kaldırıldı, veri kaybi engellendi
+        localStorage.setItem('suppliers', JSON.stringify(updatedSuppliers));
+        console.log('💾 Tedarikçi denetim bilgileri localStorage\'a kaydedildi');
+        window.dispatchEvent(new Event('supplierDataUpdated'));
         break;
     }
     
@@ -2336,12 +2322,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     });
     setSuppliers(updatedSuppliers);
     
-    // MANUEL localStorage kaydetme - modüller arası geçişte veri kaybını önlemek için
-    setTimeout(() => {
-      localStorage.setItem('suppliers', JSON.stringify(updatedSuppliers));
-      console.log('💾 Güncellenmiş performans skoru localStorage\'a kaydedildi');
-      window.dispatchEvent(new Event('supplierDataUpdated'));
-    }, 100);
+    // ✅ DOĞRUDAN KAYDETME - setTimeout kaldırıldı, veri kaybi engellendi
+    localStorage.setItem('suppliers', JSON.stringify(updatedSuppliers));
+    console.log('💾 Güncellenmiş performans skoru localStorage\'a kaydedildi');
+    window.dispatchEvent(new Event('supplierDataUpdated'));
     
     console.log('✅ Performans güncellemesi tamamlandı');
   }, [suppliers, calculateSupplierPerformance]);
