@@ -2953,45 +2953,215 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           </Card>
         </Grid>
 
-        {/* Tedarikçi Performans Karşılaştırması */}
-        <Grid item xs={12} md={8}>
+        {/* Tedarikçi Performans Karşılaştırması - Tam Genişlik */}
+        <Grid item xs={12}>
           <Card elevation={3} sx={{ borderRadius: 3 }}>
             <CardHeader 
               title="Tedarikçi Performans Karşılaştırması" 
-              titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #e1f5fe 100%)' }}
+              titleTypographyProps={{ variant: 'h5', fontWeight: 600 }}
+              sx={{ 
+                background: 'linear-gradient(135deg, #e8f5e8 0%, #e1f5fe 100%)',
+                '& .MuiCardHeader-title': {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2
+                }
+              }}
+              avatar={
+                <Avatar sx={{ bgcolor: 'primary.main' }}>
+                  <AssessmentIcon />
+                </Avatar>
+              }
+              action={
+                <Box display="flex" alignItems="center" gap={1} sx={{ pr: 2 }}>
+                  <Chip 
+                    label={`${performanceData.length} Tedarikçi`} 
+                    color="primary" 
+                    size="small" 
+                    variant="outlined"
+                  />
+                </Box>
+              }
           />
-          <CardContent>
+          <CardContent sx={{ p: 4 }}>
               {performanceData.length > 0 ? (
-                <Box height={350}>
-              <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={performanceData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                  <ChartTooltip 
-                        formatter={(value: any, name: any) => [`${value} puan`, name]}
-                        labelStyle={{ fontWeight: 'bold' }}
-                    contentStyle={{ 
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                      border: '1px solid #ddd',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                        }}
-                      />
-                      <Legend />
-                      <Bar dataKey="kalite" fill="#2196f3" name="Kalite" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="genel" fill="#1976d2" name="Genel" radius={[2, 2, 0, 0]} />
-                    </BarChart>
-              </ResponsiveContainer>
-            </Box>
+                <Box>
+                  {/* Performans Özeti */}
+                  <Box mb={4} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+                    <Box display="flex" alignItems="center" gap={4}>
+                      <Box textAlign="center">
+                        <Typography variant="h4" fontWeight="bold" color="primary.main">
+                          {Math.round(performanceData.reduce((acc, item) => acc + item.genel, 0) / performanceData.length)}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Ortalama Genel Performans
+                        </Typography>
+                      </Box>
+                      <Box textAlign="center">
+                        <Typography variant="h4" fontWeight="bold" color="info.main">
+                          {Math.round(performanceData.reduce((acc, item) => acc + item.kalite, 0) / performanceData.length)}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Ortalama Kalite Skoru
+                        </Typography>
+                      </Box>
+                      <Box textAlign="center">
+                        <Typography variant="h4" fontWeight="bold" color="success.main">
+                          {Math.round(performanceData.reduce((acc, item) => acc + item.teslimat, 0) / performanceData.length)}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Ortalama Teslimat Skoru
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Büyük Chart */}
+                  <Box height={500} sx={{ 
+                    border: '1px solid #e0e0e0', 
+                    borderRadius: 2, 
+                    p: 2,
+                    background: 'linear-gradient(180deg, #fafafa 0%, #ffffff 100%)'
+                  }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={performanceData} 
+                        margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                        barCategoryGap="15%"
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" strokeOpacity={0.7} />
+                        <XAxis 
+                          dataKey="name" 
+                          tick={{ fontSize: 12, fill: '#666' }} 
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                          interval={0}
+                        />
+                        <YAxis 
+                          domain={[0, 100]} 
+                          tick={{ fontSize: 12, fill: '#666' }}
+                          label={{ 
+                            value: 'Performans Skoru (%)', 
+                            angle: -90, 
+                            position: 'insideLeft',
+                            style: { textAnchor: 'middle', fontSize: '14px', fill: '#666' }
+                          }}
+                        />
+                        <ChartTooltip 
+                          formatter={(value: any, name: any) => [`${value} puan`, name]}
+                          labelStyle={{ fontWeight: 'bold', color: '#333' }}
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                            border: '1px solid #ddd',
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                            fontSize: '13px'
+                          }}
+                        />
+                        <Legend 
+                          wrapperStyle={{ 
+                            paddingTop: '20px',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <Bar 
+                          dataKey="kalite" 
+                          fill="#2196f3" 
+                          name="Kalite Performansı" 
+                          radius={[4, 4, 0, 0]}
+                          maxBarSize={80}
+                        />
+                        <Bar 
+                          dataKey="teslimat" 
+                          fill="#4caf50" 
+                          name="Teslimat Performansı" 
+                          radius={[4, 4, 0, 0]}
+                          maxBarSize={80}
+                        />
+                        <Bar 
+                          dataKey="genel" 
+                          fill="#1976d2" 
+                          name="Genel Performans" 
+                          radius={[4, 4, 0, 0]}
+                          maxBarSize={80}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+
+                  {/* Performans Sıralaması Tablosu */}
+                  <Box mt={4}>
+                    <Typography variant="h6" fontWeight={600} mb={2} color="text.primary">
+                      Performans Sıralaması
+                    </Typography>
+                    <Box sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                      gap: 2 
+                    }}>
+                      {performanceData
+                        .sort((a, b) => b.genel - a.genel)
+                        .map((supplier, index) => (
+                        <Card 
+                          key={supplier.name} 
+                          variant="outlined" 
+                          sx={{ 
+                            p: 2,
+                            border: index === 0 ? '2px solid #2196f3' : '1px solid #e0e0e0',
+                            background: index === 0 ? 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)' : 'white'
+                          }}
+                        >
+                          <Box display="flex" justifyContent="space-between" alignItems="center">
+                            <Box>
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <Typography variant="h6" fontWeight={600}>
+                                  #{index + 1}
+                                </Typography>
+                                <Typography variant="body1" fontWeight={500}>
+                                  {suppliers.find(s => (s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name) === supplier.name)?.name || supplier.name}
+                                </Typography>
+                                {index === 0 && (
+                                  <Chip label="En İyi" color="primary" size="small" />
+                                )}
+                              </Box>
+                              <Box mt={1} display="flex" gap={2}>
+                                <Typography variant="caption" color="text.secondary">
+                                  Genel: {supplier.genel}%
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Kalite: {supplier.kalite}%
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Teslimat: {supplier.teslimat}%
+                                </Typography>
+                              </Box>
+                            </Box>
+                            <Box textAlign="right">
+                              <Chip 
+                                label={`${supplier.genel}%`}
+                                color={
+                                  supplier.genel >= 90 ? 'success' :
+                                  supplier.genel >= 75 ? 'info' :
+                                  supplier.genel >= 60 ? 'warning' : 'error'
+                                }
+                                variant={index === 0 ? 'filled' : 'outlined'}
+                              />
+                            </Box>
+                          </Box>
+                        </Card>
+                      ))}
+                    </Box>
+                  </Box>
+                </Box>
               ) : (
                 <Box height={350} display="flex" alignItems="center" justifyContent="center" flexDirection="column" gap={2}>
-                  <AssessmentIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+                  <AssessmentIcon sx={{ fontSize: 64, color: 'grey.400' }} />
+                  <Typography variant="h6" color="text.secondary" textAlign="center">
+                    Henüz aktif tedarikçi bulunmuyor
+                  </Typography>
                   <Typography variant="body2" color="text.secondary" textAlign="center">
-                    Henüz aktif tedarikçi bulunmuyor.<br />
-                    Performans karşılaştırması için tedarikçi ekleyin.
+                    Performans karşılaştırması için en az bir tedarikçi ekleyin ve değerlendirin.
                   </Typography>
                 </Box>
               )}
@@ -3000,7 +3170,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       </Grid>
 
         {/* İstatistikler */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Card elevation={3} sx={{ borderRadius: 3, height: '100%' }}>
             <CardHeader 
               title="Sistem İstatistikleri" 
