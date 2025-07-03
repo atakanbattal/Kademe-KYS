@@ -1,12 +1,11 @@
 [phases.build]
 cmds = [
-  "npm install",
-  "GENERATE_SOURCEMAP=false npm run build"
+  "cd src/backend && npm install",
+  "cd src/backend && npm run build"
 ]
 
 [phases.start]
 cmd = "cd src/backend && npm start"
 
 [variables]
-NODE_ENV = "production"
-GENERATE_SOURCEMAP = "false" 
+NODE_ENV = "production" 
