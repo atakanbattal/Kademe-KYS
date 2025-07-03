@@ -1412,33 +1412,31 @@ const UltimateStableSearchInput = memo(({
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
 
-  // 🔥 ULTRA STABLE SEARCH FIELD - Complete isolation approach
-  const StableSearchField = React.memo(() => {
-    const [searchValue, setSearchValue] = useState('');
+  // 🔥 ULTIMATE ISOLATED SEARCH FIELD - Completely separate from parent state
+  const UltimateIsolatedSearchField = React.memo(() => {
+    const inputRef = useRef<HTMLInputElement>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const searchFilterRef = useRef<string>(''); // Cache for current filter value
     
-    // Optimized debounced update with minimal re-renders
-    const debouncedUpdate = useCallback((value: string) => {
+    // Completely isolated - no state connection to parent
+    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = event.target.value;
+      
+      // Clear previous timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
       
+      // Set new timeout - direct localStorage write (no parent state)
       timeoutRef.current = setTimeout(() => {
-        // Only update if value actually changed
-        if (searchFilterRef.current !== value) {
-          searchFilterRef.current = value;
-          setFilters(prev => ({ ...prev, searchTerm: value }));
-        }
+        // Write directly to a separate storage key
+        localStorage.setItem('dof-search-term', newValue);
+        
+        // Trigger custom event to notify parent
+        window.dispatchEvent(new CustomEvent('dof-search-change', { 
+          detail: { searchTerm: newValue } 
+        }));
       }, 380);
     }, []);
-    
-    // Input change handler with immediate local state update
-    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.value;
-      setSearchValue(newValue);
-      debouncedUpdate(newValue);
-    }, [debouncedUpdate]);
     
     // Cleanup on unmount
     useEffect(() => {
@@ -1451,10 +1449,11 @@ const DOF8DManagement: React.FC = () => {
     
     return (
       <TextField
+        ref={inputRef}
         fullWidth
         label="Gelişmiş Arama"
         placeholder="DÖF numarası, başlık, açıklama..."
-        value={searchValue}
+        defaultValue=""
         onChange={handleInputChange}
         autoComplete="off"
         spellCheck={false}
@@ -2142,16 +2141,19 @@ const DOF8DManagement: React.FC = () => {
     });
   }, [dofRecords, filters.department, filters.status, filters.type, filters.year, filters.month]);
 
-  // Context7 - Search Filtering (separate for performance)
+  // Context7 - Search Filtering (from isolated component)
   const searchFilteredRecords = useMemo(() => {
-    if (!filters.searchTerm) return baseFilteredRecords;
+    // Get search term from localStorage (from isolated component)
+    const searchTerm = localStorage.getItem('dof-search-term') || '';
     
-    const searchLower = filters.searchTerm.toLowerCase();
+    if (!searchTerm) return baseFilteredRecords;
+    
+    const searchLower = searchTerm.toLowerCase();
     return baseFilteredRecords.filter(record => {
       const mainText = `${record.title} ${record.description} ${record.dofNumber} ${record.department} ${record.responsible}`.toLowerCase();
       return mainText.includes(searchLower);
     });
-  }, [baseFilteredRecords, filters.searchTerm]);
+  }, [baseFilteredRecords, filters.searchTerm]); // Keep filters.searchTerm for re-render trigger
 
   // Context7 - Professional Enhanced Metrics Calculation
   const metrics = useMemo(() => {
@@ -2625,6 +2627,21 @@ const DOF8DManagement: React.FC = () => {
       openAll8DAccordions();
     }
   }, [formData.type, openAll8DAccordions]);
+
+  // 🔥 ULTIMATE SEARCH EVENT LISTENER - Listen to isolated search field
+  useEffect(() => {
+    const handleSearchChange = (event: CustomEvent) => {
+      const { searchTerm } = event.detail;
+      setFilters(prev => ({ ...prev, searchTerm }));
+    };
+
+    // Listen to custom event from isolated search field
+    window.addEventListener('dof-search-change', handleSearchChange as EventListener);
+
+    return () => {
+      window.removeEventListener('dof-search-change', handleSearchChange as EventListener);
+    };
+  }, []);
 
   // Context7 - KULLANICI KORUMA: SADECE ÇOK SPESİFİK SAMPLE DATA TEMİZLİK - GERÇEk VERİ KORUMA
   useEffect(() => {
@@ -3186,7 +3203,7 @@ const DOF8DManagement: React.FC = () => {
               </FormControl>
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <StableSearchField />
+              <UltimateIsolatedSearchField />
             </Box>
             <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
               <FormControl fullWidth>
