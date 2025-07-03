@@ -541,8 +541,7 @@ const Dashboard: React.FC = () => {
       if (showLoading) setIsRefreshing(true);
       setError(null);
 
-      await new Promise(resolve => setTimeout(resolve, 500));
-
+      // Veri zaten localStorage'dan geliyor, delay gereksiz
       const newCentralData = {
         dof: dataSyncManager.getDOFData(),
         suppliers: dataSyncManager.getSupplierData(),
@@ -552,7 +551,6 @@ const Dashboard: React.FC = () => {
       };
       
       setCentralData(newCentralData);
-      setIsLoading(false);
       
       if (showLoading) {
         setSnackbarOpen(true);
@@ -562,13 +560,14 @@ const Dashboard: React.FC = () => {
       console.error('Dashboard güncelleme hatası:', err);
     } finally {
       if (showLoading) setIsRefreshing(false);
-      setIsLoading(false);
     }
   };
 
   // EFFECTS
   useEffect(() => {
+    // İlk yüklemede hızlı initialize
     updateCentralData();
+    setIsLoading(false); // Hemen loading'i false yap
     
     const interval = setInterval(updateCentralData, 60000);
     dataSyncManager.subscribe('all', updateCentralData);
@@ -590,12 +589,6 @@ const Dashboard: React.FC = () => {
       if (interval) clearInterval(interval);
     };
   }, [autoRefresh]);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-  }, []);
 
   // GET DYNAMIC DATA
   const kpiData = generateKPIDataFromCentral();
