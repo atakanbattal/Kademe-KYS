@@ -3248,11 +3248,43 @@ const EquipmentCalibrationManagement: React.FC = () => {
   // Personnel data
   const [personnelList, setPersonnelList] = useState<Personnel[]>(() => getPersonnelData());
 
+  // Sonraki kalibrasyon tarihini hesaplama fonksiyonu
+  const calculateNextCalibrationDate = useCallback((lastDate: string, frequency: number): string => {
+    if (!lastDate || !frequency) return '';
+    
+    const lastCalDate = new Date(lastDate);
+    if (isNaN(lastCalDate.getTime())) return '';
+    
+    const nextDate = new Date(lastCalDate);
+    nextDate.setMonth(nextDate.getMonth() + frequency);
+    return nextDate.toISOString().split('T')[0];
+  }, []);
+
   // Kalibrasyon durumunu otomatik güncelleme fonksiyonu
   const updateCalibrationStatus = useCallback((equipment: Equipment): Equipment => {
-    if (!equipment.nextCalibrationDate) return equipment;
+    // Önce nextCalibrationDate'i hesapla/düzelt
+    let nextCalibrationDate = equipment.nextCalibrationDate;
     
-    const daysUntilDue = getDaysUntilDue(equipment.nextCalibrationDate);
+    // Eğer nextCalibrationDate yoksa ama lastCalibrationDate ve frequency varsa hesapla
+    if (!nextCalibrationDate && equipment.lastCalibrationDate && equipment.calibrationFrequency) {
+      nextCalibrationDate = calculateNextCalibrationDate(equipment.lastCalibrationDate, equipment.calibrationFrequency);
+    }
+    
+    // Eğer hala nextCalibrationDate yoksa, bugünden itibaren frequency kadar sonrasını kullan
+    if (!nextCalibrationDate && equipment.calibrationFrequency) {
+      const today = new Date();
+      today.setMonth(today.getMonth() + equipment.calibrationFrequency);
+      nextCalibrationDate = today.toISOString().split('T')[0];
+    }
+    
+    if (!nextCalibrationDate) {
+      return {
+        ...equipment,
+        calibrationStatus: 'invalid'
+      };
+    }
+    
+    const daysUntilDue = getDaysUntilDue(nextCalibrationDate);
     let newStatus: Equipment['calibrationStatus'] = 'valid';
     
     if (daysUntilDue < 0) {
@@ -3265,9 +3297,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
     
     return {
       ...equipment,
+      nextCalibrationDate,
       calibrationStatus: newStatus
     };
-  }, []);
+  }, [calculateNextCalibrationDate]);
 
   // Tüm ekipmanların kalibrasyon durumunu güncelleme
   const updateAllCalibrationStatuses = useCallback(() => {
@@ -5109,15 +5142,26 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         />
                         <Typography 
                           variant="caption" 
-                          color="text.secondary" 
+                          color={
+                            equipment.calibrationStatus === 'overdue' ? 'error.main' :
+                            equipment.calibrationStatus === 'due' ? 'warning.main' : 
+                            'text.secondary'
+                          }
                           sx={{ 
                             fontSize: '0.7rem',
+                            fontWeight: equipment.calibrationStatus !== 'valid' ? 600 : 400,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          {formatDate(equipment.nextCalibrationDate)}
+                          {equipment.nextCalibrationDate 
+                            ? formatDate(equipment.nextCalibrationDate)
+                            : (equipment.lastCalibrationDate && equipment.calibrationFrequency
+                                ? formatDate(calculateNextCalibrationDate(equipment.lastCalibrationDate, equipment.calibrationFrequency))
+                                : 'Tarih hesaplanamadı'
+                              )
+                          }
                         </Typography>
                 </Box>
                     </TableCell>
@@ -5279,8 +5323,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
                               Kod: {equipment.equipmentCode}
                             </Typography>
                             <Typography variant="body2" color="warning.main">
-                              Tarih: {formatDate(equipment.nextCalibrationDate)} 
-                              ({getDaysUntilDue(equipment.nextCalibrationDate)} gün kaldı)
+                              Tarih: {equipment.nextCalibrationDate 
+                                ? formatDate(equipment.nextCalibrationDate)
+                                : (equipment.lastCalibrationDate && equipment.calibrationFrequency
+                                    ? formatDate(calculateNextCalibrationDate(equipment.lastCalibrationDate, equipment.calibrationFrequency))
+                                    : 'Hesaplanamadı'
+                                  )
+                              } 
+                              ({equipment.nextCalibrationDate 
+                                ? getDaysUntilDue(equipment.nextCalibrationDate)
+                                : (equipment.lastCalibrationDate && equipment.calibrationFrequency
+                                    ? getDaysUntilDue(calculateNextCalibrationDate(equipment.lastCalibrationDate, equipment.calibrationFrequency))
+                                    : 0
+                                  )
+                              } gün kaldı)
                             </Typography>
                           </Box>
                         }
@@ -5317,8 +5373,20 @@ const EquipmentCalibrationManagement: React.FC = () => {
                               Kod: {equipment.equipmentCode}
                             </Typography>
                             <Typography variant="body2" color="error.main">
-                              Vadesi: {formatDate(equipment.nextCalibrationDate)} 
-                              ({Math.abs(getDaysUntilDue(equipment.nextCalibrationDate))} gün geçmiş)
+                              Vadesi: {equipment.nextCalibrationDate 
+                                ? formatDate(equipment.nextCalibrationDate)
+                                : (equipment.lastCalibrationDate && equipment.calibrationFrequency
+                                    ? formatDate(calculateNextCalibrationDate(equipment.lastCalibrationDate, equipment.calibrationFrequency))
+                                    : 'Hesaplanamadı'
+                                  )
+                              } 
+                              ({equipment.nextCalibrationDate 
+                                ? Math.abs(getDaysUntilDue(equipment.nextCalibrationDate))
+                                : (equipment.lastCalibrationDate && equipment.calibrationFrequency
+                                    ? Math.abs(getDaysUntilDue(calculateNextCalibrationDate(equipment.lastCalibrationDate, equipment.calibrationFrequency)))
+                                    : 0
+                                  )
+                              } gün geçmiş)
                             </Typography>
                 </Box>
                         }
@@ -6218,7 +6286,18 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       label="Son Kalibrasyon Tarihi"
                       type="date"
                       value={formData.lastCalibrationDate || new Date().toISOString().split('T')[0]}
-                      onChange={(e) => setFormData({...formData, lastCalibrationDate: e.target.value})}
+                      onChange={(e) => {
+                        const newLastDate = e.target.value;
+                        const nextDate = calculateNextCalibrationDate(
+                          newLastDate, 
+                          formData.calibrationFrequency || 12
+                        );
+                        setFormData({
+                          ...formData, 
+                          lastCalibrationDate: newLastDate,
+                          nextCalibrationDate: nextDate
+                        });
+                      }}
                       InputLabelProps={{ shrink: true }}
                       helperText="En son kalibre edildiği tarihi giriniz"
                     />
@@ -6229,13 +6308,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       value={formData.calibrationFrequency || 12}
                       onChange={(e) => {
                         const months = parseInt(e.target.value) || 12;
-                        const lastDate = new Date(formData.lastCalibrationDate || new Date());
-                        const nextDate = new Date(lastDate);
-                        nextDate.setMonth(nextDate.getMonth() + months);
+                        const nextDate = calculateNextCalibrationDate(
+                          formData.lastCalibrationDate || new Date().toISOString().split('T')[0], 
+                          months
+                        );
                         setFormData({
                           ...formData, 
                           calibrationFrequency: months,
-                          nextCalibrationDate: nextDate.toISOString().split('T')[0]
+                          nextCalibrationDate: nextDate
                         });
                       }}
                       required
