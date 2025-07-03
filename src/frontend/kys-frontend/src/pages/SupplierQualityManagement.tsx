@@ -4612,6 +4612,11 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           Durum
                         </Typography>
                       </TableCell>
+                      <TableCell align="center" sx={{ minWidth: 100 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                          Puan
+                        </Typography>
+                      </TableCell>
                       <TableCell align="center" sx={{ minWidth: 90 }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                           Tür
@@ -4798,6 +4803,55 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                 />
                             </TableCell>
                             
+                            <TableCell align="center" sx={{ minWidth: 100 }}>
+                              {audit.status === 'tamamlandı' ? (
+                                <Box display="flex" flexDirection="column" alignItems="center" gap={0.5}>
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                      fontSize: '0.9rem', 
+                                      fontWeight: 700,
+                                      color: audit.score >= 90 ? 'success.main' :
+                                             audit.score >= 75 ? 'info.main' :
+                                             audit.score >= 60 ? 'warning.main' : 'error.main'
+                                    }}
+                                  >
+                                    {audit.score}/100
+                                  </Typography>
+                                  <Chip 
+                                    size="small" 
+                                    label={
+                                      audit.score >= 90 ? 'A' :
+                                      audit.score >= 75 ? 'B' :
+                                      audit.score >= 60 ? 'C' : 'D'
+                                    }
+                                    color={
+                                      audit.score >= 90 ? 'success' :
+                                      audit.score >= 75 ? 'info' :
+                                      audit.score >= 60 ? 'warning' : 'error'
+                                    }
+                                    sx={{ 
+                                      height: 20, 
+                                      fontSize: '0.7rem', 
+                                      fontWeight: 600,
+                                      minWidth: 28
+                                    }}
+                                  />
+                                </Box>
+                              ) : (
+                                <Typography 
+                                  variant="body2" 
+                                  color="text.secondary" 
+                                  sx={{ 
+                                    fontSize: '0.8rem',
+                                    fontStyle: 'italic'
+                                  }}
+                                >
+                                  -
+                                </Typography>
+                              )}
+                            </TableCell>
+                            
                             <TableCell align="center" sx={{ minWidth: 90 }}>
                               <Chip 
                                 size="small" 
@@ -4974,7 +5028,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       })}
                     {audits.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                        <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
                           <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
                             <ScheduleIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
                             <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 500 }}>
