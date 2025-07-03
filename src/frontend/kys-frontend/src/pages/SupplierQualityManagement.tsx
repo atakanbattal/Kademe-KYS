@@ -3090,68 +3090,149 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     </ResponsiveContainer>
                   </Box>
 
-                  {/* Performans Sıralaması Tablosu */}
+                  {/* Performans Sıralaması - Profesyonel Tablo */}
                   <Box mt={4}>
-                    <Typography variant="h6" fontWeight={600} mb={2} color="text.primary">
-                      Performans Sıralaması
-                    </Typography>
-                    <Box sx={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                      gap: 2 
-                    }}>
-                      {performanceData
-                        .sort((a, b) => b.genel - a.genel)
-                        .map((supplier, index) => (
-                        <Card 
-                          key={supplier.name} 
-                          variant="outlined" 
-                          sx={{ 
-                            p: 2,
-                            border: index === 0 ? '2px solid #2196f3' : '1px solid #e0e0e0',
-                            background: index === 0 ? 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)' : 'white'
-                          }}
-                        >
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Box>
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <Typography variant="h6" fontWeight={600}>
-                                  #{index + 1}
-                                </Typography>
-                                <Typography variant="body1" fontWeight={500}>
-                                  {suppliers.find(s => (s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name) === supplier.name)?.name || supplier.name}
-                                </Typography>
-                                {index === 0 && (
-                                  <Chip label="En İyi" color="primary" size="small" />
-                                )}
-                              </Box>
-                              <Box mt={1} display="flex" gap={2}>
-                                <Typography variant="caption" color="text.secondary">
-                                  Genel: {supplier.genel}%
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Kalite: {supplier.kalite}%
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Teslimat: {supplier.teslimat}%
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box textAlign="right">
-                              <Chip 
-                                label={`${supplier.genel}%`}
-                                color={
-                                  supplier.genel >= 90 ? 'success' :
-                                  supplier.genel >= 75 ? 'info' :
-                                  supplier.genel >= 60 ? 'warning' : 'error'
-                                }
-                                variant={index === 0 ? 'filled' : 'outlined'}
-                              />
-                            </Box>
-                          </Box>
-                        </Card>
-                      ))}
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                      <Typography variant="h6" fontWeight={600} color="text.primary">
+                        Performans Sıralaması
+                      </Typography>
+                      <Chip 
+                        label={`${performanceData.length} Tedarikçi`}
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                      />
                     </Box>
+                    
+                    <Paper elevation={2} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                      <TableContainer>
+                        <Table>
+                          <TableHead>
+                            <TableRow sx={{ bgcolor: 'linear-gradient(135deg, #f5f5f5 0%, #e8f5e8 100%)' }}>
+                              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Sıra</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Tedarikçi</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>Genel</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>Kalite</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>Teslimat</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: 'text.primary', textAlign: 'center' }}>Durum</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {performanceData
+                              .sort((a, b) => b.genel - a.genel)
+                              .map((supplier, index) => {
+                                const isTopPerformer = index === 0;
+                                const supplierFullName = suppliers.find(s => 
+                                  (s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name) === supplier.name
+                                )?.name || supplier.name;
+                                
+                                return (
+                                  <TableRow 
+                                    key={supplier.name}
+                                    hover
+                                    sx={{ 
+                                      bgcolor: isTopPerformer ? 'rgba(33, 150, 243, 0.04)' : 'inherit',
+                                      borderLeft: isTopPerformer ? '4px solid #2196f3' : '4px solid transparent',
+                                      '&:hover': {
+                                        bgcolor: isTopPerformer ? 'rgba(33, 150, 243, 0.08)' : 'rgba(0, 0, 0, 0.04)'
+                                      }
+                                    }}
+                                  >
+                                    <TableCell>
+                                      <Box display="flex" alignItems="center" gap={2}>
+                                        <Avatar 
+                                          sx={{ 
+                                            width: 32, 
+                                            height: 32,
+                                            bgcolor: isTopPerformer ? 'gold' : 
+                                                     index === 1 ? 'silver' : 
+                                                     index === 2 ? '#cd7f32' : 'grey.300',
+                                            color: isTopPerformer ? 'black' : 'white',
+                                            fontSize: '14px',
+                                            fontWeight: 'bold'
+                                          }}
+                                        >
+                                          {index + 1}
+                                        </Avatar>
+                                        {isTopPerformer && (
+                                          <Chip 
+                                            label="En İyi" 
+                                            color="primary" 
+                                            size="small" 
+                                            sx={{ fontSize: '11px' }}
+                                          />
+                                        )}
+                                      </Box>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Box>
+                                        <Typography variant="body1" fontWeight={500}>
+                                          {supplierFullName}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                          {suppliers.find(s => supplierFullName === s.name)?.category || 'Genel'}
+                                        </Typography>
+                                      </Box>
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <Box display="flex" flexDirection="column" alignItems="center">
+                                        <Typography variant="h6" fontWeight={600} color={
+                                          supplier.genel >= 90 ? 'success.main' :
+                                          supplier.genel >= 75 ? 'info.main' :
+                                          supplier.genel >= 60 ? 'warning.main' : 'error.main'
+                                        }>
+                                          {supplier.genel}%
+                                        </Typography>
+                                        <LinearProgress 
+                                          variant="determinate" 
+                                          value={supplier.genel} 
+                                          sx={{ 
+                                            width: 60,
+                                            height: 4,
+                                            borderRadius: 2,
+                                            bgcolor: 'grey.200',
+                                            '& .MuiLinearProgress-bar': {
+                                              bgcolor: supplier.genel >= 90 ? '#4caf50' :
+                                                       supplier.genel >= 75 ? '#2196f3' :
+                                                       supplier.genel >= 60 ? '#ff9800' : '#f44336'
+                                            }
+                                          }} 
+                                        />
+                                      </Box>
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <Typography variant="body2" fontWeight={500}>
+                                        {supplier.kalite}%
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <Typography variant="body2" fontWeight={500}>
+                                        {supplier.teslimat}%
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell align="center">
+                                      <Chip 
+                                        label={
+                                          supplier.genel >= 90 ? 'Mükemmel' :
+                                          supplier.genel >= 75 ? 'İyi' :
+                                          supplier.genel >= 60 ? 'Orta' : 'Zayıf'
+                                        }
+                                        color={
+                                          supplier.genel >= 90 ? 'success' :
+                                          supplier.genel >= 75 ? 'info' :
+                                          supplier.genel >= 60 ? 'warning' : 'error'
+                                        }
+                                        variant={isTopPerformer ? 'filled' : 'outlined'}
+                                        size="small"
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Paper>
                   </Box>
                 </Box>
               ) : (
@@ -3169,47 +3250,81 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Card>
       </Grid>
 
-        {/* İstatistikler */}
+        {/* İstatistikler - Yatay Düzenleme */}
         <Grid item xs={12} md={6}>
           <Card elevation={3} sx={{ borderRadius: 3, height: '100%' }}>
             <CardHeader 
               title="Sistem İstatistikleri" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%)' }}
+              avatar={
+                <Avatar sx={{ bgcolor: 'success.main' }}>
+                  <AssessmentIcon />
+                </Avatar>
+              }
             />
-          <CardContent>
-              <Box display="flex" flexDirection="column" gap={3} height={350} justifyContent="space-between">
+            <CardContent sx={{ p: 3 }}>
+              <Box 
+                display="flex" 
+                flexDirection={{ xs: 'column', sm: 'row' }} 
+                gap={2} 
+                height={{ xs: 'auto', sm: 350 }} 
+                alignItems="stretch"
+                justifyContent="space-between"
+              >
                 {/* Çözüm Oranı */}
-                <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
-                  <Typography variant="h4" fontWeight="bold" color="primary.main">
+                <Box 
+                  flex={1} 
+                  textAlign="center" 
+                  p={2} 
+                  sx={{ 
+                    bgcolor: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)', 
+                    borderRadius: 3,
+                    border: '1px solid #e0e0e0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Typography variant="h3" fontWeight="bold" color="primary.main" mb={1}>
                     %{resolutionRate}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" mb={2}>
                     Uygunsuzluk Çözüm Oranı
                   </Typography>
-                  <Box mt={1}>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={resolutionRate} 
-                      sx={{ 
-                        height: 8, 
-                        borderRadius: 4,
-                        backgroundColor: '#e0e0e0',
-                        '& .MuiLinearProgress-bar': {
-                          backgroundColor: resolutionRate >= 90 ? '#4caf50' : 
-                                           resolutionRate >= 75 ? '#ff9800' : '#f44336'
-                        }
-                      }} 
-                    />
-                  </Box>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={resolutionRate} 
+                    sx={{ 
+                      height: 8, 
+                      borderRadius: 4,
+                      backgroundColor: '#e0e0e0',
+                      '& .MuiLinearProgress-bar': {
+                        backgroundColor: resolutionRate >= 90 ? '#4caf50' : 
+                                         resolutionRate >= 75 ? '#ff9800' : '#f44336'
+                      }
+                    }} 
+                  />
                 </Box>
 
                 {/* Aktif Sorunlar */}
-                <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
-                  <Typography variant="h4" fontWeight="bold" color="warning.main">
+                <Box 
+                  flex={1} 
+                  textAlign="center" 
+                  p={2} 
+                  sx={{ 
+                    bgcolor: 'linear-gradient(135deg, #fff3e0 0%, #ffecb3 100%)', 
+                    borderRadius: 3,
+                    border: '1px solid #e0e0e0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Typography variant="h3" fontWeight="bold" color="warning.main" mb={1}>
                     {openNonconformities.length}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" mb={1}>
                     Açık Uygunsuzluk
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
@@ -3218,11 +3333,23 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 </Box>
 
                 {/* Risk Seviyesi */}
-                <Box textAlign="center" p={2} sx={{ bgcolor: '#f8f9fa', borderRadius: 2 }}>
-                  <Typography variant="h4" fontWeight="bold" color="error.main">
+                <Box 
+                  flex={1} 
+                  textAlign="center" 
+                  p={2} 
+                  sx={{ 
+                    bgcolor: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)', 
+                    borderRadius: 3,
+                    border: '1px solid #e0e0e0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Typography variant="h3" fontWeight="bold" color="error.main" mb={1}>
                     {criticalSuppliers.length}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" mb={1}>
                     Yüksek Risk Tedarikçi
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
@@ -3230,7 +3357,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </Typography>
                 </Box>
               </Box>
-          </CardContent>
+            </CardContent>
         </Card>
       </Grid>
 
