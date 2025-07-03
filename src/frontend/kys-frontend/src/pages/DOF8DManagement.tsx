@@ -1318,12 +1318,12 @@ const MetricCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-// 🔥 ULTRA AGGRESSIVE SEARCH INPUT - 2 saniye focus kaybı problemi için
+// 🔥 ULTRA STABLE SEARCH INPUT - Focus kaybı problemi için tamamen uncontrolled
 const UltimateStableSearchInput = memo(({ 
   label, 
   placeholder, 
   onChange, 
-  value: externalValue = '', 
+  initialValue = '', 
   debounceMs = 380,
   icon: Icon,
   fullWidth = true,
@@ -1333,25 +1333,21 @@ const UltimateStableSearchInput = memo(({
   label: string;
   placeholder?: string;
   onChange: (value: string) => void;
-  value?: string;
+  initialValue?: string;
   debounceMs?: number;
   icon?: any;
   fullWidth?: boolean;
   sx?: any;
   [key: string]: any;
 }) => {
-  const [value, setValue] = useState<string>(externalValue);
+  const [internalValue, setInternalValue] = useState<string>(initialValue);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // External value değiştiğinde internal state'i güncelle
-  useEffect(() => {
-    setValue(externalValue);
-  }, [externalValue]);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Debounced onChange handler
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
-    setValue(newValue);
+    setInternalValue(newValue);
     
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -1371,12 +1367,21 @@ const UltimateStableSearchInput = memo(({
     };
   }, []);
 
+  // Reset fonksiyonu - gerekirse dışarıdan çağrılabilir
+  const resetInput = useCallback(() => {
+    setInternalValue('');
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  }, []);
+
   return (
     <TextField
       {...otherProps}
+      ref={inputRef}
       fullWidth={fullWidth}
       label={label}
-      value={value}
+      value={internalValue}
       onChange={handleChange}
       placeholder={placeholder}
       autoComplete="off"
@@ -1406,6 +1411,59 @@ const UltimateStableSearchInput = memo(({
 
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
+
+  // 🔥 STABLE SEARCH FIELD - Focus kaybı problemi için özel component
+  const StableSearchField = React.memo(() => {
+    const [searchValue, setSearchValue] = useState('');
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Parent filter state'i ile senkronize et
+    useEffect(() => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        setFilters(prev => ({ ...prev, searchTerm: searchValue }));
+      }, 380);
+      
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
+    }, [searchValue]);
+    
+    return (
+      <TextField
+        fullWidth
+        label="Gelişmiş Arama"
+        placeholder="DÖF numarası, başlık, açıklama..."
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        autoComplete="off"
+        spellCheck={false}
+        InputProps={{
+          startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+        }}
+        sx={{
+          '& .MuiInputLabel-root': {
+            fontWeight: 600,
+          },
+          '& .MuiOutlinedInput-root': {
+            height: 56,
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'primary.main',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'primary.main',
+              borderWidth: '2px',
+            },
+          },
+        }}
+      />
+    );
+  });
 
   // Tema entegreli StyledAccordion
   const StyledAccordion = styled(Accordion)(() => ({
@@ -3106,15 +3164,7 @@ const DOF8DManagement: React.FC = () => {
               </FormControl>
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <UltimateStableSearchInput
-                label="Gelişmiş Arama"
-                placeholder="DÖF numarası, başlık, açıklama..."
-                value={filters.searchTerm}
-                onChange={(value: string) => handleFilterChange('searchTerm', value)}
-                debounceMs={380}
-                icon={SearchIcon}
-                fullWidth
-              />
+              <StableSearchField />
             </Box>
             <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
               <FormControl fullWidth>
