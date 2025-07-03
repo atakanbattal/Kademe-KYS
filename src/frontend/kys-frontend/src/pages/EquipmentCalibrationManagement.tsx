@@ -3022,9 +3022,11 @@ const EquipmentCard = styled(Card)(({ theme }) => ({
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   position: 'relative',
   overflow: 'hidden',
+  display: 'flex',
+  alignItems: 'stretch',
   '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: `0 12px 28px rgba(0, 0, 0, 0.15)`,
+    transform: 'translateY(-2px)',
+    boxShadow: `0 8px 20px rgba(0, 0, 0, 0.12)`,
     borderColor: theme.palette.primary.main,
   },
   '&::before': {
@@ -3033,7 +3035,7 @@ const EquipmentCard = styled(Card)(({ theme }) => ({
     top: 0,
     left: 0,
     right: 0,
-    height: 4,
+    height: 3,
     background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
   },
 }));
@@ -4229,7 +4231,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
         <Box>
 
           {/* Özet Kartları */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4, alignItems: 'stretch' }}>
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
               <EquipmentCard sx={{ height: 120 }}>
                 <CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
@@ -4301,7 +4303,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
           </Box>
 
           {/* Detaylı Kalibrasyon Takip Kartları */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4, alignItems: 'stretch' }}>
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
               <Card 
                 sx={{ 
