@@ -3795,7 +3795,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('tr-TR');
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('tr-TR');
   };
 
   // Kalibrasyon uyarı seviyesini belirleme
@@ -4831,23 +4834,21 @@ const EquipmentCalibrationManagement: React.FC = () => {
               <TableBody>
                 {metrics.filteredEquipment.map((equipment, index) => {
                   const warningLevel = getCalibrationWarningLevel(equipment);
-                  const baseBackground = index % 2 === 0 ? 'background.default' : 'grey.50';
-                  
-                  let backgroundColor = baseBackground;
+                  let backgroundColor = '#ffffff'; // Profesyonel beyaz arka plan
                   let borderLeft = equipment.criticalEquipment ? '4px solid #f44336' : '4px solid transparent';
                   
-                  // Kalibrasyon durumuna göre arka plan rengi
+                  // Kalibrasyon durumuna göre arka plan rengi - profesyonel beyaz tonları
                   if (warningLevel === 'overdue') {
-                    backgroundColor = 'rgba(211, 47, 47, 0.1)'; // Kırmızı
+                    backgroundColor = '#ffffff'; // Beyaz fon
                     borderLeft = '4px solid #d32f2f';
                   } else if (warningLevel === 'critical') {
-                    backgroundColor = 'rgba(244, 67, 54, 0.08)'; // Açık kırmızı
+                    backgroundColor = '#ffffff'; // Beyaz fon
                     borderLeft = '4px solid #f44336';
                   } else if (warningLevel === 'urgent') {
-                    backgroundColor = 'rgba(255, 152, 0, 0.08)'; // Turuncu
+                    backgroundColor = '#ffffff'; // Beyaz fon
                     borderLeft = '4px solid #ff9800';
                   } else if (warningLevel === 'warning') {
-                    backgroundColor = 'rgba(255, 193, 7, 0.06)'; // Sarı
+                    backgroundColor = '#ffffff'; // Beyaz fon
                     borderLeft = '4px solid #ffc107';
                   }
                   
@@ -5207,7 +5208,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
               <Typography variant="h5" gutterBottom>Kalibrasyon Takip Sistemi</Typography>
               
               {/* Kalibrasyon Takibi İçin Özel Filtreler */}
-              <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: 'grey.50' }}>
+              <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: '#ffffff' }}>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                   <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
                     <UltimateStableSearchInput
@@ -5255,8 +5256,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             {/* Yaklaşan Kalibrasyonlar */}
             <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Paper sx={{ p: 3, bgcolor: '#ffffff', borderRadius: 2 }}>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary' }}>
                   <WarningIcon color="warning" />
                   Yaklaşan Kalibrasyonlar
                 </Typography>
@@ -5264,7 +5265,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   {metrics.filteredEquipment
                     .filter(eq => eq.calibrationStatus === 'due')
                     .map((equipment) => (
-                    <ListItem key={equipment.id} sx={{ px: 0 }}>
+                    <ListItem key={equipment.id} sx={{ px: 0, bgcolor: '#ffffff' }}>
                       <ListItemIcon>
                         <ScienceIcon color="warning" />
                       </ListItemIcon>
@@ -5293,8 +5294,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
 
             {/* Vadesi Geçen Kalibrasyonlar */}
             <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Paper sx={{ p: 3, bgcolor: '#ffffff', borderRadius: 2 }}>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary' }}>
                   <ErrorIcon color="error" />
                   Vadesi Geçen Kalibrasyonlar
                 </Typography>
@@ -5302,7 +5303,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   {metrics.filteredEquipment
                     .filter(eq => eq.calibrationStatus === 'overdue')
                     .map((equipment) => (
-                    <ListItem key={equipment.id} sx={{ px: 0 }}>
+                    <ListItem key={equipment.id} sx={{ px: 0, bgcolor: '#ffffff' }}>
                       <ListItemIcon>
                         <ErrorIcon color="error" />
                       </ListItemIcon>
@@ -6624,7 +6625,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           </Typography>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             {selectedEquipment.certificates.map((cert, index) => (
-                              <Paper key={cert.id} sx={{ p: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
+                              <Paper key={cert.id} sx={{ p: 2, bgcolor: '#ffffff', border: '1px solid', borderColor: 'grey.200' }}>
                                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
                                   <Box>
                                     <Typography variant="caption" color="text.secondary">Sertifika No</Typography>
