@@ -8154,7 +8154,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             
             <Grid item xs={12} sm={6} md={4} lg={2.4}>
               <UltimateStableSearchInput
-                defaultValue={globalFilters.searchTerm}
+                value={globalFilters.searchTerm}
                 onChange={handleSearchTermChange}
                 label="Gelişmiş Arama"
                 placeholder="Araç modeli, kategori, açıklama..."
