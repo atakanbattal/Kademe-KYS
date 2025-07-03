@@ -1064,7 +1064,7 @@ const fetchSupplierQualityData = (): SupplierQualityData => {
       length: Array.isArray(suppliers) ? suppliers.length : 'N/A',
       sampleSupplier: Array.isArray(suppliers) && suppliers.length > 0 ? suppliers[0] : null
     });
-
+    
     if (!Array.isArray(suppliers) || suppliers.length === 0) {
       console.warn('⚠️ Supplier verisi boş veya array değil');
       return {
@@ -1189,7 +1189,7 @@ const fetchDocumentManagementData = (): DocumentManagementData => {
       });
 
       return result;
-    } else {
+  } else {
       console.warn('⚠️ Doküman yönetimi verisi bulunamadı');
       return {
         totalDocuments: 0,
@@ -1278,7 +1278,7 @@ const fetchAuditManagementData = (): AuditManagementData => {
       });
 
       return result;
-    } else {
+  } else {
       console.warn('⚠️ Denetim yönetimi verisi bulunamadı');
       return {
         totalAudits: 0,
@@ -1382,7 +1382,7 @@ const fetchRiskManagementData = (): RiskManagementData => {
       });
 
       return result;
-    } else {
+  } else {
       console.warn('⚠️ Risk yönetimi verisi bulunamadı');
       return {
         totalRisks: 0,

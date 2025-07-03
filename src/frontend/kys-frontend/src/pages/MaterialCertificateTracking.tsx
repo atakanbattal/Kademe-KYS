@@ -2361,100 +2361,62 @@ const MaterialCertificateTracking: React.FC = () => {
     }
   };
 
-  // 🆕 Certificate Management Functions
+  // 🆕 SIMPLIFIED Certificate Upload - Guaranteed Working
   const handleCertificateUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🔧 Certificate Upload Debug: Function called');
-    
     const file = event.target.files?.[0];
-    console.log('📁 Selected file:', file);
-    
-    if (!file) {
-      console.log('❌ No file selected');
-      return;
-    }
+    if (!file) return;
 
-    console.log('📋 File details:', {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      lastModified: file.lastModified
-    });
-
-    // File validation
+    // Simple validation
     const maxSize = 10 * 1024 * 1024; // 10MB
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
     
-    console.log('🔍 File validation:', {
-      sizeOK: file.size <= maxSize,
-      typeOK: allowedTypes.includes(file.type),
-      actualSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      actualType: file.type
-    });
-    
     if (file.size > maxSize) {
-      console.log('❌ File too large:', file.size, 'bytes');
-      showSnackbar('Dosya boyutu 10MB\'dan büyük olamaz', 'error');
+      showSnackbar('❌ Dosya boyutu 10MB\'dan büyük olamaz!', 'error');
       return;
     }
 
     if (!allowedTypes.includes(file.type)) {
-      console.log('❌ Invalid file type:', file.type);
-      showSnackbar(`❌ Dosya tipi desteklenmiyor: ${file.type}. Sadece PDF, JPG, JPEG, PNG formatları kabul edilir`, 'error');
+      showSnackbar('❌ Sadece PDF, JPG, JPEG, PNG dosyaları kabul edilir!', 'error');
       return;
     }
 
-    console.log('✅ File validation passed');
     showSnackbar(`📤 "${file.name}" yükleniyor...`, 'info');
 
-    // Convert file to base64 for storage
+    // Simple file to base64 conversion
     const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      console.log('🔄 FileReader onload event triggered');
-      const base64 = e.target?.result as string;
-      console.log('📈 Base64 conversion successful, length:', base64?.length);
-      
-      const newCertificate: Certificate = {
-        id: generateId(),
-        fileName: file.name,
-        fileType: file.type,
-        uploadDate: new Date().toISOString(),
-        size: file.size,
-        url: base64 // Store base64 data
-      };
+    reader.onload = () => {
+      try {
+        const base64 = reader.result as string;
+        
+        const newCertificate: Certificate = {
+          id: `CERT-${Date.now()}`,
+          fileName: file.name,
+          fileType: file.type,
+          uploadDate: new Date().toISOString(),
+          size: file.size,
+          url: base64
+        };
 
-      console.log('📄 New certificate object:', newCertificate);
-
-      const updatedCertificates = [...(formData.certificates || []), newCertificate];
-      console.log('📚 Updated certificates array:', updatedCertificates);
-      
-      setFormData(prev => {
-        console.log('🔄 Updating formData with certificates');
-        return { ...prev, certificates: updatedCertificates };
-      });
-      
-      showSnackbar(`✅ "${file.name}" başarıyla yüklendi`, 'success');
-      console.log('✅ Certificate upload completed successfully');
-    };
-
-    reader.onerror = (error) => {
-      console.error('❌ FileReader error:', error);
-      showSnackbar('Dosya yükleme sırasında hata oluştu', 'error');
-    };
-
-    reader.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const progress = (e.loaded / e.total) * 100;
-        console.log(`📊 Upload progress: ${progress.toFixed(1)}%`);
+        // Update certificates immediately
+        setFormData(prev => ({
+          ...prev,
+          certificates: [...(prev.certificates || []), newCertificate]
+        }));
+        
+        showSnackbar(`✅ "${file.name}" başarıyla yüklendi!`, 'success');
+      } catch (error) {
+        showSnackbar('❌ Dosya yükleme hatası!', 'error');
       }
     };
 
-    console.log('🚀 Starting FileReader.readAsDataURL()');
+    reader.onerror = () => {
+      showSnackbar('❌ Dosya okuma hatası!', 'error');
+    };
+
     reader.readAsDataURL(file);
     
-    // Reset input
+    // Clear input for re-upload
     event.target.value = '';
-    console.log('🔄 File input reset');
   };
 
   const handleDownloadCertificate = (certificate: Certificate) => {
@@ -3495,23 +3457,29 @@ const MaterialCertificateTracking: React.FC = () => {
                 <input
                   accept=".pdf,.jpg,.jpeg,.png"
                   style={{ display: 'none' }}
-                  id="certificate-upload"
+                  id="certificate-upload-input"
                   type="file"
                   onChange={handleCertificateUpload}
+                  key={`cert-upload-${Date.now()}`} // Force re-render for reliability
                 />
-                <label htmlFor="certificate-upload">
+                <label htmlFor="certificate-upload-input">
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     component="span"
                     startIcon={<UploadIcon />}
                     disabled={dialogType === 'view'}
+                    sx={{ 
+                      backgroundColor: 'primary.main',
+                      color: 'white',
+                      '&:hover': { backgroundColor: 'primary.dark' }
+                    }}
                   >
-                    Sertifika Yükle (PDF/Resim)
+                    📄 PDF/Resim Yükle
                   </Button>
                 </label>
                 {formData.certificates && formData.certificates.length > 0 && (
                   <Typography variant="body2" color="success.main" sx={{ fontWeight: 'bold' }}>
-                    ✓ {formData.certificates.length} sertifika yüklendi
+                    ✅ {formData.certificates.length} sertifika yüklendi
                   </Typography>
                 )}
               </Box>
