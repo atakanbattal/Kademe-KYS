@@ -1336,8 +1336,9 @@ const SupplierQualityManagement: React.FC = () => {
     const today = new Date();
 
     // Sadece değerlendirilmiş tedarikçiler için otomatik denetim önerisi oluştur
+    // %0 değerler de N/A kabul ediliyor
     const ratedSuppliers = suppliers.filter(s => 
-      s.performanceScore >= 0 && s.qualityScore >= 0 && s.deliveryScore >= 0
+      s.performanceScore > 0 && s.qualityScore > 0 && s.deliveryScore > 0
     );
 
     ratedSuppliers.forEach(supplier => {
@@ -2552,12 +2553,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   const updateSupplierPerformances = React.useCallback(() => {
     console.log('📊 Performans güncellemesi başlıyor...');
     const updatedSuppliers = suppliers.map(supplier => {
-      // Sadece değerlendirilmiş tedarikçilerin performansını güncelle
-      // N/A değerleri (-1) olan tedarikçileri olduğu gibi bırak
-      if (supplier.performanceScore < 0 || supplier.qualityScore < 0 || supplier.deliveryScore < 0) {
-        console.log(`⏭️ ${supplier.name}: N/A - performans hesaplaması atlandı`);
-        return supplier; // N/A tedarikçiyi değiştirmeden geri döndür
-      }
+          // Sadece değerlendirilmiş tedarikçilerin performansını güncelle
+    // N/A değerleri (-1 veya 0) olan tedarikçileri olduğu gibi bırak
+    if (supplier.performanceScore <= 0 || supplier.qualityScore <= 0 || supplier.deliveryScore <= 0) {
+      console.log(`⏭️ ${supplier.name}: N/A (${supplier.performanceScore}/${supplier.qualityScore}/${supplier.deliveryScore}) - performans hesaplaması atlandı`);
+      return supplier; // N/A tedarikçiyi değiştirmeden geri döndür
+    }
       
       const newScores = calculateSupplierPerformance(supplier);
       console.log(`🎯 ${supplier.name}: Genel ${newScores.performanceScore}, Kalite ${newScores.qualityScore}, Teslimat ${newScores.deliveryScore}`);
@@ -2579,8 +2580,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   // Radar chart data preparation
   const prepareRadarData = React.useCallback(() => {
     // Sadece değerlendirilmiş tedarikçileri al (N/A değerleri hariç)
+    // %0 değerler de N/A kabul ediliyor
     const ratedSuppliers = suppliers.filter(s => 
-      s.performanceScore >= 0 && s.qualityScore >= 0 && s.deliveryScore >= 0
+      s.performanceScore > 0 && s.qualityScore > 0 && s.deliveryScore > 0
     );
     
     const selectedSuppliers = selectedSuppliersForRadar.length > 0 
@@ -2605,10 +2607,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         
         switch(dim.key) {
           case 'qualityScore':
-            score = supplier.qualityScore >= 0 ? supplier.qualityScore : 0; // N/A değerleri 0 olarak göster
+            score = supplier.qualityScore > 0 ? supplier.qualityScore : 0; // N/A değerleri (%0 dahil) 0 olarak göster
             break;
           case 'deliveryScore':
-            score = supplier.deliveryScore >= 0 ? supplier.deliveryScore : 0; // N/A değerleri 0 olarak göster
+            score = supplier.deliveryScore > 0 ? supplier.deliveryScore : 0; // N/A değerleri (%0 dahil) 0 olarak göster
             break;
           case 'reliabilityScore':
             // Güvenilirlik: Son denetim tarihi + uygunsuzluk sayısı bazlı
@@ -2650,8 +2652,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     const activeSuppliers = suppliers.filter(s => s.status === 'aktif');
     
     // N/A değerleri (-1) hariç ortalama hesapla
-    const ratedSuppliers = suppliers.filter(s => s.performanceScore >= 0);
-    const naSuppliers = suppliers.filter(s => s.performanceScore < 0);
+    const ratedSuppliers = suppliers.filter(s => s.performanceScore > 0); // %0 değerler de N/A kabul ediliyor
+    const naSuppliers = suppliers.filter(s => s.performanceScore <= 0); // %0 değerler de N/A kabul ediliyor
     
     const avgPerformance = ratedSuppliers.length > 0 
       ? Math.round(ratedSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / ratedSuppliers.length)
@@ -2676,12 +2678,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     ].map(cat => {
       const categorySuppliers = suppliers.filter(s => s.category === cat.key);
       
-      // N/A değerleri (-1) ayrı say - tüm performans puanlarını kontrol et
+      // N/A değerleri (-1 veya 0) ayrı say - tüm performans puanlarını kontrol et
       const ratedSuppliers = categorySuppliers.filter(s => 
-        s.performanceScore >= 0 && s.qualityScore >= 0 && s.deliveryScore >= 0
+        s.performanceScore > 0 && s.qualityScore > 0 && s.deliveryScore > 0
       );
       const naSuppliers = categorySuppliers.filter(s => 
-        s.performanceScore < 0 || s.qualityScore < 0 || s.deliveryScore < 0
+        s.performanceScore <= 0 || s.qualityScore <= 0 || s.deliveryScore <= 0
       );
       
       const avgScore = ratedSuppliers.length > 0 
@@ -2699,8 +2701,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     }).filter(cat => cat.adet > 0); // Sadece tedarikçisi olan kategorileri göster
     
     // Performans karşılaştırması için tedarikçiler - sadece değerlendirilmiş aktif tedarikçiler
+    // %0 değerler de N/A kabul ediliyor
     const performanceData = suppliers
-      .filter(s => s.status === 'aktif' && s.performanceScore >= 0 && s.qualityScore >= 0 && s.deliveryScore >= 0) // Tüm N/A değerleri hariç
+      .filter(s => s.status === 'aktif' && s.performanceScore > 0 && s.qualityScore > 0 && s.deliveryScore > 0) // Tüm N/A değerleri (%0 dahil) hariç
       .slice(0, 8) // En fazla 8 tedarikçi göster
       .map(s => ({
         name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
@@ -7368,7 +7371,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                 <Typography variant="caption" color="text.secondary">
                                   {option.riskLevel} risk
                                 </Typography>
-                                {option.performanceScore >= 0 && (
+                                {option.performanceScore > 0 ? (
                                   <Chip 
                                     label={`${option.performanceScore}%`} 
                                     size="small" 
@@ -7378,6 +7381,13 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                       option.performanceScore >= 60 ? 'warning' :  // C Sınıfı
                                       'error'                                       // D Sınıfı
                                     }
+                                    sx={{ fontSize: '0.7rem', height: 18, ml: 'auto' }}
+                                  />
+                                ) : (
+                                  <Chip 
+                                    label="N/A" 
+                                    size="small" 
+                                    color="default"
                                     sx={{ fontSize: '0.7rem', height: 18, ml: 'auto' }}
                                   />
                                 )}

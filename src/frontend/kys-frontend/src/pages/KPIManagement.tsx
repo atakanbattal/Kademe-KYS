@@ -1056,8 +1056,8 @@ const fetchSupplierQualityData = (): SupplierQualityData => {
     ).length;
     const qualificationRate = totalSuppliers > 0 ? (qualifiedSuppliers / totalSuppliers) * 100 : 0;
     
-    // Ortalama tedarikçi puanı - sadece değerlendirilmiş tedarikçiler
-    const ratedSuppliers = suppliers.filter((s: any) => s.currentScore && s.currentScore >= 0);
+    // Ortalama tedarikçi puanı - sadece değerlendirilmiş tedarikçiler (%0 değerler de N/A kabul ediliyor)
+    const ratedSuppliers = suppliers.filter((s: any) => s.currentScore && s.currentScore > 0);
     const totalScore = ratedSuppliers.reduce((sum: number, s: any) => sum + s.currentScore, 0);
     const averageRating = ratedSuppliers.length > 0 ? totalScore / ratedSuppliers.length : 0;
     
