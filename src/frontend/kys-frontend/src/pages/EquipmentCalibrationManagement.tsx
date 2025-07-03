@@ -3073,28 +3073,42 @@ const StatusChip = styled(Chip)<{ statustype: string }>(({ theme, statustype }) 
   };
 });
 
-// 🔍 SIMPLE STABLE SEARCH INPUT - Sorunsuz yazım deneyimi
+// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
 const UltimateStableSearchInput = memo<{
-  defaultValue?: string;
+  value?: string;
   onChange: (value: string) => void;
   placeholder?: string;
   label?: string;
   size?: 'small' | 'medium';
   fullWidth?: boolean;
-}>(({ defaultValue = '', onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
-  const [value, setValue] = useState(defaultValue);
+  resetTrigger?: any;
+}>(({ value = '', onChange, placeholder = "", label = "", size = "small", fullWidth = true, resetTrigger }) => {
+  const [inputValue, setInputValue] = useState(value);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Basit debounced search - focus problemsiz
+  // Update value when external value changes
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+  
+  // Reset value when resetTrigger changes
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0) {
+      setInputValue('');
+    }
+  }, [resetTrigger]);
+  
+  // Simple input change handler with debounce
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
-    setValue(newValue);
+    setInputValue(newValue);
     
-    // Debounce ile search callback'ini çağır
+    // Clear previous timeout
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     
+    // Set new timeout for debounced callback
     debounceRef.current = setTimeout(() => {
       onChange(newValue);
     }, 300);
@@ -3109,20 +3123,16 @@ const UltimateStableSearchInput = memo<{
     };
   }, []);
   
-  // defaultValue değiştiğinde value'yu güncelle
-  useEffect(() => {
-    setValue(defaultValue);
-  }, [defaultValue]);
-  
   return (
     <TextField
       fullWidth={fullWidth}
       size={size}
       label={label}
-      value={value}
+      value={inputValue}
       onChange={handleChange}
       placeholder={placeholder}
       autoComplete="off"
+      spellCheck={false}
       InputProps={{
         startAdornment: (
           <InputAdornment position="start">
@@ -3132,11 +3142,11 @@ const UltimateStableSearchInput = memo<{
       }}
       sx={{
         '& .MuiOutlinedInput-root': {
-          '&:hover fieldset': {
-            borderColor: '#1976d2',
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
           },
-          '&.Mui-focused fieldset': {
-            borderColor: '#1976d2',
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
             borderWidth: '2px',
           },
         },

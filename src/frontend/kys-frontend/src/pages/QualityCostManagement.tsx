@@ -139,163 +139,77 @@ import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/d
 
 
 
-// 🔥 ULTIMATE STABLE SEARCH INPUT - Kesinlikle focus kaybı yok!
+// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
 const UltimateStableSearchInput = memo<{
-  defaultValue?: string;
+  value?: string;
   onChange: (value: string) => void;
   placeholder?: string;
   label?: string;
   size?: 'small' | 'medium';
   fullWidth?: boolean;
-}>(({ defaultValue = '', onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  
-  // ⚡ DOM-based state management - React state'ini bypass et
-  const lastValue = useRef(defaultValue || '');
+}>(({ value = '', onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
+  const [inputValue, setInputValue] = useState<string>(value);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-  const isUserTyping = useRef(false);
-  const isMounted = useRef(true);
-  const focusGuard = useRef<NodeJS.Timeout | null>(null);
   
-  // ⚡ Initial value set - sadece mount olurken
+  // Update internal value when external value changes
   useEffect(() => {
-    if (inputRef.current && !isUserTyping.current) {
-      inputRef.current.value = defaultValue || '';
-      lastValue.current = defaultValue || '';
-    }
-  }, []); // Dependency array boş - sadece mount'ta çalışsın
+    setInputValue(value);
+  }, [value]);
   
-  // ⚡ Aggressive focus guard
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (inputRef.current && document.activeElement === inputRef.current) {
-        // Eğer focus varsa, re-render'ları engelle
-        if (focusGuard.current) clearTimeout(focusGuard.current);
-        focusGuard.current = setTimeout(() => {
-          // Focus guard süresi dolunca normal işleme dön
-        }, 1000);
-      }
-    }, 50); // Her 50ms kontrol et
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  // ⚡ Raw DOM input handler - React state'siz
+  // Simple input change handler with debounce
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+    setInputValue(newValue);
     
-    // User typing lock
-    isUserTyping.current = true;
-    
-    // Clear previous timer
+    // Clear previous timeout
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
     
-    // Set new timer
+    // Set new timeout for debounced callback
     debounceTimer.current = setTimeout(() => {
-      if (isMounted.current) {
-        onChange(newValue);
-        lastValue.current = newValue;
-        isUserTyping.current = false;
-      }
-    }, 200); // Çok hızlı response
-    
+      onChange(newValue);
+    }, 300);
   }, [onChange]);
   
-  // ⚡ Focus handlers
-  const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    const target = e.target;
-    // Cursor'u sona taşı
-    setTimeout(() => {
-      if (target && target === document.activeElement) {
-        target.setSelectionRange(target.value.length, target.value.length);
-      }
-    }, 0);
-  }, []);
-  
-  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    // Blur'u engelle eğer container içinde bir element'e tıklanmışsa
-    setTimeout(() => {
-      if (containerRef.current && 
-          containerRef.current.contains(document.activeElement)) {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }
-    }, 10);
-  }, []);
-  
-  // ⚡ Mouse handlers - Focus kaybını tamamen engelle
-  const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
-    // Container'a tıklama focus kaybına sebep olmasın
-    if (e.target !== inputRef.current) {
-      e.preventDefault();
-    }
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, []);
-  
-  const handleInputMouseDown = useCallback((e: React.MouseEvent) => {
-    // Input'a tıklama normal çalışsın
-    e.stopPropagation();
-  }, []);
-  
-  // ⚡ Cleanup
+  // Cleanup
   useEffect(() => {
-    isMounted.current = true;
     return () => {
-      isMounted.current = false;
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      if (focusGuard.current) clearTimeout(focusGuard.current);
     };
   }, []);
   
   return (
-    <div 
-      ref={containerRef} 
-      onMouseDown={handleContainerMouseDown}
-      style={{ 
-        width: fullWidth ? '100%' : 'auto',
-        position: 'relative'
+    <TextField
+      fullWidth={fullWidth}
+      size={size}
+      label={label}
+      value={inputValue}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+      autoComplete="off"
+      spellCheck={false}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon />
+          </InputAdornment>
+        ),
       }}
-    >
-      <TextField
-        ref={inputRef}
-        fullWidth={fullWidth}
-        size={size}
-        label={label}
-        defaultValue={defaultValue || ''}
-        onChange={handleInputChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onMouseDown={handleInputMouseDown}
-        placeholder={placeholder}
-        autoComplete="off"
-        spellCheck={false}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            '&.Mui-focused': {
-              '& fieldset': {
-                borderColor: '#1976d2 !important',
-                borderWidth: '2px !important',
-              },
-            },
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
           },
-        }}
-      />
-    </div>
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
+            borderWidth: '2px',
+          },
+        },
+      }}
+    />
   );
-}, () => true); // Hiç re-render olma
+});
 
 // ============================================
 // 🚗 YENİ: UNIFIED QUALITY & VEHICLE INTERFACES

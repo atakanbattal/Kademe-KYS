@@ -1318,13 +1318,13 @@ const MetricCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-// 🔥 ULTRA AGGRESSIVE SEARCH INPUT - 2 saniye focus kaybı problemi için
+// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
 const UltimateStableSearchInput = memo(({ 
   label, 
   placeholder, 
   onChange, 
   defaultValue = '', 
-  debounceMs = 380,
+  debounceMs = 300,
   icon: Icon,
   fullWidth = true,
   sx = {},
@@ -1349,19 +1349,20 @@ const UltimateStableSearchInput = memo(({
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0) {
       setValue('');
-      onChange(''); // Clear the filter as well
     }
-  }, [resetTrigger, onChange]);
+  }, [resetTrigger]);
 
-  // Debounced onChange handler
+  // Simple input change handler with debounce
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
     setValue(newValue);
     
+    // Clear previous timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     
+    // Set new timeout for debounced callback
     timeoutRef.current = setTimeout(() => {
       onChange(newValue);
     }, debounceMs);
@@ -1407,7 +1408,7 @@ const UltimateStableSearchInput = memo(({
       }}
     />
   );
-}); // Aggressive memo to prevent ALL re-renders
+});
 
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();

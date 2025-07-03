@@ -88,7 +88,7 @@ import { styled } from '@mui/material/styles';
 import { dataSyncManager } from '../utils/DataSyncManager';
 import { useThemeContext } from '../context/ThemeContext';
 
-// 🔥 ULTIMATE STABLE SEARCH INPUT - Kesinlikle focus kaybı yok!
+// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
 const UltimateStableSearchInput = React.memo<{
   value: string;
   onChange: (value: string) => void;
@@ -97,154 +97,68 @@ const UltimateStableSearchInput = React.memo<{
   size?: 'small' | 'medium';
   fullWidth?: boolean;
 }>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  
-  // ⚡ DOM-based state management - React state'ini bypass et
-  const lastValue = React.useRef(value || '');
+  const [inputValue, setInputValue] = React.useState<string>(value);
   const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
-  const isUserTyping = React.useRef(false);
-  const isMounted = React.useRef(true);
-  const focusGuard = React.useRef<NodeJS.Timeout | null>(null);
   
-  // ⚡ Initial value set
+  // Update internal value when external value changes
   React.useEffect(() => {
-    if (inputRef.current && !isUserTyping.current) {
-      inputRef.current.value = value || '';
-      lastValue.current = value || '';
-    }
+    setInputValue(value);
   }, [value]);
   
-  // ⚡ Aggressive focus guard
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      if (inputRef.current && document.activeElement === inputRef.current) {
-        // Eğer focus varsa, re-render'ları engelle
-        if (focusGuard.current) clearTimeout(focusGuard.current);
-        focusGuard.current = setTimeout(() => {
-          // Focus guard süresi dolunca normal işleme dön
-        }, 1000);
-      }
-    }, 50); // Her 50ms kontrol et
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  // ⚡ Raw DOM input handler - React state'siz
+  // Simple input change handler with debounce
   const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    
-    // User typing lock
-    isUserTyping.current = true;
+    setInputValue(newValue);
     
     // Clear previous timer
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
     
-    // Set new timer
+    // Set new timer for debounced callback
     debounceTimer.current = setTimeout(() => {
-      if (isMounted.current) {
-        onChange(newValue);
-        lastValue.current = newValue;
-        isUserTyping.current = false;
-      }
-    }, 200); // Çok hızlı response
-    
+      onChange(newValue);
+    }, 300);
   }, [onChange]);
   
-  // ⚡ Focus handlers
-  const handleFocus = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    const target = e.target;
-    // Cursor'u sona taşı
-    setTimeout(() => {
-      if (target && target === document.activeElement) {
-        target.setSelectionRange(target.value.length, target.value.length);
-      }
-    }, 0);
-  }, []);
-  
-  const handleBlur = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    // Blur'u engelle eğer container içinde bir element'e tıklanmışsa
-    setTimeout(() => {
-      if (containerRef.current && 
-          containerRef.current.contains(document.activeElement)) {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }
-    }, 10);
-  }, []);
-  
-  // ⚡ Mouse handlers - Focus kaybını tamamen engelle
-  const handleContainerMouseDown = React.useCallback((e: React.MouseEvent) => {
-    // Container'a tıklama focus kaybına sebep olmasın
-    if (e.target !== inputRef.current) {
-      e.preventDefault();
-    }
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, []);
-  
-  const handleInputMouseDown = React.useCallback((e: React.MouseEvent) => {
-    // Input'a tıklama normal çalışsın
-    e.stopPropagation();
-  }, []);
-  
-  // ⚡ Cleanup
+  // Cleanup
   React.useEffect(() => {
-    isMounted.current = true;
     return () => {
-      isMounted.current = false;
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
-      if (focusGuard.current) clearTimeout(focusGuard.current);
     };
   }, []);
   
   return (
-    <div 
-      ref={containerRef} 
-      onMouseDown={handleContainerMouseDown}
-      style={{ 
-        width: fullWidth ? '100%' : 'auto',
-        position: 'relative'
+    <TextField
+      fullWidth={fullWidth}
+      size={size}
+      label={label}
+      value={inputValue}
+      onChange={handleInputChange}
+      placeholder={placeholder}
+      autoComplete="off"
+      spellCheck={false}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon />
+          </InputAdornment>
+        ),
       }}
-    >
-      <TextField
-        ref={inputRef}
-        fullWidth={fullWidth}
-        size={size}
-        label={label}
-        defaultValue={value || ''}
-        onChange={handleInputChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onMouseDown={handleInputMouseDown}
-        placeholder={placeholder}
-        autoComplete="off"
-        spellCheck={false}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-        sx={{
-          '& .MuiOutlinedInput-root': {
-            '&.Mui-focused': {
-              '& fieldset': {
-                borderColor: '#1976d2 !important',
-                borderWidth: '2px !important',
-              },
-            },
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
           },
-        }}
-      />
-    </div>
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
+            borderWidth: '2px',
+          },
+        },
+      }}
+    />
   );
-}, () => true);
+});
 
 // STYLED COMPONENTS
 const MainContainer = styled(Box)(({ theme }) => ({

@@ -83,7 +83,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 
-// ✅ Ultra Stable Search Input Component - Focus kaybı tamamen önlenmiş
+// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
 const UltraStableSearchInput = React.memo<{
   value: string;
   onChange: (value: string) => void;
@@ -92,68 +92,47 @@ const UltraStableSearchInput = React.memo<{
   size?: 'small' | 'medium';
   fullWidth?: boolean;
 }>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const [internalValue, setInternalValue] = React.useState(value);
-  const [isInitialized, setIsInitialized] = React.useState(false);
-  const debounceTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-  const lastParentValueRef = React.useRef(value);
+  const [inputValue, setInputValue] = React.useState<string>(value);
+  const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
   
-  // İlk initialization
+  // Update internal value when external value changes
   React.useEffect(() => {
-    if (!isInitialized) {
-      setInternalValue(value);
-      lastParentValueRef.current = value;
-      setIsInitialized(true);
-    }
-  }, [value, isInitialized]);
+    setInputValue(value);
+  }, [value]);
   
-  // Parent value değişikliklerini sadece gerçekten farklıysa ve user typing yapmıyorsa kabul et
-  React.useEffect(() => {
-    if (isInitialized && value !== lastParentValueRef.current) {
-      // User typing yapmıyorsa (debounce timer yoksa) parent'tan gelen değeri kabul et
-      if (!debounceTimerRef.current) {
-        setInternalValue(value);
-        lastParentValueRef.current = value;
-      }
-    }
-  }, [value, isInitialized]);
-  
+  // Simple input change handler with debounce
   const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    setInternalValue(newValue);
+    setInputValue(newValue);
     
-    // Önceki timer'ı temizle
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
+    // Clear previous timeout
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
     
-    // Yeni timer başlat
-    debounceTimerRef.current = setTimeout(() => {
+    // Set new timeout for debounced callback
+    debounceTimer.current = setTimeout(() => {
       onChange(newValue);
-      lastParentValueRef.current = newValue;
-      debounceTimerRef.current = null;
-    }, 350); // Doküman yönetimi için orta hızlı - 350ms
-    
+    }, 300);
   }, [onChange]);
   
-  // Component unmount olduğunda timer'ı temizle
+  // Cleanup
   React.useEffect(() => {
     return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
   }, []);
   
   return (
     <TextField
-      ref={inputRef}
       fullWidth={fullWidth}
       size={size}
       label={label}
-      value={internalValue}
+      value={inputValue}
       onChange={handleInputChange}
       placeholder={placeholder}
+      autoComplete="off"
+      spellCheck={false}
       InputProps={{
         startAdornment: (
           <InputAdornment position="start">
@@ -161,16 +140,19 @@ const UltraStableSearchInput = React.memo<{
           </InputAdornment>
         ),
       }}
-      // Input focus'u korumak için ek props
-      onFocus={(e) => {
-        e.target.selectionStart = e.target.value.length;
-        e.target.selectionEnd = e.target.value.length;
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
+            borderWidth: '2px',
+          },
+        },
       }}
     />
   );
-}, (prevProps, nextProps) => {
-  // Çok strict comparison - neredeyse hiç re-render olmasın
-  return JSON.stringify(prevProps) === JSON.stringify(nextProps);
 });
 
 // Types & Interfaces
