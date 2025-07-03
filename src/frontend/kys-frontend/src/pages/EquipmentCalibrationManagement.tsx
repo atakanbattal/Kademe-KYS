@@ -3508,7 +3508,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
 
   // Utility function - getDaysUntilDue fonksiyonu metrics'ten önce tanımlanmalı
   const getDaysUntilDue = (dueDateString: string) => {
+    if (!dueDateString) return 999; // Çok büyük bir sayı döndür ki sorun yaratmasın
     const dueDate = new Date(dueDateString);
+    if (isNaN(dueDate.getTime())) return 999; // Geçersiz tarih ise güvenli değer döndür
     const today = new Date();
     const diffTime = dueDate.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
