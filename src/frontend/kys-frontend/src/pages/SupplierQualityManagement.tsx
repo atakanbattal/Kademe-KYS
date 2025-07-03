@@ -2566,9 +2566,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
 
   // Radar chart data preparation
   const prepareRadarData = React.useCallback(() => {
+    // Sadece değerlendirilmiş tedarikçileri al (N/A değerleri hariç)
+    const ratedSuppliers = suppliers.filter(s => 
+      s.performanceScore >= 0 && s.qualityScore >= 0 && s.deliveryScore >= 0
+    );
+    
     const selectedSuppliers = selectedSuppliersForRadar.length > 0 
-      ? suppliers.filter(s => selectedSuppliersForRadar.includes(s.id))
-      : suppliers.slice(0, 3); // İlk 3 tedarikçi default
+      ? ratedSuppliers.filter(s => selectedSuppliersForRadar.includes(s.id))
+      : ratedSuppliers.slice(0, 3); // İlk 3 değerlendirilmiş tedarikçi default
 
     // Performans boyutları
     const performanceDimensions = [
@@ -2588,10 +2593,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         
         switch(dim.key) {
           case 'qualityScore':
-            score = supplier.qualityScore;
+            score = supplier.qualityScore >= 0 ? supplier.qualityScore : 0; // N/A değerleri 0 olarak göster
             break;
           case 'deliveryScore':
-            score = supplier.deliveryScore;
+            score = supplier.deliveryScore >= 0 ? supplier.deliveryScore : 0; // N/A değerleri 0 olarak göster
             break;
           case 'reliabilityScore':
             // Güvenilirlik: Son denetim tarihi + uygunsuzluk sayısı bazlı
@@ -2659,9 +2664,13 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     ].map(cat => {
       const categorySuppliers = suppliers.filter(s => s.category === cat.key);
       
-      // N/A değerleri (-1) ayrı say
-      const ratedSuppliers = categorySuppliers.filter(s => s.performanceScore >= 0);
-      const naSuppliers = categorySuppliers.filter(s => s.performanceScore < 0);
+      // N/A değerleri (-1) ayrı say - tüm performans puanlarını kontrol et
+      const ratedSuppliers = categorySuppliers.filter(s => 
+        s.performanceScore >= 0 && s.qualityScore >= 0 && s.deliveryScore >= 0
+      );
+      const naSuppliers = categorySuppliers.filter(s => 
+        s.performanceScore < 0 || s.qualityScore < 0 || s.deliveryScore < 0
+      );
       
       const avgScore = ratedSuppliers.length > 0 
         ? Math.round(ratedSuppliers.reduce((acc, s) => acc + s.performanceScore, 0) / ratedSuppliers.length)
@@ -2679,7 +2688,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     
     // Performans karşılaştırması için tedarikçiler - sadece değerlendirilmiş aktif tedarikçiler
     const performanceData = suppliers
-      .filter(s => s.status === 'aktif' && s.performanceScore >= 0) // N/A değerleri hariç
+      .filter(s => s.status === 'aktif' && s.performanceScore >= 0 && s.qualityScore >= 0 && s.deliveryScore >= 0) // Tüm N/A değerleri hariç
       .slice(0, 8) // En fazla 8 tedarikçi göster
       .map(s => ({
         name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
