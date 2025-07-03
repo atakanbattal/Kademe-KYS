@@ -4593,7 +4593,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 <UltimateStableSearchInput
                   label="Ekipman Arama"
                   placeholder="Ekipman adı, kodu, seri no, sertifika no, üretici ile arayın..."
-                  defaultValue={filters.searchTerm}
+                  value={filters.searchTerm}
                   onChange={(value: string) => handleFilterChange('searchTerm', value)}
                   fullWidth
                   size="small"
@@ -5270,7 +5270,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <UltimateStableSearchInput
                       label="Ekipman Arama"
                       placeholder="Ekipman adı, sertifika no, kalibratör ile arayın..."
-                      defaultValue={filters.searchTerm}
+                      value={filters.searchTerm}
                       onChange={(value: string) => handleFilterChange('searchTerm', value)}
                       fullWidth
                       size="small"
