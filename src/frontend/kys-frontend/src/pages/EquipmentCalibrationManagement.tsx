@@ -4231,9 +4231,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
           {/* Özet Kartları */}
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <EquipmentCard>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <EquipmentCard sx={{ height: 120 }}>
+                <CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="primary">
                         {metrics.totalEquipment}
@@ -4248,9 +4248,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
               </EquipmentCard>
             </Box>
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <EquipmentCard>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <EquipmentCard sx={{ height: 120 }}>
+                <CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="success.main">
                         {metrics.activeEquipment}
@@ -4265,9 +4265,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
               </EquipmentCard>
             </Box>
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <EquipmentCard>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <EquipmentCard sx={{ height: 120 }}>
+                <CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="error.main">
                         {metrics.criticalEquipment}
@@ -4282,9 +4282,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
               </EquipmentCard>
             </Box>
             <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
-              <EquipmentCard>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <EquipmentCard sx={{ height: 120 }}>
+                <CardContent sx={{ height: '100%', display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="warning.main">
                         {metrics.calibrationDue}
@@ -4302,9 +4302,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
 
           {/* Detaylı Kalibrasyon Takip Kartları */}
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
               <Card 
                 sx={{ 
+                  height: 140,
                   borderRadius: 3,
                   background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
                   color: 'white',
@@ -4314,7 +4315,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, calibrationStatus: 'overdue' }))}
               >
-                <CardContent>
+                <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700}>
@@ -4335,9 +4336,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
               </Card>
             </Box>
             
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
               <Card 
                 sx={{ 
+                  height: 140,
                   borderRadius: 3,
                   background: 'linear-gradient(135deg, #f44336 0%, #ff5722 100%)',
                   color: 'white',
@@ -4347,7 +4349,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
               >
-                <CardContent>
+                <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700}>
@@ -4368,9 +4370,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
               </Card>
             </Box>
             
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
               <Card 
                 sx={{ 
+                  height: 140,
                   borderRadius: 3,
                   background: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)',
                   color: 'white',
@@ -4380,7 +4383,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
               >
-                <CardContent>
+                <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700}>
@@ -4401,9 +4404,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
               </Card>
             </Box>
             
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
               <Card 
                 sx={{ 
+                  height: 140,
                   borderRadius: 3,
                   background: 'linear-gradient(135deg, #ffc107 0%, #ffeb3b 100%)',
                   color: '#333',
@@ -4413,7 +4417,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, searchTerm: '' }))}
               >
-                <CardContent>
+                <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700}>
@@ -4434,9 +4438,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
               </Card>
             </Box>
             
-            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Box sx={{ flex: '1 1 240px', minWidth: '240px' }}>
               <Card 
                 sx={{ 
+                  height: 140,
                   borderRadius: 3,
                   background: 'linear-gradient(135deg, #4caf50 0%, #81c784 100%)',
                   color: 'white',
@@ -4446,7 +4451,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 }}
                 onClick={() => setFilters(prev => ({ ...prev, calibrationStatus: 'valid' }))}
               >
-                <CardContent>
+                <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700}>
