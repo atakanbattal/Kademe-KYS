@@ -2969,6 +2969,132 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           </Card>
         </Grid>
 
+        {/* Sistem İstatistikleri - Sayfa Boyunca İnce */}
+        <Grid item xs={12}>
+          <Card elevation={2} sx={{ borderRadius: 3, mb: 2 }}>
+            <CardContent sx={{ py: 2, px: 3 }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
+                {/* Başlık */}
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Avatar sx={{ bgcolor: 'success.main', width: 32, height: 32 }}>
+                    <AssessmentIcon fontSize="small" />
+                  </Avatar>
+                  <Typography variant="h6" fontWeight={600} color="text.primary">
+                    Sistem İstatistikleri
+                  </Typography>
+                </Box>
+
+                {/* İstatistik Kartları */}
+                <Box display="flex" gap={3} alignItems="center" flexWrap="wrap">
+                  {/* Çözüm Oranı */}
+                  <Box display="flex" alignItems="center" gap={2} 
+                    sx={{ 
+                      bgcolor: 'rgba(33, 150, 243, 0.08)', 
+                      borderRadius: 2, 
+                      px: 2, 
+                      py: 1,
+                      border: '1px solid rgba(33, 150, 243, 0.2)'
+                    }}
+                  >
+                    <Box textAlign="center">
+                      <Typography variant="h5" fontWeight="bold" color="primary.main">
+                        %{resolutionRate}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Çözüm Oranı
+                      </Typography>
+                    </Box>
+                    <Box sx={{ width: 60, height: 4 }}>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={resolutionRate} 
+                        sx={{ 
+                          height: 4, 
+                          borderRadius: 2,
+                          backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                          '& .MuiLinearProgress-bar': {
+                            backgroundColor: resolutionRate >= 90 ? '#4caf50' : 
+                                             resolutionRate >= 75 ? '#ff9800' : '#f44336'
+                          }
+                        }} 
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* Açık Sorunlar */}
+                  <Box display="flex" alignItems="center" gap={2}
+                    sx={{ 
+                      bgcolor: 'rgba(255, 152, 0, 0.08)', 
+                      borderRadius: 2, 
+                      px: 2, 
+                      py: 1,
+                      border: '1px solid rgba(255, 152, 0, 0.2)'
+                    }}
+                  >
+                    <Box textAlign="center">
+                      <Typography variant="h5" fontWeight="bold" color="warning.main">
+                        {openNonconformities.length}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Açık Sorun
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      / {totalNonconformities}
+                    </Typography>
+                  </Box>
+
+                  {/* Risk Seviyesi */}
+                  <Box display="flex" alignItems="center" gap={2}
+                    sx={{ 
+                      bgcolor: 'rgba(244, 67, 54, 0.08)', 
+                      borderRadius: 2, 
+                      px: 2, 
+                      py: 1,
+                      border: '1px solid rgba(244, 67, 54, 0.2)'
+                    }}
+                  >
+                    <Box textAlign="center">
+                      <Typography variant="h5" fontWeight="bold" color="error.main">
+                        {criticalSuppliers.length}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Yüksek Risk
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      / {totalSuppliers}
+                    </Typography>
+                  </Box>
+
+                  {/* Aktif Tedarikçi */}
+                  <Box display="flex" alignItems="center" gap={2}
+                    sx={{ 
+                      bgcolor: 'rgba(76, 175, 80, 0.08)', 
+                      borderRadius: 2, 
+                      px: 2, 
+                      py: 1,
+                      border: '1px solid rgba(76, 175, 80, 0.2)'
+                    }}
+                  >
+                    <Box textAlign="center">
+                      <Typography variant="h5" fontWeight="bold" color="success.main">
+                        {activeSuppliers.length}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Aktif Tedarikçi
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      / {totalSuppliers}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
         {/* Tedarikçi Performans Karşılaştırması - Tam Genişlik */}
         <Grid item xs={12}>
           <Card elevation={3} sx={{ borderRadius: 3 }}>
@@ -3295,116 +3421,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Card>
       </Grid>
 
-        {/* İstatistikler - Yatay Düzenleme */}
-        <Grid item xs={12} md={6}>
-          <Card elevation={3} sx={{ borderRadius: 3, height: '100%' }}>
-            <CardHeader 
-              title="Sistem İstatistikleri" 
-              titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-              sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c8 100%)' }}
-              avatar={
-                <Avatar sx={{ bgcolor: 'success.main' }}>
-                  <AssessmentIcon />
-                </Avatar>
-              }
-            />
-            <CardContent sx={{ p: 3 }}>
-              <Box 
-                display="flex" 
-                flexDirection={{ xs: 'column', sm: 'row' }} 
-                gap={2} 
-                height={{ xs: 'auto', sm: 350 }} 
-                alignItems="stretch"
-                justifyContent="space-between"
-              >
-                {/* Çözüm Oranı */}
-                <Box 
-                  flex={1} 
-                  textAlign="center" 
-                  p={2} 
-                  sx={{ 
-                    bgcolor: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)', 
-                    borderRadius: 3,
-                    border: '1px solid #e0e0e0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Typography variant="h3" fontWeight="bold" color="primary.main" mb={1}>
-                    %{resolutionRate}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={2}>
-                    Uygunsuzluk Çözüm Oranı
-                  </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={resolutionRate} 
-                    sx={{ 
-                      height: 8, 
-                      borderRadius: 4,
-                      backgroundColor: '#e0e0e0',
-                      '& .MuiLinearProgress-bar': {
-                        backgroundColor: resolutionRate >= 90 ? '#4caf50' : 
-                                         resolutionRate >= 75 ? '#ff9800' : '#f44336'
-                      }
-                    }} 
-                  />
-                </Box>
 
-                {/* Aktif Sorunlar */}
-                <Box 
-                  flex={1} 
-                  textAlign="center" 
-                  p={2} 
-                  sx={{ 
-                    bgcolor: 'linear-gradient(135deg, #fff3e0 0%, #ffecb3 100%)', 
-                    borderRadius: 3,
-                    border: '1px solid #e0e0e0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Typography variant="h3" fontWeight="bold" color="warning.main" mb={1}>
-                    {openNonconformities.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={1}>
-                    Açık Uygunsuzluk
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {totalNonconformities > 0 ? `${totalNonconformities} toplam` : 'Hiç kayıt yok'}
-                  </Typography>
-                </Box>
-
-                {/* Risk Seviyesi */}
-                <Box 
-                  flex={1} 
-                  textAlign="center" 
-                  p={2} 
-                  sx={{ 
-                    bgcolor: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)', 
-                    borderRadius: 3,
-                    border: '1px solid #e0e0e0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Typography variant="h3" fontWeight="bold" color="error.main" mb={1}>
-                    {criticalSuppliers.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={1}>
-                    Yüksek Risk Tedarikçi
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {totalSuppliers > 0 ? `${totalSuppliers} toplam` : 'Henüz tedarikçi yok'}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-        </Card>
-      </Grid>
 
 
     </Grid>
