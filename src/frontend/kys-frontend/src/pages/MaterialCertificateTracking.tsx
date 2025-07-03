@@ -2330,6 +2330,81 @@ const MaterialCertificateTracking: React.FC = () => {
     }
   };
 
+  // 🆕 Certificate Management Functions
+  const handleCertificateUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // File validation
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    
+    if (file.size > maxSize) {
+      showSnackbar('Dosya boyutu 10MB\'dan büyük olamaz', 'error');
+      return;
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      showSnackbar('Sadece PDF, JPG, JPEG, PNG formatları kabul edilir', 'error');
+      return;
+    }
+
+    // Convert file to base64 for storage
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      
+      const newCertificate: Certificate = {
+        id: generateId(),
+        fileName: file.name,
+        fileType: file.type,
+        uploadDate: new Date().toISOString(),
+        size: file.size,
+        url: base64 // Store base64 data
+      };
+
+      const updatedCertificates = [...(formData.certificates || []), newCertificate];
+      setFormData(prev => ({ ...prev, certificates: updatedCertificates }));
+      
+      showSnackbar(`✅ "${file.name}" başarıyla yüklendi`, 'success');
+    };
+
+    reader.onerror = () => {
+      showSnackbar('Dosya yükleme sırasında hata oluştu', 'error');
+    };
+
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    event.target.value = '';
+  };
+
+  const handleDownloadCertificate = (certificate: Certificate) => {
+    try {
+      // Create download link for base64 data
+      const link = document.createElement('a');
+      link.href = certificate.url;
+      link.download = certificate.fileName;
+      link.click();
+      
+      showSnackbar(`📁 "${certificate.fileName}" indiriliyor...`, 'info');
+    } catch (error) {
+      showSnackbar('Dosya indirme sırasında hata oluştu', 'error');
+    }
+  };
+
+  const handleDeleteCertificate = (index: number) => {
+    const certificate = formData.certificates?.[index];
+    if (!certificate) return;
+
+    // eslint-disable-next-line no-restricted-globals
+    if (window.confirm(`"${certificate.fileName}" dosyasını silmek istediğinizden emin misiniz?`)) {
+      const updatedCertificates = formData.certificates?.filter((_, i) => i !== index) || [];
+      setFormData(prev => ({ ...prev, certificates: updatedCertificates }));
+      showSnackbar(`🗑️ "${certificate.fileName}" silindi`, 'success');
+    }
+  };
+
   // Get available options for dropdowns
   const getSubCategories = () => {
     if (!selectedCategory) return [];
@@ -2483,7 +2558,10 @@ const MaterialCertificateTracking: React.FC = () => {
                   <TableCell sx={{ fontWeight: 'bold', width: '80px' }}>
                     Durum
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', width: '160px' }}>
+                  <TableCell sx={{ fontWeight: 'bold', width: '90px', textAlign: 'center' }}>
+                    Sertifikalar
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', width: '140px' }}>
                     İzlenebilirlik No
                   </TableCell>
                   <TableCell sx={{ fontWeight: 'bold', width: '90px', textAlign: 'center' }}>
@@ -2544,11 +2622,26 @@ const MaterialCertificateTracking: React.FC = () => {
                       sx={{ fontSize: '0.7rem', height: 22, minWidth: '60px' }}
                     />
                   </TableCell>
+                  <TableCell sx={{ textAlign: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                      <CertificateIcon 
+                        color={material.certificates && material.certificates.length > 0 ? 'primary' : 'disabled'} 
+                        fontSize="small" 
+                      />
+                      <Typography 
+                        variant="body2" 
+                        color={material.certificates && material.certificates.length > 0 ? 'primary.main' : 'text.disabled'}
+                        sx={{ fontWeight: 'bold' }}
+                      >
+                        {material.certificates?.length || 0}
+                      </Typography>
+                    </Box>
+                  </TableCell>
                   <TableCell sx={{ 
                     fontSize: '0.8rem',
                     color: 'text.secondary',
                     fontFamily: 'monospace',
-                    maxWidth: '160px',
+                    maxWidth: '140px',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap'
@@ -3320,35 +3413,113 @@ const MaterialCertificateTracking: React.FC = () => {
 
             {/* Certificates Tab */}
             <TabPanel value={tabValue} index={4}>
-              <Box sx={{ mb: 2 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<UploadIcon />}
-                  disabled={dialogType === 'view'}
-                  onClick={() => showSnackbar('Sertifika yükleme özelliği geliştirilecek', 'info')}
-                >
-                  Sertifika Yükle
-                </Button>
+              <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  style={{ display: 'none' }}
+                  id="certificate-upload"
+                  type="file"
+                  onChange={handleCertificateUpload}
+                />
+                <label htmlFor="certificate-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<UploadIcon />}
+                    disabled={dialogType === 'view'}
+                  >
+                    Sertifika Yükle (PDF/Resim)
+                  </Button>
+                </label>
+                {formData.certificates && formData.certificates.length > 0 && (
+                  <Typography variant="body2" color="success.main" sx={{ fontWeight: 'bold' }}>
+                    ✓ {formData.certificates.length} sertifika yüklendi
+                  </Typography>
+                )}
               </Box>
+              
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  • PDF, JPG, JPEG, PNG formatlarında dosya yükleyebilirsiniz
+                  • Maksimum dosya boyutu: 10MB
+                  • Malzeme sertifikaları, test raporları, analiz sonuçları kabul edilir
+                </Typography>
+              </Box>
+
               <List>
                 {formData.certificates?.map((cert, index) => (
-                  <ListItem key={index}>
+                  <ListItem 
+                    key={index}
+                    sx={{ 
+                      border: '1px solid', 
+                      borderColor: 'divider', 
+                      borderRadius: 1, 
+                      mb: 1,
+                      bgcolor: 'background.paper'
+                    }}
+                  >
                     <ListItemIcon>
-                      <CertificateIcon />
+                      <CertificateIcon color={cert.fileType === 'application/pdf' ? 'error' : 'primary'} />
                     </ListItemIcon>
                     <ListItemText
-                      primary={cert.fileName}
-                      secondary={`Yükleme tarihi: ${new Date(cert.uploadDate).toLocaleDateString('tr-TR')}`}
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="subtitle2">{cert.fileName}</Typography>
+                          <Chip 
+                            label={cert.fileType === 'application/pdf' ? 'PDF' : 'RESIM'} 
+                            size="small" 
+                            color={cert.fileType === 'application/pdf' ? 'error' : 'primary'}
+                          />
+                        </Box>
+                      }
+                      secondary={
+                        <Box>
+                          <Typography variant="caption" display="block">
+                            Yükleme tarihi: {new Date(cert.uploadDate).toLocaleString('tr-TR')}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Boyut: {(cert.size / 1024).toFixed(1)} KB
+                          </Typography>
+                        </Box>
+                      }
                     />
-                    <IconButton onClick={() => showSnackbar('Dosya indiriliyor...', 'info')}>
-                      <DownloadIcon />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <IconButton 
+                        onClick={() => handleDownloadCertificate(cert)}
+                        size="small"
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <DownloadIcon />
+                      </IconButton>
+                      {dialogType !== 'view' && (
+                        <IconButton 
+                          onClick={() => handleDeleteCertificate(index)}
+                          size="small"
+                          sx={{ color: 'error.main' }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      )}
+                    </Box>
                   </ListItem>
                 ))}
                 {(!formData.certificates || formData.certificates.length === 0) && (
-                  <Typography color="text.secondary" sx={{ p: 2 }}>
-                    Henüz sertifika yüklenmemiş
-                  </Typography>
+                  <Box sx={{ 
+                    p: 3, 
+                    textAlign: 'center', 
+                    border: '2px dashed', 
+                    borderColor: 'divider', 
+                    borderRadius: 2,
+                    bgcolor: 'grey.50'
+                  }}>
+                    <CertificateIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
+                    <Typography color="text.secondary" variant="h6">
+                      Henüz sertifika yüklenmemiş
+                    </Typography>
+                    <Typography color="text.secondary" variant="body2">
+                      Malzeme sertifikaları ve test raporlarını buraya yükleyebilirsiniz
+                    </Typography>
+                  </Box>
                 )}
               </List>
             </TabPanel>
