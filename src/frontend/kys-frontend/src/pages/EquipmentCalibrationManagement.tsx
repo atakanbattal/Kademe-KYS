@@ -4714,10 +4714,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '120px',
-                      minWidth: '120px'
+                      fontSize: '0.9rem',
+                      padding: '16px 12px',
+                      width: '140px',
+                      minWidth: '140px'
                     }}
                   >
                     Kod / Kritik
@@ -4727,10 +4727,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '200px',
-                      minWidth: '200px'
+                      fontSize: '0.9rem',
+                      padding: '16px 12px',
+                      width: '220px',
+                      minWidth: '220px'
                     }}
                   >
                     Ekipman Bilgileri
@@ -4740,10 +4740,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '140px',
-                      minWidth: '140px'
+                      fontSize: '0.9rem',
+                      padding: '16px 12px',
+                      width: '160px',
+                      minWidth: '160px'
                     }}
                   >
                     Lokasyon
@@ -4753,10 +4753,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '140px',
-                      minWidth: '140px'
+                      fontSize: '0.9rem',
+                      padding: '16px 12px',
+                      width: '160px',
+                      minWidth: '160px'
                     }}
                   >
                     Zimmet / Sorumlu
@@ -4766,10 +4766,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '180px',
-                      minWidth: '180px'
+                      fontSize: '0.9rem',
+                      padding: '16px 12px',
+                      width: '200px',
+                      minWidth: '200px'
                     }}
                   >
                     Ölçüm Aralığı / Belirsizlik
@@ -4779,10 +4779,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '100px',
-                      minWidth: '100px'
+                      fontSize: '0.9rem',
+                      padding: '16px 12px',
+                      width: '120px',
+                      minWidth: '120px'
                     }}
                   >
                     Durum
@@ -4792,10 +4792,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '130px',
-                      minWidth: '130px'
+                      fontSize: '0.9rem',
+                      padding: '16px 12px',
+                      width: '150px',
+                      minWidth: '150px'
                     }}
                   >
                     Sertifika No
@@ -4805,10 +4805,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '120px',
-                      minWidth: '120px'
+                      fontSize: '0.9rem',
+                      padding: '16px 12px',
+                      width: '140px',
+                      minWidth: '140px'
                     }}
                   >
                     Kalibrasyon
@@ -4818,23 +4818,10 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       color: 'white',
                       fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '150px',
-                      minWidth: '150px'
-                    }}
-                  >
-                    Bakım
-                  </TableCell>
-                  <TableCell 
-                    sx={{ 
-                      background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-                      color: 'white',
-                      fontWeight: 600,
-                      fontSize: '0.8rem',
-                      padding: '12px 8px',
-                      width: '160px',
-                      minWidth: '160px'
+                      fontSize: '0.9rem',
+                      padding: '16px 12px',
+                      width: '180px',
+                      minWidth: '180px'
                     }}
                   >
                     İşlemler
@@ -4882,7 +4869,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
                                   warningLevel === 'critical' ? '0 4px 12px rgba(244, 67, 54, 0.2)' :
                                   '0 4px 12px rgba(25, 118, 210, 0.15)'
                       },
-                      height: '64px',
+                      height: '80px',
                       ...(warningLevel === 'overdue' && {
                         animation: 'pulse 2s infinite',
                         '@keyframes pulse': {
@@ -4893,9 +4880,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       })
                     }}
                   >
-                    <TableCell sx={{ padding: '8px', borderLeft }}>
+                    <TableCell sx={{ padding: '12px', borderLeft }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.75rem' }}>
+                        <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                           {equipment.equipmentCode}
                         </Typography>
                         {equipment.criticalEquipment && (
@@ -4904,27 +4891,27 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             color="error" 
                             size="small" 
                             sx={{ 
-                              height: '16px', 
-                              fontSize: '0.6rem',
+                              height: '18px', 
+                              fontSize: '0.65rem',
                               fontWeight: 600,
-                              '& .MuiChip-label': { padding: '0 4px' }
+                              '& .MuiChip-label': { padding: '0 6px' }
                             }} 
                           />
                         )}
                 </Box>
                     </TableCell>
-                    <TableCell sx={{ padding: '8px' }}>
+                    <TableCell sx={{ padding: '12px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Tooltip title={equipment.name} placement="top">
                           <Typography 
                             variant="body2" 
                             fontWeight={500}
                             sx={{ 
-                              fontSize: '0.75rem',
+                              fontSize: '0.85rem',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
-                              maxWidth: '180px'
+                              maxWidth: '200px'
                             }}
                           >
                             {equipment.name}
@@ -4934,11 +4921,11 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           variant="caption" 
                           color="text.secondary"
                           sx={{ 
-                            fontSize: '0.65rem',
+                            fontSize: '0.7rem',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: '180px'
+                            maxWidth: '200px'
                           }}
                         >
                           {equipment.manufacturer} {equipment.model}
@@ -4948,24 +4935,24 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           size="small" 
                           variant="outlined"
                           sx={{ 
-                            height: '18px', 
-                            fontSize: '0.6rem',
-                            '& .MuiChip-label': { padding: '0 4px' }
+                            height: '20px', 
+                            fontSize: '0.65rem',
+                            '& .MuiChip-label': { padding: '0 6px' }
                           }}
                         />
                 </Box>
                     </TableCell>
-                    <TableCell sx={{ padding: '8px' }}>
+                    <TableCell sx={{ padding: '12px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography 
                           variant="body2" 
                           sx={{ 
-                            fontSize: '0.75rem',
+                            fontSize: '0.85rem',
                             fontWeight: 500,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: '120px'
+                            maxWidth: '140px'
                           }}
                         >
                           {equipment.location}
@@ -4974,28 +4961,28 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           variant="caption" 
                           color="text.secondary"
                           sx={{ 
-                            fontSize: '0.65rem',
+                            fontSize: '0.7rem',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: '120px'
+                            maxWidth: '140px'
                           }}
                         >
                           {equipment.department}
                         </Typography>
                 </Box>
                     </TableCell>
-                    <TableCell sx={{ padding: '8px' }}>
+                    <TableCell sx={{ padding: '12px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                       <Typography 
                         variant="body2" 
                           fontWeight={600}
                         sx={{ 
-                          fontSize: '0.75rem',
+                          fontSize: '0.85rem',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
-                            maxWidth: '120px',
+                            maxWidth: '140px',
                             color: 'primary.main'
                         }}
                       >
@@ -5005,28 +4992,28 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           variant="caption" 
                           color="text.secondary"
                           sx={{ 
-                            fontSize: '0.65rem',
+                            fontSize: '0.7rem',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: '120px'
+                            maxWidth: '140px'
                           }}
                         >
                           Sicil: {equipment.responsiblePersonSicilNo || 'N/A'}
                         </Typography>
                 </Box>
                     </TableCell>
-                    <TableCell sx={{ padding: '8px' }}>
+                    <TableCell sx={{ padding: '12px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Tooltip title={equipment.measurementRange || 'Belirtilmemiş'} placement="top">
                           <Typography 
                             variant="body2" 
                             sx={{ 
-                              fontSize: '0.75rem',
+                              fontSize: '0.85rem',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
-                              maxWidth: '160px',
+                              maxWidth: '180px',
                               fontWeight: 500
                             }}
                           >
@@ -5037,19 +5024,19 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           variant="caption" 
                           color="warning.main"
                           sx={{ 
-                            fontSize: '0.65rem',
+                            fontSize: '0.7rem',
                             fontWeight: 600,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: '160px'
+                            maxWidth: '180px'
                           }}
                         >
                           ± {equipment.measurementUncertainty || 'N/A'}
                         </Typography>
                 </Box>
                     </TableCell>
-                    <TableCell sx={{ padding: '8px' }}>
+                    <TableCell sx={{ padding: '12px' }}>
                       <StatusChip
                         label={
                           equipment.status === 'active' ? 'Aktif' :
@@ -5061,24 +5048,24 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         size="small"
                         icon={getStatusIcon(equipment.status)}
                         sx={{ 
-                          height: '24px',
-                          fontSize: '0.65rem',
-                          '& .MuiChip-label': { padding: '0 6px' },
-                          '& .MuiChip-icon': { fontSize: '12px' }
+                          height: '26px',
+                          fontSize: '0.75rem',
+                          '& .MuiChip-label': { padding: '0 8px' },
+                          '& .MuiChip-icon': { fontSize: '14px' }
                         }}
                       />
                     </TableCell>
-                    <TableCell sx={{ padding: '8px' }}>
+                    <TableCell sx={{ padding: '12px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Typography 
                           variant="body2" 
                           sx={{ 
-                            fontSize: '0.75rem',
+                            fontSize: '0.85rem',
                             fontWeight: 600,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: '110px',
+                            maxWidth: '130px',
                             color: equipment.lastCalibrationCertificateNumber ? 'primary.main' : 'text.disabled'
                           }}
                         >
@@ -5088,18 +5075,18 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           variant="caption" 
                           color="text.secondary"
                           sx={{ 
-                            fontSize: '0.65rem',
+                            fontSize: '0.7rem',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: '110px'
+                            maxWidth: '130px'
                           }}
                         >
                           {equipment.calibrationCompany || 'Belirtilmemiş'}
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell sx={{ padding: '8px' }}>
+                    <TableCell sx={{ padding: '12px' }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <StatusChip
                           label={
@@ -5111,17 +5098,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           size="small"
                           icon={getStatusIcon(equipment.calibrationStatus)}
                           sx={{ 
-                            height: '20px',
-                            fontSize: '0.6rem',
-                            '& .MuiChip-label': { padding: '0 4px' },
-                            '& .MuiChip-icon': { fontSize: '10px' }
+                            height: '22px',
+                            fontSize: '0.7rem',
+                            '& .MuiChip-label': { padding: '0 6px' },
+                            '& .MuiChip-icon': { fontSize: '12px' }
                           }}
                         />
                         <Typography 
                           variant="caption" 
                           color="text.secondary" 
                           sx={{ 
-                            fontSize: '0.6rem',
+                            fontSize: '0.7rem',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap'
@@ -5131,38 +5118,9 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         </Typography>
                 </Box>
                     </TableCell>
-                    <TableCell sx={{ padding: '8px' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <StatusChip
-                          label={
-                            'İyi'
-                          }
-                          statustype="good"
-                          size="small"
-                          icon={getStatusIcon("good")}
-                          sx={{ 
-                            height: '20px',
-                            fontSize: '0.6rem',
-                            '& .MuiChip-label': { padding: '0 4px' },
-                            '& .MuiChip-icon': { fontSize: '10px' }
-                          }}
-                        />
-                        <Typography 
-                          variant="caption" 
-                          color="text.secondary" 
-                          sx={{ 
-                            fontSize: '0.6rem',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          "-"
-                        </Typography>
-                </Box>
-                    </TableCell>
-                    <TableCell sx={{ padding: '8px' }}>
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+
+                                          <TableCell sx={{ padding: '12px' }}>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                         <Tooltip title="Görüntüle">
                           <IconButton 
                             size="small" 
