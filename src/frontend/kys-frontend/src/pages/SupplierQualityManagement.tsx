@@ -320,6 +320,9 @@ const SupplierQualityManagement: React.FC = () => {
   const [pairingCategoryFilter, setPairingCategoryFilter] = useState('all');
   const [pairingStatusFilter, setPairingStatusFilter] = useState('all'); // primary-missing, alternatives-only, complete
 
+  // Performans karşılaştırması filtresi
+  const [performanceFilter, setPerformanceFilter] = useState<'all' | 'top10' | 'worst10'>('all');
+
   // Supplier switch dialog states
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
   const [selectedPairForSwitch, setSelectedPairForSwitch] = useState<SupplierPair | null>(null);
@@ -2702,15 +2705,28 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     
     // Performans karşılaştırması için tedarikçiler - sadece değerlendirilmiş aktif tedarikçiler
     // %0 değerler de N/A kabul ediliyor
-    const performanceData = suppliers
+    const filteredSuppliers = suppliers
       .filter(s => s.status === 'aktif' && s.performanceScore > 0 && s.qualityScore > 0 && s.deliveryScore > 0) // Tüm N/A değerleri (%0 dahil) hariç
-      .slice(0, 8) // En fazla 8 tedarikçi göster
-      .map(s => ({
-        name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
-        kalite: s.qualityScore,
-        teslimat: s.deliveryScore,
-        genel: s.performanceScore
-      }));
+      .sort((a, b) => b.performanceScore - a.performanceScore); // Performansa göre sırala
+      
+    let performanceData = filteredSuppliers;
+    
+    // Filtreye göre veri seçimi
+    if (performanceFilter === 'top10') {
+      performanceData = filteredSuppliers.slice(0, 10); // En iyi 10
+    } else if (performanceFilter === 'worst10') {
+      performanceData = filteredSuppliers.slice(-10).reverse(); // En kötü 10 (ters sıralı)
+    } else {
+      performanceData = filteredSuppliers.slice(0, 8); // Tümü (mevcut 8 limit)
+    }
+    
+    // Chart için veri hazırlama
+    const chartData = performanceData.map(s => ({
+      name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
+      kalite: s.qualityScore,
+      teslimat: s.deliveryScore,
+      genel: s.performanceScore
+    }));
 
     return (
     <Grid container spacing={3}>
@@ -2986,12 +3002,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           <CardContent sx={{ p: 4 }}>
               {performanceData.length > 0 ? (
                 <Box>
-                  {/* Performans Özeti */}
+                  {/* Performans Özeti ve Filtre Butonları */}
                   <Box mb={4} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
                     <Box display="flex" alignItems="center" gap={4}>
                       <Box textAlign="center">
                         <Typography variant="h4" fontWeight="bold" color="primary.main">
-                          {Math.round(performanceData.reduce((acc, item) => acc + item.genel, 0) / performanceData.length)}%
+                          {Math.round(chartData.reduce((acc, item) => acc + item.genel, 0) / chartData.length)}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Ortalama Genel Performans
@@ -2999,7 +3015,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       </Box>
                       <Box textAlign="center">
                         <Typography variant="h4" fontWeight="bold" color="info.main">
-                          {Math.round(performanceData.reduce((acc, item) => acc + item.kalite, 0) / performanceData.length)}%
+                          {Math.round(chartData.reduce((acc, item) => acc + item.kalite, 0) / chartData.length)}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Ortalama Kalite Skoru
@@ -3007,12 +3023,43 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       </Box>
                       <Box textAlign="center">
                         <Typography variant="h4" fontWeight="bold" color="success.main">
-                          {Math.round(performanceData.reduce((acc, item) => acc + item.teslimat, 0) / performanceData.length)}%
+                          {Math.round(chartData.reduce((acc, item) => acc + item.teslimat, 0) / chartData.length)}%
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Ortalama Teslimat Skoru
                         </Typography>
                       </Box>
+                    </Box>
+                    
+                    {/* Filtre Butonları */}
+                    <Box display="flex" gap={1}>
+                      <Button
+                        variant={performanceFilter === 'all' ? 'contained' : 'outlined'}
+                        color="primary"
+                        size="small"
+                        onClick={() => setPerformanceFilter('all')}
+                        sx={{ minWidth: 80 }}
+                      >
+                        Tümü
+                      </Button>
+                      <Button
+                        variant={performanceFilter === 'top10' ? 'contained' : 'outlined'}
+                        color="success"
+                        size="small"
+                        onClick={() => setPerformanceFilter('top10')}
+                        sx={{ minWidth: 80 }}
+                      >
+                        Top 10
+                      </Button>
+                      <Button
+                        variant={performanceFilter === 'worst10' ? 'contained' : 'outlined'}
+                        color="error"
+                        size="small"
+                        onClick={() => setPerformanceFilter('worst10')}
+                        sx={{ minWidth: 80 }}
+                      >
+                        En Kötü 10
+                      </Button>
                     </Box>
                   </Box>
 
@@ -3025,7 +3072,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart 
-                        data={performanceData} 
+                        data={chartData} 
                         margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
                         barCategoryGap="15%"
                       >
@@ -3119,16 +3166,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           </TableHead>
                           <TableBody>
                             {performanceData
-                              .sort((a, b) => b.genel - a.genel)
+                              .sort((a, b) => b.performanceScore - a.performanceScore)
                               .map((supplier, index) => {
                                 const isTopPerformer = index === 0;
-                                const supplierFullName = suppliers.find(s => 
-                                  (s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name) === supplier.name
-                                )?.name || supplier.name;
+                                const supplierFullName = supplier.name;
                                 
                                 return (
                                   <TableRow 
-                                    key={supplier.name}
+                                    key={supplier.id}
                                     hover
                                     sx={{ 
                                       bgcolor: isTopPerformer ? 'rgba(33, 150, 243, 0.04)' : 'inherit',
@@ -3167,34 +3212,34 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                     <TableCell>
                                       <Box>
                                         <Typography variant="body1" fontWeight={500}>
-                                          {supplierFullName}
+                                          {supplier.name.length > 20 ? supplier.name.substring(0, 20) + '...' : supplier.name}
                                         </Typography>
                                         <Typography variant="caption" color="text.secondary">
-                                          {suppliers.find(s => supplierFullName === s.name)?.category || 'Genel'}
+                                          {supplier.category}
                                         </Typography>
                                       </Box>
                                     </TableCell>
                                     <TableCell align="center">
                                       <Box display="flex" flexDirection="column" alignItems="center">
                                         <Typography variant="h6" fontWeight={600} color={
-                                          supplier.genel >= 90 ? 'success.main' :
-                                          supplier.genel >= 75 ? 'info.main' :
-                                          supplier.genel >= 60 ? 'warning.main' : 'error.main'
+                                          supplier.performanceScore >= 90 ? 'success.main' :
+                                          supplier.performanceScore >= 75 ? 'info.main' :
+                                          supplier.performanceScore >= 60 ? 'warning.main' : 'error.main'
                                         }>
-                                          {supplier.genel}%
+                                          {supplier.performanceScore}%
                                         </Typography>
                                         <LinearProgress 
                                           variant="determinate" 
-                                          value={supplier.genel} 
+                                          value={supplier.performanceScore} 
                                           sx={{ 
                                             width: 60,
                                             height: 4,
                                             borderRadius: 2,
                                             bgcolor: 'grey.200',
                                             '& .MuiLinearProgress-bar': {
-                                              bgcolor: supplier.genel >= 90 ? '#4caf50' :
-                                                       supplier.genel >= 75 ? '#2196f3' :
-                                                       supplier.genel >= 60 ? '#ff9800' : '#f44336'
+                                              bgcolor: supplier.performanceScore >= 90 ? '#4caf50' :
+                                                       supplier.performanceScore >= 75 ? '#2196f3' :
+                                                       supplier.performanceScore >= 60 ? '#ff9800' : '#f44336'
                                             }
                                           }} 
                                         />
@@ -3202,25 +3247,25 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                     </TableCell>
                                     <TableCell align="center">
                                       <Typography variant="body2" fontWeight={500}>
-                                        {supplier.kalite}%
+                                        {supplier.qualityScore}%
                                       </Typography>
                                     </TableCell>
                                     <TableCell align="center">
                                       <Typography variant="body2" fontWeight={500}>
-                                        {supplier.teslimat}%
+                                        {supplier.deliveryScore}%
                                       </Typography>
                                     </TableCell>
                                     <TableCell align="center">
                                       <Chip 
                                         label={
-                                          supplier.genel >= 90 ? 'Mükemmel' :
-                                          supplier.genel >= 75 ? 'İyi' :
-                                          supplier.genel >= 60 ? 'Orta' : 'Zayıf'
+                                          supplier.performanceScore >= 90 ? 'Mükemmel' :
+                                          supplier.performanceScore >= 75 ? 'İyi' :
+                                          supplier.performanceScore >= 60 ? 'Orta' : 'Zayıf'
                                         }
                                         color={
-                                          supplier.genel >= 90 ? 'success' :
-                                          supplier.genel >= 75 ? 'info' :
-                                          supplier.genel >= 60 ? 'warning' : 'error'
+                                          supplier.performanceScore >= 90 ? 'success' :
+                                          supplier.performanceScore >= 75 ? 'info' :
+                                          supplier.performanceScore >= 60 ? 'warning' : 'error'
                                         }
                                         variant={isTopPerformer ? 'filled' : 'outlined'}
                                         size="small"
