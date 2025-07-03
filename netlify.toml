@@ -21,4 +21,7 @@
 
 [context.deploy-preview.environment]
   REACT_APP_API_URL = "$REACT_APP_API_URL"
-  REACT_APP_NODE_ENV = "development" 
+  REACT_APP_NODE_ENV = "development"
+
+# DEPLOYMENT TRIGGER - 2024-12-23 15:30:00 UTC
+# Critical data loss fix applied - no more setTimeout issues 

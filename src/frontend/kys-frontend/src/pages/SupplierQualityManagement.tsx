@@ -315,7 +315,7 @@ const SupplierQualityManagement: React.FC = () => {
 
   // localStorage Protection System - Component mount/unmount koruma
   useEffect(() => {
-    console.log('🛡️ SupplierQualityManagement component MOUNT - localStorage koruması aktif');
+    console.log('🛡️ SupplierQualityManagement component MOUNT - localStorage koruması aktif - VERSION 2.0.0 DEPLOYED');
     
     // Component mount olduğunda localStorage'ı backup'la
     const backupData = () => {
