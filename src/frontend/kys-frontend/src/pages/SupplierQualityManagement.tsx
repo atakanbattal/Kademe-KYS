@@ -280,6 +280,7 @@ const SupplierQualityManagement: React.FC = () => {
   const [selectedAuditForExecution, setSelectedAuditForExecution] = useState<AuditRecord | null>(null);
   const [auditScore, setAuditScore] = useState<number>(0);
   const [auditFindings, setAuditFindings] = useState<string>('');
+  const [auditActualDate, setAuditActualDate] = useState<string>('');
   
   // Auto-audit settings
   const [autoAuditEnabled, setAutoAuditEnabled] = useState(true);
@@ -1725,51 +1726,59 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     setSelectedAuditForExecution(audit);
     setAuditScore(0);
     setAuditFindings('');
+    setAuditActualDate(new Date().toISOString().split('T')[0]); // Bugünü default olarak ayarla
     setAuditExecutionDialogOpen(true);
   };
 
   const handleSaveAuditExecution = () => {
-    if (selectedAuditForExecution && auditScore > 0) {
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Denetim kaydını güncelle
-      const updatedAudits = audits.map(audit => 
-        audit.id === selectedAuditForExecution.id 
-          ? { 
-              ...audit, 
-              status: 'tamamlandı' as const,
-              actualAuditDate: today,
-              score: auditScore,
-              findings: auditFindings ? auditFindings.split('\n').filter(f => f.trim()) : []
-            }
-          : audit
-      );
-      setAudits(updatedAudits);
-
-      // Tedarikçi performans puanını güncelle
-      const supplier = suppliers.find(s => s.id === selectedAuditForExecution.supplierId);
-      if (supplier) {
-        const updatedSuppliers = suppliers.map(s => 
-          s.id === supplier.id 
-            ? { 
-                ...s, 
-                performanceScore: auditScore,
-                lastAuditDate: today,
-                auditStatus: 'tamamlandı' as const,
-                status: 'aktif' as const // Denetim tamamlandığında aktif yap
-              }
-            : s
-        );
-        setSuppliers(updatedSuppliers);
-        showSnackbar(`${supplier.name} denetimi başarıyla tamamlandı`, 'success');
-      }
-
-      // Dialog'u kapat
-      setAuditExecutionDialogOpen(false);
-      setSelectedAuditForExecution(null);
-      setAuditScore(0);
-      setAuditFindings('');
+    if (!selectedAuditForExecution || auditScore === 0) {
+      showSnackbar('Lütfen geçerli bir puan girin', 'error');
+      return;
     }
+
+    if (!auditActualDate) {
+      showSnackbar('Lütfen denetim gerçekleşme tarihini seçin', 'error');
+      return;
+    }
+      
+    // Denetim kaydını güncelle
+    const updatedAudits = audits.map(audit => 
+      audit.id === selectedAuditForExecution.id 
+        ? { 
+            ...audit, 
+            status: 'tamamlandı' as const,
+            actualAuditDate: auditActualDate, // Seçilen gerçekleşme tarihini kullan
+            score: auditScore,
+            findings: auditFindings ? auditFindings.split('\n').filter(f => f.trim()) : []
+          }
+        : audit
+    );
+    setAudits(updatedAudits);
+
+    // Tedarikçi performans puanını güncelle
+    const supplier = suppliers.find(s => s.id === selectedAuditForExecution.supplierId);
+    if (supplier) {
+      const updatedSuppliers = suppliers.map(s => 
+        s.id === supplier.id 
+          ? { 
+              ...s, 
+              performanceScore: auditScore,
+              lastAuditDate: auditActualDate, // Seçilen gerçekleşme tarihini kullan
+              auditStatus: 'tamamlandı' as const,
+              status: 'aktif' as const // Denetim tamamlandığında aktif yap
+            }
+          : s
+      );
+      setSuppliers(updatedSuppliers);
+      showSnackbar(`${supplier.name} denetimi başarıyla tamamlandı`, 'success');
+    }
+
+    // Dialog'u kapat ve form'u temizle
+    setAuditExecutionDialogOpen(false);
+    setSelectedAuditForExecution(null);
+    setAuditScore(0);
+    setAuditFindings('');
+    setAuditActualDate('');
   };
 
   const handleEditItem = (item: any, type: string) => {
@@ -7642,6 +7651,18 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     <Typography variant="h6" gutterBottom>
                       Denetim Sonuçları
                     </Typography>
+
+                    {/* Gerçekleşme Tarihi */}
+                    <TextField
+                      fullWidth
+                      type="date"
+                      label="Denetim Gerçekleşme Tarihi"
+                      value={auditActualDate}
+                      onChange={(e) => setAuditActualDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ mb: 3 }}
+                      helperText="Denetimin gerçekten yapıldığı tarihi seçin"
+                    />
                     
                     <FormControl fullWidth sx={{ mb: 3 }}>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -7710,6 +7731,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 setSelectedAuditForExecution(null);
                 setAuditScore(0);
                 setAuditFindings('');
+                setAuditActualDate('');
               }} 
               color="inherit"
             >
@@ -7719,7 +7741,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               onClick={handleSaveAuditExecution} 
               variant="contained" 
               color="success"
-              disabled={auditScore === 0}
+              disabled={auditScore === 0 || !auditActualDate}
               startIcon={<AssignmentTurnedInIcon />}
             >
               Denetimi Tamamla
