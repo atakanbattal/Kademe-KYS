@@ -285,6 +285,10 @@ const SupplierQualityManagement: React.FC = () => {
   const [delayDays, setDelayDays] = useState<number>(0);
   const [isDelayed, setIsDelayed] = useState<boolean>(false);
   
+  // Audit details view dialog
+  const [auditDetailsDialogOpen, setAuditDetailsDialogOpen] = useState(false);
+  const [selectedAuditForView, setSelectedAuditForView] = useState<AuditRecord | null>(null);
+  
   // Auto-audit settings
   const [autoAuditEnabled, setAutoAuditEnabled] = useState(true);
   const [auditInterval, setAuditInterval] = useState(90); // days
@@ -1763,6 +1767,12 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         setAuditDelayReason('');
       }
     }
+  };
+
+  // Denetim detaylarını görüntüleme fonksiyonu
+  const handleViewAuditDetails = (audit: AuditRecord) => {
+    setSelectedAuditForView(audit);
+    setAuditDetailsDialogOpen(true);
   };
 
   const handleSaveAuditExecution = () => {
@@ -4907,11 +4917,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                   <IconButton 
                                     size="small" 
                                     color="info"
-                                    onClick={() => {
-                                      // Denetim detaylarını göster
-                                      console.log('Audit details:', audit);
-                                      showSnackbar(`${supplier?.name || 'Tedarikçi'} denetim detayları görüntüleniyor`, 'info');
-                                    }}
+                                    onClick={() => handleViewAuditDetails(audit)}
                                     sx={{ 
                                       width: 28, 
                                       height: 28,
@@ -7833,6 +7839,250 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             >
               Denetimi Tamamla
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Denetim Detayları Görüntüleme Dialog */}
+        <Dialog 
+          open={auditDetailsDialogOpen} 
+          onClose={() => setAuditDetailsDialogOpen(false)} 
+          maxWidth="lg" 
+          fullWidth
+        >
+          <DialogTitle>
+            <Box display="flex" alignItems="center" gap={1}>
+              <ViewIcon color="info" />
+              Denetim Detayları
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2 }}>
+              {selectedAuditForView && (
+                <>
+                  {/* Temel Bilgiler */}
+                  <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50' }}>
+                    <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
+                      🏢 Temel Bilgiler
+                    </Typography>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Denetim ID:</Typography>
+                          <Typography variant="body1" fontWeight="600">{selectedAuditForView.id}</Typography>
+                        </Box>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Tedarikçi:</Typography>
+                          <Typography variant="body1" fontWeight="600">
+                            {suppliers.find(s => s.id === selectedAuditForView.supplierId)?.name || 'Bilinmiyor'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Denetim Türü:</Typography>
+                          <Chip 
+                            label={
+                              selectedAuditForView.auditType === 'planlı' ? 'Planlı Denetim' :
+                              selectedAuditForView.auditType === 'ani' ? 'Ani Denetim' :
+                              selectedAuditForView.auditType === 'takip' ? 'Takip Denetimi' :
+                              selectedAuditForView.auditType === 'acil' ? 'Acil Denetim' : 'Kapsamlı Denetim'
+                            }
+                            color="primary"
+                            size="small"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Denetçi:</Typography>
+                          <Typography variant="body1" fontWeight="600">{selectedAuditForView.auditorName}</Typography>
+                        </Box>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Durum:</Typography>
+                          <Chip 
+                            label={
+                              selectedAuditForView.status === 'planlı' ? 'Planlı' :
+                              selectedAuditForView.status === 'devam_ediyor' ? 'Devam Ediyor' :
+                              selectedAuditForView.status === 'tamamlandı' ? 'Tamamlandı' :
+                              selectedAuditForView.status === 'gecikmiş' ? 'Gecikmiş' : 'İptal'
+                            }
+                            color={
+                              selectedAuditForView.status === 'tamamlandı' ? 'success' :
+                              selectedAuditForView.status === 'devam_ediyor' ? 'info' :
+                              selectedAuditForView.status === 'gecikmiş' ? 'error' :
+                              selectedAuditForView.status === 'planlı' ? 'warning' : 'default'
+                            }
+                            size="small"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        </Box>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Otomatik Planlandı:</Typography>
+                          <Chip 
+                            label={selectedAuditForView.isAutoScheduled ? 'Evet' : 'Hayır'}
+                            color={selectedAuditForView.isAutoScheduled ? 'success' : 'default'}
+                            size="small"
+                          />
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+
+                  {/* Tarih Bilgileri */}
+                  <Paper sx={{ p: 3, mb: 3, bgcolor: 'info.50' }}>
+                    <Typography variant="h6" gutterBottom sx={{ color: 'info.main' }}>
+                      📅 Tarih Bilgileri
+                    </Typography>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ textAlign: 'center', p: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Planlanan Tarih</Typography>
+                          <Typography variant="h6" fontWeight="600" color="primary.main">
+                            {new Date(selectedAuditForView.auditDate).toLocaleDateString('tr-TR')}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ textAlign: 'center', p: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Gerçekleşen Tarih</Typography>
+                          <Typography variant="h6" fontWeight="600" color={selectedAuditForView.actualAuditDate ? 'success.main' : 'text.disabled'}>
+                            {selectedAuditForView.actualAuditDate ? 
+                              new Date(selectedAuditForView.actualAuditDate).toLocaleDateString('tr-TR') : 
+                              'Henüz gerçekleştirilmedi'
+                            }
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ textAlign: 'center', p: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Sonraki Denetim</Typography>
+                          <Typography variant="h6" fontWeight="600" color="warning.main">
+                            {new Date(selectedAuditForView.nextAuditDate).toLocaleDateString('tr-TR')}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+
+                    {/* Gecikme Bilgileri */}
+                    {selectedAuditForView.isDelayed && (
+                      <Alert severity="warning" sx={{ mt: 2 }}>
+                        <Typography variant="body2" fontWeight="600">
+                          ⚠️ Bu denetim {selectedAuditForView.delayDays} gün gecikmiştir
+                        </Typography>
+                        {selectedAuditForView.delayReason && (
+                          <Typography variant="body2" sx={{ mt: 1 }}>
+                            <strong>Gecikme Açıklaması:</strong> {selectedAuditForView.delayReason}
+                          </Typography>
+                        )}
+                      </Alert>
+                    )}
+                  </Paper>
+
+                  {/* Sonuçlar */}
+                  {selectedAuditForView.status === 'tamamlandı' && (
+                    <Paper sx={{ p: 3, mb: 3, bgcolor: 'success.50' }}>
+                      <Typography variant="h6" gutterBottom sx={{ color: 'success.main' }}>
+                        📊 Denetim Sonuçları
+                      </Typography>
+                      <Grid container spacing={3}>
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ textAlign: 'center', p: 2 }}>
+                            <Typography variant="body2" color="text.secondary">Denetim Puanı</Typography>
+                            <Typography variant="h4" fontWeight="700" color="success.main">
+                              {selectedAuditForView.score}/100
+                            </Typography>
+                            <Chip 
+                              label={
+                                selectedAuditForView.score >= 90 ? 'A Sınıfı (Mükemmel)' :
+                                selectedAuditForView.score >= 75 ? 'B Sınıfı (İyi)' :
+                                selectedAuditForView.score >= 60 ? 'C Sınıfı (Orta)' : 'D Sınıfı (Zayıf)'
+                              }
+                              color={
+                                selectedAuditForView.score >= 90 ? 'success' :
+                                selectedAuditForView.score >= 75 ? 'info' :
+                                selectedAuditForView.score >= 60 ? 'warning' : 'error'
+                              }
+                              sx={{ mt: 1, fontWeight: 600 }}
+                            />
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ p: 2 }}>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              Denetim Bulguları
+                            </Typography>
+                            {selectedAuditForView.findings && selectedAuditForView.findings.length > 0 ? (
+                              <Box sx={{ 
+                                maxHeight: 150, 
+                                overflow: 'auto',
+                                bgcolor: 'white',
+                                p: 2,
+                                borderRadius: 1,
+                                border: '1px solid',
+                                borderColor: 'grey.300'
+                              }}>
+                                {selectedAuditForView.findings.map((finding, index) => (
+                                  <Typography key={index} variant="body2" sx={{ mb: 1 }}>
+                                    • {finding}
+                                  </Typography>
+                                ))}
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                                Herhangi bir bulgu kaydedilmemiş
+                              </Typography>
+                            )}
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  )}
+
+                  {/* Planlı denetimler için ek bilgi */}
+                  {selectedAuditForView.status === 'planlı' && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        💡 Bu denetim henüz gerçekleştirilmemiştir. İşlemler kısmından "Denetimi Gerçekleştir" butonuna tıklayarak denetimi başlatabilirsiniz.
+                      </Typography>
+                    </Alert>
+                  )}
+                </>
+              )}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAuditDetailsDialogOpen(false)} color="inherit">
+              Kapat
+            </Button>
+            {selectedAuditForView?.status === 'planlı' && (
+              <Button 
+                onClick={() => {
+                  setAuditDetailsDialogOpen(false);
+                  if (selectedAuditForView) {
+                    handleExecuteAudit(selectedAuditForView);
+                  }
+                }} 
+                variant="contained" 
+                color="success"
+                startIcon={<AssignmentTurnedInIcon />}
+              >
+                Denetimi Gerçekleştir
+              </Button>
+            )}
+            {selectedAuditForView?.status === 'tamamlandı' && (
+              <Button 
+                onClick={() => {
+                  setAuditDetailsDialogOpen(false);
+                  if (selectedAuditForView) {
+                    handleEditItem(selectedAuditForView, 'audit');
+                  }
+                }} 
+                variant="outlined" 
+                color="primary"
+                startIcon={<EditIcon />}
+              >
+                Düzenle
+              </Button>
+            )}
           </DialogActions>
         </Dialog>
 
