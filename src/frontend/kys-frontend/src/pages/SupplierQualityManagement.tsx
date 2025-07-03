@@ -6,7 +6,7 @@ import {
   TableRow, Tabs, Tab, Avatar, Grid, IconButton, Tooltip, Alert, Snackbar,
   List, ListItem, ListItemText, ListItemIcon, Switch, FormControlLabel,
   Accordion, AccordionSummary, AccordionDetails, Badge, Divider, Checkbox,
-  CircularProgress, Autocomplete, LinearProgress
+  CircularProgress, Autocomplete, LinearProgress, ButtonGroup, TablePagination
 } from '@mui/material';
 import {
   Business as BusinessIcon, Add as AddIcon, Dashboard as DashboardIcon,
@@ -15,9 +15,8 @@ import {
   BugReport as BugReportIcon, Report as ReportIcon, CheckCircle as CheckCircleIcon,
   SwapHoriz as SwapHorizIcon, Visibility as ViewIcon, ExpandMore as ExpandMoreIcon,
   TrendingUp as TrendingUpIcon, Security as SecurityIcon, Star as StarIcon,
-  Search as SearchIcon, Error as ErrorIcon, FilterList as FilterListIcon,
-  TrendingDown as TrendingDownIcon, AccessTime as AccessTimeIcon,
-  NotificationsActive as NotificationsActiveIcon
+  Search as SearchIcon, Error as ErrorIcon, FileDownload as FileDownloadIcon,
+  ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon, Info as InfoIcon
 } from '@mui/icons-material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
@@ -288,12 +287,22 @@ const SupplierQualityManagement: React.FC = () => {
     severity: 'success' as 'success' | 'error' | 'warning' | 'info'
   });
 
-  // Search and filter states
+  // Search and filter states - Tedarikçi Listesi
   const [searchTerm, setSearchTerm] = useState('');
   const [supplierTypeFilter, setSupplierTypeFilter] = useState('all');
+  const [supplierCategoryFilter, setSupplierCategoryFilter] = useState('all');
+  const [supplierStatusFilter, setSupplierStatusFilter] = useState('all');
+  const [supplierRiskFilter, setSupplierRiskFilter] = useState('all');
+  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortColumn, setSortColumn] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
-  // Performance chart filter state
-  const [performanceFilter, setPerformanceFilter] = useState<'top5' | 'bottom5' | 'recent5' | 'risk5' | 'all'>('top5');
+  // Search and filter states - Tedarikçi Eşleştirme
+  const [pairingSearchTerm, setPairingSearchTerm] = useState('');
+  const [pairingCategoryFilter, setPairingCategoryFilter] = useState('all');
+  const [pairingStatusFilter, setPairingStatusFilter] = useState('all'); // primary-missing, alternatives-only, complete
 
   // Supplier switch dialog states
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
@@ -304,34 +313,68 @@ const SupplierQualityManagement: React.FC = () => {
   const [dataLoaded, setDataLoaded] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  // ✅ Sadeleştirilmiş başlangıç - Veri yükleme
+  // localStorage Protection System - Component mount/unmount koruma
   useEffect(() => {
-    console.log('🛡️ SupplierQualityManagement component MOUNT - veri yükleniyor');
+    console.log('🛡️ SupplierQualityManagement component MOUNT - localStorage koruması aktif');
+    
+    // Component mount olduğunda localStorage'ı backup'la
+    const backupData = () => {
+      const currentSuppliers = localStorage.getItem('suppliers');
+      if (currentSuppliers && currentSuppliers !== '[]' && currentSuppliers !== 'null') {
+        localStorage.setItem('suppliers-backup', currentSuppliers);
+        console.log('💾 Tedarikçi verileri backup\'landı');
+      }
+    };
+    
+    backupData();
     loadStoredData();
+    
+    // Component unmount olduğunda cleanup
+    return () => {
+      console.log('🛡️ SupplierQualityManagement component UNMOUNT - veri koruması');
+      // Unmount sırasında localStorage'ı koruma
+      const currentData = localStorage.getItem('suppliers');
+      if (!currentData || currentData === '[]' || currentData === 'null') {
+        // Veri silinmişse backup'tan restore et
+        const backupData = localStorage.getItem('suppliers-backup');
+        if (backupData) {
+          localStorage.setItem('suppliers', backupData);
+          console.log('🔄 Tedarikçi verileri backup\'tan restore edildi');
+        }
+      }
+    };
   }, []);
 
-  // ✅ Basitleştirilmiş localStorage koruma - Sadece gerektiğinde çalışır
+  // localStorage Monitoring System - Sürekli veri koruması
   useEffect(() => {
-    // Sadece veri yüklendikten sonra ve kullanıcı etkileşimi var ise korumasını aç
-    if (!dataLoaded || suppliers.length === 0) return;
-    
     const monitorInterval = setInterval(() => {
       const currentSuppliers = localStorage.getItem('suppliers');
+      const currentCount = suppliers.length;
       
-      // Sadece localStorage tamamen silinmişse restore et
-      if (!currentSuppliers || currentSuppliers === 'null') {
-        console.log('🛡️ localStorage tamamen silinmiş, otomatik restore yapılıyor');
+      // localStorage'da veri yoksa ama state'te veri varsa
+      if ((!currentSuppliers || currentSuppliers === '[]' || currentSuppliers === 'null') && currentCount > 0) {
+        console.log('🚨 UYARI: localStorage\'da tedarikçi verisi silinmiş, state\'ten restore ediliyor!');
         localStorage.setItem('suppliers', JSON.stringify(suppliers));
-        localStorage.setItem('supplier-nonconformities', JSON.stringify(nonconformities));
-        localStorage.setItem('supplier-defects', JSON.stringify(defects));
-        localStorage.setItem('supplier-pairs', JSON.stringify(supplierPairs));
-        localStorage.setItem('supplier-audits', JSON.stringify(audits));
-        console.log('✅ Tüm veriler otomatik restore edildi');
+        console.log('🔧 localStorage restore edildi:', currentCount, 'tedarikçi');
       }
-    }, 5000); // 5 saniyede bir kontrol et (daha az agresif)
+      
+      // localStorage'da veri varsa ama state'te yoksa (component mount durumu değil)
+      if (currentSuppliers && currentSuppliers !== '[]' && currentSuppliers !== 'null' && currentCount === 0 && dataLoaded) {
+        console.log('🚨 UYARI: State\'te veri yok ama localStorage\'da var, state restore ediliyor!');
+        try {
+          const storedData = JSON.parse(currentSuppliers);
+          if (storedData.length > 0) {
+            setSuppliers(storedData);
+            console.log('🔧 State restore edildi:', storedData.length, 'tedarikçi');
+          }
+        } catch (e) {
+          console.error('❌ State restore hatası:', e);
+        }
+      }
+    }, 2000); // Her 2 saniyede kontrol et
     
     return () => clearInterval(monitorInterval);
-  }, [dataLoaded, suppliers.length]); // suppliers dependency'sini kaldır
+  }, [suppliers, dataLoaded]);
 
   // Veri tutarlılığı kontrolü - Veriler yüklendikten sonra
   useEffect(() => {
@@ -344,7 +387,68 @@ const SupplierQualityManagement: React.FC = () => {
     }
   }, [dataLoaded, suppliers.length, supplierPairs.length]);
 
-  // MANUEL KAYDETME FONKSİYONLARI - useEffect yerine
+  // 🚀 OTOMATİK KAYDETME SİSTEMİ - Veri kaybolmasını önlemek için
+  // Suppliers değiştiğinde otomatik kaydet
+  useEffect(() => {
+    if (dataLoaded) {
+      try {
+        localStorage.setItem('suppliers', JSON.stringify(suppliers));
+        console.log('✅ Suppliers otomatik localStorage\'a kaydedildi');
+      } catch (error) {
+        console.error('❌ Suppliers localStorage kaydetme hatası:', error);
+      }
+    }
+  }, [suppliers, dataLoaded]);
+
+  // Supplier pairs değiştiğinde otomatik kaydet
+  useEffect(() => {
+    if (dataLoaded) {
+      try {
+        localStorage.setItem('supplier-pairs', JSON.stringify(supplierPairs));
+        console.log('✅ Supplier pairs otomatik localStorage\'a kaydedildi');
+      } catch (error) {
+        console.error('❌ Supplier pairs localStorage kaydetme hatası:', error);
+      }
+    }
+  }, [supplierPairs, dataLoaded]);
+
+  // Nonconformities değiştiğinde otomatik kaydet
+  useEffect(() => {
+    if (dataLoaded) {
+      try {
+        localStorage.setItem('supplier-nonconformities', JSON.stringify(nonconformities));
+        console.log('✅ Nonconformities otomatik localStorage\'a kaydedildi');
+      } catch (error) {
+        console.error('❌ Nonconformities localStorage kaydetme hatası:', error);
+      }
+    }
+  }, [nonconformities, dataLoaded]);
+
+  // Defects değiştiğinde otomatik kaydet
+  useEffect(() => {
+    if (dataLoaded) {
+      try {
+        localStorage.setItem('supplier-defects', JSON.stringify(defects));
+        console.log('✅ Defects otomatik localStorage\'a kaydedildi');
+      } catch (error) {
+        console.error('❌ Defects localStorage kaydetme hatası:', error);
+      }
+    }
+  }, [defects, dataLoaded]);
+
+  // Audits değiştiğinde otomatik kaydet
+  useEffect(() => {
+    if (dataLoaded) {
+      try {
+        localStorage.setItem('supplier-audits', JSON.stringify(audits));
+        console.log('✅ Audits otomatik localStorage\'a kaydedildi');
+      } catch (error) {
+        console.error('❌ Audits localStorage kaydetme hatası:', error);
+      }
+    }
+  }, [audits, dataLoaded]);
+
+  // MANUEL KAYDETME FONKSİYONLARI - Acil durum için
   const saveToLocalStorage = () => {
     try {
       localStorage.setItem('suppliers', JSON.stringify(suppliers));
@@ -376,14 +480,12 @@ const SupplierQualityManagement: React.FC = () => {
         audits: !!storedAudits
       });
       
-      // Veri yükleme başarısızlık kontrolü
-      let hasAnyData = false;
+      // Veri yükleme başarısızlık kontrolü - hasAnyData kaldırıldı
       
       if (storedSuppliers && storedSuppliers !== 'null' && storedSuppliers !== '[]') {
         const parsedSuppliers = JSON.parse(storedSuppliers);
         if (parsedSuppliers.length > 0) {
           setSuppliers(parsedSuppliers);
-          hasAnyData = true;
           console.log('✅ Tedarikçi verileri localStorage\'dan yüklendi:', parsedSuppliers.length, 'kayıt');
         }
       }
@@ -392,7 +494,6 @@ const SupplierQualityManagement: React.FC = () => {
         const parsedNonconformities = JSON.parse(storedNonconformities);
         if (parsedNonconformities.length > 0) {
           setNonconformities(parsedNonconformities);
-          hasAnyData = true;
           console.log('✅ Uygunsuzluk verileri localStorage\'dan yüklendi:', parsedNonconformities.length, 'kayıt');
         }
       }
@@ -401,7 +502,6 @@ const SupplierQualityManagement: React.FC = () => {
         const parsedDefects = JSON.parse(storedDefects);
         if (parsedDefects.length > 0) {
           setDefects(parsedDefects);
-          hasAnyData = true;
           console.log('✅ Hata verileri localStorage\'dan yüklendi:', parsedDefects.length, 'kayıt');
         }
       }
@@ -410,7 +510,6 @@ const SupplierQualityManagement: React.FC = () => {
         const parsedPairs = JSON.parse(storedPairs);
         if (parsedPairs.length > 0) {
           setSupplierPairs(parsedPairs);
-          hasAnyData = true;
           console.log('✅ Eşleştirme verileri localStorage\'dan yüklendi:', parsedPairs.length, 'kayıt');
         }
       }
@@ -419,25 +518,25 @@ const SupplierQualityManagement: React.FC = () => {
         const parsedAudits = JSON.parse(storedAudits);
         if (parsedAudits.length > 0) {
           setAudits(parsedAudits);
-          hasAnyData = true;
           console.log('✅ Denetim verileri localStorage\'dan yüklendi:', parsedAudits.length, 'kayıt');
         }
       }
       
-      // Veri yükleme tamamlandığını işaretle (mock veri otomatik yüklenmez)
+      // Veri yükleme tamamlandı - otomatik mock veri yükleme kaldırıldı
       setDataLoaded(true);
       setIsLoading(false);
-      
-      if (hasAnyData) {
-        console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı - localStorage\'dan veri yüklendi');
-      } else {
-        console.log('📝 localStorage boş - Kullanıcı veri girebilir (mock veri otomatik yüklenmez)');
-      }
+      console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı');
       
     } catch (error) {
       console.error('❌ localStorage veri yükleme hatası:', error);
-      console.log('🚨 Hata durumunda boş state bırakılıyor (mock veri yüklenmez)');
+      // Hata durumunda boş array'ler ile başla - mock veri yükleme kaldırıldı
+      setSuppliers([]);
+      setNonconformities([]);
+      setDefects([]);
+      setSupplierPairs([]);
+      setAudits([]);
       setDataLoaded(true);
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
@@ -1645,16 +1744,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           const cleanedAudits = audits.filter(a => a.supplierId !== id);
           setAudits(cleanedAudits);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('suppliers', JSON.stringify(updatedSuppliers));
-            localStorage.setItem('supplier-pairs', JSON.stringify(cleanedPairs));
-            localStorage.setItem('supplier-nonconformities', JSON.stringify(cleanedNonconformities));
-            localStorage.setItem('supplier-defects', JSON.stringify(cleanedDefects));
-            localStorage.setItem('supplier-audits', JSON.stringify(cleanedAudits));
-            console.log('💾 Tedarikçi ve ilgili tüm kayıtlar silindi, localStorage güncellendi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Tedarikçi ve ilgili tüm kayıtlar silindi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar(
             `${supplierToDelete.name} tedarikçisi ve ilgili tüm kayıtlar başarıyla silindi`,
@@ -1664,45 +1756,33 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         case 'pair':
           const updatedPairs = supplierPairs.filter(p => p.id !== id);
           setSupplierPairs(updatedPairs);
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-pairs', JSON.stringify(updatedPairs));
-            console.log('💾 Eşleştirme silindi ve localStorage güncellendi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Eşleştirme silindi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           showSnackbar('Eşleştirme başarıyla silindi', 'success');
           break;
         case 'nonconformity':
           const updatedNonconformities = nonconformities.filter(n => n.id !== id);
           setNonconformities(updatedNonconformities);
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-nonconformities', JSON.stringify(updatedNonconformities));
-            console.log('💾 Uygunsuzluk silindi ve localStorage güncellendi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Uygunsuzluk silindi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           showSnackbar('Uygunsuzluk başarıyla silindi', 'success');
           break;
         case 'defect':
           const updatedDefects = defects.filter(d => d.id !== id);
           setDefects(updatedDefects);
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-defects', JSON.stringify(updatedDefects));
-            console.log('💾 Hata silindi ve localStorage güncellendi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Hata silindi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           showSnackbar('Hata kaydı başarıyla silindi', 'success');
           break;
         case 'audit':
           const updatedAudits = audits.filter(a => a.id !== id);
           setAudits(updatedAudits);
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-audits', JSON.stringify(updatedAudits));
-            console.log('💾 Denetim silindi ve localStorage güncellendi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Denetim silindi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           showSnackbar('Denetim planı başarıyla silindi', 'success');
           break;
       }
@@ -1724,14 +1804,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         grade: 'N/A', 
         color: 'default', 
         bgColor: '#9e9e9e', 
-        description: 'Henüz Değerlendirilmedi' 
+        description: '' 
       };
     }
     
-    if (score >= 85) return { grade: 'A', color: 'success', bgColor: '#4caf50', description: 'Mükemmel' };
-    if (score >= 70) return { grade: 'B', color: 'info', bgColor: '#2196f3', description: 'İyi' };
-    if (score >= 50) return { grade: 'C', color: 'warning', bgColor: '#ff9800', description: 'Orta' };
-    return { grade: 'D', color: 'error', bgColor: '#f44336', description: 'Yetersiz' };
+    if (score >= 85) return { grade: 'A', color: 'success', bgColor: '#4caf50', description: '' };
+    if (score >= 70) return { grade: 'B', color: 'info', bgColor: '#2196f3', description: '' };
+    if (score >= 50) return { grade: 'C', color: 'warning', bgColor: '#ff9800', description: '' };
+    return { grade: 'D', color: 'error', bgColor: '#f44336', description: '' };
   };
 
   // Tedarikçi eşleştirmelerini güncelleme fonksiyonu
@@ -1876,12 +1956,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           // Tedarikçi eşleştirmelerini güncelle
           updateSupplierPairings(newSupplier);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('suppliers', JSON.stringify(updatedSuppliers));
-            console.log('💾 Güncellenmiş tedarikçi localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Tedarikçi güncellendi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar(`Tedarikçi başarıyla güncellendi. Genel performans skoru: ${calculatedPerformanceScore}`, 'success');
         } else {
@@ -1893,12 +1970,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           });
           setSuppliers(updatedSuppliers);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('suppliers', JSON.stringify(updatedSuppliers));
-            console.log('💾 Yeni tedarikçi localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Yeni tedarikçi eklendi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar(`Yeni tedarikçi başarıyla eklendi. Genel performans skoru: ${calculatedPerformanceScore}`, 'success');
         }
@@ -1937,24 +2011,18 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           const updatedNonconformities = nonconformities.map(n => n.id === selectedItem.id ? newNonconformity : n);
           setNonconformities(updatedNonconformities);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-nonconformities', JSON.stringify(updatedNonconformities));
-            console.log('💾 Güncellenmiş uygunsuzluk localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Uygunsuzluk güncellendi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Uygunsuzluk başarıyla güncellendi', 'success');
         } else {
           const updatedNonconformities = [...nonconformities, newNonconformity];
           setNonconformities(updatedNonconformities);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-nonconformities', JSON.stringify(updatedNonconformities));
-            console.log('💾 Yeni uygunsuzluk localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Yeni uygunsuzluk eklendi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Yeni uygunsuzluk başarıyla eklendi', 'success');
         }
@@ -1972,24 +2040,18 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           const updatedDefects = defects.map(d => d.id === selectedItem.id ? newDefect : d);
           setDefects(updatedDefects);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-defects', JSON.stringify(updatedDefects));
-            console.log('💾 Güncellenmiş hata localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Hata güncellendi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Hata kaydı başarıyla güncellendi', 'success');
         } else {
           const updatedDefects = [...defects, newDefect];
           setDefects(updatedDefects);
           
-          // MANUEL localStorage kaydetme
-          setTimeout(() => {
-            localStorage.setItem('supplier-defects', JSON.stringify(updatedDefects));
-            console.log('💾 Yeni hata localStorage\'a kaydedildi');
-            window.dispatchEvent(new Event('supplierDataUpdated'));
-          }, 100);
+          // Otomatik kaydetme useEffect tarafından yapılacak - setTimeout kaldırıldı
+          console.log('🔄 Yeni hata eklendi, otomatik kaydetme useEffect tarafından yapılacak');
+          window.dispatchEvent(new Event('supplierDataUpdated'));
           
           showSnackbar('Yeni hata kaydı başarıyla eklendi', 'success');
         }
@@ -2187,12 +2249,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   const calculateSupplierPerformance = React.useCallback((supplier: Supplier) => {
     console.log(`\n=== PERFORMANS HESAPLAMA: ${supplier.name} ===`);
     
-    // ✅ DÜZELTME: Kullanıcının girdiği skorları koru, yoksa default 100 kullan
-    let qualityScore = supplier.qualityScore || 100;
-    let deliveryScore = supplier.deliveryScore || 100;
-    let performanceScore = supplier.performanceScore || 100;
-    
-    console.log(`🎯 BAŞLANGIÇ SKORLARI - Kalite: ${qualityScore}, Teslimat: ${deliveryScore}, Genel: ${performanceScore}`);
+    // Temel skorlar (başlangıç değerleri)
+    let qualityScore = 100;
+    let deliveryScore = 100;
+    let performanceScore = 100;
 
     // Uygunsuzluk sayısına göre kalite skoru düşürme
     const supplierNonconformities = nonconformities.filter(nc => nc.supplierId === supplier.id);
@@ -2404,77 +2464,16 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       };
     }).filter(cat => cat.adet > 0); // Sadece tedarikçisi olan kategorileri göster
     
-    // Performans karşılaştırması için tedarikçiler - filtreye göre
-    const activeSuppliersList = suppliers.filter(s => s.status === 'aktif');
-    let filteredSuppliers: Supplier[] = [];
-    
-    // Performans puanlarını güvenli hale getir (NaN veya undefined kontrolü)
-    const suppliersWithValidScores = activeSuppliersList.map(supplier => ({
-      ...supplier,
-      performanceScore: isNaN(supplier.performanceScore) || supplier.performanceScore === undefined 
-        ? calculatePerformanceScore(supplier.qualityScore || 0, supplier.deliveryScore || 0)
-        : supplier.performanceScore,
-      qualityScore: supplier.qualityScore || 0,
-      deliveryScore: supplier.deliveryScore || 0
-    }));
-    
-    switch (performanceFilter) {
-      case 'top5':
-        filteredSuppliers = [...suppliersWithValidScores]
-          .sort((a, b) => {
-            const scoreA = a.performanceScore || 0;
-            const scoreB = b.performanceScore || 0;
-            return scoreB - scoreA; // Yüksekten düşüğe
-          })
-          .slice(0, 5);
-        break;
-      case 'bottom5':
-        filteredSuppliers = [...suppliersWithValidScores]
-          .sort((a, b) => {
-            const scoreA = a.performanceScore || 0;
-            const scoreB = b.performanceScore || 0;
-            return scoreA - scoreB; // Düşükten yükseğe
-          })
-          .slice(0, 5);
-        break;
-      case 'recent5':
-        filteredSuppliers = [...suppliersWithValidScores]
-          .sort((a, b) => {
-            const dateA = new Date(a.registrationDate || '1970-01-01').getTime();
-            const dateB = new Date(b.registrationDate || '1970-01-01').getTime();
-            return dateB - dateA; // Yeniden eskiye
-          })
-          .slice(0, 5);
-        break;
-      case 'risk5':
-        const riskOrder = { 'kritik': 4, 'yüksek': 3, 'orta': 2, 'düşük': 1 };
-        filteredSuppliers = [...suppliersWithValidScores]
-          .sort((a, b) => {
-            const riskA = riskOrder[a.riskLevel] || 0;
-            const riskB = riskOrder[b.riskLevel] || 0;
-            return riskB - riskA; // Yüksek riskten düşük riske
-          })
-          .slice(0, 5);
-        break;
-      default: // 'all'
-        filteredSuppliers = suppliersWithValidScores.slice(0, 8); // En fazla 8 tedarikçi
-        break;
-    }
-    
-    // Debug için console log
-    console.log('🔍 Performans Filtresi:', {
-      filter: performanceFilter,
-      totalActive: activeSuppliersList.length,
-      filtered: filteredSuppliers.length,
-      scores: filteredSuppliers.map(s => ({ name: s.name, score: s.performanceScore }))
-    });
-    
-    const performanceData = filteredSuppliers.map(s => ({
-      name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
-      kalite: s.qualityScore,
-      teslimat: s.deliveryScore,
-      genel: s.performanceScore
-    }));
+    // Performans karşılaştırması için tedarikçiler - tüm aktif tedarikçiler
+    const performanceData = suppliers
+      .filter(s => s.status === 'aktif')
+      .slice(0, 8) // En fazla 8 tedarikçi göster
+      .map(s => ({
+        name: s.name.length > 15 ? s.name.substring(0, 15) + '...' : s.name,
+        kalite: s.qualityScore,
+        teslimat: s.deliveryScore,
+        genel: s.performanceScore
+      }));
 
     return (
       <Grid container spacing={3}>
@@ -2713,106 +2712,31 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               title="Tedarikçi Performans Karşılaştırması" 
               titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
               sx={{ background: 'linear-gradient(135deg, #e8f5e8 0%, #e1f5fe 100%)' }}
-              action={
-                <Box display="flex" gap={1} flexWrap="wrap">
-                  <Tooltip title="En İyi 5">
-                    <Button
-                      size="small"
-                      variant={performanceFilter === 'top5' ? 'contained' : 'outlined'}
-                      color="success"
-                      startIcon={<StarIcon />}
-                      onClick={() => setPerformanceFilter('top5')}
-                      sx={{ minWidth: 'auto', px: 1 }}
-                    >
-                      En İyi 5
-                    </Button>
-                  </Tooltip>
-                  <Tooltip title="En Düşük 5">
-                    <Button
-                      size="small"
-                      variant={performanceFilter === 'bottom5' ? 'contained' : 'outlined'}
-                      color="error"
-                      startIcon={<TrendingDownIcon />}
-                      onClick={() => setPerformanceFilter('bottom5')}
-                      sx={{ minWidth: 'auto', px: 1 }}
-                    >
-                      En Düşük 5
-                    </Button>
-                  </Tooltip>
-                  <Tooltip title="Son Eklenen 5">
-                    <Button
-                      size="small"
-                      variant={performanceFilter === 'recent5' ? 'contained' : 'outlined'}
-                      color="info"
-                      startIcon={<AccessTimeIcon />}
-                      onClick={() => setPerformanceFilter('recent5')}
-                      sx={{ minWidth: 'auto', px: 1 }}
-                    >
-                      Yeniler
-                    </Button>
-                  </Tooltip>
-                  <Tooltip title="En Riskli 5">
-                    <Button
-                      size="small"
-                      variant={performanceFilter === 'risk5' ? 'contained' : 'outlined'}
-                      color="warning"
-                      startIcon={<NotificationsActiveIcon />}
-                      onClick={() => setPerformanceFilter('risk5')}
-                      sx={{ minWidth: 'auto', px: 1 }}
-                    >
-                      Riskli
-                    </Button>
-                  </Tooltip>
-                  <Tooltip title="Tümünü Göster">
-                    <Button
-                      size="small"
-                      variant={performanceFilter === 'all' ? 'contained' : 'outlined'}
-                      color="primary"
-                      startIcon={<FilterListIcon />}
-                      onClick={() => setPerformanceFilter('all')}
-                      sx={{ minWidth: 'auto', px: 1 }}
-                    >
-                      Tümü
-                    </Button>
-                  </Tooltip>
-                </Box>
-              }
             />
             <CardContent>
               {performanceData.length > 0 ? (
-                <Box>
-                  <Box height={350}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={performanceData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                        <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                        <ChartTooltip 
-                          formatter={(value: any, name: any) => [`${value} puan`, name]}
-                          labelStyle={{ fontWeight: 'bold' }}
-                          contentStyle={{ 
-                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                            border: '1px solid #ddd',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                          }}
-                        />
-                        <Legend />
-                        <Bar dataKey="kalite" fill="#2196f3" name="Kalite" radius={[2, 2, 0, 0]} />
-                        <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat" radius={[2, 2, 0, 0]} />
-                        <Bar dataKey="genel" fill="#1976d2" name="Genel" radius={[2, 2, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
-                  <Box mt={1} textAlign="center">
-                    <Typography variant="caption" color="text.secondary">
-                      {performanceFilter === 'top5' && `En yüksek performanslı 5 tedarikçi gösteriliyor (${filteredSuppliers.length} kayıt)`}
-                      {performanceFilter === 'bottom5' && `En düşük performanslı 5 tedarikçi gösteriliyor (${filteredSuppliers.length} kayıt)`}
-                      {performanceFilter === 'recent5' && `Son eklenen 5 tedarikçi gösteriliyor (${filteredSuppliers.length} kayıt)`}
-                      {performanceFilter === 'risk5' && `En riskli 5 tedarikçi gösteriliyor (${filteredSuppliers.length} kayıt)`}
-                      {performanceFilter === 'all' && `Tüm aktif tedarikçiler gösteriliyor (${filteredSuppliers.length} kayıt)`}
-                    </Typography>
-                  </Box>
+                <Box height={350}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={performanceData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                      <ChartTooltip 
+                        formatter={(value: any, name: any) => [`${value} puan`, name]}
+                        labelStyle={{ fontWeight: 'bold' }}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                      <Legend />
+                      <Bar dataKey="kalite" fill="#2196f3" name="Kalite" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="teslimat" fill="#4caf50" name="Teslimat" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="genel" fill="#1976d2" name="Genel" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </Box>
               ) : (
                 <Box height={350} display="flex" alignItems="center" justifyContent="center" flexDirection="column" gap={2}>
@@ -2898,586 +2822,603 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   };
 
   // Supplier Pairing Component
-  const renderSupplierPairing = () => (
-    <Box>
-      <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
-        <Button variant="contained" startIcon={<LinkIcon />} onClick={handleCreatePair}>
-          Yeni Eşleştirme
-        </Button>
-      </Box>
+  const renderSupplierPairing = () => {
+    // Filtrelenmiş eşleştirme verilerini hesapla
+    const filteredPairs = supplierPairs.filter(pair => {
+      const matchesSearch = pairingSearchTerm === '' || 
+        (pair.primarySupplier?.name.toLowerCase().includes(pairingSearchTerm.toLowerCase())) ||
+        pair.alternativeSuppliers.some(alt => alt.name.toLowerCase().includes(pairingSearchTerm.toLowerCase())) ||
+        pair.category.toLowerCase().includes(pairingSearchTerm.toLowerCase());
+      
+      const matchesCategory = pairingCategoryFilter === 'all' || pair.category === pairingCategoryFilter;
+      
+      const matchesStatus = pairingStatusFilter === 'all' || (
+        pairingStatusFilter === 'primary-missing' && !pair.primarySupplier ||
+        pairingStatusFilter === 'alternatives-only' && !pair.primarySupplier && pair.alternativeSuppliers.length > 0 ||
+        pairingStatusFilter === 'complete' && pair.primarySupplier && pair.alternativeSuppliers.length > 0
+      );
+      
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
 
-      <TableContainer component={Paper} sx={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: 2 }}>
-        <Table sx={{ minWidth: 1480 }}>
-          <TableHead>
-            <TableRow sx={{ bgcolor: 'primary.50' }}>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '220px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  fontSize: '0.9rem'
+    // Özet istatistikler
+    const stats = {
+      totalPairs: supplierPairs.length,
+      completePairs: supplierPairs.filter(p => p.primarySupplier && p.alternativeSuppliers.length > 0).length,
+      missingPrimary: supplierPairs.filter(p => !p.primarySupplier).length,
+      alternativesOnly: supplierPairs.filter(p => !p.primarySupplier && p.alternativeSuppliers.length > 0).length,
+      avgPerformance: supplierPairs.length > 0 ? Math.round(
+        supplierPairs
+          .filter(p => p.primarySupplier)
+          .reduce((acc, p) => acc + (p.performanceComparison.primaryScore || 0), 0) / 
+        supplierPairs.filter(p => p.primarySupplier).length
+      ) : 0
+    };
+
+    return (
+      <Box>
+        {/* Özet İstatistikler */}
+        <Grid container spacing={2} mb={3}>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <Card elevation={2} sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}>
+              <Avatar sx={{ bgcolor: 'primary.main', mx: 'auto', mb: 1, width: 40, height: 40 }}>
+                <LinkIcon />
+              </Avatar>
+              <Typography variant="h6" fontWeight="bold">{stats.totalPairs}</Typography>
+              <Typography variant="caption" color="text.secondary">Toplam Eşleştirme</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <Card elevation={2} sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}>
+              <Avatar sx={{ bgcolor: 'success.main', mx: 'auto', mb: 1, width: 40, height: 40 }}>
+                <CheckCircleIcon />
+              </Avatar>
+              <Typography variant="h6" fontWeight="bold" color="success.main">{stats.completePairs}</Typography>
+              <Typography variant="caption" color="text.secondary">Tam Eşleştirme</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <Card elevation={2} sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}>
+              <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 1, width: 40, height: 40 }}>
+                <WarningIcon />
+              </Avatar>
+              <Typography variant="h6" fontWeight="bold" color="warning.main">{stats.missingPrimary}</Typography>
+              <Typography variant="caption" color="text.secondary">Ana Tedarikçi Eksik</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <Card elevation={2} sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}>
+              <Avatar sx={{ bgcolor: 'info.main', mx: 'auto', mb: 1, width: 40, height: 40 }}>
+                <AssessmentIcon />
+              </Avatar>
+              <Typography variant="h6" fontWeight="bold" color="info.main">{stats.avgPerformance}%</Typography>
+              <Typography variant="caption" color="text.secondary">Ortar. Performans</Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={2.4}>
+            <Card elevation={2} sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}>
+              <Avatar sx={{ bgcolor: 'secondary.main', mx: 'auto', mb: 1, width: 40, height: 40 }}>
+                <BusinessIcon />
+              </Avatar>
+              <Typography variant="h6" fontWeight="bold" color="secondary.main">{filteredPairs.length}</Typography>
+              <Typography variant="caption" color="text.secondary">Filtre Sonucu</Typography>
+            </Card>
+          </Grid>
+        </Grid>
+
+        {/* Filtre ve Arama */}
+        <Card elevation={1} sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Eşleştirme ara (tedarikçi adı, kategori)..."
+                value={pairingSearchTerm}
+                onChange={(e) => setPairingSearchTerm(e.target.value)}
+                InputProps={{ 
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
+                  sx: { bgcolor: 'white' }
                 }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel sx={{ bgcolor: 'white', px: 1 }}>Kategori</InputLabel>
+                <Select 
+                  value={pairingCategoryFilter}
+                  onChange={(e) => setPairingCategoryFilter(e.target.value)}
+                  sx={{ bgcolor: 'white' }}
+                >
+                  <MenuItem value="all">Tüm Kategoriler</MenuItem>
+                  <MenuItem value="stratejik">Stratejik</MenuItem>
+                  <MenuItem value="kritik">Kritik</MenuItem>
+                  <MenuItem value="rutin">Rutin</MenuItem>
+                  <MenuItem value="genel">Genel</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel sx={{ bgcolor: 'white', px: 1 }}>Durum</InputLabel>
+                <Select 
+                  value={pairingStatusFilter}
+                  onChange={(e) => setPairingStatusFilter(e.target.value)}
+                  sx={{ bgcolor: 'white' }}
+                >
+                  <MenuItem value="all">Tüm Durumlar</MenuItem>
+                  <MenuItem value="complete">Tam Eşleştirme</MenuItem>
+                  <MenuItem value="primary-missing">Ana Tedarikçi Eksik</MenuItem>
+                  <MenuItem value="alternatives-only">Sadece Alternatifler</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <Button 
+                fullWidth
+                variant="contained" 
+                startIcon={<LinkIcon />} 
+                onClick={handleCreatePair}
+                sx={{ height: 40 }}
               >
-                <Typography variant="subtitle2" fontWeight={700}>
-                  Ana Tedarikçi
-                </Typography>
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '280px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  fontSize: '0.9rem'
-                }}
-              >
-                <Typography variant="subtitle2" fontWeight={700}>
-                  Alternatif Tedarikçi(ler)
-                </Typography>
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '340px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  fontSize: '0.9rem'
-                }}
-              >
-                <Typography variant="subtitle2" fontWeight={700}>
-                  Alt Kategoriler
-                </Typography>
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '250px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  textAlign: 'center',
-                  fontSize: '0.9rem'
-                }}
-              >
-                <Typography variant="subtitle2" fontWeight={700}>
-                  Performans Karşılaştırması
-                </Typography>
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '150px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  textAlign: 'center'
-                }}
-              >
-                Son Değerlendirme
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '180px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  textAlign: 'center'
-                }}
-              >
-                İşlemler
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {supplierPairs.map((pair) => (
-              <TableRow 
-                key={pair.id}
-                sx={{
-                  '&:hover': {
-                    backgroundColor: 'primary.50',
-                    transform: 'scale(1.002)',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                  },
-                  '&:nth-of-type(even)': {
-                    backgroundColor: 'grey.25'
-                  },
-                  cursor: 'pointer'
-                }}
-              >
-                <TableCell sx={{ width: '220px', verticalAlign: 'top', padding: '12px 8px' }}>
-                  <Box 
-                    sx={{
-                      padding: '8px',
-                      backgroundColor: pair.primarySupplier ? 'success.50' : 'warning.50',
-                      borderRadius: '8px',
+                Yeni Eşleştirme
+              </Button>
+            </Grid>
+          </Grid>
+        </Card>
+
+      {/* Modern Card-Based Layout */}
+      <Grid container spacing={3}>
+        {filteredPairs.map((pair) => (
+          <Grid item xs={12} key={pair.id}>
+            <Card 
+              elevation={2} 
+              sx={{ 
+                p: 3, 
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? 'success.200' : 
+                            !pair.primarySupplier ? 'warning.200' : 'info.200',
+                transition: 'all 0.3s ease',
+                '&:hover': { 
+                  boxShadow: 4,
+                  transform: 'translateY(-2px)'
+                }
+              }}
+            >
+              {/* Header with Category and Status */}
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Chip 
+                    icon={<BusinessIcon />}
+                    label={pair.category.charAt(0).toUpperCase() + pair.category.slice(1)}
+                    color={pair.category === 'stratejik' ? 'error' : 
+                           pair.category === 'kritik' ? 'warning' : 
+                           pair.category === 'rutin' ? 'info' : 'default'}
+                    variant="outlined"
+                    sx={{ fontWeight: 'bold' }}
+                  />
+                  <Chip 
+                    label={pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? 'Tam Eşleştirme' :
+                           !pair.primarySupplier ? 'Ana Tedarikçi Eksik' : 'Alternatif Eksik'}
+                    color={pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? 'success' : 'warning'}
+                    size="small"
+                  />
+                </Box>
+                <Box display="flex" gap={1}>
+                  <Tooltip title="Performans Analizi">
+                    <IconButton 
+                      color="primary" 
+                      onClick={() => {
+                        showSnackbar(`${pair.primarySupplier?.name || 'N/A'} vs ${pair.alternativeSuppliers[0]?.name || 'Alternatif'} performans karşılaştırması`, 'info');
+                        setCurrentTab(6);
+                      }}
+                    >
+                      <AssessmentIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Düzenle">
+                    <IconButton color="info" onClick={() => handleEditItem(pair, 'pair')}>
+                      <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Tedarikçi Değiştir">
+                    <IconButton color="warning" onClick={() => handleOpenSwitchDialog(pair)}>
+                      <SwapHorizIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Box>
+
+              {/* Main Content */}
+              <Grid container spacing={3}>
+                {/* Primary Supplier Section */}
+                <Grid item xs={12} md={4}>
+                  <Paper 
+                    elevation={1} 
+                    sx={{ 
+                      p: 2.5, 
+                      borderRadius: 2, 
+                      background: pair.primarySupplier ? 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)' : 'linear-gradient(135deg, #fff3e0 0%, #ffeaa7 100%)',
                       border: '1px solid',
                       borderColor: pair.primarySupplier ? 'success.200' : 'warning.200',
-                      minHeight: '60px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center'
+                      height: '100%'
                     }}
                   >
+                    <Box display="flex" alignItems="center" gap={1.5} mb={2}>
+                      <Avatar sx={{ bgcolor: pair.primarySupplier ? 'success.main' : 'warning.main', width: 32, height: 32 }}>
+                        <StarIcon />
+                      </Avatar>
+                      <Typography variant="h6" fontWeight="bold" color={pair.primarySupplier ? 'success.dark' : 'warning.dark'}>
+                        Ana Tedarikçi
+                      </Typography>
+                    </Box>
+                    
                     {pair.primarySupplier ? (
                       <>
-                        <Tooltip title={pair.primarySupplier.name} placement="top" arrow>
-                          <Typography 
-                            variant="body1" 
-                            fontWeight="bold"
-                            sx={{
-                              fontSize: '0.95rem',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              maxWidth: '180px',
-                              cursor: 'help'
-                            }}
-                          >
-                            {pair.primarySupplier.name}
-                          </Typography>
-                        </Tooltip>
-                        <Box display="flex" alignItems="center" gap={1} mt={0.5}>
-                          {/* Grade Badge - Ana Tedarikçi */}
+                        <Typography variant="h6" fontWeight="bold" mb={1.5}>
+                          {pair.primarySupplier.name}
+                        </Typography>
+                        
+                        {/* Performance Badge */}
+                        <Box display="flex" alignItems="center" gap={1.5} mb={2}>
                           <Box
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              width: 28,
-                              height: 28,
+                              width: 40,
+                              height: 40,
                               borderRadius: '50%',
                               backgroundColor: getPerformanceGrade(pair.performanceComparison.primaryScore || 0, pair.primarySupplier).bgColor,
                               color: 'white',
                               fontWeight: 'bold',
-                              fontSize: '0.85rem',
-                              mr: 0.5,
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                              fontSize: '1.1rem',
+                              boxShadow: 2
                             }}
                           >
                             {getPerformanceGrade(pair.performanceComparison.primaryScore || 0, pair.primarySupplier).grade}
                           </Box>
-                          <Chip 
-                            label={`${pair.performanceComparison.primaryScore || 0}%`} 
-                            color="success" 
-                            size="medium"
-                            sx={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              height: '28px'
-                            }}
-                          />
+                          <Box>
+                            <Typography variant="h5" fontWeight="bold" color="success.main">
+                              {pair.performanceComparison.primaryScore || 0}%
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Performans Skoru
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {/* Subcategories */}
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight="bold" mb={1} color="text.secondary">
+                            Tedarik Kategorileri
+                          </Typography>
+                          <Box display="flex" flexWrap="wrap" gap={0.5}>
+                            {pair.primarySupplier.supplySubcategories.length > 0 ? (
+                              pair.primarySupplier.supplySubcategories.map((subcategory, index) => (
+                                <Chip 
+                                  key={index}
+                                  label={subcategory} 
+                                  color="success"
+                                  variant="outlined"
+                                  size="small"
+                                  sx={{ fontSize: '0.7rem', height: '24px' }}
+                                />
+                              ))
+                            ) : (
+                              <Typography variant="caption" color="text.secondary" fontStyle="italic">
+                                Kategori belirtilmemiş
+                              </Typography>
+                            )}
+                          </Box>
                         </Box>
                       </>
                     ) : (
-                      <>
-                        <Typography 
-                          variant="body1" 
-                          fontWeight="bold" 
-                          color="warning.main"
-                          sx={{ fontSize: '0.95rem' }}
-                        >
-                          Ana Tedarikçi Yok
+                      <Box textAlign="center" py={3}>
+                        <ErrorIcon sx={{ fontSize: 48, color: 'warning.main', mb: 1 }} />
+                        <Typography variant="body1" fontWeight="bold" color="warning.main" mb={1}>
+                          Ana Tedarikçi Atanmamış
                         </Typography>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{ fontSize: '0.8rem', mt: 0.5 }}
-                        >
-                          Alternatifler arasından seçim yapın
+                        <Typography variant="body2" color="text.secondary">
+                          Bu kategori için ana tedarikçi seçimi yapılmalı
                         </Typography>
-                      </>
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell sx={{ width: '280px', verticalAlign: 'top', padding: '12px 8px' }}>
-                  <Box sx={{ 
-                    maxHeight: '140px', 
-                    overflow: 'auto',
-                    '&::-webkit-scrollbar': {
-                      width: '6px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      background: '#f1f1f1',
-                      borderRadius: '3px',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: '#c1c1c1',
-                      borderRadius: '3px',
-                      '&:hover': {
-                        background: '#a1a1a1',
-                      }
-                    },
-                  }}>
-                    {pair.alternativeSuppliers.map((altSupplier, index) => {
-                      const altScore = pair.performanceComparison.alternativeScores.find(s => s.id === altSupplier.id)?.score || 0;
-                      return (
-                      <Box 
-                        key={altSupplier.id} 
-                        mb={index < pair.alternativeSuppliers.length - 1 ? 1.5 : 0}
-                        sx={{
-                          padding: '8px',
-                          backgroundColor: 'warning.50',
-                          borderRadius: '8px',
-                          border: '1px solid',
-                          borderColor: 'warning.200'
-                        }}
-                      >
-                        <Tooltip title={altSupplier.name} placement="top" arrow>
-                          <Typography 
-                            variant="body1" 
-                            fontWeight="bold"
-                            sx={{
-                              fontSize: '0.95rem',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              maxWidth: '200px',
-                              cursor: 'help'
-                            }}
-                          >
-                            {altSupplier.name}
-                          </Typography>
-                        </Tooltip>
-                        <Box display="flex" alignItems="center" gap={1} mt={0.5}>
-                            {/* Grade Badge - Alternatif Tedarikçi */}
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: 28,
-                                height: 28,
-                                borderRadius: '50%',
-                                backgroundColor: getPerformanceGrade(altScore, altSupplier).bgColor,
-                                color: 'white',
-                                fontWeight: 'bold',
-                                fontSize: '0.85rem',
-                                mr: 0.5,
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                              }}
-                            >
-                              {getPerformanceGrade(altScore, altSupplier).grade}
-                            </Box>
-                          <Chip 
-                              label={`${altScore}%`} 
-                            color="warning" 
-                            size="medium"
-                            sx={{
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              height: '28px'
-                            }}
-                          />
-                        </Box>
-                      </Box>
-                      );
-                    })}
-                  </Box>
-                </TableCell>
-                <TableCell sx={{ width: '340px', verticalAlign: 'top', padding: '12px 8px' }}>
-                  <Box sx={{ 
-                    maxHeight: '140px', 
-                    overflow: 'auto',
-                    '&::-webkit-scrollbar': {
-                      width: '6px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      background: '#f1f1f1',
-                      borderRadius: '3px',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: '#c1c1c1',
-                      borderRadius: '3px',
-                      '&:hover': {
-                        background: '#a1a1a1',
-                      }
-                    },
-                  }}>
-                    {/* Ana Tedarikçi Alt Kategorileri */}
-                    {pair.primarySupplier && (
-                      <Box mb={1.5}>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary" 
-                          sx={{ 
-                            fontWeight: 'bold',
-                            fontSize: '0.8rem',
-                            mb: 0.5
-                          }}
-                        >
-                          Ana Tedarikçi:
-                        </Typography>
-                        <Box display="flex" flexWrap="wrap" gap={0.75}>
-                          {pair.primarySupplier.supplySubcategories.length > 0 ? (
-                            pair.primarySupplier.supplySubcategories.map((subcategory, index) => {
-                              const shortLabel = subcategory.length > 30 
-                                ? subcategory.substring(0, 30) + '...' 
-                                : subcategory;
-                              
-                              return (
-                                <Tooltip key={index} title={subcategory} placement="top" arrow>
-                                  <Chip 
-                                    label={shortLabel} 
-                                    color="primary"
-                                    variant="outlined"
-                                    size="small"
-                                    sx={{ 
-                                      fontSize: '0.75rem', 
-                                      height: '26px',
-                                      fontWeight: 500,
-                                      cursor: 'help',
-                                      maxWidth: '160px'
-                                    }}
-                                  />
-                                </Tooltip>
-                              );
-                            })
-                          ) : (
-                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                              Belirtilmemiş
-                            </Typography>
-                          )}
-                        </Box>
                       </Box>
                     )}
-                    
-                    {/* Alternatif Tedarikçiler Alt Kategorileri */}
-                    {pair.alternativeSuppliers.length > 0 && (
-                      <Box>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary" 
-                          sx={{ 
-                            fontWeight: 'bold',
-                            fontSize: '0.8rem',
-                            mb: 0.5
-                          }}
-                        >
-                          Alternatif Tedarikçiler:
-                        </Typography>
-                        <Box display="flex" flexWrap="wrap" gap={0.75}>
-                          {/* Tüm alternatif tedarikçi kategorilerini birleştir */}
-                          {(() => {
-                            const allSubcategories = pair.alternativeSuppliers.flatMap(supplier => supplier.supplySubcategories);
-                            const uniqueSubcategories = Array.from(new Set(allSubcategories));
-                            
-                            return uniqueSubcategories.length > 0 ? (
-                              uniqueSubcategories.map((subcategory, index) => {
-                                const shortLabel = subcategory.length > 30 
-                                  ? subcategory.substring(0, 30) + '...' 
-                                  : subcategory;
-                                
-                                return (
-                                  <Tooltip key={index} title={subcategory} placement="top" arrow>
-                                    <Chip 
-                                      label={shortLabel} 
-                                      color="warning"
-                                      variant="outlined"
-                                      size="small"
-                                      sx={{ 
-                                        fontSize: '0.75rem', 
-                                        height: '26px',
-                                        fontWeight: 500,
-                                        cursor: 'help',
-                                        maxWidth: '160px'
-                                      }}
-                                    />
-                                  </Tooltip>
-                                );
-                              })
-                            ) : (
-                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                                Belirtilmemiş
-                              </Typography>
-                            );
-                          })()}
-                        </Box>
-                      </Box>
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell sx={{ width: '250px', textAlign: 'center', verticalAlign: 'middle', padding: '12px 8px' }}>
-                  <Box 
-                    sx={{
-                      padding: '10px',
-                      backgroundColor: 'grey.50',
-                      borderRadius: '8px',
+                  </Paper>
+                </Grid>
+
+                {/* Alternative Suppliers Section */}
+                <Grid item xs={12} md={5}>
+                  <Paper 
+                    elevation={1} 
+                    sx={{ 
+                      p: 2.5, 
+                      borderRadius: 2, 
+                      background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
                       border: '1px solid',
-                      borderColor: 'grey.200',
-                      minHeight: '70px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center'
+                      borderColor: 'info.200',
+                      height: '100%'
                     }}
                   >
+                    <Box display="flex" alignItems="center" gap={1.5} mb={2}>
+                      <Avatar sx={{ bgcolor: 'info.main', width: 32, height: 32 }}>
+                        <LinkIcon />
+                      </Avatar>
+                      <Typography variant="h6" fontWeight="bold" color="info.dark">
+                        Alternatif Tedarikçiler ({pair.alternativeSuppliers.length})
+                      </Typography>
+                    </Box>
+                    
+                    {pair.alternativeSuppliers.length > 0 ? (
+                      <Box sx={{ maxHeight: '280px', overflow: 'auto' }}>
+                        {pair.alternativeSuppliers.map((altSupplier, index) => {
+                          const altScore = pair.performanceComparison.alternativeScores.find(s => s.id === altSupplier.id)?.score || 0;
+                          return (
+                            <Card 
+                              key={altSupplier.id} 
+                              elevation={0}
+                              sx={{ 
+                                p: 2, 
+                                mb: index < pair.alternativeSuppliers.length - 1 ? 1.5 : 0,
+                                border: '1px solid',
+                                borderColor: 'grey.200',
+                                borderRadius: 2,
+                                background: 'rgba(255,255,255,0.7)'
+                              }}
+                            >
+                              <Box display="flex" justifyContent="between" alignItems="center" mb={1}>
+                                <Typography variant="subtitle1" fontWeight="bold">
+                                  {altSupplier.name}
+                                </Typography>
+                              </Box>
+                              
+                              <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '50%',
+                                    backgroundColor: getPerformanceGrade(altScore, altSupplier).bgColor,
+                                    color: 'white',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.9rem'
+                                  }}
+                                >
+                                  {getPerformanceGrade(altScore, altSupplier).grade}
+                                </Box>
+                                <Box>
+                                  <Typography variant="h6" fontWeight="bold" color="info.main">
+                                    {altScore}%
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Performans
+                                  </Typography>
+                                </Box>
+                              </Box>
+
+                              <Box display="flex" flexWrap="wrap" gap={0.5}>
+                                {altSupplier.supplySubcategories.length > 0 ? (
+                                  altSupplier.supplySubcategories.slice(0, 3).map((subcategory, idx) => (
+                                    <Chip 
+                                      key={idx}
+                                      label={subcategory} 
+                                      color="info"
+                                      variant="outlined"
+                                      size="small"
+                                      sx={{ fontSize: '0.65rem', height: '20px' }}
+                                    />
+                                  ))
+                                ) : (
+                                  <Typography variant="caption" color="text.secondary" fontStyle="italic">
+                                    Kategori yok
+                                  </Typography>
+                                )}
+                                {altSupplier.supplySubcategories.length > 3 && (
+                                  <Chip 
+                                    label={`+${altSupplier.supplySubcategories.length - 3}`}
+                                    color="default"
+                                    size="small"
+                                    sx={{ fontSize: '0.65rem', height: '20px' }}
+                                  />
+                                )}
+                              </Box>
+                            </Card>
+                          );
+                        })}
+                      </Box>
+                    ) : (
+                      <Box textAlign="center" py={3}>
+                        <BusinessIcon sx={{ fontSize: 48, color: 'grey.400', mb: 1 }} />
+                        <Typography variant="body1" fontWeight="bold" color="text.secondary" mb={1}>
+                          Alternatif Tedarikçi Yok
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Bu kategori için alternatif seçenekler eklenebilir
+                        </Typography>
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+
+                {/* Performance Comparison & Insights */}
+                <Grid item xs={12} md={3}>
+                  <Paper 
+                    elevation={1} 
+                    sx={{ 
+                      p: 2.5, 
+                      borderRadius: 2, 
+                      background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)',
+                      border: '1px solid',
+                      borderColor: 'grey.300',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                  >
+                    <Box display="flex" alignItems="center" gap={1.5} mb={2}>
+                      <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
+                        <AssessmentIcon />
+                      </Avatar>
+                      <Typography variant="h6" fontWeight="bold" color="primary.dark">
+                        Analiz & Öneri
+                      </Typography>
+                    </Box>
+                    
+                    {/* Performance Comparison */}
                     {pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? (
-                      <>
-                        <Typography 
-                          variant="body1" 
-                          fontWeight="bold" 
+                      <Box flex={1}>
+                        <Box 
                           sx={{ 
-                            fontSize: '0.9rem',
-                            textAlign: 'center',
-                            lineHeight: 1.3
-                          }}
-                          color={
-                            (pair.performanceComparison.primaryScore || 0) > 
-                            Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
-                              ? 'success.main' : 'warning.main'
-                          }
-                        >
-                          {(pair.performanceComparison.primaryScore || 0) > 
-                           Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
-                            ? 'Ana Tedarikçi Üstün' : 'Alternatif Değerlendir'}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{ 
-                            fontSize: '0.8rem',
-                            textAlign: 'center',
-                            mt: 0.5,
-                            lineHeight: 1.2
+                            p: 2, 
+                            borderRadius: 2, 
+                            mb: 2,
+                            background: (pair.performanceComparison.primaryScore || 0) > 
+                              Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
+                              ? 'linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%)' 
+                              : 'linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%)',
+                            border: '1px solid',
+                            borderColor: (pair.performanceComparison.primaryScore || 0) > 
+                              Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
+                              ? 'success.200' : 'warning.200'
                           }}
                         >
-                          {pair.performanceComparison.recommendation}
-                        </Typography>
-                      </>
+                          <Typography 
+                            variant="subtitle2" 
+                            fontWeight="bold" 
+                            color={(pair.performanceComparison.primaryScore || 0) > 
+                              Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
+                              ? 'success.main' : 'warning.main'}
+                            mb={1}
+                          >
+                            {(pair.performanceComparison.primaryScore || 0) > 
+                             Math.max(...pair.performanceComparison.alternativeScores.map(s => s.score)) 
+                              ? '✓ Ana Tedarikçi Üstün' : '⚠ Alternatif Değerlendir'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {pair.performanceComparison.recommendation}
+                          </Typography>
+                        </Box>
+
+                        {/* Review Dates */}
+                        <Box sx={{ p: 1.5, bgcolor: 'grey.100', borderRadius: 1 }}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" display="block">
+                            Son Değerlendirme
+                          </Typography>
+                          <Typography variant="body2" fontWeight="bold" mb={0.5}>
+                            {new Date(pair.lastReviewDate).toLocaleDateString('tr-TR')}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Sonraki: {new Date(pair.nextReviewDate).toLocaleDateString('tr-TR')}
+                          </Typography>
+                        </Box>
+                      </Box>
                     ) : pair.primarySupplier && pair.alternativeSuppliers.length === 0 ? (
-                      <>
-                        <Typography 
-                          variant="body1" 
-                          fontWeight="bold" 
-                          color="info.main"
-                          sx={{ 
-                            fontSize: '0.9rem',
-                            textAlign: 'center',
-                            lineHeight: 1.3
-                          }}
-                        >
+                      <Box flex={1} textAlign="center">
+                        <InfoIcon sx={{ fontSize: 32, color: 'info.main', mb: 1 }} />
+                        <Typography variant="subtitle2" fontWeight="bold" color="info.main" mb={1}>
                           Sadece Ana Tedarikçi
                         </Typography>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{ 
-                            fontSize: '0.8rem',
-                            textAlign: 'center',
-                            mt: 0.5,
-                            lineHeight: 1.2
-                          }}
-                        >
-                          Alternatif tedarikçi tanımlanmamış
+                        <Typography variant="body2" color="text.secondary" mb={2}>
+                          Risk azaltmak için alternatif tedarikçi eklenmeli
                         </Typography>
-                      </>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<LinkIcon />}
+                          onClick={() => handleEditItem(pair, 'pair')}
+                        >
+                          Alternatif Ekle
+                        </Button>
+                      </Box>
                     ) : !pair.primarySupplier && pair.alternativeSuppliers.length > 0 ? (
-                      <>
-                        <Typography 
-                          variant="body1" 
-                          fontWeight="bold" 
-                          color="primary.main"
-                          sx={{ 
-                            fontSize: '0.9rem',
-                            textAlign: 'center',
-                            lineHeight: 1.3
-                          }}
-                        >
-                          Alternatif Karşılaştırma
+                      <Box flex={1} textAlign="center">
+                        <WarningIcon sx={{ fontSize: 32, color: 'warning.main', mb: 1 }} />
+                        <Typography variant="subtitle2" fontWeight="bold" color="warning.main" mb={1}>
+                          Ana Tedarikçi Eksik
                         </Typography>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{ 
-                            fontSize: '0.8rem',
-                            textAlign: 'center',
-                            mt: 0.5,
-                            lineHeight: 1.2
-                          }}
-                        >
-                          {pair.performanceComparison.recommendation}
+                        <Typography variant="body2" color="text.secondary" mb={2}>
+                          Alternatifler arasından ana tedarikçi seçilmeli
                         </Typography>
-                      </>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          startIcon={<StarIcon />}
+                          onClick={() => handleOpenSwitchDialog(pair)}
+                        >
+                          Ana Seç
+                        </Button>
+                      </Box>
                     ) : (
-                      <>
-                        <Typography 
-                          variant="body1" 
-                          fontWeight="bold" 
-                          color="error.main"
-                          sx={{ 
-                            fontSize: '0.9rem',
-                            textAlign: 'center',
-                            lineHeight: 1.3
-                          }}
-                        >
+                      <Box flex={1} textAlign="center">
+                        <ErrorIcon sx={{ fontSize: 32, color: 'error.main', mb: 1 }} />
+                        <Typography variant="subtitle2" fontWeight="bold" color="error.main" mb={1}>
                           Tedarikçi Eksik
                         </Typography>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{ 
-                            fontSize: '0.8rem',
-                            textAlign: 'center',
-                            mt: 0.5,
-                            lineHeight: 1.2
-                          }}
-                        >
-                          En az bir tedarikçi seçilmeli
+                        <Typography variant="body2" color="text.secondary" mb={2}>
+                          Bu kategori için tedarikçi tanımlanmalı
                         </Typography>
-                      </>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<BusinessIcon />}
+                          onClick={() => handleEditItem(pair, 'pair')}
+                        >
+                          Tedarikçi Ekle
+                        </Button>
+                      </Box>
                     )}
-                  </Box>
-                </TableCell>
-                <TableCell sx={{ width: '150px', textAlign: 'center', verticalAlign: 'middle' }}>
-                  <Typography variant="body2" textAlign="center">
-                    {new Date(pair.lastReviewDate).toLocaleDateString('tr-TR')}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
-                    Sonraki: {new Date(pair.nextReviewDate).toLocaleDateString('tr-TR')}
-                  </Typography>
-                </TableCell>
-                <TableCell sx={{ width: '180px', textAlign: 'center', verticalAlign: 'middle' }}>
-                  <Box display="flex" gap={0.5} justifyContent="center">
-                    <Tooltip title="Performans Analizi">
-                      <IconButton 
-                        size="small" 
-                        color="primary" 
-                        onClick={() => {
-                          showSnackbar(`${pair.primarySupplier.name} vs ${pair.alternativeSuppliers[0]?.name || 'Alternatif'} performans karşılaştırması`, 'info');
-                          // Performance Analysis Dialog could be opened here in future
-                          setCurrentTab(6); // Navigate to Performance Analysis tab
-                        }}
-                      >
-                        <AssessmentIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Düzenle">
-                      <IconButton size="small" color="info" onClick={() => handleEditItem(pair, 'pair')}>
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Tedarikçi Değiştir">
-                      <IconButton 
-                        size="small" 
-                        color="warning" 
-                        onClick={() => handleOpenSwitchDialog(pair)}
-                      >
-                        <SwapHorizIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
+                  </Paper>
+                </Grid>
+              </Grid>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
-  // Supplier List Component with filtering
+      {/* Empty State */}
+      {filteredPairs.length === 0 && (
+        <Paper 
+          elevation={1} 
+          sx={{ 
+            p: 6, 
+            textAlign: 'center', 
+            borderRadius: 3,
+            background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)'
+          }}
+        >
+          <BusinessIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
+          <Typography variant="h6" fontWeight="bold" color="text.secondary" mb={1}>
+            Eşleştirme Bulunamadı
+          </Typography>
+          <Typography variant="body2" color="text.secondary" mb={3}>
+            {pairingSearchTerm || pairingCategoryFilter !== 'all' || pairingStatusFilter !== 'all' 
+              ? 'Arama kriterlerinize uygun eşleştirme bulunamadı. Filtreleri temizleyip tekrar deneyin.'
+              : 'Henüz tedarikçi eşleştirmesi tanımlanmamış. İlk eşleştirmenizi oluşturun.'
+            }
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<LinkIcon />}
+            onClick={handleCreatePair}
+            size="large"
+          >
+            {supplierPairs.length === 0 ? 'İlk Eşleştirmeyi Oluştur' : 'Yeni Eşleştirme Ekle'}
+          </Button>
+        </Paper>
+      )}
+    </Box>
+    );
+  };
+
+  // Supplier List Component with advanced filtering, sorting, and pagination
   const renderSupplierList = () => {
-    // Filter suppliers based on search term and type
+    // Advanced filtering
     const filteredSuppliers = suppliers.filter(supplier => {
       const matchesSearch = searchTerm === '' || 
         supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -3486,53 +3427,333 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         supplier.materialTypes.some(mat => mat.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesType = supplierTypeFilter === 'all' || supplier.type === supplierTypeFilter;
+      const matchesCategory = supplierCategoryFilter === 'all' || supplier.category === supplierCategoryFilter;
+      const matchesStatus = supplierStatusFilter === 'all' || supplier.status === supplierStatusFilter;
+      const matchesRisk = supplierRiskFilter === 'all' || supplier.riskLevel === supplierRiskFilter;
       
-      return matchesSearch && matchesType;
+      return matchesSearch && matchesType && matchesCategory && matchesStatus && matchesRisk;
     });
+
+    // Sorting
+    const sortedSuppliers = filteredSuppliers.sort((a, b) => {
+      if (!sortColumn) return 0;
+      
+      let aValue = '';
+      let bValue = '';
+      
+      switch (sortColumn) {
+        case 'name':
+          aValue = a.name;
+          bValue = b.name;
+          break;
+        case 'type':
+          aValue = a.type;
+          bValue = b.type;
+          break;
+        case 'category':
+          aValue = a.category;
+          bValue = b.category;
+          break;
+        case 'performance':
+          return sortDirection === 'asc' ? a.performanceScore - b.performanceScore : b.performanceScore - a.performanceScore;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'lastAudit':
+          return sortDirection === 'asc' ? 
+            new Date(a.lastAuditDate).getTime() - new Date(b.lastAuditDate).getTime() :
+            new Date(b.lastAuditDate).getTime() - new Date(a.lastAuditDate).getTime();
+        default:
+          return 0;
+      }
+      
+      if (sortDirection === 'asc') {
+        return aValue.localeCompare(bValue);
+      } else {
+        return bValue.localeCompare(aValue);
+      }
+    });
+
+    // Pagination
+    const paginatedSuppliers = sortedSuppliers.slice(
+      currentPage * rowsPerPage,
+      currentPage * rowsPerPage + rowsPerPage
+    );
+
+    // Handle column sorting
+    const handleSort = (column: string) => {
+      if (sortColumn === column) {
+        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+        setSortColumn(column);
+        setSortDirection('asc');
+      }
+    };
+
+    // Handle bulk actions
+    const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (event.target.checked) {
+        setSelectedSuppliers(filteredSuppliers.map(s => s.id));
+      } else {
+        setSelectedSuppliers([]);
+      }
+    };
+
+    const handleSelectSupplier = (supplierId: string) => {
+      setSelectedSuppliers(prev => 
+        prev.includes(supplierId) 
+          ? prev.filter(id => id !== supplierId)
+          : [...prev, supplierId]
+      );
+    };
+
+    // Export functions
+    const exportToPDF = () => {
+      showSnackbar('PDF export özelliği geliştirilmektedir...', 'info');
+    };
+
+    const exportToExcel = () => {
+      showSnackbar('Excel export özelliği geliştirilmektedir...', 'info');
+    };
 
     return (
       <Box>
-        <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
-          <Box display="flex" gap={2}>
-            <TextField
-              size="small"
-              placeholder="Tedarikçi ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{ endAdornment: <SearchIcon /> }}
-            />
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Tür</InputLabel>
+        {/* Enhanced Filter Panel */}
+        <Card elevation={1} sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+          <Grid container spacing={2} alignItems="center" mb={2}>
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Tedarikçi ara (ad, kişi, kategori)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{ 
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
+                  sx: { bgcolor: 'white' }
+                }}
+              />
+            </Grid>
+            <Grid item xs={6} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel sx={{ bgcolor: 'white', px: 1 }}>Tür</InputLabel>
+                <Select 
+                  value={supplierTypeFilter}
+                  onChange={(e) => setSupplierTypeFilter(e.target.value)}
+                  sx={{ bgcolor: 'white' }}
+                >
+                  <MenuItem value="all">Tümü</MenuItem>
+                  <MenuItem value="onaylı">Onaylı</MenuItem>
+                  <MenuItem value="alternatif">Alternatif</MenuItem>
+                  <MenuItem value="potansiyel">Potansiyel</MenuItem>
+                  <MenuItem value="bloklu">Bloklu</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel sx={{ bgcolor: 'white', px: 1 }}>Kategori</InputLabel>
+                <Select 
+                  value={supplierCategoryFilter}
+                  onChange={(e) => setSupplierCategoryFilter(e.target.value)}
+                  sx={{ bgcolor: 'white' }}
+                >
+                  <MenuItem value="all">Tümü</MenuItem>
+                  <MenuItem value="stratejik">Stratejik</MenuItem>
+                  <MenuItem value="kritik">Kritik</MenuItem>
+                  <MenuItem value="rutin">Rutin</MenuItem>
+                  <MenuItem value="genel">Genel</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel sx={{ bgcolor: 'white', px: 1 }}>Durum</InputLabel>
+                <Select 
+                  value={supplierStatusFilter}
+                  onChange={(e) => setSupplierStatusFilter(e.target.value)}
+                  sx={{ bgcolor: 'white' }}
+                >
+                  <MenuItem value="all">Tümü</MenuItem>
+                  <MenuItem value="aktif">Aktif</MenuItem>
+                  <MenuItem value="pasif">Pasif</MenuItem>
+                  <MenuItem value="denetimde">Denetimde</MenuItem>
+                  <MenuItem value="bloklu">Bloklu</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6} md={2}>
+              <FormControl fullWidth size="small">
+                <InputLabel sx={{ bgcolor: 'white', px: 1 }}>Risk</InputLabel>
+                <Select 
+                  value={supplierRiskFilter}
+                  onChange={(e) => setSupplierRiskFilter(e.target.value)}
+                  sx={{ bgcolor: 'white' }}
+                >
+                  <MenuItem value="all">Tümü</MenuItem>
+                  <MenuItem value="düşük">Düşük</MenuItem>
+                  <MenuItem value="orta">Orta</MenuItem>
+                  <MenuItem value="yüksek">Yüksek</MenuItem>
+                  <MenuItem value="kritik">Kritik</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={1}>
+              <ButtonGroup variant="outlined" size="small" fullWidth>
+                <Tooltip title="PDF Export">
+                  <IconButton onClick={exportToPDF} color="primary">
+                    <FileDownloadIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Excel Export">
+                  <IconButton onClick={exportToExcel} color="success">
+                    <FileDownloadIcon />
+                  </IconButton>
+                </Tooltip>
+              </ButtonGroup>
+            </Grid>
+          </Grid>
+
+          {/* Bulk Actions */}
+          {selectedSuppliers.length > 0 && (
+            <Box display="flex" alignItems="center" gap={2} p={1} bgcolor="primary.50" borderRadius={1}>
+              <Typography variant="body2" fontWeight="bold">
+                {selectedSuppliers.length} tedarikçi seçili
+              </Typography>
+              <Button size="small" variant="outlined" color="warning">
+                Toplu Denetim Planla
+              </Button>
+              <Button size="small" variant="outlined" color="info">
+                Toplu Mail Gönder
+              </Button>
+              <Button size="small" variant="outlined" color="error">
+                Toplu Değerlendirme
+              </Button>
+            </Box>
+          )}
+        </Card>
+
+        {/* Results Summary */}
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="body2" color="text.secondary">
+            {filteredSuppliers.length} tedarikçi bulundu (toplam {suppliers.length})
+          </Typography>
+          <Box display="flex" alignItems="center" gap={2}>
+            <FormControl size="small" sx={{ minWidth: 80 }}>
+              <InputLabel>Sayfa</InputLabel>
               <Select 
-                value={supplierTypeFilter}
-                onChange={(e) => setSupplierTypeFilter(e.target.value)}
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(0);
+                }}
               >
-                <MenuItem value="all">Tümü</MenuItem>
-                <MenuItem value="onaylı">Onaylı</MenuItem>
-                <MenuItem value="alternatif">Alternatif</MenuItem>
-                <MenuItem value="potansiyel">Potansiyel</MenuItem>
+                <MenuItem value={5}>5</MenuItem>
+                <MenuItem value={10}>10</MenuItem>
+                <MenuItem value={25}>25</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
               </Select>
             </FormControl>
           </Box>
         </Box>
 
-      <TableContainer component={Paper} sx={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: 2 }}>
-        <Table sx={{ minWidth: 1420 }}>
+      <TableContainer component={Paper}>
+        <Table sx={{ minWidth: 1400 }}>
           <TableHead>
-            <TableRow sx={{ bgcolor: 'primary.50', '& .MuiTableCell-head': { borderBottom: '2px solid', borderColor: 'primary.200' } }}>
+            <TableRow sx={{ bgcolor: 'primary.50' }}>
+              <TableCell padding="checkbox" sx={{ width: '50px' }}>
+                <Checkbox
+                  color="primary"
+                  indeterminate={selectedSuppliers.length > 0 && selectedSuppliers.length < filteredSuppliers.length}
+                  checked={filteredSuppliers.length > 0 && selectedSuppliers.length === filteredSuppliers.length}
+                  onChange={handleSelectAll}
+                />
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '200px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+                onClick={() => handleSort('name')}
+              >
+                <Box display="flex" alignItems="center">
+                  Tedarikçi
+                  {sortColumn === 'name' && (
+                    sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '120px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+                onClick={() => handleSort('type')}
+              >
+                <Box display="flex" alignItems="center" justifyContent="center">
+                  Tür
+                  {sortColumn === 'type' && (
+                    sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '100px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+                onClick={() => handleSort('category')}
+              >
+                <Box display="flex" alignItems="center" justifyContent="center">
+                  Kategori
+                  {sortColumn === 'category' && (
+                    sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
+              </TableCell>
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
                   width: '220px',
                   whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  fontSize: '0.9rem',
-                  padding: '12px 16px'
+                  verticalAlign: 'middle'
                 }}
               >
-                <Typography variant="subtitle2" fontWeight={700}>
-                  Tedarikçi Bilgileri
-                </Typography>
+                Alt Kategoriler
+              </TableCell>
+              <TableCell 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  width: '150px',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}
+                onClick={() => handleSort('performance')}
+              >
+                <Box display="flex" alignItems="center" justifyContent="center">
+                  Performans
+                  {sortColumn === 'performance' && (
+                    sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
               </TableCell>
               <TableCell 
                 sx={{ 
@@ -3540,72 +3761,42 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   width: '130px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' }
                 }}
+                onClick={() => handleSort('lastAudit')}
               >
-                Tür
+                <Box display="flex" alignItems="center" justifyContent="center">
+                  Son Denetim
+                  {sortColumn === 'lastAudit' && (
+                    sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
               </TableCell>
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '110px',
+                  width: '100px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' }
                 }}
+                onClick={() => handleSort('status')}
               >
-                Kategori
+                <Box display="flex" alignItems="center" justifyContent="center">
+                  Durum
+                  {sortColumn === 'status' && (
+                    sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+                  )}
+                </Box>
               </TableCell>
               <TableCell 
                 sx={{ 
                   fontWeight: 'bold', 
-                  width: '320px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  fontSize: '0.9rem'
-                }}
-              >
-                <Typography variant="subtitle2" fontWeight={700}>
-                  Alt Kategoriler
-                </Typography>
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '180px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  textAlign: 'center'
-                }}
-              >
-                Performans
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '140px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  textAlign: 'center'
-                }}
-              >
-                Son Denetim
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '110px',
-                  whiteSpace: 'nowrap',
-                  verticalAlign: 'middle',
-                  textAlign: 'center'
-                }}
-              >
-                Durum
-              </TableCell>
-              <TableCell 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  width: '130px',
+                  width: '120px',
                   whiteSpace: 'nowrap',
                   verticalAlign: 'middle',
                   textAlign: 'center'
@@ -3616,98 +3807,33 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredSuppliers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} sx={{ textAlign: 'center', padding: '48px 24px' }}>
-                  <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
-                    <BusinessIcon sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.5 }} />
-                    <Typography variant="h6" color="text.secondary" fontWeight={500}>
-                      {searchTerm || supplierTypeFilter !== 'all' 
-                        ? 'Filtrelere uygun tedarikçi bulunamadı' 
-                        : 'Henüz tedarikçi eklenmemiş'
-                      }
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ maxWidth: '400px' }}>
-                      {searchTerm || supplierTypeFilter !== 'all' 
-                        ? 'Arama kriterlerinizi değiştirerek tekrar deneyin veya yeni tedarikçi ekleyin.'
-                        : 'Tedarikçi eklemeye başlamak için üstteki "Yeni Tedarikçi" butonunu kullanın.'
-                      }
-                    </Typography>
-                    {!searchTerm && supplierTypeFilter === 'all' && (
-                      <Button 
-                        variant="contained" 
-                        startIcon={<AddIcon />} 
-                        onClick={handleCreateSupplier}
-                        sx={{ mt: 2 }}
-                      >
-                        İlk Tedarikçinizi Ekleyin
-                      </Button>
-                    )}
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredSuppliers.map((supplier) => (
+            {paginatedSuppliers.map((supplier) => (
               <TableRow 
                 key={supplier.id}
-                sx={{
-                  '&:hover': {
-                    backgroundColor: 'primary.50',
-                    transform: 'scale(1.005)',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                  },
-                  '&:nth-of-type(even)': {
-                    backgroundColor: 'grey.25'
-                  },
-                  cursor: 'pointer'
+                hover
+                selected={selectedSuppliers.includes(supplier.id)}
+                sx={{ 
+                  '&.Mui-selected': { 
+                    bgcolor: 'action.selected',
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }
                 }}
               >
-                <TableCell sx={{ width: '220px', verticalAlign: 'top', padding: '12px 16px' }}>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    color="primary"
+                    checked={selectedSuppliers.includes(supplier.id)}
+                    onChange={() => handleSelectSupplier(supplier.id)}
+                  />
+                </TableCell>
+                <TableCell sx={{ width: '200px', verticalAlign: 'top' }}>
                   <Box>
-                    <Tooltip title={supplier.name} placement="top" arrow>
-                      <Typography 
-                        variant="body2" 
-                        fontWeight="bold" 
-                        sx={{ 
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          maxWidth: '180px',
-                          fontSize: '0.9rem',
-                          lineHeight: 1.4,
-                          cursor: 'help'
-                        }}
-                      >
-                        {supplier.name}
-                      </Typography>
-                    </Tooltip>
-                    <Box display="flex" alignItems="center" gap={0.5} mt={0.5}>
-                      <Box 
-                        sx={{ 
-                          width: '6px', 
-                          height: '6px', 
-                          backgroundColor: 'primary.main', 
-                          borderRadius: '50%' 
-                        }} 
-                      />
-                      <Tooltip title={`İletişim: ${supplier.contact.contactPerson}`} placement="bottom" arrow>
-                        <Typography 
-                          variant="caption" 
-                          color="text.secondary"
-                          sx={{ 
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            maxWidth: '160px',
-                            fontSize: '0.75rem',
-                            cursor: 'help'
-                          }}
-                        >
-                          {supplier.contact.contactPerson}
-                        </Typography>
-                      </Tooltip>
-                    </Box>
+                    <Typography variant="body2" fontWeight="bold" noWrap>
+                      {supplier.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {supplier.contact.contactPerson}
+                    </Typography>
                   </Box>
                 </TableCell>
                 <TableCell sx={{ width: '130px', textAlign: 'center', verticalAlign: 'middle' }}>
@@ -3726,143 +3852,61 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     sx={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                   />
                 </TableCell>
-                <TableCell sx={{ width: '320px', verticalAlign: 'top', padding: '12px 8px' }}>
-                  <Box sx={{ 
-                    maxHeight: '100px', 
-                    overflow: 'auto',
-                    '&::-webkit-scrollbar': {
-                      width: '4px',
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      background: '#f1f1f1',
-                      borderRadius: '2px',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: '#c1c1c1',
-                      borderRadius: '2px',
-                    },
-                  }}>
+                <TableCell sx={{ width: '250px', verticalAlign: 'top' }}>
+                  <Box sx={{ maxHeight: '80px', overflow: 'auto' }}>
                     {supplier.supplySubcategories.length > 0 ? (
-                      <Box display="flex" flexWrap="wrap" gap={0.75}>
-                        {supplier.supplySubcategories.map((subcategory, index) => {
-                          // Alt kategori ismini kısalt
-                          const shortLabel = subcategory.length > 35 
-                            ? subcategory.substring(0, 35) + '...' 
-                            : subcategory;
-                          
-                          return (
-                            <Tooltip 
-                              key={index}
-                              title={subcategory}
-                              placement="top"
-                              arrow
-                            >
-                              <Chip 
-                                label={shortLabel} 
-                                color="info"
-                                variant="outlined"
-                                size="small"
-                                sx={{ 
-                                  fontSize: '0.75rem', 
-                                  height: '26px',
-                                  maxWidth: '180px',
-                                  fontWeight: 500,
-                                  cursor: 'help',
-                                  border: '1.5px solid',
-                                  borderColor: 'info.main',
-                                  backgroundColor: 'info.50',
-                                  '&:hover': {
-                                    backgroundColor: 'info.100',
-                                    borderColor: 'info.dark',
-                                    transform: 'scale(1.02)',
-                                    transition: 'all 0.2s ease'
-                                  }
-                                }}
-                              />
-                            </Tooltip>
-                          );
-                        })}
+                      <Box display="flex" flexWrap="wrap" gap={0.5}>
+                        {supplier.supplySubcategories.map((subcategory, index) => (
+                          <Chip 
+                            key={index}
+                            label={subcategory} 
+                            color="secondary"
+                            variant="outlined"
+                            size="small"
+                            sx={{ fontSize: '0.65rem', height: '20px' }}
+                          />
+                        ))}
                       </Box>
                     ) : (
-                      <Box 
-                        sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          minHeight: '26px',
-                          padding: '4px 8px',
-                          backgroundColor: 'grey.50',
-                          borderRadius: '13px',
-                          border: '1px dashed',
-                          borderColor: 'grey.300'
-                        }}
-                      >
-                        <Typography 
-                          variant="caption" 
-                          color="text.secondary"
-                          sx={{ fontStyle: 'italic', fontSize: '0.75rem' }}
-                        >
-                          Kategori belirtilmemiş
-                        </Typography>
-                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Belirtilmemiş
+                      </Typography>
                     )}
                   </Box>
                 </TableCell>
-                <TableCell sx={{ width: '180px', textAlign: 'center', verticalAlign: 'middle', padding: '12px 8px' }}>
-                  <Box display="flex" flexDirection="column" alignItems="center" gap={1}>
+                <TableCell sx={{ width: '180px', textAlign: 'center', verticalAlign: 'middle' }}>
+                  <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
                     {/* Grade Badge */}
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: 40,
-                        height: 40,
+                        width: 36,
+                        height: 36,
                         borderRadius: '50%',
                         backgroundColor: getPerformanceGrade(supplier.performanceScore, supplier).bgColor,
                         color: 'white',
                         fontWeight: 'bold',
-                        fontSize: '1.1rem',
-                        boxShadow: '0 3px 8px rgba(0,0,0,0.2)',
-                        border: '2px solid white',
-                        position: 'relative',
-                        '&::after': {
-                          content: '""',
-                          position: 'absolute',
-                          top: '-2px',
-                          left: '-2px',
-                          right: '-2px',
-                          bottom: '-2px',
-                          borderRadius: '50%',
-                          border: '2px solid',
-                          borderColor: getPerformanceGrade(supplier.performanceScore, supplier).bgColor,
-                          opacity: 0.3
-                        }
+                        fontSize: '1rem',
+                        boxShadow: 1,
+                        minWidth: 36,
+                        flexShrink: 0
                       }}
                     >
                       {getPerformanceGrade(supplier.performanceScore, supplier).grade}
                     </Box>
                     
                     {/* Performans Detayları */}
-                    <Box textAlign="center">
-                      <Typography variant="body2" fontWeight="bold" sx={{ fontSize: '0.9rem' }}>
+                    <Box>
+                      <Typography variant="body2" fontWeight="bold" textAlign="center">
                         {supplier.performanceScore}%
                       </Typography>
-                      <Typography 
-                        variant="caption" 
-                        color="text.secondary" 
-                        sx={{ 
-                          fontSize: '0.7rem',
-                          display: 'block',
-                          lineHeight: 1.2,
-                          maxWidth: '120px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {getPerformanceGrade(supplier.performanceScore, supplier).description}
-                      </Typography>
+                      {getPerformanceGrade(supplier.performanceScore, supplier).description && (
+                        <Typography variant="caption" color="text.secondary" textAlign="center" display="block">
+                          {getPerformanceGrade(supplier.performanceScore, supplier).description}
+                        </Typography>
+                      )}
                     </Box>
                   </Box>
                 </TableCell>
@@ -3938,11 +3982,27 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </Box>
                 </TableCell>
               </TableRow>
-              ))
-            )}
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
+      
+      {/* Pagination */}
+      <TablePagination
+        component="div"
+        count={filteredSuppliers.length}
+        page={currentPage}
+        onPageChange={(_, newPage) => setCurrentPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(event) => {
+          setRowsPerPage(parseInt(event.target.value, 10));
+          setCurrentPage(0);
+        }}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+        labelRowsPerPage="Sayfa başına:"
+        labelDisplayedRows={({ from, to, count }) => `${from}–${to} / ${count}`}
+        sx={{ borderTop: '1px solid', borderColor: 'divider' }}
+      />
     </Box>
     );
   };
@@ -6001,23 +6061,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             >
               Yeni Tedarikçi
             </Button>
-            {/* Örnek Veri Yükleme Butonu - sadece veri yoksa göster */}
-            {suppliers.length === 0 && (
-              <Button
-                variant="outlined"
-                color="secondary"
-                startIcon={<StarIcon />}
-                onClick={() => {
-                  if (window.confirm('Örnek tedarikçi verileri yüklensin mi? Bu işlem mevcut verileri etkilemez.')) {
-                    loadMockData();
-                    showSnackbar('Örnek veriler başarıyla yüklendi', 'success');
-                  }
-                }}
-                sx={{ borderStyle: 'dashed' }}
-              >
-                Örnek Veri Yükle
-              </Button>
-            )}
           </Box>
         </Box>
 
