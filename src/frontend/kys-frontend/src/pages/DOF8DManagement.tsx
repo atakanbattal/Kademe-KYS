@@ -1340,56 +1340,13 @@ const UltimateStableSearchInput = memo(({
   sx?: any;
   [key: string]: any;
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [value, setValue] = useState<string>(defaultValue);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const valueRef = useRef<string>(defaultValue);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const focusGuardRef = useRef<NodeJS.Timeout | null>(null);
-  const aggressiveFocusRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
 
-  // 🔥 ULTRA AGGRESSIVE FOCUS PROTECTION
-  useEffect(() => {
-    const focusProtection = () => {
-      if (isMountedRef.current && inputRef.current && 
-          document.activeElement !== inputRef.current) {
-        
-        // Eğer input container'da ise focus'u geri al
-        const container = containerRef.current;
-        if (container && container.contains(document.activeElement)) {
-          inputRef.current.focus();
-        }
-      }
-    };
-
-    // Her 25ms focus kontrolü - çok agresif
-    const interval = setInterval(focusProtection, 25);
-    
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
-
-  // 🔥 BLUR PREVENTION - Hiç blur olmasın
-  const handleBlur = useCallback((event: React.FocusEvent) => {
-    // Blur'u engelle
-    event.preventDefault();
-    
-    // Hemen tekrar focus al
-    if (aggressiveFocusRef.current) {
-      clearTimeout(aggressiveFocusRef.current);
-    }
-    
-    aggressiveFocusRef.current = setTimeout(() => {
-      if (isMountedRef.current && inputRef.current) {
-        inputRef.current.focus();
-      }
-    }, 10);
-  }, []);
-
+  // Debounced onChange handler
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
-    valueRef.current = newValue;
+    setValue(newValue);
     
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -1400,80 +1357,47 @@ const UltimateStableSearchInput = memo(({
     }, debounceMs);
   }, [onChange, debounceMs]);
 
-  const handleContainerMouseDown = useCallback((event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, []);
-
-  const handleInputMouseDown = useCallback((event: React.MouseEvent) => {
-    event.stopPropagation();
-  }, []);
-
-  const handleInputFocus = useCallback(() => {
-    // Focus alındığında aggressive protection başlat
-    if (focusGuardRef.current) {
-      clearTimeout(focusGuardRef.current);
-    }
-  }, []);
-
-  // 🔥 MOUNT/UNMOUNT CONTROL
+  // Cleanup timeout on unmount
   useEffect(() => {
-    isMountedRef.current = true;
-    
     return () => {
-      isMountedRef.current = false;
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (focusGuardRef.current) clearTimeout(focusGuardRef.current);
-      if (aggressiveFocusRef.current) clearTimeout(aggressiveFocusRef.current);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, []);
 
   return (
-    <div 
-      ref={containerRef}
-      onMouseDown={handleContainerMouseDown}
-      style={{ width: fullWidth ? '100%' : 'auto' }}
-    >
-      <TextField
-        {...otherProps}
-        ref={inputRef}
-        fullWidth={fullWidth}
-        label={label}
-        defaultValue={defaultValue}
-        onChange={handleChange}
-        onFocus={handleInputFocus}
-        onBlur={handleBlur}
-        onMouseDown={handleInputMouseDown}
-        placeholder={placeholder}
-        autoComplete="off"
-        spellCheck={false}
-        InputProps={{
-          startAdornment: Icon ? <Icon color="action" sx={{ mr: 1 }} /> : undefined,
-        }}
-        sx={{
-          '& .MuiInputLabel-root': {
-            fontWeight: 600,
+    <TextField
+      {...otherProps}
+      fullWidth={fullWidth}
+      label={label}
+      value={value}
+      onChange={handleChange}
+      placeholder={placeholder}
+      autoComplete="off"
+      spellCheck={false}
+      InputProps={{
+        startAdornment: Icon ? <Icon color="action" sx={{ mr: 1 }} /> : undefined,
+      }}
+      sx={{
+        '& .MuiInputLabel-root': {
+          fontWeight: 600,
+        },
+        '& .MuiOutlinedInput-root': {
+          height: 56,
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
           },
-          '& .MuiOutlinedInput-root': {
-            height: 56,
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'primary.main',
-            },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'primary.main',
-              borderWidth: '2px',
-            },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
+            borderWidth: '2px',
           },
-          ...sx,
-        }}
-      />
-    </div>
+        },
+        ...sx,
+      }}
+    />
   );
-}, () => true); // Aggressive memo to prevent ALL re-renders
+}); // Aggressive memo to prevent ALL re-renders
 
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
@@ -3180,6 +3104,7 @@ const DOF8DManagement: React.FC = () => {
               <UltimateStableSearchInput
                 label="Gelişmiş Arama"
                 placeholder="DÖF numarası, başlık, açıklama..."
+                key={filters.searchTerm} // Key ekleyerek component'i yeniden render et
                 defaultValue={filters.searchTerm}
                 onChange={(value: string) => handleFilterChange('searchTerm', value)}
                 debounceMs={380}
