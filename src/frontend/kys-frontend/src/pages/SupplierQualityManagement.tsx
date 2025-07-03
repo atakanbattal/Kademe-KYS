@@ -329,6 +329,9 @@ const SupplierQualityManagement: React.FC = () => {
     backupData();
     loadStoredData();
     
+    // ❌ generateAutoAuditRecommendations ve syncDataConsistency çağrıları kaldırıldı
+    // Bu fonksiyonlar veri çakışması yaratıyordu
+    
     // Component unmount olduğunda cleanup
     return () => {
       console.log('🛡️ SupplierQualityManagement component UNMOUNT - veri koruması');
@@ -345,47 +348,11 @@ const SupplierQualityManagement: React.FC = () => {
     };
   }, []);
 
-  // localStorage Monitoring System - Sürekli veri koruması
-  useEffect(() => {
-    const monitorInterval = setInterval(() => {
-      const currentSuppliers = localStorage.getItem('suppliers');
-      const currentCount = suppliers.length;
-      
-      // localStorage'da veri yoksa ama state'te veri varsa
-      if ((!currentSuppliers || currentSuppliers === '[]' || currentSuppliers === 'null') && currentCount > 0) {
-        console.log('🚨 UYARI: localStorage\'da tedarikçi verisi silinmiş, state\'ten restore ediliyor!');
-        localStorage.setItem('suppliers', JSON.stringify(suppliers));
-        console.log('🔧 localStorage restore edildi:', currentCount, 'tedarikçi');
-      }
-      
-      // localStorage'da veri varsa ama state'te yoksa (component mount durumu değil)
-      if (currentSuppliers && currentSuppliers !== '[]' && currentSuppliers !== 'null' && currentCount === 0 && dataLoaded) {
-        console.log('🚨 UYARI: State\'te veri yok ama localStorage\'da var, state restore ediliyor!');
-        try {
-          const storedData = JSON.parse(currentSuppliers);
-          if (storedData.length > 0) {
-            setSuppliers(storedData);
-            console.log('🔧 State restore edildi:', storedData.length, 'tedarikçi');
-          }
-        } catch (e) {
-          console.error('❌ State restore hatası:', e);
-        }
-      }
-    }, 2000); // Her 2 saniyede kontrol et
-    
-    return () => clearInterval(monitorInterval);
-  }, [suppliers, dataLoaded]);
+  // ❌ localStorage Monitoring DEVRE DIŞI - Çakışma sorunu yaratıyordu
+  // Monitoring sistemi otomatik kaydetme ile çakışıp veri kaybına neden oluyordu
 
-  // Veri tutarlılığı kontrolü - Veriler yüklendikten sonra
-  useEffect(() => {
-    if (dataLoaded && suppliers.length > 0 && supplierPairs.length > 0) {
-      console.log('🔄 Veri yüklendi, tutarlılık kontrolü başlatılıyor...');
-      // Biraz bekleyip senkronizasyon yap
-      setTimeout(() => {
-        syncDataConsistency();
-      }, 500);
-    }
-  }, [dataLoaded, suppliers.length, supplierPairs.length]);
+  // ❌ Veri tutarlılığı kontrolü DEVRE DIŞI - Çakışma sorunu yaratıyordu
+  // syncDataConsistency fonksiyonu otomatik kaydetme ile çakışıp veri kaybına neden oluyordu
 
   // 🚀 OTOMATİK KAYDETME SİSTEMİ - Veri kaybolmasını önlemek için
   // Suppliers değiştiğinde otomatik kaydet
