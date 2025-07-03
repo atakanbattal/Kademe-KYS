@@ -2035,6 +2035,15 @@ const MaterialCertificateTracking: React.FC = () => {
       traceabilityNumber
     };
 
+    // 🛠️ Debug: Material data before save
+    console.log('🛠️ Material Save Debug:', {
+      materialId: materialData.id,
+      certificates: materialData.certificates,
+      certificateCount: materialData.certificates?.length || 0,
+      formDataCertificates: formData.certificates,
+      formDataCertCount: formData.certificates?.length || 0
+    });
+
     let updatedMaterials;
     if (dialogType === 'edit') {
       updatedMaterials = materials.map(m => m.id === materialData.id ? materialData : m);
@@ -2044,7 +2053,29 @@ const MaterialCertificateTracking: React.FC = () => {
       showSnackbar('Yeni malzeme kaydı eklendi', 'success');
     }
 
+    // 🛠️ Debug: Updated materials before localStorage save
+    console.log('🛠️ Updated Materials Debug:', {
+      totalMaterials: updatedMaterials.length,
+      newMaterialCertificates: updatedMaterials.find(m => m.id === materialData.id)?.certificates,
+      certificateCount: updatedMaterials.find(m => m.id === materialData.id)?.certificates?.length || 0
+    });
+
     saveMaterials(updatedMaterials);
+    
+    // 🛠️ Debug: Verify localStorage after save (FIXED KEY)
+    try {
+      const savedData = JSON.parse(localStorage.getItem('materialCertificateTracking') || '[]');
+      const savedMaterial = savedData.find((m: any) => m.id === materialData.id);
+      console.log('🛠️ localStorage Verification:', {
+        materialFound: !!savedMaterial,
+        certificatesInStorage: savedMaterial?.certificates || [],
+        certificateCountInStorage: savedMaterial?.certificates?.length || 0,
+        correctKeyUsed: 'materialCertificateTracking'
+      });
+    } catch (error) {
+      console.error('🚨 localStorage verification error:', error);
+    }
+    
     setDialogOpen(false);
     resetForm();
   };
@@ -2332,27 +2363,56 @@ const MaterialCertificateTracking: React.FC = () => {
 
   // 🆕 Certificate Management Functions
   const handleCertificateUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🔧 Certificate Upload Debug: Function called');
+    
     const file = event.target.files?.[0];
-    if (!file) return;
+    console.log('📁 Selected file:', file);
+    
+    if (!file) {
+      console.log('❌ No file selected');
+      return;
+    }
+
+    console.log('📋 File details:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified
+    });
 
     // File validation
     const maxSize = 10 * 1024 * 1024; // 10MB
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
     
+    console.log('🔍 File validation:', {
+      sizeOK: file.size <= maxSize,
+      typeOK: allowedTypes.includes(file.type),
+      actualSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+      actualType: file.type
+    });
+    
     if (file.size > maxSize) {
+      console.log('❌ File too large:', file.size, 'bytes');
       showSnackbar('Dosya boyutu 10MB\'dan büyük olamaz', 'error');
       return;
     }
 
     if (!allowedTypes.includes(file.type)) {
-      showSnackbar('Sadece PDF, JPG, JPEG, PNG formatları kabul edilir', 'error');
+      console.log('❌ Invalid file type:', file.type);
+      showSnackbar(`❌ Dosya tipi desteklenmiyor: ${file.type}. Sadece PDF, JPG, JPEG, PNG formatları kabul edilir`, 'error');
       return;
     }
 
+    console.log('✅ File validation passed');
+    showSnackbar(`📤 "${file.name}" yükleniyor...`, 'info');
+
     // Convert file to base64 for storage
     const reader = new FileReader();
+    
     reader.onload = (e) => {
+      console.log('🔄 FileReader onload event triggered');
       const base64 = e.target?.result as string;
+      console.log('📈 Base64 conversion successful, length:', base64?.length);
       
       const newCertificate: Certificate = {
         id: generateId(),
@@ -2363,20 +2423,38 @@ const MaterialCertificateTracking: React.FC = () => {
         url: base64 // Store base64 data
       };
 
+      console.log('📄 New certificate object:', newCertificate);
+
       const updatedCertificates = [...(formData.certificates || []), newCertificate];
-      setFormData(prev => ({ ...prev, certificates: updatedCertificates }));
+      console.log('📚 Updated certificates array:', updatedCertificates);
+      
+      setFormData(prev => {
+        console.log('🔄 Updating formData with certificates');
+        return { ...prev, certificates: updatedCertificates };
+      });
       
       showSnackbar(`✅ "${file.name}" başarıyla yüklendi`, 'success');
+      console.log('✅ Certificate upload completed successfully');
     };
 
-    reader.onerror = () => {
+    reader.onerror = (error) => {
+      console.error('❌ FileReader error:', error);
       showSnackbar('Dosya yükleme sırasında hata oluştu', 'error');
     };
 
+    reader.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const progress = (e.loaded / e.total) * 100;
+        console.log(`📊 Upload progress: ${progress.toFixed(1)}%`);
+      }
+    };
+
+    console.log('🚀 Starting FileReader.readAsDataURL()');
     reader.readAsDataURL(file);
     
     // Reset input
     event.target.value = '';
+    console.log('🔄 File input reset');
   };
 
   const handleDownloadCertificate = (certificate: Certificate) => {
