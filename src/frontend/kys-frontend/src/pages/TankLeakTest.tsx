@@ -697,6 +697,10 @@ const TankLeakTest: React.FC = () => {
   })) as any;
   const [activePage, setActivePage] = useState<'form' | 'history' | 'repair'>('form');
   
+  // Test Record Detail View States
+  const [testDetailDialog, setTestDetailDialog] = useState(false);
+  const [selectedTestRecord, setSelectedTestRecord] = useState<TestRecord | null>(null);
+  
   // Personnel management states
   const [personnelDialog, setPersonnelDialog] = useState<'welder' | 'inspector' | null>(null);
   const [newPersonnel, setNewPersonnel] = useState({
@@ -1290,6 +1294,17 @@ const TankLeakTest: React.FC = () => {
     } catch (error) {
               console.error('Tamir kaydı silinirken hata:', error);
     }
+  };
+
+  // Test kaydı görüntüleme fonksiyonları
+  const handleViewTestRecord = (test: TestRecord) => {
+    setSelectedTestRecord(test);
+    setTestDetailDialog(true);
+  };
+
+  const handleCloseTestDetailDialog = () => {
+    setTestDetailDialog(false);
+    setSelectedTestRecord(null);
   };
 
   // Generate sample repair data
@@ -3621,6 +3636,15 @@ const TankLeakTest: React.FC = () => {
                             </TableCell>
                             <TableCell align="center">
                               <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                <Tooltip title="Kayıt Görüntüle">
+                                  <IconButton 
+                                    size="small"
+                                    color="primary"
+                                    onClick={() => handleViewTestRecord(test)}
+                                  >
+                                    <VisibilityIcon />
+                                  </IconButton>
+                                </Tooltip>
                                 <Tooltip title="Düzenle">
                                   <IconButton 
                                     size="small"
@@ -4593,6 +4617,281 @@ const TankLeakTest: React.FC = () => {
               }}
             >
               Düzenle
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+      
+      {/* Test Record Detail Dialog */}
+      <Dialog 
+        open={testDetailDialog} 
+        onClose={handleCloseTestDetailDialog}
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <VisibilityIcon color="primary" />
+            <Typography variant="h6">
+              Test Kaydı Detayları
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedTestRecord && (
+            <Box sx={{ pt: 2 }}>
+              <Grid container spacing={3}>
+                {/* Tank Bilgileri */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <EngineeringIcon color="primary" />
+                    Tank Bilgileri
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                    <TextField
+                      label="Seri Numarası"
+                      value={selectedTestRecord.tankInfo.serialNumber}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Tank Türü"
+                      value={selectedTestRecord.tankInfo.type}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Malzeme"
+                      value={selectedTestRecord.tankInfo.material}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Kapasite (m³)"
+                      value={selectedTestRecord.tankInfo.capacity}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Üretim Tarihi"
+                      value={selectedTestRecord.tankInfo.productionDate}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Araç Bilgileri */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CarIcon color="primary" />
+                    Araç Bilgileri
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                    <TextField
+                      label="Araç Modeli"
+                      value={selectedTestRecord.vehicleInfo.model}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="VIN Numarası"
+                      value={selectedTestRecord.vehicleInfo.vinNumber}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Tank Pozisyonu"
+                      value={selectedTestRecord.vehicleInfo.tankPosition}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Proje Kodu"
+                      value={selectedTestRecord.vehicleInfo.projectCode}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Test Parametreleri */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ScienceIcon color="primary" />
+                    Test Parametreleri
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                    <TextField
+                      label="Test Türü"
+                      value={selectedTestRecord.testParameters.testType}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Test Tarihi"
+                      value={selectedTestRecord.testParameters.testDate}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Test Basıncı (bar)"
+                      value={selectedTestRecord.testParameters.testPressure}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Test Süresi (dk)"
+                      value={selectedTestRecord.testParameters.testDuration}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Ortam Sıcaklığı (°C)"
+                      value={selectedTestRecord.testParameters.ambientTemp}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Test Ekipmanı"
+                      value={selectedTestRecord.testParameters.testEquipment}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Basınç Düşüşü (bar)"
+                      value={selectedTestRecord.testParameters.pressureDrop}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Personel */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <PersonIcon color="primary" />
+                    Personel
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                    <TextField
+                      label="Kaynak Yapan"
+                      value={selectedTestRecord.personnel.welder}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Kalite Kontrol Yapan"
+                      value={selectedTestRecord.personnel.inspector}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Hatalar */}
+                {selectedTestRecord.errors.length > 0 && (
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <BugReportIcon color="error" />
+                      Tespit Edilen Hatalar
+                    </Typography>
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Hata Türü</TableCell>
+                            <TableCell>Konum</TableCell>
+                            <TableCell>Boyut (mm)</TableCell>
+                            <TableCell>Tamir Yöntemi</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {selectedTestRecord.errors.map((error) => (
+                            <TableRow key={error.id}>
+                              <TableCell>{error.errorType}</TableCell>
+                              <TableCell>{error.location}</TableCell>
+                              <TableCell>{error.size}</TableCell>
+                              <TableCell>{error.repairMethod}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </Grid>
+                )}
+
+                {/* Test Sonucu */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CheckCircleIcon color="success" />
+                    Test Sonucu
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                    <TextField
+                      label="Sonuç"
+                      value={
+                        selectedTestRecord.testResult.result === 'passed' ? 'Başarılı' :
+                        selectedTestRecord.testResult.result === 'failed' ? 'Başarısız' :
+                        selectedTestRecord.testResult.result === 'conditional' ? 'Şartlı' : 'Belirsiz'
+                      }
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Tekrar Test"
+                      value={selectedTestRecord.testResult.retestRequired ? 'Gerekli' : 'Gerekli Değil'}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Notlar"
+                      value={selectedTestRecord.testResult.notes || 'Yok'}
+                      fullWidth
+                      multiline
+                      rows={2}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Tarih Bilgileri */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <InfoIcon color="primary" />
+                    Kayıt Bilgileri
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                    <TextField
+                      label="Kayıt Tarihi"
+                      value={new Date(selectedTestRecord.createdAt).toLocaleString('tr-TR')}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                    <TextField
+                      label="Güncellenme Tarihi"
+                      value={new Date(selectedTestRecord.updatedAt).toLocaleString('tr-TR')}
+                      fullWidth
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTestDetailDialog} color="inherit">
+            Kapat
+          </Button>
+          {selectedTestRecord && (
+            <Button 
+              variant="contained" 
+              startIcon={<PdfIcon />}
+              onClick={() => handleGeneratePDFForTest(selectedTestRecord)}
+              color="error"
+            >
+              PDF İndir
             </Button>
           )}
         </DialogActions>
