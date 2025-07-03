@@ -3681,18 +3681,24 @@ const TankLeakTest: React.FC = () => {
                             </TableCell>
                             <TableCell align="center">
                               <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                                <Tooltip title="Kayıt Görüntüle">
+                                <Tooltip title="Kayıt Görüntüle (Salt Okunur)">
                                   <IconButton 
                                     size="small"
-                                    color="primary"
+                                    color="info"
                                     onClick={() => handleViewTestRecord(test)}
+                                    sx={{ 
+                                      bgcolor: 'info.light',
+                                      color: 'info.contrastText',
+                                      '&:hover': { bgcolor: 'info.main' }
+                                    }}
                                   >
                                     <VisibilityIcon />
                                   </IconButton>
                                 </Tooltip>
-                                <Tooltip title="Düzenle">
+                                <Tooltip title="Kaydı Düzenle">
                                   <IconButton 
                                     size="small"
+                                    color="warning"
                                     onClick={() => {
                                       // Test verilerini forma yükle - null check ile
                                       if (test.tankInfo) setTankInfo(test.tankInfo);
@@ -3703,6 +3709,11 @@ const TankLeakTest: React.FC = () => {
                                       if (test.testResult) setTestResult(test.testResult);
                                       // Test formu sayfasına geç
                                       setActivePage('form');
+                                    }}
+                                    sx={{ 
+                                      bgcolor: 'warning.light',
+                                      color: 'warning.contrastText',
+                                      '&:hover': { bgcolor: 'warning.main' }
                                     }}
                                   >
                                     <EditIcon />
@@ -4674,9 +4685,9 @@ const TankLeakTest: React.FC = () => {
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <VisibilityIcon color="primary" />
+            <VisibilityIcon color="info" />
             <Typography variant="h6">
-              Test Kaydı Detayları
+              Test Kaydı Detayları (Salt Okunur)
             </Typography>
           </Box>
         </DialogTitle>
