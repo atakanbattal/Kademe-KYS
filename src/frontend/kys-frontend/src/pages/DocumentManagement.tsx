@@ -317,6 +317,25 @@ type PersonnelDocumentStatus = 'active' | 'expired' | 'suspended' | 'pending_ren
 
 type CriticalityLevel = 'Kritik' | 'Yüksek' | 'Orta' | 'Düşük';
 
+// Kalite belgeleri için interface'ler
+interface QualityCertificate {
+  id: string;
+  name: string;
+  type: string;
+  expiry: string;
+  status: 'active' | 'expired' | 'expiring';
+  authority: string;
+}
+
+interface ProductCertificate {
+  id: string;
+  name: string;
+  type: string;
+  expiry: string;
+  status: 'active' | 'expired' | 'expiring';
+  authority: string;
+}
+
 interface FilterState {
   searchTerm: string;
   type: string;
@@ -674,6 +693,8 @@ const DocumentManagement: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [welderCertificates, setWelderCertificates] = useState<WelderCertificate[]>([]);
   const [personnelDocuments, setPersonnelDocuments] = useState<PersonnelDocument[]>([]);
+  const [qualityCertificates, setQualityCertificates] = useState<QualityCertificate[]>([]);
+  const [productCertificates, setProductCertificates] = useState<ProductCertificate[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     searchTerm: '',
     type: '',
@@ -1007,26 +1028,44 @@ const DocumentManagement: React.FC = () => {
     }
   }, []);
 
-  const productCertificates = [
-    { name: 'CE İşaretleme', type: 'Ürün Uygunluk Belgesi', expiry: '2025-07-30', status: 'active', authority: 'Notified Body' },
-    { name: 'TSE Belgesi', type: 'Türk Standartları Belgesi', expiry: '2025-05-15', status: 'active', authority: 'TSE' },
-    { name: 'GOST-R Belgesi', type: 'Rus Federasyonu Belgesi', expiry: '2023-11-10', status: 'expired', authority: 'GOST-R' },
-    { name: 'PED Direktifi', type: 'Basınçlı Ekipman Direktifi', expiry: '2026-01-20', status: 'active', authority: 'TÜV SÜD' },
-  ];
+  // Initialize product certificates - ONLY ON FIRST LOAD
+  React.useEffect(() => {
+    const isProductCertInitialized = localStorage.getItem('documentManagement_productCert_initialized');
+    if (!isProductCertInitialized && productCertificates.length === 0) {
+      const sampleProductCertificates: ProductCertificate[] = [
+        { id: '1', name: 'CE İşaretleme', type: 'Ürün Uygunluk Belgesi', expiry: '2025-07-30', status: 'active', authority: 'Notified Body' },
+        { id: '2', name: 'TSE Belgesi', type: 'Türk Standartları Belgesi', expiry: '2025-05-15', status: 'active', authority: 'TSE' },
+        { id: '3', name: 'GOST-R Belgesi', type: 'Rus Federasyonu Belgesi', expiry: '2023-11-10', status: 'expired', authority: 'GOST-R' },
+        { id: '4', name: 'PED Direktifi', type: 'Basınçlı Ekipman Direktifi', expiry: '2026-01-20', status: 'active', authority: 'TÜV SÜD' },
+      ];
+      setProductCertificates(sampleProductCertificates);
+      localStorage.setItem('documentManagement_productCert_initialized', 'true');
+    }
+  }, []);
 
-  // Updated certificate statistics with certificatesWithStatus
+  // Initialize quality certificates - ONLY ON FIRST LOAD  
+  React.useEffect(() => {
+    const isQualityCertInitialized = localStorage.getItem('documentManagement_qualityCert_initialized');
+    if (!isQualityCertInitialized && qualityCertificates.length === 0) {
+      const sampleQualityCertificates: QualityCertificate[] = [
+        { id: '1', name: 'ISO 9001:2015', type: 'Kalite Yönetim Sistemi', expiry: '2025-06-15', status: 'active', authority: 'TÜV NORD' },
+        { id: '2', name: 'ISO 14001:2015', type: 'Çevre Yönetim Sistemi', expiry: '2025-08-20', status: 'active', authority: 'Bureau Veritas' },
+        { id: '3', name: 'ISO 45001:2018', type: 'İSG Yönetim Sistemi', expiry: '2024-12-10', status: 'expiring', authority: 'SGS' },
+        { id: '4', name: 'ISO 50001:2018', type: 'Enerji Yönetim Sistemi', expiry: '2026-03-15', status: 'active', authority: 'TÜV SÜD' },
+        { id: '5', name: 'ISO 27001:2013', type: 'Bilgi Güvenliği Yönetimi', expiry: '2024-11-30', status: 'expiring', authority: 'BSI' }
+      ];
+      setQualityCertificates(sampleQualityCertificates);
+      localStorage.setItem('documentManagement_qualityCert_initialized', 'true');
+    }
+  }, []);
+
+  // Updated certificate statistics with dynamic data
   const certificateStats = {
-    total: 12,
-    active: 8,
-    expiring: 4,
-    expired: 5,
-    certificatesWithStatus: [
-      { name: 'ISO 9001:2015', type: 'Kalite Yönetim Sistemi', expiry: '2025-06-15', status: 'active', authority: 'TÜV NORD' },
-      { name: 'ISO 14001:2015', type: 'Çevre Yönetim Sistemi', expiry: '2025-08-20', status: 'active', authority: 'Bureau Veritas' },
-      { name: 'ISO 45001:2018', type: 'İSG Yönetim Sistemi', expiry: '2024-12-10', status: 'expiring', authority: 'SGS' },
-      { name: 'ISO 50001:2018', type: 'Enerji Yönetim Sistemi', expiry: '2026-03-15', status: 'active', authority: 'TÜV SÜD' },
-      { name: 'ISO 27001:2013', type: 'Bilgi Güvenliği Yönetimi', expiry: '2024-11-30', status: 'expiring', authority: 'BSI' }
-    ]
+    total: qualityCertificates.length,
+    active: qualityCertificates.filter(c => c.status === 'active').length,
+    expiring: qualityCertificates.filter(c => c.status === 'expiring').length,
+    expired: qualityCertificates.filter(c => c.status === 'expired').length,
+    certificatesWithStatus: qualityCertificates
   };
 
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -1419,6 +1458,30 @@ const DocumentManagement: React.FC = () => {
         setPersonnelDocuments(prevDocs => prevDocs.filter(d => d.id !== documentId));
         setSnackbar({ open: true, message: `${doc.personnelName} - ${doc.documentType} belgesi başarıyla silindi!`, severity: 'success' });
       }
+    }
+  };
+
+  const handleDeleteQualityCertificate = (certificateId: string) => {
+    const cert = qualityCertificates.find(c => c.id === certificateId);
+    if (cert) {
+      setQualityCertificates(prev => prev.filter(c => c.id !== certificateId));
+      setSnackbar({ 
+        open: true, 
+        message: `${cert.name} kalite belgesi başarıyla silindi.`, 
+        severity: 'success' 
+      });
+    }
+  };
+
+  const handleDeleteProductCertificate = (certificateId: string) => {
+    const cert = productCertificates.find(c => c.id === certificateId);
+    if (cert) {
+      setProductCertificates(prev => prev.filter(c => c.id !== certificateId));
+      setSnackbar({ 
+        open: true, 
+        message: `${cert.name} ürün belgesi başarıyla silindi.`, 
+        severity: 'success' 
+      });
     }
   };
 
@@ -2756,7 +2819,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   {certificateStats.certificatesWithStatus
                     .filter(cert => ['ISO 9001:2015', 'ISO 14001:2015', 'ISO 45001:2018', 'ISO 50001:2018', 'ISO 27001:2013'].includes(cert.name))
                     .map((cert, index) => (
-                    <Card key={index} variant="outlined" sx={{ p: 2 }}>
+                    <Card key={cert.id || index} variant="outlined" sx={{ p: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                         <Box>
                           <Typography variant="subtitle1" fontWeight={600}>
@@ -2797,6 +2860,11 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                           <Tooltip title="Düzenle">
                             <IconButton size="small" onClick={() => handleEditQualityCertificate(cert.name, cert)}>
                               <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Sil">
+                            <IconButton size="small" onClick={() => handleDeleteQualityCertificate(cert.id)} color="error">
+                              <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </Box>
@@ -2868,7 +2936,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
                   {productCertificates.map((cert, index) => (
-                    <Card key={index} variant="outlined" sx={{ p: 2 }}>
+                    <Card key={cert.id || index} variant="outlined" sx={{ p: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                         <Box>
                           <Typography variant="subtitle1" fontWeight={600}>
@@ -2905,6 +2973,11 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                           <Tooltip title="Düzenle">
                             <IconButton size="small" onClick={() => handleEditQualityCertificate(cert.name, cert)}>
                               <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Sil">
+                            <IconButton size="small" onClick={() => handleDeleteProductCertificate(cert.id)} color="error">
+                              <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </Box>
