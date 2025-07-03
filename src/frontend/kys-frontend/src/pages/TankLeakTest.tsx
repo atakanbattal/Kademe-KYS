@@ -1407,7 +1407,7 @@ const TankLeakTest: React.FC = () => {
     const testResults: Array<'passed' | 'failed' | 'conditional'> = ['passed', 'failed', 'conditional'];
     const tankTypes = ['Yakıt Tankı', 'Hidrolik Tankı', 'Su Tankı', 'Yağ Tankı'];
     const materials = ['Çelik', 'Alüminyum', 'Paslanmaz Çelik'];
-    const vehicleModels = ['Kamyon A', 'Kamyon B', 'Kamyon C', 'Özel Araç'];
+    const vehicleModels = ['Aga2100', 'Aga3000', 'FTH-240', 'KDM 70', 'Çelik-2000', 'Ural', 'Kompost Makinesi'];
     const errorTypes = ['Kaynak Hatası', 'Çatlak', 'Delik', 'Bağlantı Sorunu'];
     const testTypes = ['Basınç Testi', 'Sızdırmazlık Testi', 'Tam Test'];
     
@@ -1666,28 +1666,29 @@ const TankLeakTest: React.FC = () => {
     }
   };
 
-  // Kademe A.Ş. Araç Modelleri
+  // Kademe A.Ş. Gerçek Araç Modelleri
   const KADEME_VEHICLE_MODELS = [
-    'Kademe Kamyon Serisi A',
-    'Kademe Kamyon Serisi B',
-    'Kademe Kamyon Serisi C',
-    'Kademe Tank Kamyonu',
-    'Kademe Özel Araç KD-100',
-    'Kademe Özel Araç KD-200',
-    'Kademe Özel Araç KD-300',
-    'Kademe İş Makinesi Serisi',
-    'Kademe Forklift Serisi',
-    'Kademe Vinç Serisi',
-    'Kademe Damperli Kamyon',
-    'Kademe Römork Serisi',
-    'Kademe Çekici Serisi',
-    'Kademe Belediye Aracı',
-    'Kademe Temizlik Aracı',
-    'Kademe Kargo Aracı',
-    'Kademe Soğutmalı Araç',
-    'Kademe Yakıt Tankeri',
-    'Kademe Su Tankeri',
-    'Kademe Kimyasal Tankeri'
+    // Kompakt Araçlar
+    'Aga2100',
+    'Aga3000', 
+    'Aga6000',
+    // Araç Üstü Vakumlu
+    'KDM 35',
+    'KDM 70',
+    'KDM 80',
+    'Çay Toplama Makinesi',
+    // Çekilir Tip Mekanik Süpürgeler
+    'FTH-240',
+    'Çelik-2000',
+    'Ural',
+    // Özel Kategoriler
+    'Kompost Makinesi',
+    'Rusya Motor Odası',
+    'HSCK',
+    // Genel Amaçlı
+    'Genel Amaçlı',
+    'Özel Proje',
+    'Protip'
   ];
 
   // Test türüne göre test ekipmanları
