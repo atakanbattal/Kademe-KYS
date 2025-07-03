@@ -841,7 +841,44 @@ const TankLeakTest: React.FC = () => {
 
   // ✅ OPTIMIZED: Filtrelenmiş veri döndüren fonksiyon - useCallback ile performance artışı
   const getFilteredData = React.useCallback(() => {
-    return savedTests.filter(test => {
+    // Tamir kayıtlarını test kayıtları formatına çevir
+    const repairAsTests: TestRecord[] = repairRecords.map(repair => ({
+      id: `repair-${repair.id}`,
+      tankInfo: repair.tankInfo,
+      personnel: {
+        welder: repair.personnel.repairTechnician,
+        inspector: repair.personnel.qualityControlPersonnel
+      },
+      vehicleInfo: {
+        model: 'Tamir Kaydı',
+        vinNumber: '',
+        tankPosition: '',
+        projectCode: ''
+      },
+      testParameters: {
+        testType: 'Tamir Tashih',
+        testDate: repair.repairInfo.repairDate,
+        testPressure: 0,
+        testDuration: repair.repairInfo.duration,
+        ambientTemp: 20,
+        testEquipment: 'Tamir Ekipmanları',
+        pressureDrop: 0
+      },
+      errors: repair.errors,
+      testResult: {
+        result: 'failed' as const,
+        retestRequired: repair.status !== 'completed',
+        notes: `Tamir Kaydı - ${repair.status === 'completed' ? 'Tamamlandı' : 'Devam Ediyor'}`
+      },
+      createdAt: repair.createdAt,
+      updatedAt: repair.updatedAt,
+      repairRecordId: repair.id
+    }));
+
+    // Test kayıtları ve tamir kayıtlarını birleştir
+    const allRecords = [...savedTests, ...repairAsTests];
+
+    return allRecords.filter(test => {
       // Seri numarası filtresi
       if (filters.serialNumber && !test.tankInfo.serialNumber.toLowerCase().includes(filters.serialNumber.toLowerCase())) {
         return false;
@@ -1422,7 +1459,7 @@ const TankLeakTest: React.FC = () => {
     const testResults: Array<'passed' | 'failed' | 'conditional'> = ['passed', 'failed', 'conditional'];
     const tankTypes = ['Yakıt Tankı', 'Hidrolik Tankı', 'Su Tankı', 'Yağ Tankı'];
     const materials = ['Çelik', 'Alüminyum', 'Paslanmaz Çelik'];
-    const vehicleModels = ['Aga2100', 'Aga3000', 'FTH-240', 'KDM 70', 'Çelik-2000', 'Ural', 'Kompost Makinesi'];
+    const vehicleModels = ['Aga2100', 'Aga3000', 'FTH-240', 'KDM 45', 'KDM 70', 'KDM 75', 'Çelik-2000', 'Ural', 'Kompost Makinesi'];
     const errorTypes = ['Kaynak Hatası', 'Çatlak', 'Delik', 'Bağlantı Sorunu'];
     const testTypes = ['Basınç Testi', 'Sızdırmazlık Testi', 'Tam Test'];
     
@@ -1599,13 +1636,17 @@ const TankLeakTest: React.FC = () => {
 
   // Calculate test statistics
   const calculateStatistics = (tests: TestRecord[]) => {
-    const totalTests = tests.length;
+    // Tamir kayıtlarını da toplam test sayısına dahil et
+    const totalTests = tests.length + repairRecords.length;
     
     // Sadece testResult'ı olan testleri filtrele
     const validTests = tests.filter(test => test.testResult && test.testResult.result);
     
     const passedTests = validTests.filter(test => test.testResult.result === 'passed').length;
-    const failedTests = validTests.filter(test => test.testResult.result === 'failed').length;
+    
+    // Başarısız testlere tamir kayıtlarını da ekle
+    const failedTests = validTests.filter(test => test.testResult.result === 'failed').length + repairRecords.length;
+    
     const conditionalTests = validTests.filter(test => test.testResult.result === 'conditional').length;
     
     // testParameters kontrolü de ekle
@@ -1643,7 +1684,9 @@ const TankLeakTest: React.FC = () => {
       }
     }).length;
     
-    const successRate = validTests.length > 0 ? (passedTests / validTests.length) * 100 : 0;
+    // Başarı oranını tamir kayıtları dahil hesapla
+    const totalValidTests = validTests.length + repairRecords.length;
+    const successRate = totalValidTests > 0 ? (passedTests / totalValidTests) * 100 : 0;
     
     console.log(`📊 Tank Test İstatistikleri - Toplam: ${totalTests}, Geçerli: ${validTests.length}, Başarılı: ${passedTests}`);
     
@@ -1689,7 +1732,9 @@ const TankLeakTest: React.FC = () => {
     'Aga6000',
     // Araç Üstü Vakumlu
     'KDM 35',
+    'KDM 45',
     'KDM 70',
+    'KDM 75',
     'KDM 80',
     'Çay Toplama Makinesi',
     // Çekilir Tip Mekanik Süpürgeler
@@ -4016,21 +4061,19 @@ const TankLeakTest: React.FC = () => {
                                   <VisibilityIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              {(repair.status === 'planned' || repair.status === 'in_progress') && (
-                                <Tooltip title="Düzenle">
-                                  <IconButton 
-                                    size="small" 
-                                    sx={{ p: 0.5 }}
-                                    onClick={() => {
-                                      setEditRepairData(repair);
-                                      setIsEditingRepair(true);
-                                      setRepairFormOpen(true);
-                                    }}
-                                  >
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
+                              <Tooltip title="Düzenle">
+                                <IconButton 
+                                  size="small" 
+                                  sx={{ p: 0.5 }}
+                                  onClick={() => {
+                                    setEditRepairData(repair);
+                                    setIsEditingRepair(true);
+                                    setRepairFormOpen(true);
+                                  }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
                               <Tooltip title="Tamir Kaydını Sil">
                                 <IconButton 
                                   size="small" 
