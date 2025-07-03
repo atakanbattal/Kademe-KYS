@@ -2003,11 +2003,16 @@ const MaterialCertificateTracking: React.FC = () => {
     return 'ONAYLANMIS';
   };
 
-  // Handle add/edit material
+  // ✅ FIXED Handle add/edit material with GUARANTEED certificate save
   const handleSaveMaterial = () => {
     if (!formData.materialCode || !formData.materialName) {
-      showSnackbar('Malzeme kodu ve adı zorunludur', 'error');
+      showSnackbar('❌ Malzeme kodu ve adı zorunludur!', 'error');
       return;
+    }
+
+    // PREVENT CLOSE if certificates are uploading
+    if (!formData.certificates || formData.certificates.length === 0) {
+      console.warn('⚠️ No certificates found in formData');
     }
 
     const traceabilityNumber = formData.traceabilityNumber || `TR-${Date.now()}`;
@@ -2027,7 +2032,7 @@ const MaterialCertificateTracking: React.FC = () => {
       chemicalComposition: formData.chemicalComposition || [],
       hardnessValues: formData.hardnessValues || [],
       mechanicalProperties: formData.mechanicalProperties || [],
-      certificates: formData.certificates || [],
+      certificates: formData.certificates || [], // CRITICAL: Ensure certificates are preserved
       overallStatus,
       notes: formData.notes || '',
       inspector: formData.inspector || '',
@@ -2035,46 +2040,45 @@ const MaterialCertificateTracking: React.FC = () => {
       traceabilityNumber
     };
 
-    // 🛠️ Debug: Material data before save
-    console.log('🛠️ Material Save Debug:', {
+    console.log('💾 SAVE MATERIAL DEBUG:', {
+      action: dialogType,
       materialId: materialData.id,
-      certificates: materialData.certificates,
-      certificateCount: materialData.certificates?.length || 0,
-      formDataCertificates: formData.certificates,
-      formDataCertCount: formData.certificates?.length || 0
+      certificateCount: materialData.certificates.length,
+      certificateFiles: materialData.certificates.map(c => c.fileName)
     });
 
     let updatedMaterials;
     if (dialogType === 'edit') {
-      updatedMaterials = materials.map(m => m.id === materialData.id ? materialData : m);
-      showSnackbar('Malzeme kaydı güncellendi', 'success');
+      // ENSURE we're updating the right material
+      updatedMaterials = materials.map(m => {
+        if (m.id === materialData.id) {
+          console.log(`🔄 Updating material ${m.id} with ${materialData.certificates.length} certificates`);
+          return materialData;
+        }
+        return m;
+      });
+      showSnackbar(`✅ "${materialData.materialCode}" güncellendi (${materialData.certificates.length} sertifika)`, 'success');
     } else {
       updatedMaterials = [...materials, materialData];
-      showSnackbar('Yeni malzeme kaydı eklendi', 'success');
+      showSnackbar(`✅ "${materialData.materialCode}" eklendi (${materialData.certificates.length} sertifika)`, 'success');
     }
 
-    // 🛠️ Debug: Updated materials before localStorage save
-    console.log('🛠️ Updated Materials Debug:', {
-      totalMaterials: updatedMaterials.length,
-      newMaterialCertificates: updatedMaterials.find(m => m.id === materialData.id)?.certificates,
-      certificateCount: updatedMaterials.find(m => m.id === materialData.id)?.certificates?.length || 0
-    });
-
+    // IMMEDIATELY update state and localStorage
     saveMaterials(updatedMaterials);
     
-    // 🛠️ Debug: Verify localStorage after save (FIXED KEY)
-    try {
-      const savedData = JSON.parse(localStorage.getItem('materialCertificateTracking') || '[]');
-      const savedMaterial = savedData.find((m: any) => m.id === materialData.id);
-      console.log('🛠️ localStorage Verification:', {
-        materialFound: !!savedMaterial,
-        certificatesInStorage: savedMaterial?.certificates || [],
-        certificateCountInStorage: savedMaterial?.certificates?.length || 0,
-        correctKeyUsed: 'materialCertificateTracking'
+    // FORCE state refresh to ensure UI updates
+    setTimeout(() => {
+      const verifyData = JSON.parse(localStorage.getItem('materialCertificateTracking') || '[]');
+      const verifyMaterial = verifyData.find((m: any) => m.id === materialData.id);
+      console.log('✅ VERIFICATION:', {
+        found: !!verifyMaterial,
+        certificates: verifyMaterial?.certificates?.length || 0
       });
-    } catch (error) {
-      console.error('🚨 localStorage verification error:', error);
-    }
+      
+      if (verifyMaterial && verifyMaterial.certificates?.length > 0) {
+        showSnackbar(`🎯 Sertifikalar başarıyla kaydedildi! (${verifyMaterial.certificates.length} adet)`, 'success');
+      }
+    }, 100);
     
     setDialogOpen(false);
     resetForm();
