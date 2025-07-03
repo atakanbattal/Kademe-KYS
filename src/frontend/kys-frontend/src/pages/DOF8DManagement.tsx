@@ -1323,7 +1323,7 @@ const UltimateStableSearchInput = memo(({
   label, 
   placeholder, 
   onChange, 
-  defaultValue = '', 
+  value: externalValue = '', 
   debounceMs = 380,
   icon: Icon,
   fullWidth = true,
@@ -1333,15 +1333,20 @@ const UltimateStableSearchInput = memo(({
   label: string;
   placeholder?: string;
   onChange: (value: string) => void;
-  defaultValue?: string;
+  value?: string;
   debounceMs?: number;
   icon?: any;
   fullWidth?: boolean;
   sx?: any;
   [key: string]: any;
 }) => {
-  const [value, setValue] = useState<string>(defaultValue);
+  const [value, setValue] = useState<string>(externalValue);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // External value değiştiğinde internal state'i güncelle
+  useEffect(() => {
+    setValue(externalValue);
+  }, [externalValue]);
 
   // Debounced onChange handler
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -3104,8 +3109,7 @@ const DOF8DManagement: React.FC = () => {
               <UltimateStableSearchInput
                 label="Gelişmiş Arama"
                 placeholder="DÖF numarası, başlık, açıklama..."
-                key={filters.searchTerm} // Key ekleyerek component'i yeniden render et
-                defaultValue={filters.searchTerm}
+                value={filters.searchTerm}
                 onChange={(value: string) => handleFilterChange('searchTerm', value)}
                 debounceMs={380}
                 icon={SearchIcon}
