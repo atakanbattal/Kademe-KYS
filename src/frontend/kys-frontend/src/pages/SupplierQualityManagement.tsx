@@ -7711,7 +7711,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <Box sx={{ pt: 2 }}>
               {selectedAuditForExecution && (
                 <>
-                  <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Box sx={{ mb: 3, p: 2, bgcolor: '#ffffff', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
                     <Typography variant="h6" gutterBottom>
                       Denetim Bilgileri
                     </Typography>
@@ -7775,7 +7775,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     {isDelayed && (
                       <Alert severity="warning" sx={{ mb: 3 }}>
                         <Typography variant="body2" fontWeight="600">
-                          ⚠️ DENETİM GECİKMESİ TESPİT EDİLDİ
+                          DENETİM GECİKMESİ TESPİT EDİLDİ
                         </Typography>
                         <Typography variant="body2">
                           Planlanan tarih: {new Date(selectedAuditForExecution.auditDate).toLocaleDateString('tr-TR')}
@@ -7914,9 +7914,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
               {selectedAuditForView && (
                 <>
                   {/* Temel Bilgiler */}
-                  <Paper sx={{ p: 3, mb: 3, bgcolor: 'grey.50' }}>
+                  <Paper sx={{ p: 3, mb: 3, bgcolor: '#ffffff' }}>
                     <Typography variant="h6" gutterBottom sx={{ color: 'primary.main' }}>
-                      🏢 Temel Bilgiler
+                      Temel Bilgiler
                     </Typography>
                     <Grid container spacing={3}>
                       <Grid item xs={12} md={6}>
@@ -7982,9 +7982,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </Paper>
 
                   {/* Tarih Bilgileri */}
-                  <Paper sx={{ p: 3, mb: 3, bgcolor: 'info.50' }}>
+                  <Paper sx={{ p: 3, mb: 3, bgcolor: '#ffffff' }}>
                     <Typography variant="h6" gutterBottom sx={{ color: 'info.main' }}>
-                      📅 Tarih Bilgileri
+                      Tarih Bilgileri
                     </Typography>
                     <Grid container spacing={3}>
                       <Grid item xs={12} md={4}>
@@ -8020,7 +8020,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     {selectedAuditForView.isDelayed && (
                       <Alert severity="warning" sx={{ mt: 2 }}>
                         <Typography variant="body2" fontWeight="600">
-                          ⚠️ Bu denetim {selectedAuditForView.delayDays} gün gecikmiştir
+                          Bu denetim {selectedAuditForView.delayDays} gün gecikmiştir
                         </Typography>
                         {selectedAuditForView.delayReason && (
                           <Typography variant="body2" sx={{ mt: 1 }}>
@@ -8033,9 +8033,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
 
                   {/* Sonuçlar */}
                   {selectedAuditForView.status === 'tamamlandı' && (
-                    <Paper sx={{ p: 3, mb: 3, bgcolor: 'success.50' }}>
+                    <Paper sx={{ p: 3, mb: 3, bgcolor: '#ffffff' }}>
                       <Typography variant="h6" gutterBottom sx={{ color: 'success.main' }}>
-                        📊 Denetim Sonuçları
+                        Denetim Sonuçları
                       </Typography>
                       <Grid container spacing={3}>
                         <Grid item xs={12} md={6}>
@@ -8095,7 +8095,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   {selectedAuditForView.status === 'planlı' && (
                     <Alert severity="info" sx={{ mb: 2 }}>
                       <Typography variant="body2">
-                        💡 Bu denetim henüz gerçekleştirilmemiştir. İşlemler kısmından "Denetimi Gerçekleştir" butonuna tıklayarak denetimi başlatabilirsiniz.
+                        Bu denetim henüz gerçekleştirilmemiştir. İşlemler kısmından "Denetimi Gerçekleştir" butonuna tıklayarak denetimi başlatabilirsiniz.
                       </Typography>
                     </Alert>
                   )}
