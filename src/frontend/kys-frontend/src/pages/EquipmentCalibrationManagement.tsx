@@ -81,6 +81,19 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
+import {
+  ProfessionalCard,
+  StatusChip as ProfessionalStatusChip,
+  ProfessionalButton,
+  ProfessionalTextField,
+  ProfessionalAccordion,
+  SectionHeader,
+  PROFESSIONAL_COLORS,
+  SHADOWS,
+  TRANSITIONS,
+  BORDER_RADIUS,
+  SPACING
+} from '../shared/components';
 import { 
   PieChart, 
   Pie, 
@@ -3013,22 +3026,13 @@ const StyledAccordion = styled(Accordion)(() => ({
   }
 }));
 
-const EquipmentCard = styled(Card)(({ theme }) => ({
+// Using Professional Design System Card
+const EquipmentCard = styled(ProfessionalCard)(({ theme }) => ({
   height: '100%',
-  background: `linear-gradient(145deg, ${theme.palette.background.paper}, ${theme.palette.background.default})`,
-  border: '1px solid',
-  borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-  borderRadius: 16,
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  position: 'relative',
-  overflow: 'hidden',
   display: 'flex',
   alignItems: 'stretch',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: `0 8px 20px rgba(0, 0, 0, 0.12)`,
-    borderColor: theme.palette.primary.main,
-  },
+  minHeight: 120, // Ensuring consistent height
+  
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -3037,45 +3041,14 @@ const EquipmentCard = styled(Card)(({ theme }) => ({
     right: 0,
     height: 3,
     background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-  },
+    borderRadius: `${BORDER_RADIUS.lg}px ${BORDER_RADIUS.lg}px 0 0`
+  }
 }));
 
-const StatusChip = styled(Chip)<{ statustype: string }>(({ theme, statustype }) => {
-  const getStatusColor = () => {
-    switch (statustype) {
-      case 'valid':
-      case 'active':
-      case 'good':
-      case 'pass':
-        return { bg: theme.palette.success.main, color: theme.palette.success.contrastText };
-      case 'due':
-      case 'pending':
-        return { bg: theme.palette.warning.main, color: theme.palette.warning.contrastText };
-      case 'overdue':
-      case 'invalid':
-      case 'fail':
-      case 'critical':
-        return { bg: theme.palette.error.main, color: theme.palette.error.contrastText };
-      case 'inactive':
-      case 'maintenance':
-        return { bg: theme.palette.grey[500], color: theme.palette.grey[50] };
-      default:
-        return { bg: theme.palette.primary.main, color: theme.palette.primary.contrastText };
-    }
-  };
+// Using Professional Design System StatusChip
+const StatusChip = ProfessionalStatusChip;
 
-  const colors = getStatusColor();
-  return {
-    backgroundColor: colors.bg,
-    color: colors.color,
-    fontWeight: 600,
-    '& .MuiChip-icon': {
-      color: colors.color,
-    },
-  };
-});
-
-// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
+// 🔍 PROFESSIONAL SEARCH INPUT - Using Design System
 const UltimateStableSearchInput = memo<{
   value?: string;
   onChange: (value: string) => void;
@@ -3126,7 +3099,7 @@ const UltimateStableSearchInput = memo<{
   }, []);
   
   return (
-    <TextField
+    <ProfessionalTextField
       fullWidth={fullWidth}
       size={size}
       label={label}
@@ -3142,17 +3115,6 @@ const UltimateStableSearchInput = memo<{
           </InputAdornment>
         ),
       }}
-      sx={{
-        '& .MuiOutlinedInput-root': {
-          '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-          },
-          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-            borderWidth: '2px',
-          },
-        },
-      }}
     />
   );
 });
@@ -3160,50 +3122,10 @@ const UltimateStableSearchInput = memo<{
 const EquipmentCalibrationManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
 
-  // Tema entegreli StyledAccordion
-  const StyledAccordion = styled(Accordion)(() => ({
-    marginBottom: 20,
-    borderRadius: '16px !important',
-    backgroundColor: '#ffffff',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-    border: '1px solid rgba(25, 118, 210, 0.12)',
-    overflow: 'hidden',
-    '&:before': {
-      display: 'none',
-    },
-    '& .MuiAccordionSummary-root': {
-      backgroundColor: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
-      background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
-      color: '#ffffff',
-      borderRadius: '16px 16px 0 0',
-      minHeight: 72,
-      padding: '0 24px',
-      '&.Mui-expanded': {
-        minHeight: 72,
-        borderRadius: '16px 16px 0 0',
-      },
-      '& .MuiAccordionSummary-content': {
-        margin: '16px 0',
-        '&.Mui-expanded': {
-          margin: '16px 0',
-        },
-      },
-      '& .MuiAccordionSummary-expandIconWrapper': {
-        color: '#ffffff',
-        '&.Mui-expanded': {
-          transform: 'rotate(180deg)',
-        },
-      },
-      '&:hover': {
-        background: `linear-gradient(135deg, ${appearanceSettings.primaryColor}cc 0%, ${appearanceSettings.primaryColor}ee 100%)`,
-      },
-    },
-    '& .MuiAccordionDetails-root': {
-      backgroundColor: '#ffffff',
-      padding: 32,
-      borderTop: `1px solid ${appearanceSettings.primaryColor}20`,
-    }
-  })) as any;
+  // Using Professional Design System Accordion
+  const StyledAccordion = ProfessionalAccordion;
+
+  // Component state
   const [activeTab, setActiveTab] = useState(0);
   const [viewModalTab, setViewModalTab] = useState(0);
   const [expanded, setExpanded] = useState<string | false>('filters');
