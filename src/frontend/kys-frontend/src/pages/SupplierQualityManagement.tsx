@@ -1335,7 +1335,12 @@ const SupplierQualityManagement: React.FC = () => {
     const recommendations: AutoAuditRecommendation[] = [];
     const today = new Date();
 
-    suppliers.forEach(supplier => {
+    // Sadece değerlendirilmiş tedarikçiler için otomatik denetim önerisi oluştur
+    const ratedSuppliers = suppliers.filter(s => 
+      s.performanceScore >= 0 && s.qualityScore >= 0 && s.deliveryScore >= 0
+    );
+
+    ratedSuppliers.forEach(supplier => {
       const performanceIssues: string[] = [];
       const riskFactors: string[] = [];
       let shouldRecommendAudit = false;
@@ -2547,6 +2552,13 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   const updateSupplierPerformances = React.useCallback(() => {
     console.log('📊 Performans güncellemesi başlıyor...');
     const updatedSuppliers = suppliers.map(supplier => {
+      // Sadece değerlendirilmiş tedarikçilerin performansını güncelle
+      // N/A değerleri (-1) olan tedarikçileri olduğu gibi bırak
+      if (supplier.performanceScore < 0 || supplier.qualityScore < 0 || supplier.deliveryScore < 0) {
+        console.log(`⏭️ ${supplier.name}: N/A - performans hesaplaması atlandı`);
+        return supplier; // N/A tedarikçiyi değiştirmeden geri döndür
+      }
+      
       const newScores = calculateSupplierPerformance(supplier);
       console.log(`🎯 ${supplier.name}: Genel ${newScores.performanceScore}, Kalite ${newScores.qualityScore}, Teslimat ${newScores.deliveryScore}`);
       return {
