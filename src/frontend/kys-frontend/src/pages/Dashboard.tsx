@@ -35,11 +35,13 @@ import {
   InputAdornment,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  CircularProgress
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
+  TrendingFlat as TrendingFlatIcon,
   CheckCircle as CheckCircleIcon,
   Assignment as AssignmentIcon,
   MonetizationOn as MoneyIcon,
@@ -67,7 +69,14 @@ import {
   ExitToApp as LogoutIcon,
   Visibility as VisibilityIcon,
   ExpandMore as ExpandMoreIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  WarningAmber as WarningAmberIcon,
+  MonitorHeart as MonitorHeartIcon,
+  AttachMoney as AttachMoneyIcon,
+  Business as BusinessIcon,
+  VerifiedUser as VerifiedUserIcon,
+  SentimentVerySatisfied as SentimentVerySatisfiedIcon,
+  PrecisionManufacturing as PrecisionManufacturingIcon
 } from '@mui/icons-material';
 import { 
   AreaChart, 
@@ -87,6 +96,28 @@ import { useNavigate } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 import { dataSyncManager } from '../utils/DataSyncManager';
 import { useThemeContext } from '../context/ThemeContext';
+import {
+  ProfessionalCard,
+  ElevatedCard,
+  StatusCard,
+  ProfessionalButton,
+  ElegantButton,
+  StatusChip,
+  ElegantChip,
+  ProfessionalTable,
+  ElegantTableHeader,
+  ProfessionalAccordion,
+  ProfessionalTextField,
+  ElegantSelect,
+  ProfessionalPaper,
+  ElegantContainer,
+  SectionHeader,
+  PROFESSIONAL_COLORS,
+  SHADOWS,
+  TRANSITIONS,
+  TYPOGRAPHY,
+  SPACING
+} from '../shared/components';
 
 // 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
 const UltimateStableSearchInput = React.memo<{
@@ -276,6 +307,45 @@ interface ChartData {
   fill?: string;
 }
 
+// 🚀 EXECUTIVE DASHBOARD DATA INTERFACES
+interface ExecutiveMetric {
+  id: string;
+  title: string;
+  value: number;
+  unit: string;
+  trend: 'up' | 'down' | 'stable';
+  trendValue: number;
+  status: 'excellent' | 'good' | 'warning' | 'critical';
+  target: number;
+  source: string;
+  lastUpdate: string;
+  icon: React.ReactNode;
+  color: string;
+}
+
+interface ModuleHealth {
+  module: string;
+  status: 'healthy' | 'warning' | 'critical' | 'offline';
+  score: number;
+  lastSync: string;
+  recordCount: number;
+  keyMetrics: {
+    metric: string;
+    value: number;
+    status: 'good' | 'warning' | 'critical';
+  }[];
+}
+
+interface CriticalAlert {
+  id: string;
+  title: string;
+  message: string;
+  severity: 'high' | 'medium' | 'low';
+  module: string;
+  timestamp: string;
+  actionRequired: boolean;
+}
+
 // HELPER FUNCTIONS
 const formatValue = (value: number, unit: string): string => {
   if (unit === '%') return `${value.toFixed(1)}%`;
@@ -303,131 +373,302 @@ const getTrendIcon = (trend: string) => {
   }
 };
 
-// REAL DATA GENERATORS
-const generateQuickStats = (data: any): QuickStat[] => [
-  { 
-    id: 'qs-1', 
-    title: 'Toplam DÖF', 
-    value: data.dof.total.toString(), 
-    change: Math.round(((data.dof.total - 15) / 15) * 100), 
-    icon: <ErrorIcon />, 
-    color: '#f44336' 
-  },
-  { 
-    id: 'qs-2', 
-    title: 'Kapalı DÖF', 
-    value: data.dof.closed.toString(), 
-    change: Math.round(((data.dof.closed - 8) / 8) * 100), 
-    icon: <CheckCircleIcon />, 
-    color: '#4caf50' 
-  },
-  { 
-    id: 'qs-3', 
-    title: 'Toplam Tetkik', 
-    value: data.audits.total.toString(), 
-    change: Math.round(((data.audits.total - 5) / 5) * 100), 
-    icon: <ScheduleIcon />, 
-    color: '#ff9800' 
-  },
-  { 
-    id: 'qs-4', 
-    title: 'Kalite Maliyeti', 
-    value: `₺${Math.round(data.qualityCost.totalCost / 1000)}K`, 
-    change: Math.round(((data.qualityCost.totalCost - 50000) / 50000) * 100), 
-    icon: <MoneyIcon />, 
-    color: '#2196f3' 
-  }
-];
+// 📊 EXECUTIVE DATA AGGREGATOR
+const aggregateExecutiveData = () => {
+  try {
+    // Tüm modüllerden kritik verileri topla
+    const costData = JSON.parse(localStorage.getItem('kys-cost-management-data') || '[]');
+    const dofRecords = JSON.parse(localStorage.getItem('dofRecords') || '[]');
+    const supplierNonconformities = JSON.parse(localStorage.getItem('supplier-nonconformities') || '[]');
+    const supplierDefects = JSON.parse(localStorage.getItem('supplier-defects') || '[]');
+    const productionDefects = JSON.parse(localStorage.getItem('vehicle-quality-data') || '[]');
+    const internalAudits = JSON.parse(localStorage.getItem('internal-audits') || '[]');
+    const riskRecords = JSON.parse(localStorage.getItem('riskRecords') || '[]');
+    const trainingRecords = JSON.parse(localStorage.getItem('training-records') || '[]');
+    const customerFeedbacks = JSON.parse(localStorage.getItem('customer-feedbacks') || '[]');
+    const calibrationRecords = JSON.parse(localStorage.getItem('calibration-records') || '[]');
+    const tankTests = JSON.parse(localStorage.getItem('tank-test-data') || '[]');
+    const fanTests = JSON.parse(localStorage.getItem('fan-test-records') || '[]');
 
-// CHART DATA BASED ON REAL DATA
-const generateChartData = (data: any): ChartData[] => [
-  { name: 'DÖF Yönetimi', value: Math.max(50, 100 - (data.dof.total * 5)), fill: '#f44336' },
-  { name: 'İç Tetkik', value: Math.max(60, 100 - (data.audits.total * 10)), fill: '#1976d2' },
-  { name: 'Kalite Maliyet', value: Math.max(70, 100 - (data.qualityCost.totalCost / 1000)), fill: '#4caf50' },
-  { name: 'Tedarikçi Kalite', value: Math.max(80, 100 - (data.suppliers.total * 3)), fill: '#ff9800' }
-];
+    // 💰 Kalite Maliyeti Analizi
+    const totalCost = costData.reduce((sum: number, record: any) => 
+      sum + (parseFloat(record.birimMaliyet || 0) * parseFloat(record.miktar || 0)), 0);
+    const reworkCost = costData.filter((r: any) => r.maliyetTuru?.includes('yeniden')).reduce((sum: number, record: any) => 
+      sum + (parseFloat(record.birimMaliyet || 0) * parseFloat(record.miktar || 0)), 0);
+    const scrapCost = costData.filter((r: any) => r.maliyetTuru?.includes('hurda')).reduce((sum: number, record: any) => 
+      sum + (parseFloat(record.birimMaliyet || 0) * parseFloat(record.miktar || 0)), 0);
 
-// MODULE DATA - Tema entegreli renk fonksiyonu
-const getModuleData = (primaryColor: string): ModuleData[] => [
-  {
-    id: 'production-quality',
-    name: 'Üretim Kalite Hata Takip',
-    icon: <FactoryIcon />,
-    color: primaryColor, // Ana tema rengi
-    path: '/production-quality-tracking',
-    description: 'Üretim sürecindeki kalite hatalarının takibi ve analizi',
-    status: 'operational',
-    lastUpdate: 'Az önce',
-    features: ['Gerçek zamanlı', 'Trend analizi'],
-    usage: 95,
-    performance: 98
-  },
-  {
-    id: 'internal-audit',
-    name: 'İç Tetkik Yönetimi',
-    icon: <AssignmentTurnedInIcon />,
-    color: '#1976d2', // Mavi kalıyor (secondary)
-    path: '/internal-audit-management',
-    description: 'Kapsamlı iç tetkik planlama ve yönetim sistemi',
-    status: 'operational',
-    lastUpdate: 'Az önce',
-    features: ['Soru listeleri', 'Rev. sistemi'],
-    usage: 87,
-    performance: 96
-  },
-  {
-    id: 'dof-8d',
-    name: 'DÖF ve 8D Yönetimi',
-    icon: <BugReportIcon />,
-    color: '#f44336', // Kırmızı kalıyor (hata rengi)
-    path: '/dof-8d-management',
-    description: 'Düzeltici ve önleyici faaliyet yönetimi',
-    status: 'operational',
-    lastUpdate: 'Az önce',
-    features: ['8D metodolojisi', 'İstatistik'],
-    usage: 92,
-    performance: 94
-  },
-  {
-    id: 'kpi-management',
-    name: 'KPI Takip ve Yönetimi',
-    icon: <SpeedIcon />,
-    color: primaryColor, // Ana tema rengi
-    path: '/quality-management',
-    description: 'Performans göstergelerinin izlenmesi',
-    status: 'operational',
-    lastUpdate: 'Az önce',
-    features: ['Dinamik dashboard', 'Trend'],
-    usage: 89,
-    performance: 97
-  },
-  {
-    id: 'quality-cost',
-    name: 'Kalite ve Araç Performans',
-    icon: <MoneyIcon />,
-    color: '#4caf50', // Yeşil kalıyor (başarı rengi)
-    path: '/quality-cost-management',
-    description: 'Kalite maliyetleri ve araç performans analizi',
-    status: 'operational',
-    lastUpdate: 'Az önce',
-    features: ['Maliyet analizi', 'ROI'],
-    usage: 84,
-    performance: 93
-  },
-  {
-    id: 'risk-management',
-    name: 'Risk Yönetimi',
-    icon: <BugReportIcon />,
-    color: '#e91e63', // Pembe kalıyor (uyarı rengi)
-    path: '/risk-management',
-    description: 'Kapsamlı risk değerlendirme ve yönetimi',
-    status: 'operational',
-    lastUpdate: 'Az önce',
-    features: ['Risk matrisi', 'Aksiyon'],
-    usage: 76,
-    performance: 91
+    // 🔧 DÖF Analizi
+    const totalDOF = dofRecords.length;
+    const openDOF = dofRecords.filter((d: any) => d.status === 'open' || d.status === 'in_progress').length;
+    const overdueDOF = dofRecords.filter((d: any) => {
+      if (!d.expectedCloseDate) return false;
+      return new Date(d.expectedCloseDate) < new Date() && (d.status === 'open' || d.status === 'in_progress');
+    }).length;
+    const dofClosureRate = totalDOF > 0 ? ((totalDOF - openDOF) / totalDOF) * 100 : 100;
+
+    // 🏭 Tedarikçi Performansı
+    const totalSupplierIssues = supplierNonconformities.length + supplierDefects.length;
+    const openSupplierIssues = [...supplierNonconformities, ...supplierDefects]
+      .filter((issue: any) => issue.status === 'open' || issue.status === 'in_progress').length;
+    const supplierPerformance = totalSupplierIssues > 0 ? 
+      Math.max(0, 100 - ((openSupplierIssues / totalSupplierIssues) * 100)) : 95;
+
+    // 🚗 Üretim Kalitesi
+    const totalProductionDefects = productionDefects.length;
+    const criticalDefects = productionDefects.filter((d: any) => d.priority === 'critical' || d.severity === 'high').length;
+    const productionQualityRate = totalProductionDefects > 0 ? 
+      Math.max(0, 100 - ((criticalDefects / totalProductionDefects) * 10)) : 98;
+
+    // 📋 Denetim Uyumluluğu
+    const completedAudits = internalAudits.filter((a: any) => a.status === 'completed').length;
+    const auditComplianceRate = internalAudits.length > 0 ? 
+      (completedAudits / internalAudits.length) * 100 : 90;
+
+    // 📊 Eğitim Etkinliği
+    const completedTrainings = trainingRecords.filter((t: any) => t.status === 'completed').length;
+    const trainingEffectiveness = trainingRecords.length > 0 ? 
+      (completedTrainings / trainingRecords.length) * 100 : 85;
+
+    // 😊 Müşteri Memnuniyeti
+    const avgCustomerRating = customerFeedbacks.length > 0 ? 
+      customerFeedbacks.reduce((sum: number, fb: any) => sum + (fb.rating || 0), 0) / customerFeedbacks.length : 4.2;
+
+    return {
+      totalCost,
+      reworkCost,
+      scrapCost,
+      dofClosureRate,
+      overdueDOF,
+      supplierPerformance,
+      productionQualityRate,
+      auditComplianceRate,
+      trainingEffectiveness,
+      avgCustomerRating,
+      totalDOF,
+      openDOF,
+      totalSupplierIssues,
+      openSupplierIssues,
+      criticalDefects,
+      recordCounts: {
+        cost: costData.length,
+        dof: dofRecords.length,
+        supplier: totalSupplierIssues,
+        production: productionDefects.length,
+        audit: internalAudits.length,
+        training: trainingRecords.length,
+        customer: customerFeedbacks.length,
+        calibration: calibrationRecords.length,
+        tank: tankTests.length,
+        fan: fanTests.length
+      }
+    };
+  } catch (error) {
+    console.error('Executive data aggregation error:', error);
+    return null;
   }
-];
+};
+
+// 🎯 EXECUTIVE METRICS GENERATOR
+const generateExecutiveMetrics = (data: any): ExecutiveMetric[] => {
+  if (!data) return [];
+
+  return [
+    {
+      id: 'total-quality-cost',
+      title: 'Toplam Kalite Maliyeti',
+      value: data.totalCost,
+      unit: '₺',
+      trend: data.totalCost < 150000 ? 'down' : 'up',
+      trendValue: Math.abs(data.totalCost - 150000),
+      status: data.totalCost <= 100000 ? 'excellent' : data.totalCost <= 150000 ? 'good' : data.totalCost <= 200000 ? 'warning' : 'critical',
+      target: 100000,
+      source: 'Kalite Maliyet Modülü',
+      lastUpdate: new Date().toLocaleString('tr-TR'),
+      icon: <MoneyIcon />,
+      color: PROFESSIONAL_COLORS.secondary
+    },
+    {
+      id: 'dof-closure-rate',
+      title: 'DÖF Kapama Oranı',
+      value: data.dofClosureRate,
+      unit: '%',
+      trend: data.dofClosureRate >= 85 ? 'up' : 'down',
+      trendValue: Math.abs(data.dofClosureRate - 85),
+      status: data.dofClosureRate >= 90 ? 'excellent' : data.dofClosureRate >= 80 ? 'good' : data.dofClosureRate >= 70 ? 'warning' : 'critical',
+      target: 90,
+      source: 'DÖF ve 8D Modülü',
+      lastUpdate: new Date().toLocaleString('tr-TR'),
+      icon: <AssignmentTurnedInIcon />,
+      color: '#1976D2'
+    },
+    {
+      id: 'supplier-performance',
+      title: 'Tedarikçi Performansı',
+      value: data.supplierPerformance,
+      unit: '/100',
+      trend: data.supplierPerformance >= 90 ? 'up' : 'down',
+      trendValue: Math.abs(data.supplierPerformance - 90),
+      status: data.supplierPerformance >= 95 ? 'excellent' : data.supplierPerformance >= 85 ? 'good' : data.supplierPerformance >= 75 ? 'warning' : 'critical',
+      target: 95,
+      source: 'Tedarikçi Kalite Modülü',
+      lastUpdate: new Date().toLocaleString('tr-TR'),
+      icon: <BuildIcon />,
+      color: PROFESSIONAL_COLORS.success.green
+    },
+    {
+      id: 'production-quality',
+      title: 'Üretim Kalite Oranı',
+      value: data.productionQualityRate,
+      unit: '%',
+      trend: data.productionQualityRate >= 95 ? 'up' : 'down',
+      trendValue: Math.abs(data.productionQualityRate - 95),
+      status: data.productionQualityRate >= 98 ? 'excellent' : data.productionQualityRate >= 95 ? 'good' : data.productionQualityRate >= 90 ? 'warning' : 'critical',
+      target: 98,
+      source: 'Üretim Kalite Modülü',
+      lastUpdate: new Date().toLocaleString('tr-TR'),
+      icon: <FactoryIcon />,
+      color: PROFESSIONAL_COLORS.warning.orange
+    },
+    {
+      id: 'audit-compliance',
+      title: 'Denetim Uyumluluğu',
+      value: data.auditComplianceRate,
+      unit: '%',
+      trend: data.auditComplianceRate >= 90 ? 'up' : 'down',
+      trendValue: Math.abs(data.auditComplianceRate - 90),
+      status: data.auditComplianceRate >= 95 ? 'excellent' : data.auditComplianceRate >= 85 ? 'good' : data.auditComplianceRate >= 75 ? 'warning' : 'critical',
+      target: 95,
+      source: 'İç Denetim Modülü',
+      lastUpdate: new Date().toLocaleString('tr-TR'),
+      icon: <AssessmentIcon />,
+      color: PROFESSIONAL_COLORS.elegant.purple
+    },
+    {
+      id: 'customer-satisfaction',
+      title: 'Müşteri Memnuniyeti',
+      value: data.avgCustomerRating,
+      unit: '/5',
+      trend: data.avgCustomerRating >= 4.5 ? 'up' : 'down',
+      trendValue: Math.abs(data.avgCustomerRating - 4.5),
+      status: data.avgCustomerRating >= 4.5 ? 'excellent' : data.avgCustomerRating >= 4.0 ? 'good' : data.avgCustomerRating >= 3.5 ? 'warning' : 'critical',
+      target: 4.8,
+      source: 'Müşteri Geri Bildirim Modülü',
+      lastUpdate: new Date().toLocaleString('tr-TR'),
+      icon: <PersonIcon />,
+      color: PROFESSIONAL_COLORS.accent.gold
+    }
+  ];
+};
+
+// 🏥 MODULE HEALTH ANALYZER
+const analyzeModuleHealth = (data: any): ModuleHealth[] => {
+  if (!data) return [];
+
+  return [
+    {
+      module: 'Kalite Maliyet Yönetimi',
+      status: data.recordCounts.cost > 10 ? 'healthy' : data.recordCounts.cost > 5 ? 'warning' : 'critical',
+      score: Math.min(100, (data.recordCounts.cost / 20) * 100),
+      lastSync: new Date().toLocaleString('tr-TR'),
+      recordCount: data.recordCounts.cost,
+      keyMetrics: [
+        { metric: 'Toplam Kayıt', value: data.recordCounts.cost, status: data.recordCounts.cost > 10 ? 'good' : 'warning' },
+        { metric: 'Maliyet Tutarı', value: data.totalCost, status: data.totalCost <= 150000 ? 'good' : 'warning' }
+      ]
+    },
+    {
+      module: 'DÖF ve 8D Yönetimi',
+      status: data.overdueDOF === 0 ? 'healthy' : data.overdueDOF <= 3 ? 'warning' : 'critical',
+      score: Math.max(0, 100 - (data.overdueDOF * 10)),
+      lastSync: new Date().toLocaleString('tr-TR'),
+      recordCount: data.recordCounts.dof,
+      keyMetrics: [
+        { metric: 'Kapama Oranı', value: data.dofClosureRate, status: data.dofClosureRate >= 85 ? 'good' : 'warning' },
+        { metric: 'Gecikmiş DÖF', value: data.overdueDOF, status: data.overdueDOF === 0 ? 'good' : 'critical' }
+      ]
+    },
+    {
+      module: 'Tedarikçi Kalite Yönetimi',
+      status: data.supplierPerformance >= 90 ? 'healthy' : data.supplierPerformance >= 80 ? 'warning' : 'critical',
+      score: data.supplierPerformance,
+      lastSync: new Date().toLocaleString('tr-TR'),
+      recordCount: data.recordCounts.supplier,
+      keyMetrics: [
+        { metric: 'Performans Skoru', value: data.supplierPerformance, status: data.supplierPerformance >= 90 ? 'good' : 'warning' },
+        { metric: 'Açık Sorunlar', value: data.openSupplierIssues, status: data.openSupplierIssues <= 5 ? 'good' : 'warning' }
+      ]
+    },
+    {
+      module: 'Üretim Kalite Takibi',
+      status: data.productionQualityRate >= 95 ? 'healthy' : data.productionQualityRate >= 90 ? 'warning' : 'critical',
+      score: data.productionQualityRate,
+      lastSync: new Date().toLocaleString('tr-TR'),
+      recordCount: data.recordCounts.production,
+      keyMetrics: [
+        { metric: 'Kalite Oranı', value: data.productionQualityRate, status: data.productionQualityRate >= 95 ? 'good' : 'warning' },
+        { metric: 'Kritik Hatalar', value: data.criticalDefects, status: data.criticalDefects <= 3 ? 'good' : 'critical' }
+      ]
+    }
+  ];
+};
+
+// 🚨 CRITICAL ALERTS GENERATOR
+const generateCriticalAlerts = (data: any): CriticalAlert[] => {
+  if (!data) return [];
+
+  const alerts: CriticalAlert[] = [];
+
+  if (data.overdueDOF > 0) {
+    alerts.push({
+      id: 'overdue-dof',
+      title: 'Gecikmiş DÖF Uyarısı',
+      message: `${data.overdueDOF} adet DÖF vadesini geçmiş durumda`,
+      severity: data.overdueDOF > 5 ? 'high' : 'medium',
+      module: 'DÖF ve 8D Yönetimi',
+      timestamp: new Date().toLocaleString('tr-TR'),
+      actionRequired: true
+    });
+  }
+
+  if (data.totalCost > 200000) {
+    alerts.push({
+      id: 'high-quality-cost',
+      title: 'Yüksek Kalite Maliyeti',
+      message: `Kalite maliyeti hedefin üzerinde: ${data.totalCost.toLocaleString('tr-TR')} ₺`,
+      severity: 'high',
+      module: 'Kalite Maliyet Yönetimi',
+      timestamp: new Date().toLocaleString('tr-TR'),
+      actionRequired: true
+    });
+  }
+
+  if (data.criticalDefects > 5) {
+    alerts.push({
+      id: 'critical-defects',
+      title: 'Kritik Üretim Hataları',
+      message: `${data.criticalDefects} adet kritik seviye hata tespit edildi`,
+      severity: 'high',
+      module: 'Üretim Kalite Takibi',
+      timestamp: new Date().toLocaleString('tr-TR'),
+      actionRequired: true
+    });
+  }
+
+  if (data.supplierPerformance < 80) {
+    alerts.push({
+      id: 'low-supplier-performance',
+      title: 'Düşük Tedarikçi Performansı',
+      message: `Tedarikçi performansı kritik seviyede: ${data.supplierPerformance.toFixed(1)}/100`,
+      severity: 'medium',
+      module: 'Tedarikçi Kalite Yönetimi',
+      timestamp: new Date().toLocaleString('tr-TR'),
+      actionRequired: true
+    });
+  }
+
+  return alerts;
+};
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -436,6 +677,12 @@ const Dashboard: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
+
+  // 🚀 EXECUTIVE DASHBOARD STATE
+  const [executiveData, setExecutiveData] = useState<any>(null);
+  const [executiveMetrics, setExecutiveMetrics] = useState<ExecutiveMetric[]>([]);
+  const [moduleHealth, setModuleHealth] = useState<ModuleHealth[]>([]);
+  const [criticalAlerts, setCriticalAlerts] = useState<CriticalAlert[]>([]);
 
   // REAL DATA STATE
   const [centralData, setCentralData] = useState({
@@ -563,1126 +810,385 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // 📊 EXECUTIVE DATA LOADER
+  const loadExecutiveData = async (showLoading = false) => {
+    try {
+      if (showLoading) setIsRefreshing(true);
+      setError(null);
+
+      // Aggregate all module data
+      const data = aggregateExecutiveData();
+      
+      if (data) {
+        setExecutiveData(data);
+        setExecutiveMetrics(generateExecutiveMetrics(data));
+        setModuleHealth(analyzeModuleHealth(data));
+        setCriticalAlerts(generateCriticalAlerts(data));
+      }
+
+      if (showLoading) {
+        setSnackbarOpen(true);
+      }
+    } catch (err) {
+      setError('Executive dashboard veri güncelleme sırasında hata oluştu');
+      console.error('Executive dashboard error:', err);
+    } finally {
+      if (showLoading) setIsRefreshing(false);
+    }
+  };
+
   // EFFECTS
   useEffect(() => {
-    // İlk yüklemede hızlı initialize
-    updateCentralData();
-    setIsLoading(false); // Hemen loading'i false yap
+    // İlk yüklemede executive data'yı hızlı initialize et
+    loadExecutiveData();
+    setIsLoading(false);
     
-    const interval = setInterval(updateCentralData, 60000);
-    dataSyncManager.subscribe('all', updateCentralData);
+    const interval = setInterval(() => loadExecutiveData(), 60000);
     
     return () => {
       clearInterval(interval);
-      dataSyncManager.unsubscribe('all', updateCentralData);
     };
   }, []);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (autoRefresh) {
-      interval = setInterval(() => {
-        updateCentralData(false);
-      }, 60000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [autoRefresh]);
+  // ... existing event handlers ...
 
-  // GET DYNAMIC DATA
-  const kpiData = generateKPIDataFromCentral();
-  const chartData = generateChartData(centralData);
-
-  const statusPriority: { [key: string]: number } = {
-    critical: 1,
-    warning: 2,
-    good: 3,
-    excellent: 4,
-  };
-
-  const sortedKpiData = [...kpiData].sort((a, b) => {
-    return statusPriority[a.status] - statusPriority[b.status];
-  });
-
-  // EVENT HANDLERS
-  const handleModuleClick = (path: string) => {
-    navigate(path);
-  };
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
-
-
-
-  const handleRefresh = () => {
-    updateCentralData(true);
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMenuAnchor(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null);
-  };
-
-  // Bildirimler için fonksiyonlar
-  const handleNotificationsClick = (event: React.MouseEvent<HTMLElement>) => {
-    setNotificationAnchorEl(event.currentTarget);
-  };
-
-  const handleNotificationsClose = () => {
-    setNotificationAnchorEl(null);
-  };
-
-  // Ayarlar için fonksiyonlar
-  const handleSettingsClick = () => {
-    console.log('Ayarlar açılıyor...');
-    navigate('/settings');
-  };
-
-  const handleProfileClick = () => {
-    console.log('Profil açılıyor...');
-    // Profil modal'ı açabilir veya profil sayfasına yönlendirebilir
-  };
-
-  const handleLogout = () => {
-    if (window.confirm('Çıkış yapmak istediğinizden emin misiniz?')) {
-      console.log('Çıkış yapılıyor...');
-      localStorage.clear();
-      window.location.href = '/';
-    }
-  };
-
-  const handleExportData = () => {
-    const dataToExport = {
-      kpiData: generateKPIDataFromCentral(),
-      moduleData: getModuleData(appearanceSettings.primaryColor),
-      timestamp: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
-      type: 'application/json'
-    });
-    
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dashboard-data-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  // ✅ OPTIMIZED FILTER FUNCTIONS - useCallback ile performance artışı
-  const getFilteredModules = React.useCallback(() => {
-    const modules = getModuleData(appearanceSettings.primaryColor);
-    return modules.filter(module => {
-      const matchSearch = !filters.searchTerm || 
-        module.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        module.description.toLowerCase().includes(filters.searchTerm.toLowerCase());
-      
-      const matchStatus = !filters.status || module.status === filters.status;
-      
-      const matchType = !filters.moduleType || 
-        (filters.moduleType === 'quality' && ['production-quality', 'dof-8d', 'kpi-management'].includes(module.id)) ||
-        (filters.moduleType === 'audit' && ['internal-audit', 'risk-management'].includes(module.id)) ||
-        (filters.moduleType === 'cost' && ['quality-cost'].includes(module.id));
-      
-      const matchPerformance = !filters.priority ||
-        (filters.priority === 'high' && module.performance > 90) ||
-        (filters.priority === 'medium' && module.performance >= 70 && module.performance <= 90) ||
-        (filters.priority === 'low' && module.performance < 70);
-      
-      return matchSearch && matchStatus && matchType && matchPerformance;
-    });
-  }, [filters, appearanceSettings.primaryColor]);
-
-  const clearFilters = React.useCallback(() => {
-    setFilters({
-      searchTerm: '',
-      moduleType: '',
-      status: '',
-      dateRange: '',
-      priority: ''
-    });
-  }, []);
-
-  // LOADING SKELETON
-  const KPISkeleton = () => (
-    <Card sx={{ borderRadius: 3, height: '100%' }}>
-      <CardContent sx={{ p: 3 }}>
+  // 📈 EXECUTIVE METRIC CARD COMPONENT
+  const ExecutiveMetricCard: React.FC<{ metric: ExecutiveMetric }> = ({ metric }) => (
+    <ElevatedCard sx={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: 100,
+          height: 100,
+          background: `linear-gradient(135deg, ${metric.color}20, ${metric.color}10)`,
+          borderRadius: '0 0 0 100px'
+        }}
+      />
+      <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Skeleton variant="text" width="60%" height={32} />
-          <Skeleton variant="circular" width={24} height={24} />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ mb: 0.5, fontSize: '1rem' }}>
+              {metric.title}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+              {metric.source}
+            </Typography>
+          </Box>
+          <Box sx={{ color: metric.color, ml: 1 }}>
+            {metric.icon}
+          </Box>
         </Box>
-        <Skeleton variant="text" width="40%" height={48} sx={{ mb: 2 }} />
-        <Skeleton variant="rectangular" height={6} sx={{ borderRadius: 3, mb: 2 }} />
-        <Skeleton variant="text" width="90%" height={16} />
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h4" fontWeight="bold" color={metric.color} sx={{ lineHeight: 1 }}>
+            {typeof metric.value === 'number' ? 
+              (metric.unit === '₺' ? metric.value.toLocaleString('tr-TR') : metric.value.toFixed(metric.unit === '%' ? 1 : 2))
+              : metric.value
+            }
+            <Typography component="span" variant="h6" sx={{ ml: 0.5, color: 'text.secondary' }}>
+              {metric.unit}
+            </Typography>
+          </Typography>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+            {metric.trend === 'up' ? <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main' }} /> :
+             metric.trend === 'down' ? <TrendingDownIcon sx={{ fontSize: 16, color: 'error.main' }} /> :
+             <TrendingFlatIcon sx={{ fontSize: 16, color: 'warning.main' }} />}
+            <Typography variant="caption" color="text.secondary">
+              {metric.trend === 'up' ? 'Artış' : metric.trend === 'down' ? 'Azalış' : 'Sabit'}: {metric.trendValue.toFixed(1)}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <StatusChip 
+            label={metric.status === 'excellent' ? 'Mükemmel' : 
+                  metric.status === 'good' ? 'İyi' : 
+                  metric.status === 'warning' ? 'Uyarı' : 'Kritik'}
+            color={metric.status === 'excellent' || metric.status === 'good' ? 'success' : 
+                   metric.status === 'warning' ? 'warning' : 'error'}
+            size="small"
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+            Hedef: {metric.target}{metric.unit}
+          </Typography>
+        </Box>
       </CardContent>
-    </Card>
+    </ElevatedCard>
+  );
+
+  // 🏥 MODULE HEALTH CARD COMPONENT
+  const ModuleHealthCard: React.FC<{ module: ModuleHealth }> = ({ module }) => (
+    <ProfessionalCard sx={{ height: '100%' }}>
+      <CardContent sx={{ p: 2.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '0.95rem' }}>
+            {module.module}
+          </Typography>
+          <StatusChip
+            label={module.status === 'healthy' ? 'Sağlıklı' : 
+                  module.status === 'warning' ? 'Uyarı' : 
+                  module.status === 'critical' ? 'Kritik' : 'Çevrimdışı'}
+            color={module.status === 'healthy' ? 'success' : 
+                   module.status === 'warning' ? 'warning' : 'error'}
+            size="small"
+          />
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+            Sistem Skoru: {module.score.toFixed(0)}/100
+          </Typography>
+          <LinearProgress 
+            variant="determinate" 
+            value={module.score} 
+            sx={{ 
+              height: 6, 
+              borderRadius: 3,
+              backgroundColor: 'rgba(0,0,0,0.08)',
+              '& .MuiLinearProgress-bar': {
+                backgroundColor: module.status === 'healthy' ? 'success.main' : 
+                                module.status === 'warning' ? 'warning.main' : 'error.main'
+              }
+            }} 
+          />
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          {module.keyMetrics.map((metric, index) => (
+            <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                {metric.metric}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography variant="caption" fontWeight="bold">
+                  {typeof metric.value === 'number' ? metric.value.toFixed(metric.metric.includes('%') ? 1 : 0) : metric.value}
+                </Typography>
+                <Box sx={{ 
+                  width: 6, 
+                  height: 6, 
+                  borderRadius: '50%', 
+                  backgroundColor: metric.status === 'good' ? 'success.main' : 
+                                 metric.status === 'warning' ? 'warning.main' : 'error.main'
+                }} />
+              </Box>
+            </Box>
+          ))}
+        </Box>
+
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+          {module.recordCount} kayıt • Son güncelleme: {module.lastSync}
+        </Typography>
+      </CardContent>
+    </ProfessionalCard>
+  );
+
+  // 🚨 CRITICAL ALERT COMPONENT
+  const CriticalAlertItem: React.FC<{ alert: CriticalAlert }> = ({ alert }) => (
+    <Alert 
+      severity={alert.severity === 'high' ? 'error' : alert.severity === 'medium' ? 'warning' : 'info'}
+      sx={{ mb: 1, borderRadius: 2 }}
+      action={
+        alert.actionRequired && (
+          <Button size="small" variant="outlined" sx={{ fontSize: '0.7rem' }}>
+            İncele
+          </Button>
+        )
+      }
+    >
+      <Typography variant="subtitle2" fontWeight="bold" sx={{ fontSize: '0.85rem' }}>
+        {alert.title}
+      </Typography>
+      <Typography variant="body2" sx={{ fontSize: '0.8rem', mt: 0.5 }}>
+        {alert.message}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+        {alert.module} • {alert.timestamp}
+      </Typography>
+    </Alert>
   );
 
   if (isLoading) {
-    return <MainContainer>Yükleniyor...</MainContainer>;
+    return (
+      <ElegantContainer>
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <CircularProgress size={40} />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Executive Dashboard Yükleniyor...
+          </Typography>
+        </Box>
+      </ElegantContainer>
+    );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 3 }}>
-      {/* PROFESSIONAL HEADER */}
-      <Paper elevation={0} sx={{ 
+    <ElegantContainer>
+      {/* EXECUTIVE HEADER */}
+      <ProfessionalPaper sx={{ 
         mb: 3, 
-        p: 3, 
-        background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${muiTheme.palette.primary.dark} 100%)`,
+        background: `linear-gradient(135deg, ${PROFESSIONAL_COLORS.primary.blue} 0%, ${PROFESSIONAL_COLORS.secondary.red} 100%)`,
         color: 'white',
-        borderRadius: 3,
         position: 'relative',
         overflow: 'hidden'
       }}>
-        <Box sx={{ position: 'relative', zIndex: 2 }}>
-          {/* Breadcrumbs */}
-          <Breadcrumbs 
-            separator="›" 
-            sx={{ 
-              mb: 2,
-              '& .MuiBreadcrumbs-separator': { color: 'rgba(255,255,255,0.7)' },
-              '& .MuiBreadcrumbs-ol': { alignItems: 'center' }
-            }}
-          >
-            <Link 
-              color="inherit" 
-              href="/" 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                textDecoration: 'none',
-                opacity: 0.8,
-                '&:hover': { opacity: 1 }
-              }}
-            >
-              <HomeIcon sx={{ mr: 0.5, fontSize: 16 }} />
-              Ana Sayfa
-            </Link>
-            <Typography color="inherit" sx={{ display: 'flex', alignItems: 'center', fontWeight: 600 }}>
-              <DashboardIcon sx={{ mr: 0.5, fontSize: 16 }} />
-              Dashboard
-            </Typography>
-          </Breadcrumbs>
-
-          {/* Header Content */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
-            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-              <Typography variant="h4" fontWeight="bold" sx={{ mb: 0.5, fontSize: { xs: '1.5rem', md: '2rem' } }}>
-                Kalite Yönetim Sistemi
+        <Box
+          sx={{
+            position: 'absolute',
+            top: -50,
+            right: -50,
+            width: 200,
+            height: 200,
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '50%'
+          }}
+        />
+        <Box sx={{ p: 4, position: 'relative', zIndex: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography variant="h3" fontWeight="bold" sx={{ mb: 1, fontSize: { xs: '1.8rem', md: '2.5rem' } }}>
+                Executive Dashboard
               </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9, mb: 1.5, fontSize: '0.9rem' }}>
-                Gerçek Zamanlı İzleme ve Analiz Dashboard'u
+              <Typography variant="h6" sx={{ opacity: 0.9, fontSize: '1.1rem' }}>
+                Kalite Yönetim Sistemi - Genel Bakış ve Kritik Metrikler
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
                 <Chip 
                   icon={<TimelineIcon sx={{ fontSize: 14 }} />}
-                  label="Canlı Veri" 
+                  label="Gerçek Zamanlı Veri" 
                   variant="outlined"
                   size="small"
                   sx={{ 
                     color: 'white', 
                     borderColor: 'rgba(255,255,255,0.3)',
-                    fontSize: '0.75rem',
-                    height: 24,
-                    '& .MuiChip-icon': { color: '#4caf50' }
+                    fontSize: '0.75rem'
                   }}
                 />
-                <Typography variant="caption" sx={{ opacity: 0.8, fontSize: '0.75rem' }}>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
                   Son güncelleme: {new Date().toLocaleString('tr-TR')}
                 </Typography>
               </Box>
             </Box>
-
-            {/* Header Actions */}
+            
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexShrink: 0 }}>
-              <Tooltip title="Bildirimleri Görüntüle">
-                <IconButton 
-                  onClick={handleNotificationsClick}
-                  size="small"
+              <Tooltip title="Verileri Yenile">
+                <ElegantButton
+                  variant="outlined"
+                  startIcon={isRefreshing ? <CircularProgress size={16} /> : <RefreshIcon />}
+                  onClick={() => loadExecutiveData(true)}
+                  disabled={isRefreshing}
                   sx={{ 
                     color: 'white',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    width: 36,
-                    height: 36,
-                    '&:hover': { backgroundColor: 'rgba(255,255,255,0.2)' }
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
                   }}
                 >
-                  <Badge badgeContent={3} color="error">
-                    <NotificationsIcon sx={{ fontSize: 18 }} />
-                  </Badge>
-                </IconButton>
+                  Yenile
+                </ElegantButton>
               </Tooltip>
               
-              <Tooltip title="Verileri Yenile">
+              <Tooltip title="Rapor İndir">
                 <IconButton 
-                  onClick={() => updateCentralData(true)}
-                  disabled={isRefreshing}
                   size="small"
                   sx={{ 
                     color: 'white',
                     backgroundColor: 'rgba(255,255,255,0.1)',
-                    width: 36,
-                    height: 36,
                     '&:hover': { backgroundColor: 'rgba(255,255,255,0.2)' }
                   }}
                 >
-                  <RefreshIcon sx={{ 
-                    fontSize: 18,
-                    animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
-                    '@keyframes spin': {
-                      '0%': { transform: 'rotate(0deg)' },
-                      '100%': { transform: 'rotate(360deg)' }
-                    }
-                  }} />
-                </IconButton>
-              </Tooltip>
-
-              <Tooltip title="Daha Fazla Seçenek">
-                <IconButton 
-                  onClick={handleMenuOpen}
-                  size="small"
-                  sx={{ 
-                    color: 'white',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    width: 36,
-                    height: 36,
-                    '&:hover': { backgroundColor: 'rgba(255,255,255,0.2)' }
-                  }}
-                >
-                  <MoreVertIcon sx={{ fontSize: 18 }} />
+                  <DownloadIcon />
                 </IconButton>
               </Tooltip>
             </Box>
           </Box>
         </Box>
+      </ProfessionalPaper>
 
-        {/* Background Pattern */}
-        <Box sx={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '100%',
-          height: '100%',
-          background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-          zIndex: 1
-        }} />
-      </Paper>
+      {/* EXECUTIVE METRICS */}
+      <SectionHeader 
+        title="Kritik Performans Göstergeleri" 
+        subtitle="Tüm modüllerden toplanan executive metrikler"
+        sx={{ mb: 3 }}
+      />
+      
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {executiveMetrics.map((metric) => (
+          <Grid item xs={12} sm={6} lg={4} key={metric.id}>
+            <ExecutiveMetricCard metric={metric} />
+          </Grid>
+        ))}
+      </Grid>
 
-      {/* ERROR ALERT */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          <AlertTitle>Sistem Hatası</AlertTitle>
-          {error}
-        </Alert>
-      )}
-
-      {/* FILTER PANEL */}
-      <Paper sx={{ mb: 3, borderRadius: 3, overflow: 'hidden' }}>
-        <Accordion expanded={filterExpanded} onChange={(e, expanded) => setFilterExpanded(expanded)}>
-          <AccordionSummary 
-            expandIcon={<ExpandMoreIcon />}
-            sx={{ 
-              background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}dd 100%)`,
-              color: 'white',
-              '& .MuiAccordionSummary-expandIconWrapper': {
-                color: 'white'
-              }
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <FilterListIcon />
-              <Box>
+      {/* CRITICAL ALERTS & MODULE HEALTH */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Critical Alerts */}
+        <Grid item xs={12} md={6}>
+          <ProfessionalCard>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                <WarningAmberIcon sx={{ color: 'error.main' }} />
                 <Typography variant="h6" fontWeight="bold">
-                  Filtreleme ve Arama
+                  Kritik Uyarılar
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Modülleri ve verileri filtreleyin
+                <Chip label={criticalAlerts.length} color="error" size="small" />
+              </Box>
+              
+              {criticalAlerts.length > 0 ? (
+                <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                  {criticalAlerts.map((alert) => (
+                    <CriticalAlertItem key={alert.id} alert={alert} />
+                  ))}
+                </Box>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
+                  <CheckCircleIcon sx={{ fontSize: 48, mb: 1, color: 'success.main' }} />
+                  <Typography variant="body2">
+                    Kritik uyarı bulunmuyor
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </ProfessionalCard>
+        </Grid>
+
+        {/* Module Health Summary */}
+        <Grid item xs={12} md={6}>
+          <ProfessionalCard>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                <MonitorHeartIcon sx={{ color: 'primary.main' }} />
+                <Typography variant="h6" fontWeight="bold">
+                  Modül Sistem Durumu
                 </Typography>
               </Box>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
-            <Grid container spacing={3} alignItems="center">
-              {/* Arama */}
-              <Grid item xs={12} sm={6} md={3}>
-                <UltimateStableSearchInput
-                  value={filters.searchTerm}
-                  onChange={(value) => setFilters(prev => ({ ...prev, searchTerm: value }))}
-                  label="Arama"
-                  placeholder="Modül adı, açıklama..."
-                  size="small"
-                  fullWidth={true}
-                />
+              
+              <Grid container spacing={2}>
+                {moduleHealth.slice(0, 4).map((module, index) => (
+                  <Grid item xs={12} key={index}>
+                    <ModuleHealthCard module={module} />
+                  </Grid>
+                ))}
               </Grid>
-
-              {/* Modül Tipi */}
-              <Grid item xs={12} sm={6} md={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Modül Tipi</InputLabel>
-                  <Select
-                    value={filters.moduleType}
-                    label="Modül Tipi"
-                    onChange={(e) => setFilters(prev => ({ ...prev, moduleType: e.target.value }))}
-                  >
-                    <MenuItem value="">Tümü</MenuItem>
-                    <MenuItem value="quality">Kalite Modülleri</MenuItem>
-                    <MenuItem value="audit">Tetkik Modülleri</MenuItem>
-                    <MenuItem value="cost">Maliyet Modülleri</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              {/* Durum */}
-              <Grid item xs={12} sm={6} md={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Durum</InputLabel>
-                  <Select
-                    value={filters.status}
-                    label="Durum"
-                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                  >
-                    <MenuItem value="">Tümü</MenuItem>
-                    <MenuItem value="operational">Çalışıyor</MenuItem>
-                    <MenuItem value="warning">Uyarı</MenuItem>
-                    <MenuItem value="error">Hata</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              {/* Performans */}
-              <Grid item xs={12} sm={6} md={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Performans</InputLabel>
-                  <Select
-                    value={filters.priority}
-                    label="Performans"
-                    onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
-                  >
-                    <MenuItem value="">Tümü</MenuItem>
-                                         <MenuItem value="high">Yüksek (&gt;90%)</MenuItem>
-                     <MenuItem value="medium">Orta (70-90%)</MenuItem>
-                     <MenuItem value="low">Düşük (&lt;70%)</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              {/* Temizle Butonu */}
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  variant="outlined"
-                  size="medium"
-                  fullWidth
-                  onClick={clearFilters}
-                  sx={{ height: 40 }}
-                >
-                  Filtreleri Temizle
-                </Button>
-              </Grid>
-            </Grid>
-          </AccordionDetails>
-        </Accordion>
-      </Paper>
-
-      {/* PROFESSIONAL KPI CARDS */}
-      <Paper sx={{ p: 3, mb: 3, borderRadius: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Box>
-            <Typography variant="h5" fontWeight="bold" color="text.primary">
-              Sistem Performans Göstergeleri
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Gerçek zamanlı sistem metrikleri ve trend analizi
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexShrink: 0 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={autoRefresh}
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                  size="small"
-                />
-              }
-              label={
-                <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-                  Otomatik Yenileme
-                </Typography>
-              }
-            />
-            <Tooltip title="Analitik Görünümü">
-              <IconButton size="small" sx={{ color: 'primary.main' }}>
-                <AnalyticsIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-
-        <Grid container spacing={2}>
-          {generateQuickStats(centralData).map((stat, index) => (
-            <Grid item xs={12} sm={6} md={3} key={stat.id}>
-              <Card sx={{ 
-                height: 180,
-                borderRadius: 2, 
-                background: 'linear-gradient(145deg, #ffffff, #f8f9fa)',
-                border: '1px solid rgba(0,0,0,0.08)',
-                transition: 'all 0.3s ease',
-                position: 'relative',
-                overflow: 'hidden',
-                '&:hover': { 
-                  transform: 'translateY(-4px)', 
-                  boxShadow: '0 8px 25px rgba(0,0,0,0.12)',
-                  borderColor: stat.color
-                },
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '3px',
-                  background: stat.color
-                }
-              }}>
-                <CardContent sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
-                        {stat.title}
-                      </Typography>
-                      <Box sx={{ 
-                        width: 32, 
-                        height: 32,
-                        borderRadius: 2,
-                        background: `${stat.color}15`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <Box sx={{ color: stat.color, fontSize: 16 }}>
-                          {stat.icon}
-                        </Box>
-                      </Box>
-                    </Box>
-                    
-                    <Typography variant="h4" fontWeight="bold" color={stat.color} sx={{ mb: 1, fontSize: '1.8rem' }}>
-                      {stat.value}
-                    </Typography>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        px: 0.5,
-                        py: 0.25,
-                        borderRadius: 1,
-                        backgroundColor: stat.change > 0 ? '#e8f5e8' : '#ffebee'
-                      }}>
-                        {stat.change > 0 ? (
-                          <TrendingUpIcon sx={{ color: '#4caf50', fontSize: 12 }} />
-                        ) : (
-                          <TrendingDownIcon sx={{ color: '#f44336', fontSize: 12 }} />
-                        )}
-                        <Typography 
-                          variant="caption" 
-                          color={stat.change > 0 ? '#4caf50' : '#f44336'}
-                          sx={{ ml: 0.25, fontWeight: 600, fontSize: '0.7rem' }}
-                        >
-                          {Math.abs(stat.change)}%
-                        </Typography>
-                      </Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                        vs önceki dönem
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Mini Progress Indicator */}
-                  <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, fontSize: '0.7rem' }}>
-                        Bu Ay
-                      </Typography>
-                      <Typography variant="caption" color={stat.color} sx={{ fontWeight: 600, fontSize: '0.7rem' }}>
-                        {Math.min(100, Math.max(0, 85 + Math.random() * 15)).toFixed(0)}%
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={Math.min(100, Math.max(0, 85 + Math.random() * 15))}
-                      sx={{ 
-                        height: 4, 
-                        borderRadius: 2,
-                        backgroundColor: `${stat.color}20`,
-                        '& .MuiLinearProgress-bar': {
-                          backgroundColor: stat.color,
-                          borderRadius: 2
-                        }
-                      }} 
-                    />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+            </CardContent>
+          </ProfessionalCard>
         </Grid>
-      </Paper>
+      </Grid>
 
-      {/* TABS */}
-      <Card sx={{ mb: 4 }}>
-        <Tabs 
-          value={activeTab} 
-          onChange={handleTabChange}
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-        >
-          <Tab label="KPI Genel Bakış" />
-          <Tab label="Performans Grafikleri" />
-        </Tabs>
-        
-        <CardContent sx={{ p: 3 }}>
-          {/* KPI OVERVIEW */}
-          {activeTab === 0 && (
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-              gap: 3 
-            }}>
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, index) => (
-                  <KPISkeleton key={index} />
-                ))
-              ) : (
-                sortedKpiData.map((kpi) => (
-                  <KPICard key={kpi.id} status={kpi.status}>
-                    <CardContent sx={{ p: 3, flexGrow: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="h6" fontWeight={600} gutterBottom>
-                            {kpi.title}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" paragraph>
-                            {kpi.description}
-                          </Typography>
-                        </Box>
-                        {getTrendIcon(kpi.trend)}
-                      </Box>
+      {/* ... existing module cards and other dashboard components ... */}
 
-                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 2 }}>
-                        <Typography variant="h3" fontWeight={700} color={getKPIStatusColor(kpi.status)}>
-                          {formatValue(kpi.currentValue, kpi.unit)}
-                        </Typography>
-                        {kpi.targetValue && (
-                          <Typography variant="body2" color="text.secondary">
-                            / {formatValue(kpi.targetValue, kpi.unit)}
-                          </Typography>
-                        )}
-                      </Box>
-
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Trend: 
-                        </Typography>
-                        <Chip 
-                          label={`${kpi.trend === 'up' ? '+' : '-'}${kpi.trendValue.toFixed(1)}%`}
-                          size="small" 
-                          color={kpi.trend === 'up' ? 'success' : 'error'}
-                        />
-                      </Box>
-
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="caption" color="text.secondary" gutterBottom>
-                          Haftalık Trend
-                        </Typography>
-                        <Box sx={{ height: 60, mt: 1 }}>
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart
-                              data={kpi.history}
-                              margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
-                            >
-                              <defs>
-                                <linearGradient id={`color-${kpi.id}`} x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor={getKPIStatusColor(kpi.status)} stopOpacity={0.4}/>
-                                  <stop offset="95%" stopColor={getKPIStatusColor(kpi.status)} stopOpacity={0}/>
-                                </linearGradient>
-                              </defs>
-                              <Area type="monotone" dataKey="value" stroke={getKPIStatusColor(kpi.status)} strokeWidth={2} fillOpacity={1} fill={`url(#color-${kpi.id})`} />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </Box>
-                      </Box>
-
-                      <Box>
-                        <Chip 
-                          label={kpi.status === 'excellent' ? 'Mükemmel' : 
-                                kpi.status === 'good' ? 'İyi' : 
-                                kpi.status === 'warning' ? 'Uyarı' : 'Kritik'}
-                          size="small"
-                          color={kpi.status === 'excellent' || kpi.status === 'good' ? 'success' : 
-                                 kpi.status === 'warning' ? 'warning' : 'error'}
-                        />
-                      </Box>
-                    </CardContent>
-                  </KPICard>
-                ))
-              )}
-            </Box>
-          )}
-
-          {/* PERFORMANCE CHARTS */}
-          {activeTab === 1 && (
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 3 }}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Modül Performansı</Typography>
-                  <Box sx={{ height: 300 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Bar dataKey="value" fill="#8884d8" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Durum Dağılımı</Typography>
-                  <Box sx={{ height: 300 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={chartData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          dataKey="value"
-                        >
-                          {chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))}
-                        </Pie>
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* PROFESSIONAL MODULE SECTION */}
-      <Paper sx={{ p: 3, borderRadius: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Box>
-            <Typography variant="h5" fontWeight="bold" color="text.primary">
-              Kalite Yönetim Modülleri
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {getFilteredModules().length} modül gösteriliyor
-              {filters.searchTerm || filters.moduleType || filters.status || filters.priority ? 
-                ` (${getModuleData(appearanceSettings.primaryColor).length} toplam modül)` : 
-                ''
-              }
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexShrink: 0 }}>
-            <Tooltip title="Modül Filtresi">
-              <IconButton size="small" sx={{ color: 'primary.main' }}>
-                <FilterListIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Modül Bilgileri">
-              <IconButton size="small" sx={{ color: 'primary.main' }}>
-                <InfoIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-      
-        <Grid container spacing={2}>
-          {getFilteredModules().map((module, index) => (
-            <Grid item xs={12} sm={6} md={4} key={module.id}>
-              <Card
-                onClick={() => handleModuleClick(module.path)}
-                sx={{ 
-                  cursor: 'pointer',
-                  height: 260,
-                  borderRadius: 2,
-                  background: 'linear-gradient(145deg, #ffffff, #f8f9fa)',
-                  border: '1px solid rgba(0,0,0,0.08)',
-                  transition: 'all 0.3s ease',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  '&:hover': { 
-                    transform: 'translateY(-4px)', 
-                    boxShadow: '0 12px 30px rgba(0,0,0,0.12)',
-                    borderColor: module.color,
-                    '& .module-icon': {
-                      transform: 'scale(1.05)',
-                    },
-                    '& .launch-icon': {
-                      opacity: 1,
-                      transform: 'translateX(0)',
-                    }
-                  },
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: '3px',
-                    background: module.color
-                  }
-                }}
-              >
-                <CardContent sx={{ 
-                  p: 2.5, 
-                  height: '100%', 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  position: 'relative'
-                }}>
-                  {/* Header Section */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
-                    <Box sx={{ 
-                      width: 40, 
-                      height: 40,
-                      borderRadius: 2,
-                      background: `${module.color}15`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.3s ease',
-                      className: 'module-icon',
-                      flexShrink: 0
-                    }}>
-                      <Box sx={{ color: module.color, fontSize: 20 }}>
-                        {module.icon}
-                      </Box>
-                    </Box>
-                    
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-                      <Chip 
-                        label={module.status === 'operational' ? 'Aktif' : 'Bakım'}
-                        color={module.status === 'operational' ? 'success' : 'warning'}
-                        size="small"
-                        sx={{ fontSize: '0.65rem', height: 20 }}
-                      />
-                      <IconButton 
-                        size="small" 
-                        className="launch-icon"
-                        sx={{ 
-                          opacity: 0,
-                          transform: 'translateX(8px)',
-                          transition: 'all 0.3s ease',
-                          color: module.color,
-                          width: 24,
-                          height: 24
-                        }}
-                      >
-                        <LaunchIcon sx={{ fontSize: 14 }} />
-                      </IconButton>
-                    </Box>
-                  </Box>
-
-                  {/* Title and Description */}
-                  <Box sx={{ mb: 1.5, flexGrow: 1, minHeight: 0 }}>
-                    <Typography 
-                      variant="h6" 
-                      fontWeight="bold" 
-                      sx={{ 
-                        mb: 0.5,
-                        fontSize: '0.95rem',
-                        lineHeight: 1.2,
-                        color: 'text.primary',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {module.name}
-                    </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary" 
-                      sx={{ 
-                        fontSize: '0.8rem',
-                        lineHeight: 1.3,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      {module.description}
-                    </Typography>
-                  </Box>
-
-                  {/* Features */}
-                  <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block', fontWeight: 600, fontSize: '0.7rem' }}>
-                      Özellikler:
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {module.features.slice(0, 2).map((feature, idx) => (
-                        <Chip
-                          key={idx}
-                          label={feature}
-                          size="small"
-                          variant="outlined"
-                          sx={{ 
-                            fontSize: '0.65rem',
-                            height: 18,
-                            borderColor: `${module.color}50`,
-                            color: module.color,
-                            '& .MuiChip-label': { px: 0.5 }
-                          }}
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-
-                  {/* Performance Metrics */}
-                  <Box sx={{ mt: 'auto' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.7rem' }}>
-                        Performans
-                      </Typography>
-                      <Typography variant="caption" color={module.color} sx={{ fontWeight: 600, fontSize: '0.7rem' }}>
-                        {module.performance}%
-                      </Typography>
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={module.performance} 
-                      sx={{ 
-                        height: 4, 
-                        borderRadius: 2,
-                        backgroundColor: `${module.color}20`,
-                        '& .MuiLinearProgress-bar': {
-                          backgroundColor: module.color,
-                          borderRadius: 2
-                        }
-                      }} 
-                    />
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                        {module.lastUpdate}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                        Kullanım: {module.usage}%
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Paper>
-
-      {/* MENUS */}
-
-      {/* NOTIFICATIONS MENU */}
-      <Menu
-        anchorEl={notificationAnchorEl}
-        open={Boolean(notificationAnchorEl)}
-        onClose={handleNotificationsClose}
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            minWidth: 320,
-            maxHeight: 400,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-            border: '1px solid rgba(0,0,0,0.08)'
-          }
-        }}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h6" fontWeight="bold">
-            Bildirimler
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            3 yeni bildirim
-          </Typography>
-        </Box>
-        
-        <MenuItem sx={{ py: 1.5, px: 2, borderBottom: '1px solid', borderColor: 'grey.100' }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
-            <ErrorIcon sx={{ mr: 1.5, color: 'error.main', mt: 0.5 }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" fontWeight={600}>
-                Kritik DÖF Bildirimi
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                2 kritik DÖF kaydı 48 saattir açık
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                15 dakika önce
-              </Typography>
-            </Box>
-          </Box>
-        </MenuItem>
-
-        <MenuItem sx={{ py: 1.5, px: 2, borderBottom: '1px solid', borderColor: 'grey.100' }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
-            <AssessmentIcon sx={{ mr: 1.5, color: 'warning.main', mt: 0.5 }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" fontWeight={600}>
-                Kalite Raporu Hazır
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Haftalık kalite raporu oluşturuldu
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                1 saat önce
-              </Typography>
-            </Box>
-          </Box>
-        </MenuItem>
-
-        <MenuItem sx={{ py: 1.5, px: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
-            <CheckCircleIcon sx={{ mr: 1.5, color: 'success.main', mt: 0.5 }} />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" fontWeight={600}>
-                Tetkik Tamamlandı
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                İç tetkik başarıyla tamamlandı
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                3 saat önce
-              </Typography>
-            </Box>
-          </Box>
-        </MenuItem>
-
-        <Divider />
-        <MenuItem onClick={handleNotificationsClose} sx={{ py: 1.5, px: 2, justifyContent: 'center' }}>
-          <Typography variant="body2" color="primary" fontWeight={600}>
-            Tüm Bildirimleri Görüntüle
-          </Typography>
-        </MenuItem>
-      </Menu>
-
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-      >
-        <MenuItem onClick={handleExportData}>
-          <DownloadIcon sx={{ mr: 1 }} />
-          Verileri Dışa Aktar
-        </MenuItem>
-        <MenuItem onClick={handleRefresh}>
-          <RefreshIcon sx={{ mr: 1 }} />
-          Verileri Yenile
-        </MenuItem>
-      </Menu>
-
-      {/* SUCCESS SNACKBAR */}
+      {/* Success Snackbar */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={4000}
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert severity="success" onClose={() => setSnackbarOpen(false)} sx={{ width: '100%' }}>
-          Sistem verileri başarıyla güncellendi
+        <Alert severity="success" onClose={() => setSnackbarOpen(false)}>
+          Executive Dashboard başarıyla güncellendi
         </Alert>
       </Snackbar>
-
-      {/* PROFESSIONAL MENU */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            minWidth: 200,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-            border: '1px solid rgba(0,0,0,0.08)'
-          }
-        }}
-      >
-        <MenuItem onClick={handleExportData} sx={{ py: 1.5, px: 2 }}>
-          <DownloadIcon sx={{ mr: 1.5, color: 'primary.main' }} />
-          <Box>
-            <Typography variant="body2" fontWeight={600}>
-              Verileri Dışa Aktar
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Excel formatında indir
-            </Typography>
-          </Box>
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => updateCentralData(true)} sx={{ py: 1.5, px: 2 }}>
-          <RefreshIcon sx={{ mr: 1.5, color: 'success.main' }} />
-          <Box>
-            <Typography variant="body2" fontWeight={600}>
-              Verileri Yenile
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Tüm modülleri güncelle
-            </Typography>
-          </Box>
-        </MenuItem>
-        <MenuItem onClick={handleSettingsClick} sx={{ py: 1.5, px: 2 }}>
-          <SettingsIcon sx={{ mr: 1.5, color: 'warning.main' }} />
-          <Box>
-            <Typography variant="body2" fontWeight={600}>
-              Dashboard Ayarları
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Görünüm seçenekleri
-            </Typography>
-          </Box>
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={handleProfileClick} sx={{ py: 1.5, px: 2 }}>
-          <PersonIcon sx={{ mr: 1.5, color: 'info.main' }} />
-          <Box>
-            <Typography variant="body2" fontWeight={600}>
-              Profil Ayarları
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Kullanıcı bilgileri
-            </Typography>
-          </Box>
-        </MenuItem>
-        <MenuItem onClick={handleLogout} sx={{ py: 1.5, px: 2 }}>
-          <LogoutIcon sx={{ mr: 1.5, color: 'error.main' }} />
-          <Box>
-            <Typography variant="body2" fontWeight={600}>
-              Çıkış Yap
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Güvenli çıkış
-            </Typography>
-          </Box>
-        </MenuItem>
-      </Menu>
-    </Container>
+    </ElegantContainer>
   );
 };
 
