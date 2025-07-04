@@ -1039,11 +1039,11 @@ const QuarantineManagement: React.FC = () => {
     return sampleRecords;
   };
 
-  // Otomatik Karantina Takip Numarası Generator
-  const generateQuarantineTrackingNumber = useCallback(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+  // ✅ AÇILIŞ TARİHİNE GÖRE Karantina Takip Numarası Generator
+  const generateQuarantineTrackingNumber = useCallback((quarantineDate?: string) => {
+    const targetDate = quarantineDate ? new Date(quarantineDate) : new Date();
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
     const yearMonth = `${year}-${month}`;
     
     // Mevcut kayıtlarda aynı ay/yıl ile başlayan kayıtları say
@@ -1058,6 +1058,37 @@ const QuarantineManagement: React.FC = () => {
   }, [quarantineData]);
 
   const generateId = () => generateQuarantineTrackingNumber();
+
+  // ✅ AÇILIŞ TARİHİ DEĞİŞTİĞİNDE TAKİP NUMARASINI OTOMATİK GÜNCELLE - YENİ KAYIT
+  useEffect(() => {
+    // Sadece yeni kayıt eklerken ve açılış tarihi değiştiğinde çalışsın
+    if (addDialog && formData.quarantineDate && !selectedRecord) {
+      const newTrackingNumber = generateQuarantineTrackingNumber(formData.quarantineDate);
+      if (formData.id !== newTrackingNumber) {
+        setFormData(prev => ({
+          ...prev,
+          id: newTrackingNumber
+        }));
+        showNotification(`Açılış tarihi değişti, yeni takip numarası: ${newTrackingNumber}`, 'info');
+      }
+    }
+  }, [formData.quarantineDate, addDialog, selectedRecord, generateQuarantineTrackingNumber]);
+
+  // ✅ AÇILIŞ TARİHİ DEĞİŞTİĞİNDE TAKİP NUMARASINI OTOMATİK GÜNCELLE - DÜZENLEME
+  useEffect(() => {
+    // Düzenleme sırasında açılış tarihi değiştiğinde takip numarasını güncelle
+    if (editDialog && formData.quarantineDate && selectedRecord && 
+        selectedRecord.quarantineDate !== formData.quarantineDate) {
+      const newTrackingNumber = generateQuarantineTrackingNumber(formData.quarantineDate);
+      if (formData.id !== newTrackingNumber) {
+        setFormData(prev => ({
+          ...prev,
+          id: newTrackingNumber
+        }));
+        showNotification(`Açılış tarihi değişti, takip numarası güncellendi: ${newTrackingNumber}`, 'warning');
+      }
+    }
+  }, [formData.quarantineDate, editDialog, selectedRecord, generateQuarantineTrackingNumber]);
   
   const calculateStats = useCallback((data: QuarantineRecord[]): QuarantineStats => {
     const totalItems = data.length;
@@ -1287,8 +1318,9 @@ const QuarantineManagement: React.FC = () => {
   // ============================================
   
   const handleAddRecord = () => {
-    // Otomatik karantina takip numarası oluştur
-    const newTrackingNumber = generateQuarantineTrackingNumber();
+    const defaultDate = new Date().toISOString().split('T')[0];
+    // ✅ Açılış tarihine göre takip numarası oluştur
+    const newTrackingNumber = generateQuarantineTrackingNumber(defaultDate);
     
     setFormData({
       id: newTrackingNumber,
@@ -1307,7 +1339,7 @@ const QuarantineManagement: React.FC = () => {
       estimatedCost: 0,
       attachments: [],
       followUpActions: [],
-      quarantineDate: new Date().toISOString().split('T')[0], // Manuel düzenlenebilir karantina tarihi
+      quarantineDate: defaultDate, // Manuel düzenlenebilir karantina tarihi
       location: '',
       inspectionType: '',
       inspectionDate: '',
@@ -1513,8 +1545,21 @@ const QuarantineManagement: React.FC = () => {
     const now = new Date().toISOString();
     const currentUser = 'Sistem Kullanıcısı'; // This should come from auth context
     
+    // ✅ AÇILIŞ TARİHİ DEĞİŞİKLİĞİ KONTROLÜ VE TAKİP NO GÜNCELLEMESİ
+    let recordId = selectedRecord?.id;
+    const quarantineDate = formData.quarantineDate || selectedRecord?.quarantineDate || now;
+    
+    // Eğer düzenleme yapılıyorsa ve açılış tarihi değiştiyse, yeni takip numarası oluştur
+    if (selectedRecord && selectedRecord.quarantineDate !== quarantineDate) {
+      recordId = generateQuarantineTrackingNumber(quarantineDate);
+      showNotification(`Açılış tarihi değiştiği için yeni takip numarası oluşturuldu: ${recordId}`, 'info');
+    } else if (!selectedRecord) {
+      // Yeni kayıt için açılış tarihine göre takip numarası oluştur
+      recordId = generateQuarantineTrackingNumber(quarantineDate);
+    }
+    
     const newRecord: QuarantineRecord = {
-      id: selectedRecord?.id || generateId(),
+      id: recordId!,
       partCode: formData.partCode!,
       partName: formData.partName!,
       quantity: formData.quantity || 0,
@@ -1522,7 +1567,7 @@ const QuarantineManagement: React.FC = () => {
       quarantineReason: formData.quarantineReason!,
       responsibleDepartment: formData.responsibleDepartment!,
       responsiblePersons: formData.responsiblePersons || [],
-      quarantineDate: formData.quarantineDate || selectedRecord?.quarantineDate || now,
+      quarantineDate: quarantineDate,
       supplierName: formData.supplierName || '',
       productionOrder: formData.productionOrder || '',
       inspectionResults: formData.inspectionResults || '',
