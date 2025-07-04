@@ -1318,7 +1318,7 @@ const MetricCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
+// 🔍 FOCUS-SAFE ARAMA KUTUSU - Arama sırasında focus kaybı olmaz
 const UltimateStableSearchInput = memo(({ 
   label, 
   placeholder, 
@@ -1344,6 +1344,8 @@ const UltimateStableSearchInput = memo(({
 }) => {
   const [value, setValue] = useState<string>(defaultValue);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const lastFocusStateRef = useRef<boolean>(false);
 
   // Reset value when resetTrigger changes
   useEffect(() => {
@@ -1352,9 +1354,24 @@ const UltimateStableSearchInput = memo(({
     }
   }, [resetTrigger]);
 
-  // Simple input change handler with debounce
+  // 🔧 Focus koruma sistemi - Render sonrası focus'u geri al
+  useEffect(() => {
+    if (lastFocusStateRef.current && inputRef.current && document.activeElement !== inputRef.current) {
+      setTimeout(() => {
+        if (inputRef.current && lastFocusStateRef.current) {
+          inputRef.current.focus();
+        }
+      }, 10);
+    }
+  });
+
+  // 🚀 ENHANCED INPUT HANDLER - Focus korumalı değişiklik yönetimi
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
+    
+    // Focus durumunu kaydet
+    lastFocusStateRef.current = document.activeElement === inputRef.current;
+    
     setValue(newValue);
     
     // Clear previous timeout
@@ -1368,6 +1385,15 @@ const UltimateStableSearchInput = memo(({
     }, debounceMs);
   }, [onChange, debounceMs]);
 
+  // Focus event handlers
+  const handleFocus = useCallback(() => {
+    lastFocusStateRef.current = true;
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    lastFocusStateRef.current = false;
+  }, []);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -1380,10 +1406,13 @@ const UltimateStableSearchInput = memo(({
   return (
     <TextField
       {...otherProps}
+      inputRef={inputRef}
       fullWidth={fullWidth}
       label={label}
       value={value}
       onChange={handleChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       placeholder={placeholder}
       autoComplete="off"
       spellCheck={false}
@@ -1407,6 +1436,17 @@ const UltimateStableSearchInput = memo(({
         ...sx,
       }}
     />
+  );
+}, (prevProps, nextProps) => {
+  // 🚀 PERFORMANCE: Sadece kritik prop'lar değişirse re-render et
+  return (
+    prevProps.label === nextProps.label &&
+    prevProps.placeholder === nextProps.placeholder &&
+    prevProps.defaultValue === nextProps.defaultValue &&
+    prevProps.debounceMs === nextProps.debounceMs &&
+    prevProps.fullWidth === nextProps.fullWidth &&
+    prevProps.resetTrigger === nextProps.resetTrigger &&
+    prevProps.onChange === nextProps.onChange // useCallback ile stabil olmalı
   );
 });
 
@@ -2628,12 +2668,12 @@ const DOF8DManagement: React.FC = () => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  const handleFilterChange = (field: keyof FilterState, value: any) => {
+  const handleFilterChange = useCallback((field: keyof FilterState, value: any) => {
     setFilters(prev => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
   const openCreateDialog = () => {
     setDialogMode('create');
