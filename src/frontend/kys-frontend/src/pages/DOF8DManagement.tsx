@@ -64,7 +64,7 @@ import { useThemeContext } from '../context/ThemeContext';
 interface DOFRecord {
   id: string;
   dofNumber: string;
-  type: 'corrective' | 'preventive' | '8d' | 'improvement' | 'mdi';
+  type: 'corrective_preventive' | '8d' | 'improvement' | 'mdi';
   title: string;
   description: string;
   department: string;
@@ -193,8 +193,7 @@ const STATUS_OPTIONS = [
 ];
 
 const DOF_TYPES = [
-  { value: 'corrective', label: 'Düzeltici', color: '#f44336' },
-  { value: 'preventive', label: 'Önleyici', color: '#4caf50' },
+  { value: 'corrective_preventive', label: 'Düzeltici/Önleyici', color: '#f44336' },
   { value: '8d', label: '8D', color: '#2196f3' },
   { value: 'improvement', label: 'İyileştirme', color: '#ff9800' },
   { value: 'mdi', label: 'MDİ', color: '#9c27b0' }
@@ -725,11 +724,13 @@ const generateDOFPDF = (record: DOFRecord): void => {
     
     const getTypeText = (type: string) => {
       const typeMap: { [key: string]: string } = {
-        'corrective': 'Düzeltici',
-        'preventive': 'Önleyici',
+        'corrective_preventive': 'Düzeltici/Önleyici',
         '8d': '8D',
         'improvement': 'İyileştirme',
-        'mdi': 'MDI'
+        'mdi': 'MDI',
+        // Backward compatibility for old types
+        'corrective': 'Düzeltici',
+        'preventive': 'Önleyici'
       };
       return turkishSafeText(typeMap[type] || type);
     };
@@ -1896,8 +1897,43 @@ const DOF8DManagement: React.FC = () => {
       }
     };
 
+    // ✅ DÖF Türleri Migration - Eski "corrective" ve "preventive" türlerini "corrective_preventive" olarak güncelle
+    const migrateDOFTypes = () => {
+      console.log('🔄 DÖF türleri migration başlatılıyor...');
+      
+      const recordsToMigrate = dofRecords.filter(record => 
+        (record.type as any) === 'corrective' || (record.type as any) === 'preventive'
+      );
+      
+      if (recordsToMigrate.length > 0) {
+        console.log(`📋 ${recordsToMigrate.length} kayıt için tür migration yapılacak`);
+        
+        const updatedRecords = dofRecords.map(record => {
+          if ((record.type as any) === 'corrective' || (record.type as any) === 'preventive') {
+            return {
+              ...record,
+              type: 'corrective_preventive' as const,
+              metadata: {
+                ...record.metadata,
+                migrationDate: new Date().toISOString(),
+                migrationNote: `Eski tür: ${record.type} → Yeni tür: corrective_preventive`
+              }
+            };
+          }
+          return record;
+        });
+        
+        console.log('✅ DÖF türleri migration tamamlandı, localStorage güncellenecek');
+        setDofRecords(updatedRecords);
+        localStorage.setItem('dofRecords', JSON.stringify(updatedRecords));
+      } else {
+        console.log('📊 Tüm kayıtlarda türler güncel, migration gerekmiyor');
+      }
+    };
+
     if (dofRecords.length > 0) {
       migrateOpeningDates();
+      migrateDOFTypes();
     }
   }, []); // Sadece component ilk mount olduğunda çalışsın
 
