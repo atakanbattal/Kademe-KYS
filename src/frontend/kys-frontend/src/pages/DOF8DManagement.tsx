@@ -1318,13 +1318,13 @@ const MetricCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-// 🚀 ABSOLUTE REF-BASED SEARCH INPUT - Parent re-render'dan tamamen izole
+// 🚀 ULTRA-ISOLATED SEARCH INPUT - Hiçbir parent etkileşimi yok
 const UltimateStableSearchInput = memo(({ 
   label, 
   placeholder, 
   onChange, 
   defaultValue = '', 
-  debounceMs = 1000, // Daha uzun debounce - daha az parent update
+  debounceMs = 500, // Orta seviye debounce
   icon: Icon,
   fullWidth = true,
   sx = {},
@@ -1342,63 +1342,62 @@ const UltimateStableSearchInput = memo(({
   resetTrigger?: any;
   [key: string]: any;
 }) => {
-  // 🔥 REF-BASED VALUE MANAGEMENT - State yerine ref kullan
-  const currentValueRef = useRef<string>(defaultValue);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // 🔥 UNCONTROLLED INPUT - Hiçbir state yok
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const lastValueSentRef = useRef<string>(defaultValue);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSentValue = useRef<string>(defaultValue);
 
   // Reset value when resetTrigger changes
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0) {
-      currentValueRef.current = '';
-      lastValueSentRef.current = '';
       if (inputRef.current) {
         inputRef.current.value = '';
+        lastSentValue.current = '';
       }
     }
   }, [resetTrigger]);
 
-  // 🚀 IMMEDIATE INPUT HANDLER - No state updates, only ref updates
+  // 🚀 ULTRA-SIMPLE INPUT HANDLER - Sadece DOM manipulation
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
-    
-    // Update ref immediately - NO STATE UPDATE
-    currentValueRef.current = newValue;
-    
-    // console.log('📝 Input change (ref-based):', { value: newValue });
     
     // Clear previous timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     
-    // Set new timeout for debounced callback - MUCH LONGER DELAY
+    // ASYNC CALLBACK - Parent'ı asla sync etkilemez
     timeoutRef.current = setTimeout(() => {
-      // Only call onChange if value actually changed
-      if (currentValueRef.current !== lastValueSentRef.current) {
-        // console.log('⚡ Sending debounced value:', currentValueRef.current);
-        lastValueSentRef.current = currentValueRef.current;
-        onChange(currentValueRef.current);
+      // Sadece değer değişmişse gönder
+      if (newValue !== lastSentValue.current) {
+        lastSentValue.current = newValue;
+        
+        // SUPER ASYNC - 3 event loop sonra
+        setTimeout(() => {
+          setTimeout(() => {
+            onChange(newValue);
+          }, 0);
+        }, 0);
       }
     }, debounceMs);
   }, [onChange, debounceMs]);
 
-  // 🚀 ENTER KEY HANDLER - Immediate search on Enter
+  // 🚀 INSTANT SEARCH WITH ENTER
   const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault();
+      
+      const currentValue = (event.target as HTMLInputElement).value;
       
       // Clear any pending timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
       
-      // Send value immediately
-      if (currentValueRef.current !== lastValueSentRef.current) {
-        // console.log('⚡ Enter key - immediate search:', currentValueRef.current);
-        lastValueSentRef.current = currentValueRef.current;
-        onChange(currentValueRef.current);
+      // INSTANT ASYNC CALLBACK
+      if (currentValue !== lastSentValue.current) {
+        lastSentValue.current = currentValue;
+        setTimeout(() => onChange(currentValue), 0);
       }
     }
   }, [onChange]);
@@ -1418,7 +1417,7 @@ const UltimateStableSearchInput = memo(({
       inputRef={inputRef}
       fullWidth={fullWidth}
       label={label}
-      defaultValue={defaultValue} // Use defaultValue instead of controlled value
+      defaultValue={defaultValue}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       placeholder={placeholder}
@@ -1445,7 +1444,7 @@ const UltimateStableSearchInput = memo(({
       }}
     />
   );
-}, () => true); // NEVER re-render - completely isolated
+}, () => true); // ASLA re-render olmuyor
 
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
@@ -2674,9 +2673,8 @@ const DOF8DManagement: React.FC = () => {
     }));
   }, []);
 
-  // 🚀 MEMOIZED Search Handler - Parent re-render'dan bağımsız
+  // 🚀 SIMPLE SEARCH HANDLER - Search input zaten super async
   const handleSearchChange = useCallback((value: string) => {
-    // console.log('🔍 Search change triggered:', value);
     handleFilterChange('searchTerm', value);
   }, [handleFilterChange]);
 
@@ -3161,11 +3159,11 @@ const DOF8DManagement: React.FC = () => {
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
               <UltimateStableSearchInput
-                label="Gelişmiş Arama (Enter ile hızlı arama)"
-                placeholder="DÖF numarası, başlık, açıklama... (Enter tuşuna basın)"
+                label="Gelişmiş Arama (Enter = Hızlı)"
+                placeholder="DÖF numarası, başlık, açıklama... (Enter ile anında arama)"
                 defaultValue={filters.searchTerm}
                 onChange={handleSearchChange}
-                debounceMs={1000}
+                debounceMs={500}
                 icon={SearchIcon}
                 fullWidth
                 resetTrigger={searchResetTrigger}
