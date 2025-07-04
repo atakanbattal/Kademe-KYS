@@ -1382,25 +1382,7 @@ const UltimateStableSearchInput = memo(({
     }, debounceMs);
   }, [onChange, debounceMs]);
 
-  // 🚀 INSTANT SEARCH WITH ENTER
-  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      
-      const currentValue = (event.target as HTMLInputElement).value;
-      
-      // Clear any pending timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      // INSTANT ASYNC CALLBACK
-      if (currentValue !== lastSentValue.current) {
-        lastSentValue.current = currentValue;
-        setTimeout(() => onChange(currentValue), 0);
-      }
-    }
-  }, [onChange]);
+  // Enter tuşu devre dışı - sadece debounce arama
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -1419,7 +1401,6 @@ const UltimateStableSearchInput = memo(({
       label={label}
       defaultValue={defaultValue}
       onChange={handleChange}
-      onKeyDown={handleKeyDown}
       placeholder={placeholder}
       autoComplete="off"
       spellCheck={false}
@@ -3159,8 +3140,8 @@ const DOF8DManagement: React.FC = () => {
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
               <UltimateStableSearchInput
-                label="Gelişmiş Arama (Enter = Hızlı)"
-                placeholder="DÖF numarası, başlık, açıklama... (Enter ile anında arama)"
+                label="Gelişmiş Arama"
+                placeholder="DÖF numarası, başlık, açıklama..."
                 defaultValue={filters.searchTerm}
                 onChange={handleSearchChange}
                 debounceMs={500}
