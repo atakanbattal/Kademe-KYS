@@ -1371,6 +1371,7 @@ const DOF8DManagement: React.FC = () => {
     }
   })) as any;
   const [activeTab, setActiveTab] = useState(0);
+  const [expanded, setExpanded] = useState<string | false>('panel1');
   const [filters, setFilters] = useState<FilterState>({
     department: '',
     status: '',
@@ -2144,35 +2145,21 @@ const DOF8DManagement: React.FC = () => {
         // Context7 - Safe sorting with null checks
         if (!a || !b) return 0;
         
-        // DÖF numarasına göre sıralama (DÖF-2025-001, DÖF-2025-002, 8D-2025-001, vb.)
-        const aDofNumber = a.dofNumber || '';
-        const bDofNumber = b.dofNumber || '';
+        // ✅ AÇILIŞ TARİHİNE GÖRE SIRALAMA (en yeni açılan en üstte)
+        const aOpeningDate = a.openingDate || a.createdDate || '';
+        const bOpeningDate = b.openingDate || b.createdDate || '';
         
-        // Önce tür bazında sıralama (8D, DÖF, MDİ)
-        const aType = aDofNumber.startsWith('8D-') ? '1' : aDofNumber.startsWith('DÖF-') ? '2' : '3';
-        const bType = bDofNumber.startsWith('8D-') ? '1' : bDofNumber.startsWith('DÖF-') ? '2' : '3';
+        // Tarihleri Date objesine çevir
+        const aDate = new Date(aOpeningDate);
+        const bDate = new Date(bOpeningDate);
         
-        if (aType !== bType) {
-          return aType.localeCompare(bType);
-        }
+        // Geçerli tarih kontrolü
+        if (isNaN(aDate.getTime()) && isNaN(bDate.getTime())) return 0;
+        if (isNaN(aDate.getTime())) return 1;
+        if (isNaN(bDate.getTime())) return -1;
         
-        // Aynı tür içinde numara sıralaması
-        // DÖF-2025-001 formatından yıl ve sıra numarasını çıkar
-        const extractNumber = (dofNum: string) => {
-          const match = dofNum.match(/(8D|DÖF|MDİ)-(\d{4})-(\d{3})/);
-          if (match) {
-            const year = parseInt(match[2]);
-            const number = parseInt(match[3]);
-            return year * 1000 + number; // 2025001, 2025002 şeklinde
-          }
-        return 0;
-        };
-        
-        const aNum = extractNumber(aDofNumber);
-        const bNum = extractNumber(bDofNumber);
-        
-        // Büyükten küçüğe sıralama (en yeni en üstte)
-        return bNum - aNum;
+        // En yeni açılan DÖF en üstte olacak şekilde sıralama
+        return bDate.getTime() - aDate.getTime();
       });
   }, [metrics.filteredRecords, filters.delayStatus, filters.priority, getDelayMessage]); // Context7 - Remove unnecessary dependencies
 
@@ -2531,9 +2518,19 @@ const DOF8DManagement: React.FC = () => {
     }
   }, []); // Sadece component mount olduğunda çalış
 
-  // ✅ Event Handlers (accordion kaldırıldı - basit filtreleme sistemi)
+  // ✅ Event Handlers
+  const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpanded(isExpanded ? panel : false);
+  };
 
-  // Basit filtre sistemi - direkt setFilters kullanıyor (Material Certificate Tracking gibi)
+  // 🚀 ULTRA-STABLE Filter Change Handler
+  const handleFilterChange = useCallback((field: keyof FilterState, value: any) => {
+    // console.log('🔄 Filter change:', { field, value });
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
 
   // Basit arama - direct handleFilterChange kullanıyor (Material Certificate Tracking gibi)
 
@@ -2589,28 +2586,28 @@ const DOF8DManagement: React.FC = () => {
   const handleDepartmentClick = (department: string) => {
     console.log('🏢 Context7 - Department clicked:', department);
     // Filtreyi departmana göre ayarla ve DÖF Listesi tab'ına geç
-    setFilters(prev => ({ ...prev, department }));
+    handleFilterChange('department', department);
     setActiveTab(1); // DÖF Listesi tab'ına geç
   };
 
   const handleStatusClick = (status: string) => {
     console.log('📊 Context7 - Status clicked:', status);
     // Filtreyi duruma göre ayarla ve DÖF Listesi tab'ına geç
-    setFilters(prev => ({ ...prev, status }));
+    handleFilterChange('status', status);
     setActiveTab(1);
   };
 
   const handlePriorityClick = (priority: string) => {
     console.log('⚠️ Context7 - Priority clicked:', priority);
     // Filtreyi öncelik durumuna göre ayarla ve DÖF Listesi tab'ına geç
-    setFilters(prev => ({ ...prev, priority }));
+    handleFilterChange('priority', priority);
     setActiveTab(1);
   };
 
   const handleDelayStatusClick = (delayStatus: string) => {
     console.log('⏰ Context7 - Delay status clicked:', delayStatus);
     // Filtreyi gecikme durumuna göre ayarla ve DÖF Listesi tab'ına geç
-    setFilters(prev => ({ ...prev, delayStatus }));
+    handleFilterChange('delayStatus', delayStatus);
     setActiveTab(1);
   };
 
@@ -2806,7 +2803,7 @@ const DOF8DManagement: React.FC = () => {
               action: 'DÖF/8D Güncellendi',
               user: 'Atakan Battal',
               date: currentDate,
-              details: `Kayıt güncellendi. ${formData.type === '8d' ? `8D İlerleme: %${calculate8DProgress(formData.d8Steps)}` : ''} | Değişiklik zamanı: ${currentTime}`
+              details: `Kayıt güncellendi. ${formData.dofNumber !== selectedRecord.dofNumber ? `DÖF Numarası: ${selectedRecord.dofNumber} → ${formData.dofNumber} | ` : ''}${formData.type === '8d' ? `8D İlerleme: %${calculate8DProgress(formData.d8Steps)} | ` : ''}Değişiklik zamanı: ${currentTime}`
             }
           ]
         };
@@ -2901,340 +2898,250 @@ const DOF8DManagement: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* PROFESYONEL FİLTRE SİSTEMİ - Corporate Blue Theme */}
-      <Paper 
-        elevation={2}
-        sx={{ 
-          mb: 4, 
-          p: 3,
-          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-          border: '1px solid rgba(59, 130, 246, 0.1)',
-          borderRadius: 3
-        }}
+      {/* Global Filtreler - Tüm Modülde Etkili */}
+      <StyledAccordion
+        expanded={expanded === 'panel1'}
+        onChange={handleAccordionChange('panel1')}
+        sx={{ mb: 3 }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <FilterListIcon sx={{ mr: 2, color: '#3b82f6', fontSize: 28 }} />
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: 700, 
-              color: '#1e293b',
-              fontSize: '1.25rem'
-            }}
-          >
-            Gelişmiş Filtreleme
-          </Typography>
-          {Object.values(filters).some(filter => filter) && (
-            <Chip 
-              label={`${metrics.filteredRecords.length} kayıt`} 
-              color="primary" 
-              variant="filled"
-              size="small"
-              sx={{ 
-                ml: 'auto',
-                fontWeight: 600,
-                backgroundColor: '#3b82f6',
-                '&:hover': { backgroundColor: '#2563eb' }
-              }}
-            />
-          )}
-        </Box>
-
-        <Grid container spacing={3} alignItems="flex-end">
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              placeholder="DÖF numarası, başlık, açıklama, sorumlu..."
-              value={filters.searchTerm}
-              onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-              InputProps={{
-                startAdornment: (
-                  <SearchIcon sx={{ mr: 1.5, color: '#6b7280', fontSize: 22 }} />
-                )
-              }}
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'white',
-                  borderRadius: 2,
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6',
-                    borderWidth: 2
-                  }
-                },
-                '& .MuiInputBase-input': {
-                  fontSize: '0.95rem',
-                  fontWeight: 500,
-                  '&::placeholder': {
-                    color: '#9ca3af',
-                    fontWeight: 400
-                  }
-                }
-              }}
-            />
-          </Grid>
-
-          <Grid item xs={6} md={2}>
-            <FormControl fullWidth>
-              <InputLabel sx={{ fontWeight: 600, color: '#374151' }}>Birim</InputLabel>
-              <Select
-                value={filters.department}
-                onChange={(e) => setFilters(prev => ({ ...prev, department: e.target.value }))}
-                label="Birim"
-                sx={{
-                  backgroundColor: 'white',
-                  borderRadius: 2,
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <FilterListIcon sx={{ color: '#ffffff' }} />
+            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>Filtreleme ve Arama</Typography>
+            {filters.department && (
+              <Chip label={`Birim: ${filters.department}`} size="small" onDelete={() => handleFilterChange('department', '')} />
+            )}
+            {filters.year && (
+              <Chip label={`Yıl: ${filters.year}`} size="small" onDelete={() => handleFilterChange('year', '')} />
+            )}
+            {filters.status && (
+              <Chip label={`Durum: ${STATUS_OPTIONS.find(s => s.value === filters.status)?.label}`} size="small" onDelete={() => handleFilterChange('status', '')} />
+            )}
+            {Object.values(filters).some(filter => filter) && (
+              <Chip 
+                label={`${metrics.filteredRecords.length} kayıt bulundu`} 
+                size="small" 
+                color="primary" 
+                variant="filled"
+              />
+            )}
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'flex-end' }}>
+            <Box sx={{ flex: '1 1 200px', minWidth: '200px' }}>
+              <FormControl fullWidth>
+                <InputLabel sx={{ fontWeight: 600 }}>Birim/Departman</InputLabel>
+                <Select
+                  value={filters.department}
+                  onChange={(e) => handleFilterChange('department', e.target.value)}
+                  sx={{
+                    height: 56,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
+                >
+                  <MenuItem value="">Tüm Birimler</MenuItem>
+                  {DEPARTMENTS.map((dept) => (
+                    <MenuItem key={dept} value={dept}>{dept}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 160px', minWidth: '160px' }}>
+              <FormControl fullWidth>
+                <InputLabel sx={{ fontWeight: 600 }}>Durum</InputLabel>
+                <Select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  sx={{
+                    height: 56,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
+                >
+                  <MenuItem value="">Tüm Durumlar</MenuItem>
+                  {STATUS_OPTIONS.map((status) => (
+                    <MenuItem key={status.value} value={status.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box 
+                          sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            backgroundColor: status.color 
+                          }} 
+                        />
+                        {status.label}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 140px', minWidth: '140px' }}>
+              <FormControl fullWidth>
+                <InputLabel sx={{ fontWeight: 600 }}>Tür</InputLabel>
+                <Select
+                  value={filters.type}
+                  onChange={(e) => handleFilterChange('type', e.target.value)}
+                  sx={{
+                    height: 56,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }}
+                >
+                  <MenuItem value="">Tüm Türler</MenuItem>
+                  {DOF_TYPES.map((type) => (
+                    <MenuItem key={type.value} value={type.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box 
+                          sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            backgroundColor: type.color 
+                          }} 
+                        />
+                        {type.label}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <TextField
+                label="Gelişmiş Arama"
+                placeholder="DÖF numarası, başlık, açıklama..."
+                value={filters.searchTerm}
+                onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                }}
+                fullWidth
+                sx={{ 
+                  '& .MuiInputLabel-root': { fontWeight: 600 },
+                  '& .MuiOutlinedInput-root': {
+                    height: 56,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
                   }
                 }}
-              >
-                <MenuItem value="">
-                  <em style={{ color: '#9ca3af' }}>Tümü</em>
-                </MenuItem>
-                {DEPARTMENTS.map((dept) => (
-                  <MenuItem key={dept} value={dept} sx={{ fontWeight: 500 }}>
-                    {dept}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={6} md={2}>
-            <FormControl fullWidth>
-              <InputLabel sx={{ fontWeight: 600, color: '#374151' }}>Durum</InputLabel>
-              <Select
-                value={filters.status}
-                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                label="Durum"
-                sx={{
-                  backgroundColor: 'white',
-                  borderRadius: 2,
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  }
-                }}
-              >
-                <MenuItem value="">
-                  <em style={{ color: '#9ca3af' }}>Tümü</em>
-                </MenuItem>
-                {STATUS_OPTIONS.map((status) => (
-                  <MenuItem key={status.value} value={status.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box 
-                        sx={{ 
-                          width: 10, 
-                          height: 10, 
-                          borderRadius: '50%', 
-                          backgroundColor: status.color 
-                        }} 
-                      />
-                      <span style={{ fontWeight: 500 }}>{status.label}</span>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={6} md={1.5}>
-            <FormControl fullWidth>
-              <InputLabel sx={{ fontWeight: 600, color: '#374151' }}>Tür</InputLabel>
-              <Select
-                value={filters.type}
-                onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-                label="Tür"
-                sx={{
-                  backgroundColor: 'white',
-                  borderRadius: 2,
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  }
-                }}
-              >
-                <MenuItem value="">
-                  <em style={{ color: '#9ca3af' }}>Tümü</em>
-                </MenuItem>
-                {DOF_TYPES.map((type) => (
-                  <MenuItem key={type.value} value={type.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box 
-                        sx={{ 
-                          width: 10, 
-                          height: 10, 
-                          borderRadius: '50%', 
-                          backgroundColor: type.color 
-                        }} 
-                      />
-                      <span style={{ fontWeight: 500 }}>{type.label}</span>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={6} md={1}>
-            <FormControl fullWidth>
-              <InputLabel sx={{ fontWeight: 600, color: '#374151' }}>Yıl</InputLabel>
-              <Select
-                value={filters.year}
-                onChange={(e) => setFilters(prev => ({ ...prev, year: e.target.value }))}
-                label="Yıl"
-                sx={{
-                  backgroundColor: 'white',
-                  borderRadius: 2,
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  }
-                }}
-              >
-                <MenuItem value="">
-                  <em style={{ color: '#9ca3af' }}>Tümü</em>
-                </MenuItem>
-                <MenuItem value="2024" sx={{ fontWeight: 500 }}>2024</MenuItem>
-                <MenuItem value="2025" sx={{ fontWeight: 500 }}>2025</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={6} md={1.5}>
-            <FormControl fullWidth>
-              <InputLabel sx={{ fontWeight: 600, color: '#374151' }}>Öncelik</InputLabel>
-              <Select
-                value={filters.priority}
-                onChange={(e) => setFilters(prev => ({ ...prev, priority: e.target.value }))}
-                label="Öncelik"
-                sx={{
-                  backgroundColor: 'white',
-                  borderRadius: 2,
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#3b82f6'
-                  }
-                }}
-              >
-                <MenuItem value="">
-                  <em style={{ color: '#9ca3af' }}>Tümü</em>
-                </MenuItem>
-                {PRIORITY_OPTIONS.map((priority) => (
-                  <MenuItem key={priority.value} value={priority.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box 
-                        sx={{ 
-                          width: 10, 
-                          height: 10, 
-                          borderRadius: '50%', 
-                          backgroundColor: priority.color 
-                        }} 
-                      />
-                      <span style={{ fontWeight: 500 }}>{priority.label}</span>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
-
-        {Object.values(filters).some(filter => filter) && (
-          <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #e2e8f0' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-              <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>
-                Aktif Filtreler:
-              </Typography>
-              
-              {filters.department && (
-                <Chip 
-                  label={`Birim: ${filters.department}`} 
-                  size="small" 
-                  onDelete={() => setFilters(prev => ({ ...prev, department: '' }))}
-                  sx={{ 
-                    backgroundColor: '#dbeafe', 
-                    color: '#1e40af',
-                    fontWeight: 500,
-                    '& .MuiChip-deleteIcon': { color: '#1e40af' }
+              />
+            </Box>
+            <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
+              <FormControl fullWidth>
+                <InputLabel sx={{ fontWeight: 600 }}>Yıl</InputLabel>
+                <Select
+                  value={filters.year}
+                  onChange={(e) => handleFilterChange('year', e.target.value)}
+                  sx={{
+                    height: 56,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
                   }}
-                />
-              )}
-              
-              {filters.status && (
-                <Chip 
-                  label={`Durum: ${STATUS_OPTIONS.find(s => s.value === filters.status)?.label}`} 
-                  size="small" 
-                  onDelete={() => setFilters(prev => ({ ...prev, status: '' }))}
-                  sx={{ 
-                    backgroundColor: '#dbeafe', 
-                    color: '#1e40af',
-                    fontWeight: 500,
-                    '& .MuiChip-deleteIcon': { color: '#1e40af' }
+                >
+                  <MenuItem value="">Tüm Yıllar</MenuItem>
+                  <MenuItem value="2024">2024</MenuItem>
+                  <MenuItem value="2025">2025</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
+              <FormControl fullWidth>
+                <InputLabel sx={{ fontWeight: 600 }}>Ay</InputLabel>
+                <Select
+                  value={filters.month}
+                  onChange={(e) => handleFilterChange('month', e.target.value)}
+                  sx={{
+                    height: 56,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
                   }}
-                />
-              )}
-              
-              {filters.type && (
-                <Chip 
-                  label={`Tür: ${DOF_TYPES.find(t => t.value === filters.type)?.label}`} 
-                  size="small" 
-                  onDelete={() => setFilters(prev => ({ ...prev, type: '' }))}
-                  sx={{ 
-                    backgroundColor: '#dbeafe', 
-                    color: '#1e40af',
-                    fontWeight: 500,
-                    '& .MuiChip-deleteIcon': { color: '#1e40af' }
+                >
+                  <MenuItem value="">Tüm Aylar</MenuItem>
+                  {MONTHS.map((month) => (
+                    <MenuItem key={month.value} value={month.value}>{month.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 180px', minWidth: '180px' }}>
+              <FormControl fullWidth>
+                <InputLabel sx={{ fontWeight: 600 }}>Gecikme Durumu</InputLabel>
+                <Select
+                  value={filters.delayStatus}
+                  onChange={(e) => handleFilterChange('delayStatus', e.target.value)}
+                  sx={{
+                    height: 56,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
                   }}
-                />
-              )}
-              
-              {filters.priority && (
-                <Chip 
-                  label={`Öncelik: ${PRIORITY_OPTIONS.find(p => p.value === filters.priority)?.label}`} 
-                  size="small" 
-                  onDelete={() => setFilters(prev => ({ ...prev, priority: '' }))}
-                  sx={{ 
-                    backgroundColor: '#dbeafe', 
-                    color: '#1e40af',
-                    fontWeight: 500,
-                    '& .MuiChip-deleteIcon': { color: '#1e40af' }
+                >
+                  <MenuItem value="">Tüm Durumlar</MenuItem>
+                  {DELAY_STATUS_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box 
+                          sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            backgroundColor: option.color 
+                          }} 
+                        />
+                        {option.label}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
+              <FormControl fullWidth>
+                <InputLabel sx={{ fontWeight: 600 }}>Kritiklik</InputLabel>
+                <Select
+                  value={filters.priority}
+                  onChange={(e) => handleFilterChange('priority', e.target.value)}
+                  sx={{
+                    height: 56,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
                   }}
-                />
-              )}
-              
-              {filters.year && (
-                <Chip 
-                  label={`Yıl: ${filters.year}`} 
-                  size="small" 
-                  onDelete={() => setFilters(prev => ({ ...prev, year: '' }))}
-                  sx={{ 
-                    backgroundColor: '#dbeafe', 
-                    color: '#1e40af',
-                    fontWeight: 500,
-                    '& .MuiChip-deleteIcon': { color: '#1e40af' }
-                  }}
-                />
-              )}
-
+                >
+                  <MenuItem value="">Tüm Seviyeler</MenuItem>
+                  {PRIORITY_OPTIONS.map((priority) => (
+                    <MenuItem key={priority.value} value={priority.value}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box 
+                          sx={{ 
+                            width: 12, 
+                            height: 12, 
+                            borderRadius: '50%', 
+                            backgroundColor: priority.color 
+                          }} 
+                        />
+                        {priority.label}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: '1 1 180px', minWidth: '180px' }}>
               <Button
-                variant="text"
+                fullWidth
+                variant="outlined"
                 startIcon={<CloseIcon />}
-                size="small"
                 onClick={() => {
                   setFilters({
                     department: '',
@@ -3248,21 +3155,23 @@ const DOF8DManagement: React.FC = () => {
                   });
                 }}
                 sx={{ 
-                  ml: 'auto',
-                  color: '#dc2626',
+                  height: 56,
                   fontWeight: 600,
+                  borderColor: 'error.main',
+                  color: 'error.main',
                   '&:hover': {
-                    backgroundColor: '#fef2f2',
-                    color: '#b91c1c'
+                    borderColor: 'error.dark',
+                    backgroundColor: 'error.light',
+                    color: 'error.dark'
                   }
                 }}
               >
-                Tümünü Temizle
+                Filtreleri Temizle
               </Button>
             </Box>
           </Box>
-        )}
-      </Paper>
+        </AccordionDetails>
+      </StyledAccordion>
 
       <Tabs 
         value={activeTab} 
@@ -5283,17 +5192,24 @@ const DOF8DManagement: React.FC = () => {
                         </Select>
                       </FormControl>
                 
-                {/* ✅ UYGUNSUZLUK NUMARASI ALANI */}
+                {/* ✅ UYGUNSUZLUK NUMARASI ALANI - DÜZENLENEBİLİR */}
                 <TextField
                   fullWidth
                   label="Uygunsuzluk Numarası"
-                  value={previewDOFNumber || 'Numara üretiliyor...'}
-                  disabled
+                  value={dialogMode === 'create' ? (previewDOFNumber || 'Numara üretiliyor...') : (formData.dofNumber || '')}
+                  disabled={dialogMode === 'view'}
+                  onChange={(e) => {
+                    if (dialogMode === 'edit') {
+                      setFormData(prev => ({ ...prev, dofNumber: e.target.value }));
+                    }
+                  }}
                   helperText={
                     dialogMode === 'create' 
                       ? (formData.type === 'mdi' 
                           ? 'Manuel numara giriniz' 
                           : 'Otomatik oluşturulur')
+                      : dialogMode === 'edit'
+                      ? 'DÖF numarasını düzenleyebilirsiniz'
                       : ''
                   }
                   sx={{
@@ -5305,6 +5221,9 @@ const DOF8DManagement: React.FC = () => {
                       color: dialogMode === 'create' 
                         ? (previewDOFNumber === 'MDİ numarası giriniz' ? 'error.main' : 'primary.main')
                         : 'text.primary'
+                    },
+                    '& .MuiInputBase-root': {
+                      bgcolor: dialogMode === 'edit' ? 'primary.50' : 'transparent'
                     }
                   }}
                 />
