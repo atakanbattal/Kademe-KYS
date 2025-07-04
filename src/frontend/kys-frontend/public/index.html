@@ -30,6 +30,52 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+    
+    <!-- CERTIFICATE TRACKING DEBUG TOOLS -->
+    <script>
+      // CERTIFICATE DEBUG TOOLS
+      window.debugCertificates = function() {
+        console.log('CERTIFICATE DEBUG BAŞLATILIYOR...');
+        
+        const materialData = localStorage.getItem('materialCertificateTracking');
+        console.log('RAW STORAGE DATA:', materialData);
+        
+        if (materialData) {
+          try {
+            const parsedData = JSON.parse(materialData);
+            console.log('PARSED DATA:', parsedData);
+            console.log('TOPLAM MALZEME SAYISI:', parsedData.length);
+            
+            let totalCerts = 0;
+            parsedData.forEach((material, index) => {
+              const certCount = material.certificates?.length || 0;
+              totalCerts += certCount;
+              console.log(`MALZEME ${index + 1}:`, {
+                id: material.id,
+                materialCode: material.materialCode,
+                certificatesCount: certCount
+              });
+            });
+            
+            console.log('TOPLAM SERTİFİKA SAYISI:', totalCerts);
+            return { materialCount: parsedData.length, totalCertificates: totalCerts };
+          } catch (error) {
+            console.error('JSON PARSE HATASI:', error);
+          }
+        } else {
+          console.log('Hiç veri bulunamadı!');
+        }
+      };
+      
+      window.clearAllData = function() {
+        localStorage.removeItem('materialCertificateTracking');
+        console.log('TÜM VERİLER TEMİZLENDİ');
+      };
+      
+      console.log('DEBUG TOOLS HAZIR!');
+      console.log('KULLANIM: debugCertificates() veya clearAllData()');
+    </script>
+    
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

@@ -1318,13 +1318,13 @@ const MetricCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-// 🔍 FOCUS-SAFE ARAMA KUTUSU - Arama sırasında focus kaybı olmaz
+// 🚀 ABSOLUTE REF-BASED SEARCH INPUT - Parent re-render'dan tamamen izole
 const UltimateStableSearchInput = memo(({ 
   label, 
   placeholder, 
   onChange, 
   defaultValue = '', 
-  debounceMs = 300,
+  debounceMs = 1000, // Daha uzun debounce - daha az parent update
   icon: Icon,
   fullWidth = true,
   sx = {},
@@ -1342,123 +1342,66 @@ const UltimateStableSearchInput = memo(({
   resetTrigger?: any;
   [key: string]: any;
 }) => {
-  const [value, setValue] = useState<string>(defaultValue);
+  // 🔥 REF-BASED VALUE MANAGEMENT - State yerine ref kullan
+  const currentValueRef = useRef<string>(defaultValue);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const lastFocusStateRef = useRef<boolean>(false);
+  const lastValueSentRef = useRef<string>(defaultValue);
 
   // Reset value when resetTrigger changes
   useEffect(() => {
     if (resetTrigger && resetTrigger > 0) {
-      setValue('');
+      currentValueRef.current = '';
+      lastValueSentRef.current = '';
+      if (inputRef.current) {
+        inputRef.current.value = '';
+      }
     }
   }, [resetTrigger]);
 
-  // 🔧 ULTRA-SAFE Focus koruma sistemi - Sadece gerekli olduğunda çalış
-  useEffect(() => {
-    const shouldRestoreFocus = lastFocusStateRef.current && 
-                              inputRef.current && 
-                              document.activeElement !== inputRef.current;
-    
-    if (shouldRestoreFocus) {
-      // console.log('🎯 Focus restore triggered');
-      const timeoutId = setTimeout(() => {
-        if (inputRef.current && lastFocusStateRef.current) {
-          try {
-            inputRef.current.focus();
-            // console.log('✅ Focus restored successfully');
-          } catch (error) {
-            console.warn('❌ Focus restore failed:', error);
-          }
-        }
-      }, 5); // Daha kısa timeout
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }); // Her render'da kontrol et ama sadece gerekli olduğunda action al
-
-  // 🚀 ULTRA-ENHANCED INPUT HANDLER - Maximum focus protection
+  // 🚀 IMMEDIATE INPUT HANDLER - No state updates, only ref updates
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
     
-    // AGGRESSIVE focus tracking
-    lastFocusStateRef.current = true;
+    // Update ref immediately - NO STATE UPDATE
+    currentValueRef.current = newValue;
     
-    console.log('📝 Input change:', { value: newValue, hasFocus: document.activeElement === inputRef.current });
-    
-    setValue(newValue);
+    // console.log('📝 Input change (ref-based):', { value: newValue });
     
     // Clear previous timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     
-    // Set new timeout for debounced callback
+    // Set new timeout for debounced callback - MUCH LONGER DELAY
     timeoutRef.current = setTimeout(() => {
-      console.log('⚡ Debounced callback executing:', newValue);
-      // Focus'u korumaya odaklan
-      const wasFocused = lastFocusStateRef.current;
-      
-      onChange(newValue);
-      
-      // Callback sonrası focus'u geri al
-      if (wasFocused && inputRef.current) {
-        setTimeout(() => {
-          if (inputRef.current && lastFocusStateRef.current) {
-            inputRef.current.focus();
-            console.log('🎯 Post-callback focus restored');
-          }
-        }, 0);
+      // Only call onChange if value actually changed
+      if (currentValueRef.current !== lastValueSentRef.current) {
+        // console.log('⚡ Sending debounced value:', currentValueRef.current);
+        lastValueSentRef.current = currentValueRef.current;
+        onChange(currentValueRef.current);
       }
     }, debounceMs);
   }, [onChange, debounceMs]);
 
-  // 🚀 ULTRA-SAFE Focus event handlers
-  const handleFocus = useCallback(() => {
-    console.log('🎯 Input focused');
-    lastFocusStateRef.current = true;
-  }, []);
-
-  const handleBlur = useCallback((event: React.FocusEvent) => {
-    console.log('😴 Input blur event');
-    // Blur'u geciktir - eğer debounce callback'i çalışacaksa focus'u koru
-    setTimeout(() => {
-      // Eğer başka bir element'e focus geçildiyse (kullanıcı gerçek tıklama yaptıysa)
-      if (document.activeElement !== inputRef.current) {
-        console.log('❌ Real blur - user clicked elsewhere');
-        lastFocusStateRef.current = false;
-      } else {
-        console.log('✅ False blur - keeping focus state');
+  // 🚀 ENTER KEY HANDLER - Immediate search on Enter
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      
+      // Clear any pending timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-    }, 100); // 100ms gecikme ile gerçek blur'u tespit et
-  }, []);
-
-  // 🚀 GLOBAL Focus Monitoring - Son çare koruma
-  useEffect(() => {
-    const handleGlobalClick = (event: MouseEvent) => {
-      // Eğer input'umuzun dışında bir yere tıklandıysa
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
-        console.log('🌍 Global click outside input - releasing focus');
-        lastFocusStateRef.current = false;
+      
+      // Send value immediately
+      if (currentValueRef.current !== lastValueSentRef.current) {
+        // console.log('⚡ Enter key - immediate search:', currentValueRef.current);
+        lastValueSentRef.current = currentValueRef.current;
+        onChange(currentValueRef.current);
       }
-    };
-
-    const handleGlobalFocus = (event: FocusEvent) => {
-      // Eğer başka bir input'a focus geçildiyse
-      if (event.target !== inputRef.current) {
-        console.log('🌍 Global focus change - releasing focus');
-        lastFocusStateRef.current = false;
-      }
-    };
-
-    document.addEventListener('click', handleGlobalClick);
-    document.addEventListener('focusin', handleGlobalFocus);
-
-    return () => {
-      document.removeEventListener('click', handleGlobalClick);
-      document.removeEventListener('focusin', handleGlobalFocus);
-    };
-  }, []);
+    }
+  }, [onChange]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -1475,10 +1418,9 @@ const UltimateStableSearchInput = memo(({
       inputRef={inputRef}
       fullWidth={fullWidth}
       label={label}
-      value={value}
+      defaultValue={defaultValue} // Use defaultValue instead of controlled value
       onChange={handleChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       placeholder={placeholder}
       autoComplete="off"
       spellCheck={false}
@@ -1503,21 +1445,7 @@ const UltimateStableSearchInput = memo(({
       }}
     />
   );
-}, (prevProps, nextProps) => {
-  // 🚀 ULTRA-STABLE MEMO: Sadece önemli prop'lar değişirse re-render et
-  const shouldNotRerender = (
-    prevProps.label === nextProps.label &&
-    prevProps.placeholder === nextProps.placeholder &&
-    prevProps.defaultValue === nextProps.defaultValue &&
-    prevProps.debounceMs === nextProps.debounceMs &&
-    prevProps.fullWidth === nextProps.fullWidth &&
-    prevProps.resetTrigger === nextProps.resetTrigger
-    // onChange karşılaştırmasını kaldırdık - çünkü parent her seferinde yeni function veriyor
-  );
-  
-  // console.log('🔍 UltimateStableSearchInput memo check:', { shouldNotRerender });
-  return shouldNotRerender;
-});
+}, () => true); // NEVER re-render - completely isolated
 
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
@@ -2748,7 +2676,7 @@ const DOF8DManagement: React.FC = () => {
 
   // 🚀 MEMOIZED Search Handler - Parent re-render'dan bağımsız
   const handleSearchChange = useCallback((value: string) => {
-    console.log('🔍 Search change triggered:', value);
+    // console.log('🔍 Search change triggered:', value);
     handleFilterChange('searchTerm', value);
   }, [handleFilterChange]);
 
@@ -3233,11 +3161,11 @@ const DOF8DManagement: React.FC = () => {
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
               <UltimateStableSearchInput
-                label="Gelişmiş Arama"
-                placeholder="DÖF numarası, başlık, açıklama..."
+                label="Gelişmiş Arama (Enter ile hızlı arama)"
+                placeholder="DÖF numarası, başlık, açıklama... (Enter tuşuna basın)"
                 defaultValue={filters.searchTerm}
                 onChange={handleSearchChange}
-                debounceMs={300}
+                debounceMs={1000}
                 icon={SearchIcon}
                 fullWidth
                 resetTrigger={searchResetTrigger}
