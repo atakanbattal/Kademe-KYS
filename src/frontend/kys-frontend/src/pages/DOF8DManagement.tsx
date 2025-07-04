@@ -2079,8 +2079,10 @@ const DOF8DManagement: React.FC = () => {
         const mainText = `${record.title} ${record.description} ${record.dofNumber} ${record.department} ${record.responsible}`.toLowerCase();
         if (!mainText.includes(searchLower)) return false;
       }
-      if (filters.year && !record.createdDate.startsWith(filters.year)) return false;
-      if (filters.month && record.createdDate.split('-')[1] !== filters.month) return false;
+      // ✅ DÜZELTME: Kullanıcının girdiği açılış tarihini kullan (createdDate değil!)
+      const filterDate = record.openingDate || record.createdDate; // Fallback to createdDate if openingDate is missing
+      if (filters.year && !filterDate.startsWith(filters.year)) return false;
+      if (filters.month && filterDate.split('-')[1] !== filters.month) return false;
       return true; // Context7 - Show ALL records including closed ones by default
     });
 
