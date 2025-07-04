@@ -1318,114 +1318,7 @@ const MetricCard = styled(Card)(({ theme }) => ({
   }
 }));
 
-// 🚀 ULTRA-ISOLATED SEARCH INPUT - Hiçbir parent etkileşimi yok
-const UltimateStableSearchInput = memo(({ 
-  label, 
-  placeholder, 
-  onChange, 
-  defaultValue = '', 
-  debounceMs = 500, // Orta seviye debounce
-  icon: Icon,
-  fullWidth = true,
-  sx = {},
-  resetTrigger,
-  ...otherProps 
-}: {
-  label: string;
-  placeholder?: string;
-  onChange: (value: string) => void;
-  defaultValue?: string;
-  debounceMs?: number;
-  icon?: any;
-  fullWidth?: boolean;
-  sx?: any;
-  resetTrigger?: any;
-  [key: string]: any;
-}) => {
-  // 🔥 UNCONTROLLED INPUT - Hiçbir state yok
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSentValue = useRef<string>(defaultValue);
-
-  // Reset value when resetTrigger changes
-  useEffect(() => {
-    if (resetTrigger && resetTrigger > 0) {
-      if (inputRef.current) {
-        inputRef.current.value = '';
-        lastSentValue.current = '';
-      }
-    }
-  }, [resetTrigger]);
-
-  // 🚀 ULTRA-SIMPLE INPUT HANDLER - Sadece DOM manipulation
-  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
-    
-    // Clear previous timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    // ASYNC CALLBACK - Parent'ı asla sync etkilemez
-    timeoutRef.current = setTimeout(() => {
-      // Sadece değer değişmişse gönder
-      if (newValue !== lastSentValue.current) {
-        lastSentValue.current = newValue;
-        
-        // SUPER ASYNC - 3 event loop sonra
-        setTimeout(() => {
-          setTimeout(() => {
-            onChange(newValue);
-          }, 0);
-        }, 0);
-      }
-    }, debounceMs);
-  }, [onChange, debounceMs]);
-
-  // Enter tuşu devre dışı - sadece debounce arama
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  return (
-    <TextField
-      {...otherProps}
-      inputRef={inputRef}
-      fullWidth={fullWidth}
-      label={label}
-      defaultValue={defaultValue}
-      onChange={handleChange}
-      placeholder={placeholder}
-      autoComplete="off"
-      spellCheck={false}
-      InputProps={{
-        startAdornment: Icon ? <Icon color="action" sx={{ mr: 1 }} /> : undefined,
-      }}
-      sx={{
-        '& .MuiInputLabel-root': {
-          fontWeight: 600,
-        },
-        '& .MuiOutlinedInput-root': {
-          height: 56,
-          '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-          },
-          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-            borderWidth: '2px',
-          },
-        },
-        ...sx,
-      }}
-    />
-  );
-}, () => true); // ASLA re-render olmuyor
+// BASIT ARAMA INPUT - Material Certificate Tracking'den kopyalandı (FOCUS KAYBI SORUNU YOK!) // ASLA re-render olmuyor
 
 const DOF8DManagement: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
@@ -1496,7 +1389,6 @@ const DOF8DManagement: React.FC = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedRecord, setSelectedRecord] = useState<DOFRecord | null>(null);
-  const [searchResetTrigger, setSearchResetTrigger] = useState<number>(0);
   const [formData, setFormData] = useState<any>({
     type: 'corrective',
     title: '',
@@ -2654,10 +2546,7 @@ const DOF8DManagement: React.FC = () => {
     }));
   }, []);
 
-  // 🚀 SIMPLE SEARCH HANDLER - Search input zaten super async
-  const handleSearchChange = useCallback((value: string) => {
-    handleFilterChange('searchTerm', value);
-  }, [handleFilterChange]);
+  // Basit arama - direct handleFilterChange kullanıyor (Material Certificate Tracking gibi)
 
   const openCreateDialog = () => {
     setDialogMode('create');
@@ -3139,15 +3028,24 @@ const DOF8DManagement: React.FC = () => {
               </FormControl>
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <UltimateStableSearchInput
+              <TextField
                 label="Gelişmiş Arama"
                 placeholder="DÖF numarası, başlık, açıklama..."
-                defaultValue={filters.searchTerm}
-                onChange={handleSearchChange}
-                debounceMs={500}
-                icon={SearchIcon}
+                value={filters.searchTerm}
+                onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                }}
                 fullWidth
-                resetTrigger={searchResetTrigger}
+                sx={{ 
+                  '& .MuiInputLabel-root': { fontWeight: 600 },
+                  '& .MuiOutlinedInput-root': {
+                    height: 56,
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'primary.main'
+                    }
+                  }
+                }}
               />
             </Box>
             <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
@@ -3269,7 +3167,6 @@ const DOF8DManagement: React.FC = () => {
                     delayStatus: '',
                     priority: '',
                   });
-                  setSearchResetTrigger(Date.now());
                 }}
                 sx={{ 
                   height: 56,
