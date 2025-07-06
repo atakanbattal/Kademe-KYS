@@ -1325,6 +1325,37 @@ const DocumentManagement: React.FC = () => {
   }, [personnelDocuments]);
 
   const openCreateDialog = (type: 'document' | 'welder' | 'personnel') => {
+    // Form verilerini temizle ve yeni doküman için hazırla
+    setDocumentForm({
+      id: undefined,
+      type: 'WPS',
+      name: '',
+      number: '',
+      unit: '',
+      effectiveDate: new Date().toISOString().split('T')[0],
+      revisionNo: 1,
+      owner: '',
+      description: '',
+      status: 'draft',
+      approvalStatus: 'pending',
+      keywords: [],
+      // Dinamik alanları da temizle
+      personnelName: undefined,
+      personnelId: undefined,
+      registrationNo: undefined,
+      welderName: undefined,
+      certificateNumber: undefined,
+      issuingAuthority: undefined,
+      weldingProcess: undefined,
+      materialGroup: undefined,
+      weldingPosition: undefined,
+      trainingHours: undefined,
+      examResult: undefined,
+      criticalityLevel: undefined
+    });
+    
+    setSelectedDocument(null);
+    setActiveStep(0);
     setDialogMode('create');
     setOpenDialog(true);
     console.log('Opening create dialog for:', type);
@@ -1365,11 +1396,44 @@ const DocumentManagement: React.FC = () => {
   const handleEditDocument = (documentId: string) => {
     const doc = documents.find(d => d.id === documentId);
     if (doc) {
+      // Seçilen dokümanı set et
       setSelectedDocument({
         ...doc,
         effectiveDate: doc.effectiveDate,
         keywords: doc.keywords || []
       });
+      
+      // Form verilerini seçilen dokümanın bilgileriyle doldur
+      setDocumentForm({
+        id: doc.id,
+        type: doc.type,
+        name: doc.name,
+        number: doc.number,
+        unit: doc.unit,
+        effectiveDate: doc.effectiveDate,
+        revisionNo: doc.revisionNo,
+        owner: doc.owner,
+        description: doc.description,
+        status: doc.status,
+        approvalStatus: doc.approvalStatus,
+        expiryDate: doc.expiryDate,
+        keywords: doc.keywords || [],
+        attachments: doc.attachments || [],
+        // Dinamik alanları da doldur
+        personnelName: doc.personnelName,
+        personnelId: doc.personnelId,
+        registrationNo: doc.registrationNo,
+        welderName: doc.welderName,
+        certificateNumber: doc.certificateNumber,
+        issuingAuthority: doc.issuingAuthority,
+        weldingProcess: doc.weldingProcess,
+        materialGroup: doc.materialGroup,
+        weldingPosition: doc.weldingPosition,
+        trainingHours: doc.trainingHours,
+        examResult: doc.examResult,
+        criticalityLevel: doc.criticalityLevel
+      });
+      
       setDialogMode('edit');
       setOpenDialog(true);
       setSnackbar({ open: true, message: `"${doc.name}" düzenleme modunda açıldı`, severity: 'info' });
@@ -1902,6 +1966,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
     // Close dialog and reset form
     setOpenDialog(false);
     setActiveStep(0);
+    setSelectedDocument(null);
     setDocumentForm({
       id: undefined,
       type: 'WPS',
@@ -3622,7 +3687,38 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         {/* Document Creation Dialog */}
         <Dialog
           open={openDialog}
-          onClose={() => setOpenDialog(false)}
+          onClose={() => {
+            setOpenDialog(false);
+            setSelectedDocument(null);
+            setActiveStep(0);
+            // Form verilerini temizle
+            setDocumentForm({
+              id: undefined,
+              type: 'WPS',
+              name: '',
+              number: '',
+              unit: '',
+              effectiveDate: new Date().toISOString().split('T')[0],
+              revisionNo: 1,
+              owner: '',
+              description: '',
+              status: 'draft',
+              approvalStatus: 'pending',
+              keywords: [],
+              personnelName: undefined,
+              personnelId: undefined,
+              registrationNo: undefined,
+              welderName: undefined,
+              certificateNumber: undefined,
+              issuingAuthority: undefined,
+              weldingProcess: undefined,
+              materialGroup: undefined,
+              weldingPosition: undefined,
+              trainingHours: undefined,
+              examResult: undefined,
+              criticalityLevel: undefined
+            });
+          }}
           fullWidth
           maxWidth="md"
         >
