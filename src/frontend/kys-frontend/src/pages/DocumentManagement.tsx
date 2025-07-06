@@ -35,8 +35,6 @@ import {
   Search as SearchIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  GetApp as DownloadIcon,
   PictureAsPdf as PdfIcon,
   Description as DocumentIcon,
   CheckCircle as ActiveIcon,
