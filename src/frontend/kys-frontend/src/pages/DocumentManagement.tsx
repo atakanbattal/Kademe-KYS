@@ -351,7 +351,7 @@ type DocumentType =
   | 'ISO 10002 Belgesi'
   | 'OHSAS 18001 Belgesi'
   | 'ISO 28001 Belgesi'
-  // TS 3834-2 Belgesi kasıtlı olarak kaldırıldı
+  | 'TS 3834-2 Belgesi'
   | 'Kaynakçı Sertifikası'
   | 'Kaynakçı Nitelik Belgesi'
   | 'Kaynak Operatörü Belgesi'
@@ -522,7 +522,7 @@ const DOCUMENT_TYPES: DocumentType[] = [
   'ISO 10002 Belgesi',
   'OHSAS 18001 Belgesi',
   'ISO 28001 Belgesi',
-  // TS 3834-2 Belgesi kasıtlı olarak kaldırıldı
+  'TS 3834-2 Belgesi',
   
   // Personel Belgeleri
   'İSG Sertifikası',
@@ -2773,6 +2773,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       <MenuItem value="ISO 10002 Belgesi">ISO 10002 Belgesi</MenuItem>
                       <MenuItem value="OHSAS 18001 Belgesi">OHSAS 18001 Belgesi</MenuItem>
                       <MenuItem value="ISO 28001 Belgesi">ISO 28001 Belgesi</MenuItem>
+                      <MenuItem value="TS 3834-2 Belgesi">TS 3834-2 Belgesi</MenuItem>
                       
                       <ListSubheader>Personel Belgeleri</ListSubheader>
                       <MenuItem value="İSG Sertifikası">İSG Sertifikası</MenuItem>
@@ -4485,6 +4486,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       <MenuItem value="ISO 10002 Belgesi">ISO 10002 Belgesi</MenuItem>
                       <MenuItem value="OHSAS 18001 Belgesi">OHSAS 18001 Belgesi</MenuItem>
                       <MenuItem value="ISO 28001 Belgesi">ISO 28001 Belgesi</MenuItem>
+                      <MenuItem value="TS 3834-2 Belgesi">TS 3834-2 Belgesi</MenuItem>
                       
                       <ListSubheader>Personel Belgeleri</ListSubheader>
                       <MenuItem value="İSG Sertifikası">İSG Sertifikası</MenuItem>
@@ -4601,7 +4603,16 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                                        documentForm.type === 'Kaynak Operatörü Belgesi' ||
                                        documentForm.type === 'NDT Sertifikası' ||
                                        documentForm.type === 'İSG Sertifikası' ||
-                                       documentForm.type === 'Yetki Belgesi') && (
+                                       documentForm.type === 'Yetki Belgesi' ||
+                                       documentForm.type === 'TS 3834-2 Belgesi' ||
+                                       documentForm.type === 'ISO 9001 Belgesi' ||
+                                       documentForm.type === 'ISO 14001 Belgesi' ||
+                                       documentForm.type === 'ISO 45001 Belgesi' ||
+                                       documentForm.type === 'ISO 50001 Belgesi' ||
+                                       documentForm.type === 'ISO 27001 Belgesi' ||
+                                       documentForm.type === 'ISO 10002 Belgesi' ||
+                                       documentForm.type === 'OHSAS 18001 Belgesi' ||
+                                       documentForm.type === 'ISO 28001 Belgesi') && (
                   <Box sx={{ mt: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       {documentForm.type} Özel Bilgileri
@@ -5006,6 +5017,65 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
                             helperText="Yetkiyi veren kurum"
                           />
+                          
+                          <FormControl fullWidth>
+                            <InputLabel>Önem Düzeyi</InputLabel>
+                            <Select
+                              value={documentForm.criticalityLevel || ''}
+                              onChange={(e) => setDocumentForm(prev => ({ ...prev, criticalityLevel: e.target.value as CriticalityLevel }))}
+                              label="Önem Düzeyi"
+                            >
+                              <MenuItem value="Kritik">Kritik</MenuItem>
+                              <MenuItem value="Yüksek">Yüksek</MenuItem>
+                              <MenuItem value="Orta">Orta</MenuItem>
+                              <MenuItem value="Düşük">Düşük</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </>
+                      )}
+                      
+                      {/* TS 3834-2 Belgesi ve ISO Belgeleri için */}
+                      {(documentForm.type === 'TS 3834-2 Belgesi' || 
+                        documentForm.type === 'ISO 9001 Belgesi' ||
+                        documentForm.type === 'ISO 14001 Belgesi' ||
+                        documentForm.type === 'ISO 45001 Belgesi' ||
+                        documentForm.type === 'ISO 50001 Belgesi' ||
+                        documentForm.type === 'ISO 27001 Belgesi' ||
+                        documentForm.type === 'ISO 10002 Belgesi' ||
+                        documentForm.type === 'OHSAS 18001 Belgesi' ||
+                        documentForm.type === 'ISO 28001 Belgesi') && (
+                        <>
+                          <TextField
+                            label="Belge Numarası"
+                            required
+                            fullWidth
+                            value={documentForm.certificateNumber || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                            helperText="Belge numarası"
+                          />
+                          
+                          <FormControl fullWidth required>
+                            <InputLabel>Belge Veren Kuruluş</InputLabel>
+                            <Select
+                              value={documentForm.issuingAuthority || ''}
+                              onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
+                              label="Belge Veren Kuruluş"
+                            >
+                              <MenuItem value="TSE (Türk Standartları Enstitüsü)">TSE (Türk Standartları Enstitüsü)</MenuItem>
+                              <MenuItem value="TÜV NORD">TÜV NORD</MenuItem>
+                              <MenuItem value="TÜV SÜD">TÜV SÜD</MenuItem>
+                              <MenuItem value="Bureau Veritas">Bureau Veritas</MenuItem>
+                              <MenuItem value="SGS">SGS</MenuItem>
+                              <MenuItem value="BSI">BSI</MenuItem>
+                              <MenuItem value="Lloyd's Register">Lloyd's Register</MenuItem>
+                              <MenuItem value="TÜRKAK">TÜRKAK</MenuItem>
+                              <MenuItem value="DNV GL">DNV GL</MenuItem>
+                              <MenuItem value="Intertek">Intertek</MenuItem>
+                              <MenuItem value="RWTUV">RWTUV</MenuItem>
+                              <MenuItem value="DEKRA">DEKRA</MenuItem>
+                              <MenuItem value="Diğer">Diğer</MenuItem>
+                            </Select>
+                          </FormControl>
                           
                           <FormControl fullWidth>
                             <InputLabel>Önem Düzeyi</InputLabel>
