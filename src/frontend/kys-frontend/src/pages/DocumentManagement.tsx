@@ -755,26 +755,11 @@ const DocumentManagement: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [welderCertificates, setWelderCertificates] = useState<WelderCertificate[]>([]);
   
-  // Personel seçimi için veri
-  const [personnelOptions, setPersonnelOptions] = useState<PersonnelOption[]>([
-    { id: 'P001', name: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678901' },
-    { id: 'P002', name: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678902' },
-    { id: 'P003', name: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678903' },
-    { id: 'P004', name: 'Fatma Ak', registrationNo: '004', department: 'Kalite Kontrol', position: 'NDT Uzmanı', nationalId: '12345678904' },
-    { id: 'P005', name: 'Ayşe Özkan', registrationNo: '005', department: 'Kalite Kontrol', position: 'Kalite Teknisyeni', nationalId: '12345678905' },
-    { id: 'P006', name: 'Osman Şen', registrationNo: '006', department: 'Üretim', position: 'Operatör', nationalId: '12345678906' },
-    { id: 'P007', name: 'Zeynep Çelik', registrationNo: '007', department: 'İSG', position: 'İş Güvenliği Uzmanı', nationalId: '12345678907' },
-    { id: 'P008', name: 'Hasan Güven', registrationNo: '008', department: 'Montaj', position: 'Montaj Teknisyeni', nationalId: '12345678908' },
-  ]);
+  // Personel seçimi için veri - Initialize with empty array, will be loaded from localStorage
+  const [personnelOptions, setPersonnelOptions] = useState<PersonnelOption[]>([]);
   
-  // Kaynakçı seçimi için veri
-  const [welderOptions, setWelderOptions] = useState<WelderOption[]>([
-    { id: 'W001', welderName: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-1', certificateNumber: 'W001-2024', status: 'active' },
-    { id: 'W002', welderName: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-2', certificateNumber: 'W002-2024', status: 'active' },
-    { id: 'W003', welderName: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 14732', certificateNumber: 'W003-2024', status: 'active' },
-    { id: 'W004', welderName: 'Mustafa Öz', registrationNo: '004', department: 'Kaynak Atölyesi', certificateType: 'ASME IX', certificateNumber: 'W004-2024', status: 'active' },
-    { id: 'W005', welderName: 'Emre Baz', registrationNo: '005', department: 'Kaynak Atölyesi', certificateType: 'AWS D1.1', certificateNumber: 'W005-2024', status: 'active' },
-  ]);
+  // Kaynakçı seçimi için veri - Initialize with empty array, will be loaded from localStorage
+  const [welderOptions, setWelderOptions] = useState<WelderOption[]>([]);
   const [personnelDocuments, setPersonnelDocuments] = useState<PersonnelDocument[]>([]);
   const [qualityCertificates, setQualityCertificates] = useState<QualityCertificate[]>([]);
   const [productCertificates, setProductCertificates] = useState<ProductCertificate[]>([]);
@@ -852,17 +837,35 @@ const DocumentManagement: React.FC = () => {
 
   const colors = getColors();
 
-  // Certificate data arrays - State olarak tanımlandı
-  const [weldingCertificates, setWeldingCertificates] = useState<QualityCertificate[]>([
-    { id: 'QC001', name: 'TS 3834-2:2019', type: 'Kaynak Kalite Yönetimi', expiry: '2025-12-31', status: 'active', authority: 'TSE' },
-    { id: 'QC002', name: 'EN 1090-1:2009+A1', type: 'Çelik Yapı Uygunluk', expiry: '2025-09-15', status: 'active', authority: 'TÜV NORD' },
-    { id: 'QC003', name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
-  ]);
+  // Certificate data arrays - Initialize with empty array, will be loaded from localStorage
+  const [weldingCertificates, setWeldingCertificates] = useState<QualityCertificate[]>([]);
 
-  // Initialize sample documents with approval data - ONLY ON FIRST LOAD
+  // Load data from localStorage on component mount
   React.useEffect(() => {
-    const isInitialized = localStorage.getItem('documentManagement_initialized');
-    if (!isInitialized && documents.length === 0) {
+    const loadStoredData = () => {
+      try {
+        // Load documents
+        const storedDocuments = localStorage.getItem('documentManagement_documents');
+        if (storedDocuments) {
+          const parsedDocuments = JSON.parse(storedDocuments);
+          if (parsedDocuments.length > 0) {
+            setDocuments(parsedDocuments);
+            return true; // Data loaded successfully
+          }
+        }
+        return false; // No data found
+      } catch (error) {
+        console.error('Error loading stored documents:', error);
+        return false;
+      }
+    };
+
+    const dataLoaded = loadStoredData();
+    
+    // Only initialize with sample data if no stored data exists
+    if (!dataLoaded) {
+      const isInitialized = localStorage.getItem('documentManagement_initialized');
+      if (!isInitialized) {
       const sampleDocuments: Document[] = [
         {
           id: '1',
@@ -1002,13 +1005,34 @@ const DocumentManagement: React.FC = () => {
       ];
       setDocuments(sampleDocuments);
       localStorage.setItem('documentManagement_initialized', 'true');
+      }
     }
   }, []);
 
-  // Initialize sample personnel documents - ONLY ON FIRST LOAD
+  // Load personnel documents from localStorage on component mount
   React.useEffect(() => {
-    const isPersonnelInitialized = localStorage.getItem('documentManagement_personnel_initialized');
-    if (!isPersonnelInitialized && personnelDocuments.length === 0) {
+    const loadStoredPersonnelData = () => {
+      try {
+        const storedPersonnelDocs = localStorage.getItem('documentManagement_personnelDocuments');
+        if (storedPersonnelDocs) {
+          const parsedPersonnelDocs = JSON.parse(storedPersonnelDocs);
+          if (parsedPersonnelDocs.length > 0) {
+            setPersonnelDocuments(parsedPersonnelDocs);
+            return true;
+          }
+        }
+        return false;
+      } catch (error) {
+        console.error('Error loading stored personnel documents:', error);
+        return false;
+      }
+    };
+
+    const personnelDataLoaded = loadStoredPersonnelData();
+    
+    if (!personnelDataLoaded) {
+      const isPersonnelInitialized = localStorage.getItem('documentManagement_personnel_initialized');
+      if (!isPersonnelInitialized) {
       const sampleDocuments: PersonnelDocument[] = [
         {
           id: '1',
@@ -1138,13 +1162,34 @@ const DocumentManagement: React.FC = () => {
       ];
       setPersonnelDocuments(sampleDocuments);
       localStorage.setItem('documentManagement_personnel_initialized', 'true');
+      }
     }
   }, []);
 
-  // Initialize product certificates - ONLY ON FIRST LOAD
+  // Load product certificates from localStorage on component mount
   React.useEffect(() => {
-    const isProductCertInitialized = localStorage.getItem('documentManagement_productCert_initialized');
-    if (!isProductCertInitialized && productCertificates.length === 0) {
+    const loadStoredProductCerts = () => {
+      try {
+        const storedProductCerts = localStorage.getItem('documentManagement_productCertificates');
+        if (storedProductCerts) {
+          const parsedProductCerts = JSON.parse(storedProductCerts);
+          if (parsedProductCerts.length > 0) {
+            setProductCertificates(parsedProductCerts);
+            return true;
+          }
+        }
+        return false;
+      } catch (error) {
+        console.error('Error loading stored product certificates:', error);
+        return false;
+      }
+    };
+
+    const productDataLoaded = loadStoredProductCerts();
+    
+    if (!productDataLoaded) {
+      const isProductCertInitialized = localStorage.getItem('documentManagement_productCert_initialized');
+      if (!isProductCertInitialized) {
       const sampleProductCertificates: ProductCertificate[] = [
         { id: '1', name: 'CE İşaretleme', type: 'Ürün Uygunluk Belgesi', expiry: '2025-07-30', status: 'active', authority: 'Notified Body' },
         { id: '2', name: 'TSE Belgesi', type: 'Türk Standartları Belgesi', expiry: '2025-05-15', status: 'active', authority: 'TSE' },
@@ -1153,13 +1198,34 @@ const DocumentManagement: React.FC = () => {
       ];
       setProductCertificates(sampleProductCertificates);
       localStorage.setItem('documentManagement_productCert_initialized', 'true');
+      }
     }
   }, []);
 
-  // Initialize quality certificates - ONLY ON FIRST LOAD  
+  // Load quality certificates from localStorage on component mount
   React.useEffect(() => {
-    const isQualityCertInitialized = localStorage.getItem('documentManagement_qualityCert_initialized');
-    if (!isQualityCertInitialized && qualityCertificates.length === 0) {
+    const loadStoredQualityCerts = () => {
+      try {
+        const storedQualityCerts = localStorage.getItem('documentManagement_qualityCertificates');
+        if (storedQualityCerts) {
+          const parsedQualityCerts = JSON.parse(storedQualityCerts);
+          if (parsedQualityCerts.length > 0) {
+            setQualityCertificates(parsedQualityCerts);
+            return true;
+          }
+        }
+        return false;
+      } catch (error) {
+        console.error('Error loading stored quality certificates:', error);
+        return false;
+      }
+    };
+
+    const qualityDataLoaded = loadStoredQualityCerts();
+    
+    if (!qualityDataLoaded) {
+      const isQualityCertInitialized = localStorage.getItem('documentManagement_qualityCert_initialized');
+      if (!isQualityCertInitialized) {
       const sampleQualityCertificates: QualityCertificate[] = [
         { id: '1', name: 'ISO 9001:2015', type: 'Kalite Yönetim Sistemi', expiry: '2025-06-15', status: 'active', authority: 'TÜV NORD' },
         { id: '2', name: 'ISO 14001:2015', type: 'Çevre Yönetim Sistemi', expiry: '2025-08-20', status: 'active', authority: 'Bureau Veritas' },
@@ -1169,8 +1235,121 @@ const DocumentManagement: React.FC = () => {
       ];
       setQualityCertificates(sampleQualityCertificates);
       localStorage.setItem('documentManagement_qualityCert_initialized', 'true');
+      }
     }
   }, []);
+
+  // Load personnelOptions and welderOptions from localStorage on component mount
+  React.useEffect(() => {
+    const loadStoredOptions = () => {
+      try {
+        // Load personnelOptions
+        const storedPersonnelOptions = localStorage.getItem('documentManagement_personnelOptions');
+        if (storedPersonnelOptions) {
+          const parsedPersonnelOptions = JSON.parse(storedPersonnelOptions);
+          if (parsedPersonnelOptions.length > 0) {
+            setPersonnelOptions(parsedPersonnelOptions);
+          }
+        } else {
+          // Initialize with default personnel options if none exist
+          const defaultPersonnelOptions: PersonnelOption[] = [
+            { id: 'P001', name: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678901' },
+            { id: 'P002', name: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678902' },
+            { id: 'P003', name: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678903' },
+            { id: 'P004', name: 'Fatma Ak', registrationNo: '004', department: 'Kalite Kontrol', position: 'NDT Uzmanı', nationalId: '12345678904' },
+            { id: 'P005', name: 'Ayşe Özkan', registrationNo: '005', department: 'Kalite Kontrol', position: 'Kalite Teknisyeni', nationalId: '12345678905' },
+            { id: 'P006', name: 'Osman Şen', registrationNo: '006', department: 'Üretim', position: 'Operatör', nationalId: '12345678906' },
+            { id: 'P007', name: 'Zeynep Çelik', registrationNo: '007', department: 'İSG', position: 'İş Güvenliği Uzmanı', nationalId: '12345678907' },
+            { id: 'P008', name: 'Hasan Güven', registrationNo: '008', department: 'Montaj', position: 'Montaj Teknisyeni', nationalId: '12345678908' },
+          ];
+          setPersonnelOptions(defaultPersonnelOptions);
+        }
+
+        // Load welderOptions
+        const storedWelderOptions = localStorage.getItem('documentManagement_welderOptions');
+        if (storedWelderOptions) {
+          const parsedWelderOptions = JSON.parse(storedWelderOptions);
+          if (parsedWelderOptions.length > 0) {
+            setWelderOptions(parsedWelderOptions);
+          }
+        } else {
+          // Initialize with default welder options if none exist
+          const defaultWelderOptions: WelderOption[] = [
+            { id: 'W001', welderName: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-1', certificateNumber: 'W001-2024', status: 'active' },
+            { id: 'W002', welderName: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-2', certificateNumber: 'W002-2024', status: 'active' },
+            { id: 'W003', welderName: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 14732', certificateNumber: 'W003-2024', status: 'active' },
+            { id: 'W004', welderName: 'Mustafa Öz', registrationNo: '004', department: 'Kaynak Atölyesi', certificateType: 'ASME IX', certificateNumber: 'W004-2024', status: 'active' },
+            { id: 'W005', welderName: 'Emre Baz', registrationNo: '005', department: 'Kaynak Atölyesi', certificateType: 'AWS D1.1', certificateNumber: 'W005-2024', status: 'active' },
+          ];
+          setWelderOptions(defaultWelderOptions);
+        }
+
+        // Load weldingCertificates
+        const storedWeldingCerts = localStorage.getItem('documentManagement_weldingCertificates');
+        if (storedWeldingCerts) {
+          const parsedWeldingCerts = JSON.parse(storedWeldingCerts);
+          if (parsedWeldingCerts.length > 0) {
+            setWeldingCertificates(parsedWeldingCerts);
+          }
+        } else {
+          // Initialize with default welding certificates if none exist
+          const defaultWeldingCerts: QualityCertificate[] = [
+            { id: 'QC001', name: 'TS 3834-2:2019', type: 'Kaynak Kalite Yönetimi', expiry: '2025-12-31', status: 'active', authority: 'TSE' },
+            { id: 'QC002', name: 'EN 1090-1:2009+A1', type: 'Çelik Yapı Uygunluk', expiry: '2025-09-15', status: 'active', authority: 'TÜV NORD' },
+            { id: 'QC003', name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
+          ];
+          setWeldingCertificates(defaultWeldingCerts);
+        }
+      } catch (error) {
+        console.error('Error loading stored options:', error);
+      }
+    };
+
+    loadStoredOptions();
+  }, []);
+
+  // Auto-save data to localStorage when state changes
+  React.useEffect(() => {
+    if (documents.length > 0) {
+      localStorage.setItem('documentManagement_documents', JSON.stringify(documents));
+    }
+  }, [documents]);
+
+  React.useEffect(() => {
+    if (personnelDocuments.length > 0) {
+      localStorage.setItem('documentManagement_personnelDocuments', JSON.stringify(personnelDocuments));
+    }
+  }, [personnelDocuments]);
+
+  React.useEffect(() => {
+    if (qualityCertificates.length > 0) {
+      localStorage.setItem('documentManagement_qualityCertificates', JSON.stringify(qualityCertificates));
+    }
+  }, [qualityCertificates]);
+
+  React.useEffect(() => {
+    if (productCertificates.length > 0) {
+      localStorage.setItem('documentManagement_productCertificates', JSON.stringify(productCertificates));
+    }
+  }, [productCertificates]);
+
+  React.useEffect(() => {
+    if (personnelOptions.length > 0) {
+      localStorage.setItem('documentManagement_personnelOptions', JSON.stringify(personnelOptions));
+    }
+  }, [personnelOptions]);
+
+  React.useEffect(() => {
+    if (welderOptions.length > 0) {
+      localStorage.setItem('documentManagement_welderOptions', JSON.stringify(welderOptions));
+    }
+  }, [welderOptions]);
+
+  React.useEffect(() => {
+    if (weldingCertificates.length > 0) {
+      localStorage.setItem('documentManagement_weldingCertificates', JSON.stringify(weldingCertificates));
+    }
+  }, [weldingCertificates]);
 
   // Updated certificate statistics with dynamic data
   const certificateStats = {
