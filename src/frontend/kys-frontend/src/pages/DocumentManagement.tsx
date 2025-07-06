@@ -907,154 +907,46 @@ const DocumentManagement: React.FC = () => {
       console.log('Veri yükleme hatası:', error);
     }
     
-    // ACİL: Mock veri oluşturma sistemi tamamen devre dışı bırakıldı
-    // Kullanıcı verilerini korumak için bu sistem kapatıldı
     console.log('DocumentManagement: Mock veri sistemi devre dışı - kullanıcı verileri korunuyor');
-    
-    // YORUM: const isInitialized = localStorage.getItem('documentManagement_initialized');
-    // YORUM: if (!isInitialized && documents.length === 0) {
-    if (false) { // Mock veri sistemi tamamen kapatıldı
-      const sampleDocuments: Document[] = [
-        {
-          id: '1',
-          type: 'WPS',
-          name: 'WPS-001 Çelik Kaynak Prosedürü',
-          number: 'WPS-001',
-          unit: 'Kaynak Atölyesi',
-          effectiveDate: '2024-01-15',
-          revisionNo: 1,
-          owner: 'Mehmet Kaya',
-          uploadDate: '2024-01-10',
-          description: 'S355 çelik için MAG kaynak prosedürü',
-          status: 'active',
-          approvalStatus: 'pending',
-          isActive: true,
-          viewCount: 5,
-          isFavorite: false,
-          keywords: ['çelik', 'kaynak', 'MAG'],
-          approvalHistory: [],
-          revisionHistory: [],
-          attachments: []
-        },
-        {
-          id: '2',
-          type: 'ISO 9001 Belgesi',
-          name: 'ISO 9001:2015 Kalite Yönetim Sistemi',
-          number: 'ISO-9001-2024',
-          unit: 'Kalite Kontrol',
-          effectiveDate: '2024-02-01',
-          revisionNo: 3,
-          owner: 'Ayşe Demir',
-          uploadDate: '2024-01-25',
-          description: 'Kalite yönetim sistemi standart belgesi',
-          status: 'active',
-          approvalStatus: 'approved',
-          isActive: true,
-          viewCount: 12,
-          isFavorite: true,
-          keywords: ['ISO', 'kalite', 'yönetim'],
-          approvalHistory: [
-            {
-              id: '1',
-              approverName: 'Fatma Öz',
-              approverRole: 'Genel Müdür',
-              action: 'approved',
-              date: '2024-01-30T10:30:00Z',
-              comments: 'Kalite sistemi güncellemeleri uygun.',
-              level: 2
-            }
-          ],
-          revisionHistory: [],
-          attachments: []
-        },
-        {
-          id: '3',
-          type: 'Prosedür',
-          name: 'PR-005 Malzeme Kontrol Prosedürü',
-          number: 'PR-005',
-          unit: 'Kalite Kontrol',
-          effectiveDate: '2024-03-01',
-          revisionNo: 2,
-          owner: 'Ali Vural',
-          uploadDate: '2024-02-20',
-          description: 'Gelen malzeme kontrol ve muayene prosedürü',
-          status: 'review',
-          approvalStatus: 'rejected',
-          isActive: false,
-          viewCount: 8,
-          isFavorite: false,
-          keywords: ['malzeme', 'kontrol', 'muayene'],
-          approvalHistory: [
-            {
-              id: '2',
-              approverName: 'Ayşe Demir',
-              approverRole: 'Kalite Müdürü',
-              action: 'rejected',
-              date: '2024-02-25T14:15:00Z',
-              comments: 'Kontrol adımları eksik, revizyon gerekli.',
-              level: 1
-            }
-          ],
-          revisionHistory: [],
-          attachments: []
-        },
-        {
-          id: '4',
-          type: 'WPQR',
-          name: 'WPQR-001 Kaynak Kalite Kaydı',
-          number: 'WPQR-001',
-          unit: 'Kaynak Atölyesi',
-          effectiveDate: '2024-01-20',
-          revisionNo: 1,
-          owner: 'Mustafa Tan',
-          uploadDate: '2024-01-18',
-          description: 'WPS-001 için kaynak kalite test kaydı',
-          status: 'active',
-          approvalStatus: 'revision_required',
-          isActive: true,
-          viewCount: 3,
-          isFavorite: false,
-          keywords: ['WPQR', 'test', 'kalite'],
-          approvalHistory: [
-            {
-              id: '3',
-              approverName: 'Mehmet Kaya',
-              approverRole: 'Kaynak Mühendisi',
-              action: 'pending',
-              date: '2024-01-19T09:00:00Z',
-              comments: 'Test sonuçları gözden geçiriliyor.',
-              level: 1
-            }
-          ],
-          revisionHistory: [],
-          attachments: []
-        },
-        {
-          id: '5',
-          type: 'Teknik Resim',
-          name: 'TR-100 Tank Kapak Detayı',
-          number: 'TR-100',
-          unit: 'Tasarım',
-          effectiveDate: '2024-03-15',
-          revisionNo: 1,
-          owner: 'Zeynep Ak',
-          uploadDate: '2024-03-10',
-          description: 'Basınçlı tank kapak imalat resmi',
-          status: 'draft',
-          approvalStatus: 'pending',
-          isActive: false,
-          viewCount: 2,
-          isFavorite: false,
-          keywords: ['teknik', 'resim', 'tank'],
-          approvalHistory: [],
-          revisionHistory: [],
-          attachments: []
-        }
-      ];
-      setDocuments(sampleDocuments);
-      localStorage.setItem('documentManagement_initialized', 'true');
-    }
   }, []);
+
+  // 🔥 KRİTİK: documents state değişikliklerini localStorage'a otomatik kaydet
+  React.useEffect(() => {
+    if (documents.length > 0) {
+      try {
+        localStorage.setItem('documents', JSON.stringify(documents));
+        console.log('💾 Documents localStorage\'a otomatik kaydedildi:', documents.length, 'adet');
+        
+        // Kalite belgelerini kategorize et ve ayrı ayrı kaydet
+        const qualityDocuments = documents.filter(doc => 
+          doc.type === 'ISO 9001 Belgesi' || 
+          doc.type === 'ISO 14001 Belgesi' || 
+          doc.type === 'TS 3834-2 Belgesi' || 
+          doc.type === 'ISO 45001 Belgesi' || 
+          doc.type === 'ISO 50001 Belgesi' || 
+          doc.type === 'ISO 27001 Belgesi'
+        );
+        
+        const qualityCerts: QualityCertificate[] = qualityDocuments.map(doc => ({
+          id: doc.id,
+          name: doc.name,
+          type: doc.type,
+          expiry: doc.expiryDate || '2025-12-31',
+          status: doc.status === 'active' ? 'active' : 'expired',
+          authority: doc.issuingAuthority || 'Belirtilmemiş'
+        }));
+        
+        setWeldingCertificates(qualityCerts);
+        setQualityCertificates(qualityCerts);
+        localStorage.setItem('weldingCertificates', JSON.stringify(qualityCerts));
+        localStorage.setItem('qualityCertificates', JSON.stringify(qualityCerts));
+        
+        console.log('📋 Kalite belgeleri kategorize edildi:', qualityCerts.length, 'adet');
+      } catch (error) {
+        console.error('❌ HATA: Otomatik localStorage kaydetme başarısız:', error);
+      }
+    }
+  }, [documents]);
 
   // ACİL: Personnel mock veri sistemi devre dışı
   React.useEffect(() => {
@@ -2096,27 +1988,36 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         criticalityLevel: documentForm.criticalityLevel
       };
       
-      setDocuments(prevDocs => [...prevDocs, newDocument]);
-      setSnackbar({ open: true, message: `"${newDocument.name}" başarıyla oluşturuldu!`, severity: 'success' });
+      const updatedDocuments = [...documents, newDocument];
+      setDocuments(updatedDocuments);
+      
+      // 🔥 KRİTİK DÜZELTİM: localStorage'a HEMEN kaydet!
+      try {
+        localStorage.setItem('documents', JSON.stringify(updatedDocuments));
+        console.log('✅ BAŞARI: Yeni belge localStorage\'a kaydedildi:', newDocument.name);
+      } catch (error) {
+        console.error('❌ HATA: localStorage kaydetme başarısız:', error);
+      }
+      
+      setSnackbar({ open: true, message: `"${newDocument.name}" başarıyla oluşturuldu ve kaydedildi!`, severity: 'success' });
     } else if (dialogMode === 'edit') {
       // Update existing document
-      setDocuments(prevDocs => 
-        prevDocs.map(doc => {
-          if (doc.id === documentForm.id) {
-            return {
-              ...doc,
-              name: documentForm.name!,
-              number: documentForm.number!,
-              type: documentForm.type as DocumentType,
-              unit: documentForm.unit!,
-              effectiveDate: documentForm.effectiveDate!,
-              revisionNo: documentForm.revisionNo || doc.revisionNo,
-              owner: documentForm.owner!,
-              description: documentForm.description || '',
-              status: documentForm.status as DocumentStatus || doc.status,
-              approvalStatus: documentForm.approvalStatus as ApprovalStatus || doc.approvalStatus,
-              expiryDate: documentForm.expiryDate,
-              keywords: documentForm.keywords || [],
+      const updatedDocuments = documents.map(doc => {
+        if (doc.id === documentForm.id) {
+          return {
+            ...doc,
+            name: documentForm.name!,
+            number: documentForm.number!,
+            type: documentForm.type as DocumentType,
+            unit: documentForm.unit!,
+            effectiveDate: documentForm.effectiveDate!,
+            revisionNo: documentForm.revisionNo || doc.revisionNo,
+            owner: documentForm.owner!,
+            description: documentForm.description || '',
+            status: documentForm.status as DocumentStatus || doc.status,
+            approvalStatus: documentForm.approvalStatus as ApprovalStatus || doc.approvalStatus,
+            expiryDate: documentForm.expiryDate,
+            keywords: documentForm.keywords || [],
               isActive: (documentForm.status as DocumentStatus || doc.status) === 'active',
               // Dinamik alanlar
               personnelName: documentForm.personnelName,
@@ -2134,9 +2035,19 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
             };
           }
           return doc;
-        })
-      );
-      setSnackbar({ open: true, message: `"${documentForm.name}" başarıyla güncellendi!`, severity: 'success' });
+        });
+        
+        setDocuments(updatedDocuments);
+        
+        // 🔥 KRİTİK DÜZELTİM: Edit işleminde de localStorage'a kaydet!
+        try {
+          localStorage.setItem('documents', JSON.stringify(updatedDocuments));
+          console.log('✅ BAŞARI: Düzenlenen belge localStorage\'a kaydedildi:', documentForm.name);
+        } catch (error) {
+          console.error('❌ HATA: localStorage edit kaydetme başarısız:', error);
+        }
+        
+        setSnackbar({ open: true, message: `"${documentForm.name}" başarıyla güncellendi ve kaydedildi!`, severity: 'success' });
     }
     
     // Close dialog and reset form
@@ -4104,6 +4015,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               status: 'draft',
               approvalStatus: 'pending',
               keywords: [],
+              // Dinamik alanları da temizle
               personnelName: undefined,
               personnelId: undefined,
               registrationNo: undefined,
