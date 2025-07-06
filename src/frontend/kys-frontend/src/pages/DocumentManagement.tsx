@@ -71,6 +71,7 @@ import {
   Description as DescriptionIcon,
   CloudUpload as CloudUploadIcon,
   Download as DownloadIcon,
+  AttachFile as AttachFileIcon,
   Approval as ApprovalIcon,
   Star as StarIcon,
   Info as InfoIcon,
@@ -180,6 +181,7 @@ interface Document {
   approvalHistory: ApprovalRecord[];
   revisionHistory: Document[];
   keywords: string[];
+  attachments: DocumentAttachment[];
 }
 
 interface WelderCertificate {
@@ -201,6 +203,7 @@ interface WelderCertificate {
   revisionHistory: WelderCertificate[];
   lastInspectionDate?: string;
   nextInspectionDate?: string;
+  attachments: DocumentAttachment[];
 }
 
 interface PersonnelDocument {
@@ -774,7 +777,8 @@ const DocumentManagement: React.FC = () => {
           isFavorite: false,
           keywords: ['çelik', 'kaynak', 'MAG'],
           approvalHistory: [],
-          revisionHistory: []
+          revisionHistory: [],
+          attachments: []
         },
         {
           id: '2',
@@ -804,7 +808,8 @@ const DocumentManagement: React.FC = () => {
               level: 2
             }
           ],
-          revisionHistory: []
+          revisionHistory: [],
+          attachments: []
         },
         {
           id: '3',
@@ -834,7 +839,8 @@ const DocumentManagement: React.FC = () => {
               level: 1
             }
           ],
-          revisionHistory: []
+          revisionHistory: [],
+          attachments: []
         },
         {
           id: '4',
@@ -864,7 +870,8 @@ const DocumentManagement: React.FC = () => {
               level: 1
             }
           ],
-          revisionHistory: []
+          revisionHistory: [],
+          attachments: []
         },
         {
           id: '5',
@@ -884,7 +891,8 @@ const DocumentManagement: React.FC = () => {
           isFavorite: false,
           keywords: ['teknik', 'resim', 'tank'],
           approvalHistory: [],
-          revisionHistory: []
+          revisionHistory: [],
+          attachments: []
         }
       ];
       setDocuments(sampleDocuments);
@@ -1706,7 +1714,8 @@ ${welderCertificates.map(cert => JSON.stringify(cert, null, 2)).join('\n---\n')}
       isFavorite: false,
       keywords: [certData.authority],
       approvalHistory: [],
-      revisionHistory: []
+      revisionHistory: [],
+      attachments: []
     };
     
     setSelectedDocumentForView(tempDoc);
@@ -1775,7 +1784,8 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         isFavorite: false,
         approvalHistory: [],
         revisionHistory: [],
-        keywords: documentForm.keywords || []
+        keywords: documentForm.keywords || [],
+        attachments: documentForm.attachments || []
       };
       
       setDocuments(prevDocs => [...prevDocs, newDocument]);
