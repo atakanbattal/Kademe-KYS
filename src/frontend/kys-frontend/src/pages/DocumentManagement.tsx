@@ -1261,9 +1261,25 @@ const DocumentManagement: React.FC = () => {
     });
   };
 
-  // Filtered documents
+  // Filtered documents - Tab bazlı filtreleme ekleyerek
   const filteredDocuments = useMemo(() => {
     return documents.filter(doc => {
+      // Tab bazlı filtreleme
+      if (activeTab === 0) {
+        // Teknik Dokümanlar tab'ında: ISO ve TS belgelerini hariç tut
+        if (doc.type.includes('ISO') || doc.type.includes('TS 3834-2') || 
+            doc.type.includes('İSG Sertifikası') || doc.type.includes('Kaynakçı') || 
+            doc.type.includes('NDT Sertifikası') || doc.type.includes('Yetki Belgesi')) {
+          return false;
+        }
+      } else if (activeTab === 2) {
+        // Kalite Belgeleri tab'ında: Sadece ISO ve TS belgelerini göster
+        if (!doc.type.includes('ISO') && !doc.type.includes('TS 3834-2')) {
+          return false;
+        }
+      }
+      
+      // Diğer filtreler
       if (filters.searchTerm && !doc.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) &&
           !doc.number.toLowerCase().includes(filters.searchTerm.toLowerCase())) return false;
       if (filters.type && doc.type !== filters.type) return false;
@@ -1278,7 +1294,7 @@ const DocumentManagement: React.FC = () => {
       }
       return true;
     });
-  }, [documents, filters]);
+  }, [documents, filters, activeTab]);
 
   // Filtered welder certificates
   const filteredWelderCertificates = useMemo(() => {
@@ -2403,7 +2419,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="primary">
-                        {documentStats.total}
+                        {documents.filter(d => !d.type.includes('ISO') && !d.type.includes('TS 3834-2')).length}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Toplam Teknik Doküman
@@ -2418,7 +2434,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="success.main">
-                        {documentStats.active}
+                        {documents.filter(d => d.status === 'active' && !d.type.includes('ISO') && !d.type.includes('TS 3834-2') && !d.type.includes('İSG Sertifikası') && !d.type.includes('Kaynakçı') && !d.type.includes('NDT Sertifikası') && !d.type.includes('Yetki Belgesi')).length}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Aktif Doküman
@@ -2433,7 +2449,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="warning.main">
-                        {documentStats.pending}
+                        {documents.filter(d => d.approvalStatus === 'pending' && !d.type.includes('ISO') && !d.type.includes('TS 3834-2') && !d.type.includes('İSG Sertifikası') && !d.type.includes('Kaynakçı') && !d.type.includes('NDT Sertifikası') && !d.type.includes('Yetki Belgesi')).length}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Onay Bekleyen
@@ -2448,7 +2464,13 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="error.main">
-                        {documentStats.expiring}
+                        {documents.filter(d => {
+                          if (!d.expiryDate) return false;
+                          const today = new Date();
+                          const expiry = new Date(d.expiryDate);
+                          const isExpiring = (expiry.getTime() - today.getTime()) <= (30 * 24 * 60 * 60 * 1000) && expiry.getTime() > today.getTime();
+                          return isExpiring && !d.type.includes('ISO') && !d.type.includes('TS 3834-2') && !d.type.includes('İSG Sertifikası') && !d.type.includes('Kaynakçı') && !d.type.includes('NDT Sertifikası') && !d.type.includes('Yetki Belgesi');
+                        }).length}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Süresi Dolacak
