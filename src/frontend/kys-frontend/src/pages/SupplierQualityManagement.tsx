@@ -1610,24 +1610,49 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
 
     if (validFiles.length === 0) return;
 
-    const newAttachments: Attachment[] = validFiles.map(file => ({
-      id: Date.now() + Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: file.size,
-      uploadDate: new Date().toISOString(),
-      type: file.type,
-      url: URL.createObjectURL(file)
-    }));
-
-    const currentAttachments = currentSupplier.attachments || [];
-    const updatedAttachments = [...currentAttachments, ...newAttachments];
+    // Dosyaları base64 formatına çevirip kalıcı olarak kaydet
+    let processedFiles = 0;
+    const newAttachments: Attachment[] = [];
     
-    setFormData({
-      ...formData,
-      attachments: updatedAttachments
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64Data = e.target?.result as string;
+        
+        const newAttachment: Attachment = {
+          id: Date.now() + Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          size: file.size,
+          uploadDate: new Date().toISOString(),
+          type: file.type,
+          url: base64Data // Base64 data URL olarak kaydet
+        };
+        
+        newAttachments.push(newAttachment);
+        processedFiles++;
+        
+        // Tüm dosyalar işlendiğinde state'i güncelle
+        if (processedFiles === validFiles.length) {
+          const currentAttachments = currentSupplier.attachments || [];
+          const updatedAttachments = [...currentAttachments, ...newAttachments];
+          
+          setFormData({
+            ...formData,
+            attachments: updatedAttachments
+          });
+
+          showSnackbar(`${validFiles.length} dosya yüklendi ve kalıcı olarak kaydedildi`, 'success');
+        }
+      };
+      
+      reader.onerror = () => {
+        showSnackbar(`${file.name} dosyası yüklenirken hata oluştu`, 'error');
+        processedFiles++;
+      };
+      
+      reader.readAsDataURL(file);
     });
 
-    showSnackbar(`${validFiles.length} dosya yüklendi`, 'success');
     event.target.value = '';
   };
 
@@ -1644,20 +1669,39 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   };
 
   const handleDownloadAttachment = (attachment: Attachment) => {
-    const link = document.createElement('a');
-    link.href = attachment.url;
-    link.download = attachment.name;
-    link.click();
-    showSnackbar(`${attachment.name} indirildi`, 'success');
+    try {
+      // Base64 data URL'den direkt indirme
+      const link = document.createElement('a');
+      link.href = attachment.url;
+      link.download = attachment.name;
+      
+      // Geçici olarak DOM'a ekle ve click'le
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showSnackbar(`${attachment.name} indirildi`, 'success');
+    } catch (error) {
+      console.error('Dosya indirme hatası:', error);
+      showSnackbar('Dosya indirme sırasında hata oluştu', 'error');
+    }
   };
 
   const handleViewAttachment = (attachment: Attachment) => {
-    if (attachment.type === 'application/pdf') {
-      window.open(attachment.url, '_blank');
-    } else if (attachment.type.startsWith('image/')) {
-      window.open(attachment.url, '_blank');
-    } else {
-      handleDownloadAttachment(attachment);
+    try {
+      // Base64 data URL'yi doğrudan aç
+      if (attachment.type === 'application/pdf') {
+        window.open(attachment.url, '_blank');
+      } else if (attachment.type.startsWith('image/')) {
+        window.open(attachment.url, '_blank');
+      } else {
+        // Diğer dosya tipleri için indirme öner
+        handleDownloadAttachment(attachment);
+      }
+      showSnackbar('Dosya görüntüleniyor', 'info');
+    } catch (error) {
+      console.error('Dosya görüntüleme hatası:', error);
+      showSnackbar('Dosya görüntüleme sırasında hata oluştu', 'error');
     }
   };
 
@@ -1688,24 +1732,36 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       return;
     }
 
-    // Dosya yükleme simülasyonu
-    const newAttachment: Attachment = {
-      id: Date.now().toString(),
-      name: file.name,
-      size: file.size,
-      uploadDate: new Date().toISOString(),
-      type: file.type,
-      url: URL.createObjectURL(file)
+    // Dosyayı base64 formatına çevir ve localStorage'a kalıcı olarak kaydet
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Data = e.target?.result as string;
+      
+      const newAttachment: Attachment = {
+        id: Date.now().toString(),
+        name: file.name,
+        size: file.size,
+        uploadDate: new Date().toISOString(),
+        type: file.type,
+        url: base64Data // Base64 data URL olarak kaydet
+      };
+
+      // Denetim kaydını güncelle
+      setAudits(prevAudits => prevAudits.map(audit => 
+        audit.id === auditId 
+          ? { ...audit, attachments: [...(audit.attachments || []), newAttachment] }
+          : audit
+      ));
+
+      showSnackbar('Dosya başarıyla yüklendi ve kalıcı olarak kaydedildi', 'success');
     };
-
-    // Denetim kaydını güncelle
-    setAudits(prevAudits => prevAudits.map(audit => 
-      audit.id === auditId 
-        ? { ...audit, attachments: [...(audit.attachments || []), newAttachment] }
-        : audit
-    ));
-
-    showSnackbar('Dosya başarıyla yüklendi', 'success');
+    
+    reader.onerror = () => {
+      showSnackbar('Dosya yükleme sırasında hata oluştu', 'error');
+    };
+    
+    // Dosyayı base64 formatına çevir
+    reader.readAsDataURL(file);
   };
 
   const handleAuditDeleteAttachment = (auditId: string, attachmentId: string) => {
@@ -1718,20 +1774,41 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   };
 
   const handleAuditDownloadAttachment = (attachment: Attachment) => {
-    const link = document.createElement('a');
-    link.href = attachment.url;
-    link.download = attachment.name;
-    link.click();
-    showSnackbar('Dosya indiriliyor', 'info');
+    try {
+      // Base64 data URL'den blob oluştur
+      const link = document.createElement('a');
+      link.href = attachment.url;
+      link.download = attachment.name;
+      
+      // Geçici olarak DOM'a ekle ve click'le
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showSnackbar('Dosya indiriliyor', 'info');
+    } catch (error) {
+      console.error('Dosya indirme hatası:', error);
+      showSnackbar('Dosya indirme sırasında hata oluştu', 'error');
+    }
   };
 
   const handleAuditViewAttachment = (attachment: Attachment) => {
-    if (attachment.type === 'application/pdf') {
-      window.open(attachment.url, '_blank');
-    } else {
-      window.open(attachment.url, '_blank');
+    try {
+      // Base64 data URL'yi doğrudan aç
+      if (attachment.type === 'application/pdf') {
+        window.open(attachment.url, '_blank');
+      } else if (attachment.type.startsWith('image/')) {
+        window.open(attachment.url, '_blank');
+      } else {
+        // Diğer dosya tipleri için indirme öner
+        handleAuditDownloadAttachment(attachment);
+        return;
+      }
+      showSnackbar('Dosya görüntüleniyor', 'info');
+    } catch (error) {
+      console.error('Dosya görüntüleme hatası:', error);
+      showSnackbar('Dosya görüntüleme sırasında hata oluştu', 'error');
     }
-    showSnackbar('Dosya görüntüleniyor', 'info');
   };
 
   // Supplier switch functions
