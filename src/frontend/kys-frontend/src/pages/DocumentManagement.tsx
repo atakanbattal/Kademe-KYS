@@ -467,8 +467,22 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 const UNITS = [
-  'Kaynak Atölyesi', 'Boyahane', 'Montaj Hattı', 'Kalite Kontrol',
-  'Elektrik', 'Han', 'Büküm', 'Arge', 'Satın Alma', 'Kesim', 'Ambar/Depo'
+  'Kaynak Atölyesi', 
+  'Boyahane', 
+  'Montaj Hattı', 
+  'Kalite Kontrol',
+  'Elektrik', 
+  'Han', 
+  'Büküm', 
+  'Arge', 
+  'Satın Alma', 
+  'Kesim', 
+  'Ambar/Depo',
+  'Üretim',
+  'Makine Atölyesi',
+  'Planlama',
+  'İSG',
+  'Genel'
 ];
 
 const CERTIFICATE_TYPES: CertificateType[] = [
@@ -4215,15 +4229,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       onChange={(e) => setDocumentForm(prev => ({ ...prev, unit: e.target.value }))}
                       label="Birim"
                     >
-                      <MenuItem value="Kaynak Atölyesi">Kaynak Atölyesi</MenuItem>
-                      <MenuItem value="Kalite Kontrol">Kalite Kontrol</MenuItem>
-                      <MenuItem value="Üretim">Üretim</MenuItem>
-                      <MenuItem value="Montaj">Montaj</MenuItem>
-                      <MenuItem value="Boyahane">Boyahane</MenuItem>
-                      <MenuItem value="Makine Atölyesi">Makine Atölyesi</MenuItem>
-                      <MenuItem value="Planlama">Planlama</MenuItem>
-                      <MenuItem value="İSG">İSG</MenuItem>
-                      <MenuItem value="Genel">Genel</MenuItem>
+                      {UNITS.map((unit) => (
+                        <MenuItem key={unit} value={unit}>{unit}</MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                   
