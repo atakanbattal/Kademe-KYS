@@ -31,6 +31,7 @@ import {
   AccordionDetails,
   Alert,
   Grid,
+  Snackbar,
 } from '@mui/material';
 import {
   Assignment as AssignmentIcon,
@@ -54,6 +55,9 @@ import {
   Cancel as CancelIcon,
   SwapHoriz as SwapHorizIcon,
   Merge as MergeIcon,
+  CloudUpload as UploadIcon,
+  AttachFile as AttachFileIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -131,6 +135,7 @@ interface Attachment {
   size: number;
   uploadDate: string;
   type: string;
+  url: string;
 }
 
 interface HistoryRecord {
@@ -1444,6 +1449,9 @@ const DOF8DManagement: React.FC = () => {
     closureNotes: ''
   });
 
+  // ✅ Snackbar State
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
+
   
   // Context7 - ENHANCED: Güvenli ve Akıllı Veri Yönetimi Sistemi
   const [dofRecords, setDofRecords] = useState<DOFRecord[]>(() => {
@@ -2359,6 +2367,91 @@ const DOF8DManagement: React.FC = () => {
       case 'merged': return 'Birleştirildi';
       default: return 'Kapatıldı';
     }
+  };
+
+  // 📎 DOSYA YÜKLEME FONKSİYONLARI
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        setSnackbar({
+          open: true,
+          message: `Dosya boyutu 10MB'dan büyük olamaz: ${file.name}`,
+          severity: 'error'
+        });
+        return;
+      }
+
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        setSnackbar({
+          open: true,
+          message: `Desteklenmeyen dosya türü: ${file.name}`,
+          severity: 'error'
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const attachment: Attachment = {
+          id: Date.now().toString() + Math.random(),
+          name: file.name,
+          type: file.type,
+          uploadDate: new Date().toISOString(),
+          size: file.size,
+          url: e.target?.result as string
+        };
+
+        setFormData(prev => ({
+          ...prev,
+          attachments: [...(prev.attachments || []), attachment]
+        }));
+
+        setSnackbar({
+          open: true,
+          message: `Dosya yüklendi: ${file.name}`,
+          severity: 'success'
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleDownloadAttachment = (attachment: Attachment) => {
+    const link = document.createElement('a');
+    link.href = attachment.url;
+    link.download = attachment.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleViewAttachment = (attachment: Attachment) => {
+    try {
+      window.open(attachment.url, '_blank');
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Dosya görüntüleme hatası',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleDeleteAttachment = (attachmentId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments?.filter(att => att.id !== attachmentId) || []
+    }));
+
+    setSnackbar({
+      open: true,
+      message: 'Dosya silindi',
+      severity: 'success'
+    });
   };
 
   // Context7 - ENHANCED: Profesyonel DÖF Silme Sistemi
@@ -6007,6 +6100,103 @@ const DOF8DManagement: React.FC = () => {
                 </Typography>
               )}
             </Paper>
+
+            {/* 📎 DOSYA EKLERİ YÖNETİMİ - MaterialCertificateTracking modülünden uyarlandı */}
+            <Paper sx={{ p: 3, borderRadius: 2 }}>
+              <Typography variant="h6" gutterBottom color="primary">
+                📎 Dosya Ekleri
+              </Typography>
+              
+              {dialogMode !== 'view' && (
+                <Box sx={{ mb: 3 }}>
+                  <input
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    style={{ display: 'none' }}
+                    id="attachment-upload"
+                    multiple
+                    type="file"
+                    onChange={handleFileUpload}
+                  />
+                  <label htmlFor="attachment-upload">
+                    <Button
+                      variant="contained"
+                      component="span"
+                      startIcon={<UploadIcon />}
+                      sx={{ mr: 2 }}
+                    >
+                      Dosya Yükle
+                    </Button>
+                  </label>
+                  <Typography variant="caption" color="text.secondary">
+                    PDF, JPG, JPEG, PNG, DOC, DOCX formatları desteklenir (Maks. 10MB)
+                  </Typography>
+                </Box>
+              )}
+
+              {formData.attachments && formData.attachments.length > 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {formData.attachments.map((attachment) => (
+                    <Card key={attachment.id} variant="outlined" sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box sx={{ 
+                            p: 1, 
+                            borderRadius: 1, 
+                            bgcolor: 'primary.50',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {attachment.type.includes('pdf') ? 
+                              <PdfIcon sx={{ color: 'error.main' }} /> :
+                              <AttachFileIcon sx={{ color: 'primary.main' }} />
+                            }
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>
+                              {attachment.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {(attachment.size / 1024 / 1024).toFixed(2)} MB • {new Date(attachment.uploadDate).toLocaleDateString('tr-TR')}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleViewAttachment(attachment)} 
+                            title="Görüntüle"
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleDownloadAttachment(attachment)} 
+                            title="İndir"
+                          >
+                            <DownloadIcon />
+                          </IconButton>
+                          {dialogMode !== 'view' && (
+                            <IconButton 
+                              size="small" 
+                              onClick={() => handleDeleteAttachment(attachment.id)} 
+                              title="Sil" 
+                              color="error"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </Box>
+                    </Card>
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 2 }}>
+                  {dialogMode === 'view' ? 'Ekli dosya yok' : 'Henüz dosya eklenmemiş'}
+                </Typography>
+              )}
+            </Paper>
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
@@ -6250,6 +6440,17 @@ const DOF8DManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
