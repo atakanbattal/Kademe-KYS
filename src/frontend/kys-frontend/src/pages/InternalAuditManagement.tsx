@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 // TypeScript re-analysis force
 import {
   Box,
@@ -193,6 +193,80 @@ const UltraStableSearchInput = React.memo<{
           },
         },
       }}
+    />
+  );
+});
+
+// ============================================
+// KUSURSUZ ARAMA COMPONENT'İ
+// ============================================
+
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
+  
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Clear trigger effect
+  useEffect(() => {
+    if (clearTrigger > 0) {
+      setLocalValue('');
+    }
+  }, [clearTrigger]);
+  
+  // İç change handler - sadece localValue'yu günceller
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalValue(value);
+    
+    // Debounce mekanizması
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      onDebouncedChange(value);
+    }, 800);
+  }, [onDebouncedChange]);
+  
+  // Blur handler - anında arama
+  const handleBlur = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    onDebouncedChange(localValue);
+  }, [localValue, onDebouncedChange]);
+  
+  // Memoized static props - re-render önleme
+  const staticProps = useMemo(() => ({
+    placeholder,
+    size,
+    fullWidth,
+    InputProps: {
+      startAdornment: (
+        <InputAdornment position="start">
+          <SearchIcon color="action" sx={{ mr: 1 }} />
+        </InputAdornment>
+      )
+    }
+  }), [placeholder, size, fullWidth]);
+  
+  return (
+    <TextField
+      {...staticProps}
+      value={localValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
     />
   );
 });
@@ -478,6 +552,25 @@ const InternalAuditManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
+
+  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  const [clearTrigger, setClearTrigger] = useState(0);
+
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 InternalAuditManagement - Debounced search:', debouncedSearchTerm);
+    setSearchTerm(debouncedSearchTerm);
+  }, []);
+
+  // ✅ CLEAR HANDLER - Tüm filtreleri temizler
+  const handleClearFilters = useCallback(() => {
+    console.log('🧹 InternalAuditManagement - Clearing all filters');
+    setSearchTerm('');
+    setStatusFilter('');
+    setTypeFilter('');
+    setDepartmentFilter('');
+    setClearTrigger(prev => prev + 1);
+  }, []);
   
   // Pagination
   const [page, setPage] = useState(0);
@@ -2759,15 +2852,13 @@ const InternalAuditManagement: React.FC = () => {
         <Paper sx={{ p: 2, mb: 3 }}>
           <Box display="flex" flexWrap="wrap" gap={2} alignItems="center">
             <Box flex="1 1 300px" minWidth="200px">
-              <TextField
-                fullWidth
-                size="small"
+              <UltraIsolatedSearchInput
+                initialValue={searchTerm}
+                onDebouncedChange={handleDebouncedSearchChange}
                 placeholder="Bulgu ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
-                }}
+                size="small"
+                fullWidth
+                clearTrigger={clearTrigger}
               />
             </Box>
             <Box flex="1 1 150px" minWidth="120px">
@@ -2805,6 +2896,17 @@ const InternalAuditManagement: React.FC = () => {
               </FormControl>
             </Box>
             <Box display="flex" gap={1}>
+              {/* Clear Filters Button */}
+              {(searchTerm || statusFilter || departmentFilter) && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleClearFilters}
+                  sx={{ minWidth: 'auto', px: 2 }}
+                >
+                  Filtreleri Temizle
+                </Button>
+              )}
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
@@ -2937,15 +3039,13 @@ const InternalAuditManagement: React.FC = () => {
         <Paper sx={{ p: 2, mb: 3 }}>
           <Box display="flex" flexWrap="wrap" gap={2} alignItems="center">
             <Box flex="1 1 300px" minWidth="200px">
-              <TextField
-                fullWidth
-                size="small"
+              <UltraIsolatedSearchInput
+                initialValue={searchTerm}
+                onDebouncedChange={handleDebouncedSearchChange}
                 placeholder="Aksiyon ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
-                }}
+                size="small"
+                fullWidth
+                clearTrigger={clearTrigger}
               />
             </Box>
             <Box flex="1 1 150px" minWidth="120px">
@@ -2966,6 +3066,17 @@ const InternalAuditManagement: React.FC = () => {
               </FormControl>
             </Box>
             <Box display="flex" gap={1}>
+              {/* Clear Filters Button */}
+              {(searchTerm || statusFilter) && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleClearFilters}
+                  sx={{ minWidth: 'auto', px: 2 }}
+                >
+                  Filtreleri Temizle
+                </Button>
+              )}
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}

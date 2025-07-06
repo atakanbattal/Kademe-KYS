@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import AutoKPISystem from '../components/AutoKPISystem';
 import {
   Box,
@@ -121,6 +121,103 @@ import {
   Clear as ClearIcon,
   GetApp as ExportIcon
 } from '@mui/icons-material';
+
+// ============================================
+// KUSURSUZ ARAMA COMPONENT'İ
+// ============================================
+
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
+  
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Clear trigger effect
+  useEffect(() => {
+    if (clearTrigger > 0) {
+      setLocalValue('');
+    }
+  }, [clearTrigger]);
+  
+  // İç change handler - sadece localValue'yu günceller
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalValue(value);
+    
+    // Debounce mekanizması
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      onDebouncedChange(value);
+    }, 800);
+  }, [onDebouncedChange]);
+  
+  // Blur handler - anında arama
+  const handleBlur = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    onDebouncedChange(localValue);
+  }, [localValue, onDebouncedChange]);
+  
+  // Memoized static props - re-render önleme
+  const staticProps = useMemo(() => ({
+    placeholder,
+    size,
+    fullWidth,
+    label,
+    variant: "outlined" as const,
+    InputProps: {
+      startAdornment: (
+        <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+          <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+        </Box>
+      )
+    },
+    sx: {
+      '& .MuiOutlinedInput-root': {
+        borderRadius: 2,
+        backgroundColor: 'grey.50',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          backgroundColor: 'grey.100',
+        },
+        '&.Mui-focused': {
+          backgroundColor: 'background.paper',
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
+            borderWidth: 2
+          }
+        }
+      },
+      '& .MuiInputLabel-root.Mui-focused': {
+        color: 'primary.main',
+        fontWeight: 600
+      }
+    }
+  }), [placeholder, size, fullWidth, label]);
+  
+  return (
+    <TextField
+      {...staticProps}
+      value={localValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+    />
+  );
+});
 
 // ✅ MERKEZI VERİ YÖNETİMİ
 import { dataSyncManager } from '../utils/DataSyncManager';
@@ -3474,6 +3571,30 @@ const KPIManagement: React.FC = () => {
   const [trendFilter, setTrendFilter] = useState<string>('all');
   const [measurementPeriodFilter, setMeasurementPeriodFilter] = useState<string>('all');
 
+  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  const [clearTrigger, setClearTrigger] = useState(0);
+
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 KPIManagement - Debounced search:', debouncedSearchTerm);
+    setSearchTerm(debouncedSearchTerm);
+  }, []);
+
+  // ✅ CLEAR HANDLER - Tüm filtreleri temizler
+  const handleClearFilters = useCallback(() => {
+    console.log('🧹 KPIManagement - Clearing all filters');
+    setSearchTerm('');
+    setStatusFilter('all');
+    setModuleFilter('all');
+    setPeriodFilter('all');
+    setPriorityFilter('all');
+    setDataTypeFilter('all');
+    setTrendFilter('all');
+    setMeasurementPeriodFilter('all');
+    setShowFavoritesOnly(false);
+    setClearTrigger(prev => prev + 1);
+  }, []);
+
   // ✅ Context7 Best Practice: Memoized calculations for performance optimization
   const kpiStats = useMemo(() => {
     try {
@@ -3919,41 +4040,13 @@ const KPIManagement: React.FC = () => {
         <Box sx={{ p: { xs: 0, md: 1 }, pt: 2 }}>
           {/* Temel Filtreler */}
           <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} gap={2} mb={2}>
-            <TextField
+            <UltraIsolatedSearchInput
               label="KPI Ara"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              variant="outlined"
+              initialValue={searchTerm}
+              onDebouncedChange={handleDebouncedSearchChange}
               size="medium"
               fullWidth
-              InputProps={{
-                startAdornment: (
-                  <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
-                    <SearchIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                  </Box>
-                )
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  backgroundColor: 'grey.50',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    backgroundColor: 'grey.100',
-                  },
-                  '&.Mui-focused': {
-                    backgroundColor: 'background.paper',
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'primary.main',
-                      borderWidth: 2
-                    }
-                  }
-                },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: 'primary.main',
-                  fontWeight: 600
-                }
-              }}
+              clearTrigger={clearTrigger}
             />
             
             <FormControl size="medium" fullWidth>
@@ -4307,17 +4400,7 @@ const KPIManagement: React.FC = () => {
               />
               <Button
                 variant="outlined"
-                onClick={() => {
-                  setSearchTerm('');
-                  setStatusFilter('all');
-                  setModuleFilter('all');
-                  setPeriodFilter('all');
-                  setPriorityFilter('all');
-                  setDataTypeFilter('all');
-                  setTrendFilter('all');
-                  setMeasurementPeriodFilter('all');
-                  setShowFavoritesOnly(false);
-                }}
+                onClick={handleClearFilters}
                 startIcon={<ClearIcon />}
                 sx={{
                   borderRadius: 2,

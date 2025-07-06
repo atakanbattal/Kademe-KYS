@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -49,6 +49,77 @@ import {
   Print as PrintIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+
+// ============================================
+// KUSURSUZ ARAMA COMPONENT'İ
+// ============================================
+
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
+  
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Clear trigger effect
+  useEffect(() => {
+    if (clearTrigger > 0) {
+      setLocalValue('');
+    }
+  }, [clearTrigger]);
+  
+  // İç change handler - sadece localValue'yu günceller
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalValue(value);
+    
+    // Debounce mekanizması
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      onDebouncedChange(value);
+    }, 800);
+  }, [onDebouncedChange]);
+  
+  // Blur handler - anında arama
+  const handleBlur = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    onDebouncedChange(localValue);
+  }, [localValue, onDebouncedChange]);
+  
+  // Memoized static props - re-render önleme
+  const staticProps = useMemo(() => ({
+    placeholder,
+    size,
+    fullWidth,
+    InputProps: {
+      startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+    },
+    sx: { minWidth: 300 }
+  }), [placeholder, size, fullWidth]);
+  
+  return (
+    <TextField
+      {...staticProps}
+      value={localValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+    />
+  );
+});
 
 // Material Standards Database
 interface MaterialStandard {
@@ -3135,6 +3206,23 @@ const MaterialCertificateTracking: React.FC = () => {
   const [filteredMaterials, setFilteredMaterials] = useState<MaterialRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  const [clearTrigger, setClearTrigger] = useState(0);
+
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 MaterialCertificateTracking - Debounced search:', debouncedSearchTerm);
+    setSearchTerm(debouncedSearchTerm);
+  }, []);
+
+  // ✅ CLEAR HANDLER - Tüm filtreleri temizler
+  const handleClearFilters = useCallback(() => {
+    console.log('🧹 MaterialCertificateTracking - Clearing all filters');
+    setSearchTerm('');
+    setStatusFilter('ALL');
+    setClearTrigger(prev => prev + 1);
+  }, []);
   const [open, setOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialRecord | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialRecord | null>(null);
@@ -3664,14 +3752,13 @@ const MaterialCertificateTracking: React.FC = () => {
 
       {/* Header Controls */}
       <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-            <TextField
-          placeholder="Malzeme, tedarikçi veya parti ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-              }}
-          sx={{ minWidth: 300 }}
+            <UltraIsolatedSearchInput
+              initialValue={searchTerm}
+              onDebouncedChange={handleDebouncedSearchChange}
+              placeholder="Malzeme, tedarikçi veya parti ara..."
+              size="small"
+              fullWidth={false}
+              clearTrigger={clearTrigger}
             />
         
         <FormControl sx={{ minWidth: 150 }}>
@@ -3688,6 +3775,18 @@ const MaterialCertificateTracking: React.FC = () => {
             <MenuItem value="ŞARTLI">Şartlı</MenuItem>
               </Select>
             </FormControl>
+
+            {/* Clear Filters Button */}
+            {(searchTerm || statusFilter !== 'ALL') && (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleClearFilters}
+                sx={{ minWidth: 'auto', px: 2 }}
+              >
+                Filtreleri Temizle
+              </Button>
+            )}
 
             <Button
               variant="contained"

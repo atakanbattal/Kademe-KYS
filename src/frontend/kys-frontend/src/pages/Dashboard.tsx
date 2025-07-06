@@ -1230,6 +1230,858 @@ const Dashboard: React.FC = () => {
     </Alert>
   );
 
+  // ============================================
+  // 🎯 ÖZEL KALİTE YÖNETİMİ WIDGETLERİ
+  // ============================================
+
+  // 💰 AYLIK KALİTESİZLİK MALİYETİ WIDGETİ
+  const QualityCostWidget: React.FC = () => {
+    const [qualityCostData, setQualityCostData] = useState<any>(null);
+    
+    useEffect(() => {
+      try {
+        const costData = JSON.parse(localStorage.getItem('quality_costs') || '[]');
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const monthlyData = costData.filter((item: any) => 
+          item.tarih && item.tarih.startsWith(currentMonth)
+        );
+        
+        const totalCost = monthlyData.reduce((sum: number, item: any) => 
+          sum + (parseFloat(item.birimMaliyet || 0) * parseFloat(item.miktar || 0)), 0
+        );
+        
+        const reworkCost = monthlyData.filter((item: any) => 
+          item.maliyetTuru?.toLowerCase().includes('yeniden') ||
+          item.maliyetTuru?.toLowerCase().includes('rework')
+        ).reduce((sum: number, item: any) => 
+          sum + (parseFloat(item.birimMaliyet || 0) * parseFloat(item.miktar || 0)), 0
+        );
+        
+        const scrapCost = monthlyData.filter((item: any) => 
+          item.maliyetTuru?.toLowerCase().includes('hurda') ||
+          item.maliyetTuru?.toLowerCase().includes('scrap')
+        ).reduce((sum: number, item: any) => 
+          sum + (parseFloat(item.birimMaliyet || 0) * parseFloat(item.miktar || 0)), 0
+        );
+        
+        setQualityCostData({
+          totalCost,
+          reworkCost,
+          scrapCost,
+          recordCount: monthlyData.length,
+          trend: totalCost > 50000 ? 'critical' : totalCost > 25000 ? 'warning' : 'good'
+        });
+      } catch (error) {
+        console.error('Quality cost data error:', error);
+      }
+    }, []);
+    
+    return (
+      <ProfessionalCard sx={{ height: '100%' }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ 
+              p: 1, 
+              backgroundColor: '#f44336', 
+              borderRadius: 1, 
+              display: 'flex', 
+              alignItems: 'center' 
+            }}>
+                             <AttachMoneyIcon sx={{ color: 'white', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
+              Aylık Kalitesizlik Maliyeti
+            </Typography>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              {qualityCostData?.totalCost?.toLocaleString('tr-TR', { 
+                style: 'currency', 
+                currency: 'TRY' 
+              }) || '₺0'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <Chip 
+              label={`Yeniden İşleme: ${qualityCostData?.reworkCost?.toLocaleString('tr-TR', { 
+                style: 'currency', 
+                currency: 'TRY' 
+              }) || '₺0'}`}
+              size="small"
+              color="warning"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Hurda: ${qualityCostData?.scrapCost?.toLocaleString('tr-TR', { 
+                style: 'currency', 
+                currency: 'TRY' 
+              }) || '₺0'}`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              {qualityCostData?.recordCount || 0} kayıt
+            </Typography>
+            <StatusChip 
+              label={qualityCostData?.trend === 'critical' ? 'Kritik' : 
+                    qualityCostData?.trend === 'warning' ? 'Uyarı' : 'Normal'}
+              color={qualityCostData?.trend === 'critical' ? 'error' : 
+                    qualityCostData?.trend === 'warning' ? 'warning' : 'success'}
+              size="small"
+            />
+          </Box>
+        </CardContent>
+      </ProfessionalCard>
+    );
+  };
+
+  // 🚫 KARANTİNA WIDGETİ
+  const QuarantineWidget: React.FC = () => {
+    const [quarantineData, setQuarantineData] = useState<any>(null);
+    
+    useEffect(() => {
+      try {
+        const quarantineRecords = JSON.parse(localStorage.getItem('quarantine_records') || '[]');
+        const activeQuarantines = quarantineRecords.filter((item: any) => 
+          item.durum === 'KARANTİNADA' || item.durum === 'BEKLEMEDE'
+        );
+        
+        const totalQuantity = activeQuarantines.reduce((sum: number, item: any) => 
+          sum + (parseFloat(item.miktar || 0)), 0
+        );
+        
+        const criticalItems = activeQuarantines.filter((item: any) => 
+          item.aciliyetDurumu === 'YÜKSEK' || item.aciliyetDurumu === 'KRİTİK'
+        );
+        
+        setQuarantineData({
+          activeCount: activeQuarantines.length,
+          totalQuantity,
+          criticalCount: criticalItems.length,
+          trend: activeQuarantines.length > 20 ? 'critical' : activeQuarantines.length > 10 ? 'warning' : 'good'
+        });
+      } catch (error) {
+        console.error('Quarantine data error:', error);
+      }
+    }, []);
+    
+    return (
+      <ProfessionalCard sx={{ height: '100%' }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ 
+              p: 1, 
+              backgroundColor: '#e91e63', 
+              borderRadius: 1, 
+              display: 'flex', 
+              alignItems: 'center' 
+            }}>
+              <BlockIcon sx={{ color: 'white', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
+              Karantinadaki Parçalar
+            </Typography>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              {quarantineData?.activeCount || 0}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Aktif karantina öğesi
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <Chip 
+              label={`Toplam: ${quarantineData?.totalQuantity?.toLocaleString('tr-TR') || 0} adet`}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Kritik: ${quarantineData?.criticalCount || 0} öğe`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              Son güncelleme: {new Date().toLocaleTimeString('tr-TR')}
+            </Typography>
+            <StatusChip 
+              label={quarantineData?.trend === 'critical' ? 'Kritik' : 
+                    quarantineData?.trend === 'warning' ? 'Uyarı' : 'Normal'}
+              color={quarantineData?.trend === 'critical' ? 'error' : 
+                    quarantineData?.trend === 'warning' ? 'warning' : 'success'}
+              size="small"
+            />
+          </Box>
+        </CardContent>
+      </ProfessionalCard>
+    );
+  };
+
+  // 📋 DÖF WIDGETİ
+  const DOFWidget: React.FC = () => {
+    const [dofData, setDofData] = useState<any>(null);
+    
+    useEffect(() => {
+      try {
+        const dofRecords = JSON.parse(localStorage.getItem('dof_records') || '[]');
+        const totalDOF = dofRecords.length;
+        const openDOF = dofRecords.filter((item: any) => 
+          item.durum === 'AÇIK' || item.durum === 'DEVAM_EDIYOR'
+        ).length;
+        const closedDOF = dofRecords.filter((item: any) => 
+          item.durum === 'KAPALI' || item.durum === 'TAMAMLANDI'
+        ).length;
+        
+        const closureRate = totalDOF > 0 ? (closedDOF / totalDOF) * 100 : 100;
+        
+        const overdueDOF = dofRecords.filter((item: any) => {
+          if (!item.hedefKapanisTarihi) return false;
+          return new Date(item.hedefKapanisTarihi) < new Date() && 
+                 (item.durum === 'AÇIK' || item.durum === 'DEVAM_EDIYOR');
+        }).length;
+        
+        setDofData({
+          totalDOF,
+          openDOF,
+          closedDOF,
+          closureRate,
+          overdueDOF,
+          trend: closureRate >= 85 ? 'good' : closureRate >= 70 ? 'warning' : 'critical'
+        });
+      } catch (error) {
+        console.error('DOF data error:', error);
+      }
+    }, []);
+    
+    return (
+      <ProfessionalCard sx={{ height: '100%' }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ 
+              p: 1, 
+              backgroundColor: '#ff9800', 
+              borderRadius: 1, 
+              display: 'flex', 
+              alignItems: 'center' 
+            }}>
+              <AssignmentIcon sx={{ color: 'white', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
+              DÖF Kapanış Oranı
+            </Typography>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              %{dofData?.closureRate?.toFixed(1) || 0}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Kapanış oranı
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <Chip 
+              label={`Toplam: ${dofData?.totalDOF || 0}`}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Açık: ${dofData?.openDOF || 0}`}
+              size="small"
+              color="warning"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Gecikmiş: ${dofData?.overdueDOF || 0}`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              {dofData?.closedDOF || 0} / {dofData?.totalDOF || 0} tamamlandı
+            </Typography>
+            <StatusChip 
+              label={dofData?.trend === 'critical' ? 'Kritik' : 
+                    dofData?.trend === 'warning' ? 'Uyarı' : 'İyi'}
+              color={dofData?.trend === 'critical' ? 'error' : 
+                    dofData?.trend === 'warning' ? 'warning' : 'success'}
+              size="small"
+            />
+          </Box>
+        </CardContent>
+      </ProfessionalCard>
+    );
+  };
+
+  // 🔧 TANK TEST WIDGETİ
+  const TankLeakTestWidget: React.FC = () => {
+    const [tankTestData, setTankTestData] = useState<any>(null);
+    
+    useEffect(() => {
+      try {
+        const tankTests = JSON.parse(localStorage.getItem('tank_tests') || '[]');
+        const totalTests = tankTests.length;
+        const passedTests = tankTests.filter((test: any) => 
+          test.sonuc === 'BAŞARILI' || test.sonuc === 'PASSED'
+        ).length;
+        const failedTests = tankTests.filter((test: any) => 
+          test.sonuc === 'BAŞARISIZ' || test.sonuc === 'FAILED'
+        ).length;
+        
+        const passRate = totalTests > 0 ? (passedTests / totalTests) * 100 : 100;
+        
+        // Bu ayki testler
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const monthlyTests = tankTests.filter((test: any) => 
+          test.testTarihi && test.testTarihi.startsWith(currentMonth)
+        ).length;
+        
+        setTankTestData({
+          totalTests,
+          passedTests,
+          failedTests,
+          passRate,
+          monthlyTests,
+          trend: passRate >= 95 ? 'good' : passRate >= 85 ? 'warning' : 'critical'
+        });
+      } catch (error) {
+        console.error('Tank test data error:', error);
+      }
+    }, []);
+    
+    return (
+      <ProfessionalCard sx={{ height: '100%' }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ 
+              p: 1, 
+              backgroundColor: '#2196f3', 
+              borderRadius: 1, 
+              display: 'flex', 
+              alignItems: 'center' 
+            }}>
+              <BuildIcon sx={{ color: 'white', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
+              Sızdırmazlık Testleri
+            </Typography>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              %{tankTestData?.passRate?.toFixed(1) || 0}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Başarı oranı
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <Chip 
+              label={`Toplam: ${tankTestData?.totalTests || 0}`}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Bu ay: ${tankTestData?.monthlyTests || 0}`}
+              size="small"
+              color="primary"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Başarısız: ${tankTestData?.failedTests || 0}`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              {tankTestData?.passedTests || 0} başarılı test
+            </Typography>
+            <StatusChip 
+              label={tankTestData?.trend === 'critical' ? 'Kritik' : 
+                    tankTestData?.trend === 'warning' ? 'Uyarı' : 'İyi'}
+              color={tankTestData?.trend === 'critical' ? 'error' : 
+                    tankTestData?.trend === 'warning' ? 'warning' : 'success'}
+              size="small"
+            />
+          </Box>
+        </CardContent>
+      </ProfessionalCard>
+    );
+  };
+
+  // 📄 DOKÜMAN YÖNETİMİ WIDGETİ
+  const DocumentManagementWidget: React.FC = () => {
+    const [docData, setDocData] = useState<any>(null);
+    
+    useEffect(() => {
+      try {
+        const documents = JSON.parse(localStorage.getItem('documents') || '[]');
+        const totalDocs = documents.length;
+        const activeDocs = documents.filter((doc: any) => 
+          doc.durum === 'AKTİF' || doc.durum === 'ONAYLANMIS'
+        ).length;
+        
+        // Yenileme tarihi yaklaşan dokümanlar (30 gün içinde)
+        const today = new Date();
+        const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+        
+        const expiringDocs = documents.filter((doc: any) => {
+          if (!doc.yenilemeTarihi) return false;
+          const renewalDate = new Date(doc.yenilemeTarihi);
+          return renewalDate <= thirtyDaysLater && renewalDate >= today;
+        }).length;
+        
+        const expiredDocs = documents.filter((doc: any) => {
+          if (!doc.yenilemeTarihi) return false;
+          return new Date(doc.yenilemeTarihi) < today;
+        }).length;
+        
+        setDocData({
+          totalDocs,
+          activeDocs,
+          expiringDocs,
+          expiredDocs,
+          trend: expiredDocs > 5 ? 'critical' : expiringDocs > 10 ? 'warning' : 'good'
+        });
+      } catch (error) {
+        console.error('Document data error:', error);
+      }
+    }, []);
+    
+    return (
+      <ProfessionalCard sx={{ height: '100%' }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ 
+              p: 1, 
+              backgroundColor: '#607d8b', 
+              borderRadius: 1, 
+              display: 'flex', 
+              alignItems: 'center' 
+            }}>
+              <AssignmentIcon sx={{ color: 'white', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
+              Doküman Yönetimi
+            </Typography>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              {docData?.activeDocs || 0}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Aktif doküman
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <Chip 
+              label={`Toplam: ${docData?.totalDocs || 0}`}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Yenileme: ${docData?.expiringDocs || 0}`}
+              size="small"
+              color="warning"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Süresi Dolmuş: ${docData?.expiredDocs || 0}`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              30 gün içinde yenilenmeli
+            </Typography>
+            <StatusChip 
+              label={docData?.trend === 'critical' ? 'Kritik' : 
+                    docData?.trend === 'warning' ? 'Uyarı' : 'İyi'}
+              color={docData?.trend === 'critical' ? 'error' : 
+                    docData?.trend === 'warning' ? 'warning' : 'success'}
+              size="small"
+            />
+          </Box>
+        </CardContent>
+      </ProfessionalCard>
+    );
+  };
+
+  // 🏭 TEDARİKÇİ DENETİM WIDGETİ
+  const SupplierAuditWidget: React.FC = () => {
+    const [supplierData, setSupplierData] = useState<any>(null);
+    
+    useEffect(() => {
+      try {
+        const suppliers = JSON.parse(localStorage.getItem('suppliers') || '[]');
+        const totalSuppliers = suppliers.length;
+        
+        // Yaklaşan denetim tarihleri (30 gün içinde)
+        const today = new Date();
+        const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+        
+        const upcomingAudits = suppliers.filter((supplier: any) => {
+          if (!supplier.sonrakiDenetimTarihi) return false;
+          const auditDate = new Date(supplier.sonrakiDenetimTarihi);
+          return auditDate <= thirtyDaysLater && auditDate >= today;
+        }).length;
+        
+        const overdueAudits = suppliers.filter((supplier: any) => {
+          if (!supplier.sonrakiDenetimTarihi) return false;
+          return new Date(supplier.sonrakiDenetimTarihi) < today;
+        }).length;
+        
+        const activeSuppliers = suppliers.filter((supplier: any) => 
+          supplier.durum === 'AKTİF' || supplier.durum === 'ONAYLANMIS'
+        ).length;
+        
+        setSupplierData({
+          totalSuppliers,
+          activeSuppliers,
+          upcomingAudits,
+          overdueAudits,
+          trend: overdueAudits > 3 ? 'critical' : upcomingAudits > 10 ? 'warning' : 'good'
+        });
+      } catch (error) {
+        console.error('Supplier audit data error:', error);
+      }
+    }, []);
+    
+    return (
+      <ProfessionalCard sx={{ height: '100%' }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ 
+              p: 1, 
+              backgroundColor: '#9c27b0', 
+              borderRadius: 1, 
+              display: 'flex', 
+              alignItems: 'center' 
+            }}>
+              <FactoryIcon sx={{ color: 'white', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
+              Tedarikçi Denetimleri
+            </Typography>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              {supplierData?.upcomingAudits || 0}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Yaklaşan denetim
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <Chip 
+              label={`Toplam: ${supplierData?.totalSuppliers || 0}`}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Aktif: ${supplierData?.activeSuppliers || 0}`}
+              size="small"
+              color="success"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Gecikmiş: ${supplierData?.overdueAudits || 0}`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              30 gün içinde denetim
+            </Typography>
+            <StatusChip 
+              label={supplierData?.trend === 'critical' ? 'Kritik' : 
+                    supplierData?.trend === 'warning' ? 'Uyarı' : 'İyi'}
+              color={supplierData?.trend === 'critical' ? 'error' : 
+                    supplierData?.trend === 'warning' ? 'warning' : 'success'}
+              size="small"
+            />
+          </Box>
+        </CardContent>
+      </ProfessionalCard>
+    );
+  };
+
+  // ⚙️ EKİPMAN KALİBRASYON WIDGETİ
+  const EquipmentCalibrationWidget: React.FC = () => {
+    const [calibrationData, setCalibrationData] = useState<any>(null);
+    
+    useEffect(() => {
+      try {
+        const equipment = JSON.parse(localStorage.getItem('equipment') || '[]');
+        const totalEquipment = equipment.length;
+        
+        // Yaklaşan kalibrasyon tarihleri (30 gün içinde)
+        const today = new Date();
+        const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+        
+        const upcomingCalibrations = equipment.filter((item: any) => {
+          if (!item.sonrakiKalibrasyonTarihi) return false;
+          const calibrationDate = new Date(item.sonrakiKalibrasyonTarihi);
+          return calibrationDate <= thirtyDaysLater && calibrationDate >= today;
+        }).length;
+        
+        const overdueCalibrations = equipment.filter((item: any) => {
+          if (!item.sonrakiKalibrasyonTarihi) return false;
+          return new Date(item.sonrakiKalibrasyonTarihi) < today;
+        }).length;
+        
+        const activeEquipment = equipment.filter((item: any) => 
+          item.durum === 'AKTİF' || item.durum === 'KULLANILABILIR'
+        ).length;
+        
+        setCalibrationData({
+          totalEquipment,
+          activeEquipment,
+          upcomingCalibrations,
+          overdueCalibrations,
+          trend: overdueCalibrations > 5 ? 'critical' : upcomingCalibrations > 15 ? 'warning' : 'good'
+        });
+      } catch (error) {
+        console.error('Equipment calibration data error:', error);
+      }
+    }, []);
+    
+    return (
+      <ProfessionalCard sx={{ height: '100%' }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ 
+              p: 1, 
+              backgroundColor: '#795548', 
+              borderRadius: 1, 
+              display: 'flex', 
+              alignItems: 'center' 
+            }}>
+              <BuildIcon sx={{ color: 'white', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
+              Ekipman Kalibrasyonları
+            </Typography>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              {calibrationData?.upcomingCalibrations || 0}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Yaklaşan kalibrasyon
+            </Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <Chip 
+              label={`Toplam: ${calibrationData?.totalEquipment || 0}`}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Aktif: ${calibrationData?.activeEquipment || 0}`}
+              size="small"
+              color="success"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+            <Chip 
+              label={`Gecikmiş: ${calibrationData?.overdueCalibrations || 0}`}
+              size="small"
+              color="error"
+              variant="outlined"
+              sx={{ fontSize: '0.7rem' }}
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              30 gün içinde kalibrasyon
+            </Typography>
+            <StatusChip 
+              label={calibrationData?.trend === 'critical' ? 'Kritik' : 
+                    calibrationData?.trend === 'warning' ? 'Uyarı' : 'İyi'}
+              color={calibrationData?.trend === 'critical' ? 'error' : 
+                    calibrationData?.trend === 'warning' ? 'warning' : 'success'}
+              size="small"
+            />
+          </Box>
+        </CardContent>
+      </ProfessionalCard>
+    );
+  };
+
+  // 📊 GENEL KALİTE DURUMU WIDGETİ
+  const OverallQualityStatusWidget: React.FC = () => {
+    const [overallStatus, setOverallStatus] = useState<any>(null);
+    
+    useEffect(() => {
+      try {
+        // Tüm modüllerden genel kalite durumu hesapla
+        const qualityCosts = JSON.parse(localStorage.getItem('quality_costs') || '[]');
+        const dofRecords = JSON.parse(localStorage.getItem('dof_records') || '[]');
+        const quarantineRecords = JSON.parse(localStorage.getItem('quarantine_records') || '[]');
+        const tankTests = JSON.parse(localStorage.getItem('tank_tests') || '[]');
+        
+        // Kalite skoru hesapla (0-100)
+        const dofScore = dofRecords.length > 0 ? 
+          (dofRecords.filter((d: any) => d.durum === 'KAPALI').length / dofRecords.length) * 100 : 100;
+        
+        const quarantineScore = quarantineRecords.length > 0 ? 
+          Math.max(0, 100 - (quarantineRecords.filter((q: any) => q.durum === 'KARANTİNADA').length * 5)) : 100;
+        
+        const tankTestScore = tankTests.length > 0 ? 
+          (tankTests.filter((t: any) => t.sonuc === 'BAŞARILI').length / tankTests.length) * 100 : 100;
+        
+        const overallScore = (dofScore + quarantineScore + tankTestScore) / 3;
+        
+        const status = overallScore >= 90 ? 'excellent' : 
+                      overallScore >= 80 ? 'good' : 
+                      overallScore >= 70 ? 'warning' : 'critical';
+        
+        setOverallStatus({
+          overallScore,
+          status,
+          dofScore,
+          quarantineScore,
+          tankTestScore,
+          totalIssues: dofRecords.filter((d: any) => d.durum === 'AÇIK').length + 
+                       quarantineRecords.filter((q: any) => q.durum === 'KARANTİNADA').length
+        });
+      } catch (error) {
+        console.error('Overall quality status error:', error);
+      }
+    }, []);
+    
+    return (
+      <ProfessionalCard sx={{ height: '100%' }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ 
+              p: 1, 
+              backgroundColor: '#4caf50', 
+              borderRadius: 1, 
+              display: 'flex', 
+              alignItems: 'center' 
+            }}>
+              <AssessmentIcon sx={{ color: 'white', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
+              Genel Kalite Durumu
+            </Typography>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h4" fontWeight="bold" color="primary">
+              {overallStatus?.overallScore?.toFixed(1) || 0}%
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Genel kalite skoru
+            </Typography>
+          </Box>
+          
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Alt Sistem Skorları:
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="caption">DÖF Sistemi</Typography>
+                <Typography variant="caption" fontWeight="bold">
+                  %{overallStatus?.dofScore?.toFixed(1) || 0}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="caption">Karantina</Typography>
+                <Typography variant="caption" fontWeight="bold">
+                  %{overallStatus?.quarantineScore?.toFixed(1) || 0}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="caption">Test Sonuçları</Typography>
+                <Typography variant="caption" fontWeight="bold">
+                  %{overallStatus?.tankTestScore?.toFixed(1) || 0}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              {overallStatus?.totalIssues || 0} açık konu
+            </Typography>
+            <StatusChip 
+              label={overallStatus?.status === 'excellent' ? 'Mükemmel' : 
+                    overallStatus?.status === 'good' ? 'İyi' : 
+                    overallStatus?.status === 'warning' ? 'Uyarı' : 'Kritik'}
+              color={overallStatus?.status === 'excellent' ? 'success' : 
+                    overallStatus?.status === 'good' ? 'info' : 
+                    overallStatus?.status === 'warning' ? 'warning' : 'error'}
+              size="small"
+            />
+          </Box>
+        </CardContent>
+      </ProfessionalCard>
+    );
+  };
+
   if (isLoading) {
     return (
       <ElegantContainer>
@@ -1341,6 +2193,60 @@ const Dashboard: React.FC = () => {
             </Grid>
           ))}
         </Grid>
+
+      {/* ============================================ */}
+      {/* 🎯 ÖZEL KALİTE YÖNETİMİ DASHBOARD WIDGETLERİ */}
+      {/* ============================================ */}
+      
+      <SectionHeader 
+        title="Kalite Yönetimi Özet Görünümü" 
+        sx={{ mb: 3 }}
+      />
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, mt: -2 }}>
+        Kritik kalite verilerinin güncel durumu ve yaklaşan önemli tarihler
+      </Typography>
+      
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* 💰 AYLIK KALİTESİZLİK MALİYETİ */}
+        <Grid item xs={12} md={6} lg={4}>
+          <QualityCostWidget />
+        </Grid>
+
+        {/* 🚫 KARANTİNADAKİ PARÇALAR */}
+        <Grid item xs={12} md={6} lg={4}>
+          <QuarantineWidget />
+        </Grid>
+
+        {/* 📋 DÖF VE KAPATMA ORANI */}
+        <Grid item xs={12} md={6} lg={4}>
+          <DOFWidget />
+        </Grid>
+
+        {/* 🔧 SIZDIIRMAZLIK TESTLERİ */}
+        <Grid item xs={12} md={6} lg={4}>
+          <TankLeakTestWidget />
+        </Grid>
+
+        {/* 📄 DOKÜMAN YÖNETİMİ */}
+        <Grid item xs={12} md={6} lg={4}>
+          <DocumentManagementWidget />
+        </Grid>
+
+        {/* 🏭 TEDARİKÇİ DENETİMLERİ */}
+        <Grid item xs={12} md={6} lg={4}>
+          <SupplierAuditWidget />
+        </Grid>
+
+        {/* ⚙️ EKİPMAN KALİBRASYONLARI */}
+        <Grid item xs={12} md={6} lg={4}>
+          <EquipmentCalibrationWidget />
+        </Grid>
+
+        {/* 📊 GENEL KALİTE DURUMU */}
+        <Grid item xs={12} md={6} lg={5}>
+          <OverallQualityStatusWidget />
+        </Grid>
+      </Grid>
 
       {/* CRITICAL ALERTS & MODULE HEALTH */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

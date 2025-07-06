@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import {
   Typography, Box, Paper, Card, CardContent, CardHeader, Button, TextField,
   Select, MenuItem, FormControl, InputLabel, Dialog, DialogTitle, DialogContent,
@@ -27,6 +27,125 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 
+// ============================================
+// KUSURSUZ ARAMA COMPONENT'İ
+// ============================================
+
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
+  
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Input ref - focus yönetimi için
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Clear trigger etkisi - sadece external clear için
+  useEffect(() => {
+    if (clearTrigger > 0) {
+      console.log('🧹 External clear trigger activated');
+      setLocalValue('');
+      if (inputRef.current) {
+        inputRef.current.focus(); // Clear sonrası focus kal
+      }
+    }
+  }, [clearTrigger]);
+  
+  // Input değişiklik handler'ı - PARENT'TAN TAMAMEN BAĞIMSIZ
+  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    console.log('🔍 Local arama değişiyor:', newValue);
+    
+    // Local state'i hemen güncelle (UI responsive)
+    setLocalValue(newValue);
+    
+    // Önceki debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Yeni debounce başlat - DİNAMİK ARAMA İÇİN MAKUL SÜRE
+    debounceRef.current = setTimeout(() => {
+      console.log('📤 Debounce tamamlandı, parent\'a gönderiliyor:', newValue);
+      onDebouncedChange(newValue);
+     }, 800); // 800ms - dinamik arama, ama yine de stabil odak
+  }, [onDebouncedChange]);
+  
+  // Blur handler - başka yere tıkladığında arama yap
+  const handleBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
+    const currentValue = event.target.value;
+    console.log('🎯 Odak kaybedildi, hemen arama yapılıyor:', currentValue);
+    
+    // Debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Hemen arama yap
+    onDebouncedChange(currentValue);
+  }, [onDebouncedChange]);
+  
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+  
+  // STATİK PROPS - HİÇ DEĞİŞMEZ
+  const staticInputProps = useMemo(() => ({
+    startAdornment: (
+      <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
+    ),
+    sx: { bgcolor: 'white' }
+  }), []);
+  
+  const staticSxProps = useMemo(() => ({
+    '& .MuiOutlinedInput-root': {
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+        borderWidth: '2px',
+      },
+    },
+  }), []);
+  
+  return (
+    <TextField
+      ref={inputRef}
+      fullWidth={fullWidth}
+      size={size}
+      label={label}
+      value={localValue} // SADECE LOCAL STATE
+      onChange={handleInputChange}
+      onBlur={handleBlur} // Başka yere tıkladığında arama yap
+      placeholder={placeholder}
+      autoComplete="off"
+      spellCheck={false}
+      InputProps={staticInputProps}
+      sx={staticSxProps}
+    />
+  );
+});
+
+// Component displayName
+UltraIsolatedSearchInput.displayName = 'UltraIsolatedSearchInput';
+
+// ============================================
 // Enhanced interfaces for comprehensive supplier management
 interface Supplier {
   id: string;
@@ -326,6 +445,23 @@ const SupplierQualityManagement: React.FC = () => {
   const [supplierCategoryFilter, setSupplierCategoryFilter] = useState('all');
   const [supplierStatusFilter, setSupplierStatusFilter] = useState('all');
   const [supplierRiskFilter, setSupplierRiskFilter] = useState('all');
+
+  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  const [clearTrigger, setClearTrigger] = useState(0);
+
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 Debounced arama terimi geldi:', debouncedSearchTerm);
+    setSearchTerm(prev => {
+      // Eğer değer değişmemişse state'i güncelleme
+      if (prev === debouncedSearchTerm) {
+        console.log('🔍 Arama terimi aynı, state güncellenmeyecek');
+        return prev;
+      }
+      console.log('🔍 Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
+      return debouncedSearchTerm;
+    });
+  }, []);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -336,6 +472,20 @@ const SupplierQualityManagement: React.FC = () => {
   const [pairingSearchTerm, setPairingSearchTerm] = useState('');
   const [pairingCategoryFilter, setPairingCategoryFilter] = useState('all');
   const [pairingStatusFilter, setPairingStatusFilter] = useState('all'); // primary-missing, alternatives-only, complete
+
+  // ✅ PAIRING CLEAR TRIGGER
+  const [pairingClearTrigger, setPairingClearTrigger] = useState(0);
+
+  // ✅ PAIRING ARAMA HANDLER
+  const handlePairingDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 Pairing arama terimi geldi:', debouncedSearchTerm);
+    setPairingSearchTerm(prev => {
+      if (prev === debouncedSearchTerm) {
+        return prev;
+      }
+      return debouncedSearchTerm;
+    });
+  }, []);
 
   // Performans karşılaştırması filtresi
   const [performanceFilter, setPerformanceFilter] = useState<'all' | 'top10' | 'worst10'>('all');
@@ -3833,16 +3983,13 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         <Card elevation={1} sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                size="small"
+              <UltraIsolatedSearchInput
+                initialValue={pairingSearchTerm}
+                onDebouncedChange={handlePairingDebouncedSearchChange}
                 placeholder="Eşleştirme ara (tedarikçi adı, kategori)..."
-                value={pairingSearchTerm}
-                onChange={(e) => setPairingSearchTerm(e.target.value)}
-                InputProps={{ 
-                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
-                  sx: { bgcolor: 'white' }
-                }}
+                size="small"
+                fullWidth
+                clearTrigger={pairingClearTrigger}
               />
             </Grid>
             <Grid item xs={12} md={3}>
@@ -4446,16 +4593,13 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         <Card elevation={1} sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
           <Grid container spacing={2} alignItems="center" mb={2}>
             <Grid item xs={12} md={3}>
-          <TextField
-                fullWidth
-            size="small"
+              <UltraIsolatedSearchInput
+                initialValue={searchTerm}
+                onDebouncedChange={handleDebouncedSearchChange}
                 placeholder="Tedarikçi ara (ad, kişi, kategori)..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{ 
-                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
-                  sx: { bgcolor: 'white' }
-                }}
+                size="small"
+                fullWidth
+                clearTrigger={clearTrigger}
               />
             </Grid>
             <Grid item xs={6} md={2}>
