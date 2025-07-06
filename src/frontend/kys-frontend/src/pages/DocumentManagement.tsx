@@ -165,8 +165,6 @@ interface Document {
   number: string;
   unit: string;
   effectiveDate: string;
-  lastReviewDate?: string;
-  nextReviewDate?: string;
   revisionNo: number;
   owner: string;
   uploadDate: string;
@@ -287,9 +285,12 @@ type DocumentType =
   | 'ISO 9001 Belgesi'
   | 'ISO 14001 Belgesi'
   | 'ISO 45001 Belgesi'
-  | 'TS 3834-2 Belgesi'
   | 'ISO 50001 Belgesi'
   | 'ISO 27001 Belgesi'
+  | 'ISO 10002 Belgesi'
+  | 'OHSAS 18001 Belgesi'
+  | 'ISO 28001 Belgesi'
+  | 'TS 3834-2 Belgesi'
   | 'Kaynakçı Sertifikası'
   | 'Kaynakçı Nitelik Belgesi'
   | 'Kaynak Operatörü Belgesi'
@@ -400,6 +401,7 @@ interface PersonnelOption {
   registrationNo: string;
   department: string;
   position: string;
+  nationalId: string;
 }
 
 interface PersonnelForm {
@@ -408,6 +410,7 @@ interface PersonnelForm {
   registrationNo: string;
   department: string;
   position: string;
+  nationalId: string;
 }
 
 // Kaynakçı seçimi için interface
@@ -455,6 +458,9 @@ const DOCUMENT_TYPES: DocumentType[] = [
   'ISO 27001 Belgesi',
   'ISO 45001 Belgesi',
   'ISO 50001 Belgesi',
+  'ISO 10002 Belgesi',
+  'OHSAS 18001 Belgesi',
+  'ISO 28001 Belgesi',
   'TS 3834-2 Belgesi',
   
   // Personel Belgeleri
@@ -467,11 +473,8 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 const UNITS = [
-  'Üretim Planlama', 'Kaynak Atölyesi', 'Makine Atölyesi', 'Montaj Hattı', 
-  'Kalite Kontrol', 'Kalite Güvence', 'Boyahane', 'Kesim Atölyesi',
-  'İSG', 'Çevre Yönetimi', 'Satın Alma', 'Ar-Ge', 'Proje Yönetimi',
-  'İnsan Kaynakları', 'Finans', 'Muhasebe', 'Bilgi İşlem',
-  'Ambar/Depo', 'Sevkiyat', 'Genel Müdürlük'
+  'Kaynak Atölyesi', 'Boyahane', 'Montaj Hattı', 'Kalite Kontrol',
+  'Elektrik', 'Han', 'Büküm', 'Arge', 'Satın Alma', 'Kesim', 'Ambar/Depo'
 ];
 
 const CERTIFICATE_TYPES: CertificateType[] = [
@@ -753,10 +756,10 @@ const DocumentManagement: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [welderCertificates, setWelderCertificates] = useState<WelderCertificate[]>([]);
   
-  // Personel seçimi için veri - Initialize with empty array, will be loaded from localStorage
+  // Personel seçimi için veri - Boş başlatılıyor, kullanıcı tarafından doldurulacak
   const [personnelOptions, setPersonnelOptions] = useState<PersonnelOption[]>([]);
   
-  // Kaynakçı seçimi için veri - Initialize with empty array, will be loaded from localStorage
+  // Kaynakçı seçimi için veri - Boş başlatılıyor, kullanıcı tarafından doldurulacak  
   const [welderOptions, setWelderOptions] = useState<WelderOption[]>([]);
   const [personnelDocuments, setPersonnelDocuments] = useState<PersonnelDocument[]>([]);
   const [qualityCertificates, setQualityCertificates] = useState<QualityCertificate[]>([]);
@@ -808,7 +811,8 @@ const DocumentManagement: React.FC = () => {
     name: '',
     registrationNo: '',
     department: '',
-    position: ''
+    position: '',
+    nationalId: ''
   });
   
   // Kaynakçı yönetimi state'leri
@@ -834,36 +838,13 @@ const DocumentManagement: React.FC = () => {
 
   const colors = getColors();
 
-  // Certificate data arrays - Initialize with empty array, will be loaded from localStorage
+  // Certificate data arrays - State olarak tanımlandı, Mock data kaldırıldı
   const [weldingCertificates, setWeldingCertificates] = useState<QualityCertificate[]>([]);
 
-  // Load data from localStorage on component mount
+  // Initialize sample documents with approval data - ONLY ON FIRST LOAD
   React.useEffect(() => {
-    const loadStoredData = () => {
-      try {
-        // Load documents
-        const storedDocuments = localStorage.getItem('documentManagement_documents');
-        if (storedDocuments) {
-          const parsedDocuments = JSON.parse(storedDocuments);
-          if (parsedDocuments.length > 0) {
-            setDocuments(parsedDocuments);
-            return true; // Data loaded successfully
-          }
-        }
-        return false; // No data found
-      } catch (error) {
-        console.error('Error loading stored documents:', error);
-        return false;
-      }
-    };
-
-    const dataLoaded = loadStoredData();
-    
-    // ⚠️ MOCK DATA GENERATION DISABLED FOR PRODUCTION USE
-    // User requested to stop automatic mock data generation
-    if (false && !dataLoaded) { // ALWAYS FALSE - No mock data generation
-      const isInitialized = localStorage.getItem('documentManagement_initialized');
-      if (!isInitialized) {
+    const isInitialized = localStorage.getItem('documentManagement_initialized');
+    if (!isInitialized && documents.length === 0) {
       const sampleDocuments: Document[] = [
         {
           id: '1',
@@ -1003,35 +984,13 @@ const DocumentManagement: React.FC = () => {
       ];
       setDocuments(sampleDocuments);
       localStorage.setItem('documentManagement_initialized', 'true');
-      }
     }
   }, []);
 
-  // Load personnel documents from localStorage on component mount
+  // Initialize sample personnel documents - ONLY ON FIRST LOAD
   React.useEffect(() => {
-    const loadStoredPersonnelData = () => {
-      try {
-        const storedPersonnelDocs = localStorage.getItem('documentManagement_personnelDocuments');
-        if (storedPersonnelDocs) {
-          const parsedPersonnelDocs = JSON.parse(storedPersonnelDocs);
-          if (parsedPersonnelDocs.length > 0) {
-            setPersonnelDocuments(parsedPersonnelDocs);
-            return true;
-          }
-        }
-        return false;
-      } catch (error) {
-        console.error('Error loading stored personnel documents:', error);
-        return false;
-      }
-    };
-
-    const personnelDataLoaded = loadStoredPersonnelData();
-    
-    // ⚠️ MOCK DATA GENERATION DISABLED FOR PRODUCTION USE  
-    if (false && !personnelDataLoaded) { // ALWAYS FALSE - No mock data generation
-      const isPersonnelInitialized = localStorage.getItem('documentManagement_personnel_initialized');
-      if (!isPersonnelInitialized) {
+    const isPersonnelInitialized = localStorage.getItem('documentManagement_personnel_initialized');
+    if (!isPersonnelInitialized && personnelDocuments.length === 0) {
       const sampleDocuments: PersonnelDocument[] = [
         {
           id: '1',
@@ -1161,35 +1120,13 @@ const DocumentManagement: React.FC = () => {
       ];
       setPersonnelDocuments(sampleDocuments);
       localStorage.setItem('documentManagement_personnel_initialized', 'true');
-      }
     }
   }, []);
 
-  // Load product certificates from localStorage on component mount
+  // Initialize product certificates - ONLY ON FIRST LOAD
   React.useEffect(() => {
-    const loadStoredProductCerts = () => {
-      try {
-        const storedProductCerts = localStorage.getItem('documentManagement_productCertificates');
-        if (storedProductCerts) {
-          const parsedProductCerts = JSON.parse(storedProductCerts);
-          if (parsedProductCerts.length > 0) {
-            setProductCertificates(parsedProductCerts);
-            return true;
-          }
-        }
-        return false;
-      } catch (error) {
-        console.error('Error loading stored product certificates:', error);
-        return false;
-      }
-    };
-
-    const productDataLoaded = loadStoredProductCerts();
-    
-    // ⚠️ MOCK DATA GENERATION DISABLED FOR PRODUCTION USE
-    if (false && !productDataLoaded) { // ALWAYS FALSE - No mock data generation
-      const isProductCertInitialized = localStorage.getItem('documentManagement_productCert_initialized');
-      if (!isProductCertInitialized) {
+    const isProductCertInitialized = localStorage.getItem('documentManagement_productCert_initialized');
+    if (!isProductCertInitialized && productCertificates.length === 0) {
       const sampleProductCertificates: ProductCertificate[] = [
         { id: '1', name: 'CE İşaretleme', type: 'Ürün Uygunluk Belgesi', expiry: '2025-07-30', status: 'active', authority: 'Notified Body' },
         { id: '2', name: 'TSE Belgesi', type: 'Türk Standartları Belgesi', expiry: '2025-05-15', status: 'active', authority: 'TSE' },
@@ -1198,35 +1135,13 @@ const DocumentManagement: React.FC = () => {
       ];
       setProductCertificates(sampleProductCertificates);
       localStorage.setItem('documentManagement_productCert_initialized', 'true');
-      }
     }
   }, []);
 
-  // Load quality certificates from localStorage on component mount
+  // Initialize quality certificates - ONLY ON FIRST LOAD  
   React.useEffect(() => {
-    const loadStoredQualityCerts = () => {
-      try {
-        const storedQualityCerts = localStorage.getItem('documentManagement_qualityCertificates');
-        if (storedQualityCerts) {
-          const parsedQualityCerts = JSON.parse(storedQualityCerts);
-          if (parsedQualityCerts.length > 0) {
-            setQualityCertificates(parsedQualityCerts);
-            return true;
-          }
-        }
-        return false;
-      } catch (error) {
-        console.error('Error loading stored quality certificates:', error);
-        return false;
-      }
-    };
-
-    const qualityDataLoaded = loadStoredQualityCerts();
-    
-    // ⚠️ MOCK DATA GENERATION DISABLED FOR PRODUCTION USE
-    if (false && !qualityDataLoaded) { // ALWAYS FALSE - No mock data generation
-      const isQualityCertInitialized = localStorage.getItem('documentManagement_qualityCert_initialized');
-      if (!isQualityCertInitialized) {
+    const isQualityCertInitialized = localStorage.getItem('documentManagement_qualityCert_initialized');
+    if (!isQualityCertInitialized && qualityCertificates.length === 0) {
       const sampleQualityCertificates: QualityCertificate[] = [
         { id: '1', name: 'ISO 9001:2015', type: 'Kalite Yönetim Sistemi', expiry: '2025-06-15', status: 'active', authority: 'TÜV NORD' },
         { id: '2', name: 'ISO 14001:2015', type: 'Çevre Yönetim Sistemi', expiry: '2025-08-20', status: 'active', authority: 'Bureau Veritas' },
@@ -1236,86 +1151,88 @@ const DocumentManagement: React.FC = () => {
       ];
       setQualityCertificates(sampleQualityCertificates);
       localStorage.setItem('documentManagement_qualityCert_initialized', 'true');
+    }
+  }, []);
+
+  // Auto-save ve auto-load sistemleri
+  React.useEffect(() => {
+    const savedData = localStorage.getItem('documentManagement_documents');
+    if (savedData && documents.length === 0) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setDocuments(parsedData);
+      } catch (error) {
+        console.error('Error loading documents from localStorage:', error);
       }
     }
   }, []);
 
-  // Load personnelOptions and welderOptions from localStorage on component mount
   React.useEffect(() => {
-    const loadStoredOptions = () => {
+    const savedData = localStorage.getItem('documentManagement_personnelOptions');
+    if (savedData && personnelOptions.length === 0) {
       try {
-        // Load personnelOptions
-        const storedPersonnelOptions = localStorage.getItem('documentManagement_personnelOptions');
-        if (storedPersonnelOptions) {
-          const parsedPersonnelOptions = JSON.parse(storedPersonnelOptions);
-          if (parsedPersonnelOptions.length > 0) {
-            setPersonnelOptions(parsedPersonnelOptions);
-          }
-        }
-        // ⚠️ PERSONNEL OPTIONS MOCK DATA COMPLETELY REMOVED
-        // No more automatic personnel generation
-
-        // Load welderOptions
-        const storedWelderOptions = localStorage.getItem('documentManagement_welderOptions');
-        if (storedWelderOptions) {
-          const parsedWelderOptions = JSON.parse(storedWelderOptions);
-          if (parsedWelderOptions.length > 0) {
-            setWelderOptions(parsedWelderOptions);
-          }
-        } else if (false) { // ⚠️ MOCK DATA DISABLED - No default welder options
-          // Initialize with default welder options if none exist
-          const defaultWelderOptions: WelderOption[] = [
-            { id: 'W001', welderName: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-1', certificateNumber: 'W001-2024', status: 'active' },
-            { id: 'W002', welderName: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-2', certificateNumber: 'W002-2024', status: 'active' },
-            { id: 'W003', welderName: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 14732', certificateNumber: 'W003-2024', status: 'active' },
-            { id: 'W004', welderName: 'Mustafa Öz', registrationNo: '004', department: 'Kaynak Atölyesi', certificateType: 'ASME IX', certificateNumber: 'W004-2024', status: 'active' },
-            { id: 'W005', welderName: 'Emre Baz', registrationNo: '005', department: 'Kaynak Atölyesi', certificateType: 'AWS D1.1', certificateNumber: 'W005-2024', status: 'active' },
-          ];
-          setWelderOptions(defaultWelderOptions);
-        }
-
-        // Load weldingCertificates
-        const storedWeldingCerts = localStorage.getItem('documentManagement_weldingCertificates');
-        if (storedWeldingCerts) {
-          const parsedWeldingCerts = JSON.parse(storedWeldingCerts);
-          if (parsedWeldingCerts.length > 0) {
-            setWeldingCertificates(parsedWeldingCerts);
-          }
-        }
-        // ⚠️ WELDING CERTIFICATES MOCK DATA COMPLETELY REMOVED
-        // No more EN ISO 3834-2:2021 automatic generation
+        const parsedData = JSON.parse(savedData);
+        setPersonnelOptions(parsedData);
       } catch (error) {
-        console.error('Error loading stored options:', error);
+        console.error('Error loading personnelOptions from localStorage:', error);
       }
-    };
-
-    loadStoredOptions();
+    }
   }, []);
 
-  // Auto-save data to localStorage when state changes
+  React.useEffect(() => {
+    const savedData = localStorage.getItem('documentManagement_welderOptions');
+    if (savedData && welderOptions.length === 0) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setWelderOptions(parsedData);
+      } catch (error) {
+        console.error('Error loading welderOptions from localStorage:', error);
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const savedData = localStorage.getItem('documentManagement_weldingCertificates');
+    if (savedData && weldingCertificates.length === 0) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setWeldingCertificates(parsedData);
+      } catch (error) {
+        console.error('Error loading weldingCertificates from localStorage:', error);
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const savedData = localStorage.getItem('documentManagement_personnelDocuments');
+    if (savedData && personnelDocuments.length === 0) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setPersonnelDocuments(parsedData);
+      } catch (error) {
+        console.error('Error loading personnelDocuments from localStorage:', error);
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const savedData = localStorage.getItem('documentManagement_qualityCertificates');
+    if (savedData && qualityCertificates.length === 0) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setQualityCertificates(parsedData);
+      } catch (error) {
+        console.error('Error loading qualityCertificates from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Auto-save when data changes
   React.useEffect(() => {
     if (documents.length > 0) {
       localStorage.setItem('documentManagement_documents', JSON.stringify(documents));
     }
   }, [documents]);
-
-  React.useEffect(() => {
-    if (personnelDocuments.length > 0) {
-      localStorage.setItem('documentManagement_personnelDocuments', JSON.stringify(personnelDocuments));
-    }
-  }, [personnelDocuments]);
-
-  React.useEffect(() => {
-    if (qualityCertificates.length > 0) {
-      localStorage.setItem('documentManagement_qualityCertificates', JSON.stringify(qualityCertificates));
-    }
-  }, [qualityCertificates]);
-
-  React.useEffect(() => {
-    if (productCertificates.length > 0) {
-      localStorage.setItem('documentManagement_productCertificates', JSON.stringify(productCertificates));
-    }
-  }, [productCertificates]);
 
   React.useEffect(() => {
     if (personnelOptions.length > 0) {
@@ -1335,19 +1252,36 @@ const DocumentManagement: React.FC = () => {
     }
   }, [weldingCertificates]);
 
-  // Updated certificate statistics with dynamic data - Include user-added certificates
+  React.useEffect(() => {
+    if (personnelDocuments.length > 0) {
+      localStorage.setItem('documentManagement_personnelDocuments', JSON.stringify(personnelDocuments));
+    }
+  }, [personnelDocuments]);
+
+  React.useEffect(() => {
+    if (qualityCertificates.length > 0) {
+      localStorage.setItem('documentManagement_qualityCertificates', JSON.stringify(qualityCertificates));
+    }
+  }, [qualityCertificates]);
+
+  // Updated certificate statistics with dynamic data
   const userAddedQualityCertificates = documents.filter(doc => 
-    doc.type.includes('ISO') || doc.type.includes('TS 3834-2')
+    doc.type === 'ISO 9001 Belgesi' || 
+    doc.type === 'ISO 14001 Belgesi' || 
+    doc.type === 'ISO 27001 Belgesi' || 
+    doc.type === 'ISO 45001 Belgesi' || 
+    doc.type === 'ISO 50001 Belgesi' ||
+    doc.type === 'ISO 10002 Belgesi' ||
+    doc.type === 'OHSAS 18001 Belgesi' ||
+    doc.type === 'ISO 28001 Belgesi' ||
+    doc.type === 'TS 3834-2 Belgesi'
   );
   
   const certificateStats = {
     total: qualityCertificates.length + userAddedQualityCertificates.length,
-    active: qualityCertificates.filter(c => c.status === 'active').length + 
-            userAddedQualityCertificates.filter(c => c.status === 'active').length,
-    expiring: qualityCertificates.filter(c => c.status === 'expiring').length + 
-              userAddedQualityCertificates.filter(c => c.status === 'review' || c.status === 'draft').length,
-    expired: qualityCertificates.filter(c => c.status === 'expired').length + 
-             userAddedQualityCertificates.filter(c => c.status === 'obsolete').length,
+    active: qualityCertificates.filter(c => c.status === 'active').length + userAddedQualityCertificates.filter(c => c.status === 'active').length,
+    expiring: qualityCertificates.filter(c => c.status === 'expiring').length + userAddedQualityCertificates.filter(c => c.status === 'review').length,
+    expired: qualityCertificates.filter(c => c.status === 'expired').length + userAddedQualityCertificates.filter(c => c.status === 'obsolete').length,
     certificatesWithStatus: qualityCertificates
   };
 
@@ -1431,25 +1365,9 @@ const DocumentManagement: React.FC = () => {
     });
   };
 
-  // Filtered documents - Tab bazlı filtreleme ekleyerek
+  // Filtered documents
   const filteredDocuments = useMemo(() => {
     return documents.filter(doc => {
-      // Tab bazlı filtreleme
-      if (activeTab === 0) {
-        // Teknik Dokümanlar tab'ında: ISO ve TS belgelerini hariç tut
-        if (doc.type.includes('ISO') || doc.type.includes('TS 3834-2') || 
-            doc.type.includes('İSG Sertifikası') || doc.type.includes('Kaynakçı') || 
-            doc.type.includes('NDT Sertifikası') || doc.type.includes('Yetki Belgesi')) {
-          return false;
-        }
-      } else if (activeTab === 2) {
-        // Kalite Belgeleri tab'ında: Sadece ISO ve TS belgelerini göster
-        if (!doc.type.includes('ISO') && !doc.type.includes('TS 3834-2')) {
-          return false;
-        }
-      }
-      
-      // Diğer filtreler
       if (filters.searchTerm && !doc.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) &&
           !doc.number.toLowerCase().includes(filters.searchTerm.toLowerCase())) return false;
       if (filters.type && doc.type !== filters.type) return false;
@@ -1464,7 +1382,7 @@ const DocumentManagement: React.FC = () => {
       }
       return true;
     });
-  }, [documents, filters, activeTab]);
+  }, [documents, filters]);
 
   // Filtered welder certificates
   const filteredWelderCertificates = useMemo(() => {
@@ -1569,8 +1487,6 @@ const DocumentManagement: React.FC = () => {
       number: '',
       unit: '',
       effectiveDate: new Date().toISOString().split('T')[0],
-      lastReviewDate: undefined,
-      nextReviewDate: undefined,
       revisionNo: 1,
       owner: '',
       description: '',
@@ -1649,8 +1565,6 @@ const DocumentManagement: React.FC = () => {
         number: doc.number,
         unit: doc.unit,
         effectiveDate: doc.effectiveDate,
-        lastReviewDate: doc.lastReviewDate,
-        nextReviewDate: doc.nextReviewDate,
         revisionNo: doc.revisionNo,
         owner: doc.owner,
         description: doc.description,
@@ -2148,8 +2062,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         number: documentForm.number!,
         unit: documentForm.unit!,
         effectiveDate: documentForm.effectiveDate!,
-        lastReviewDate: documentForm.lastReviewDate,
-        nextReviewDate: documentForm.nextReviewDate,
         revisionNo: documentForm.revisionNo || 1,
         owner: documentForm.owner!,
         uploadDate: now,
@@ -2197,8 +2109,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               type: documentForm.type as DocumentType,
               unit: documentForm.unit!,
               effectiveDate: documentForm.effectiveDate!,
-              lastReviewDate: documentForm.lastReviewDate,
-              nextReviewDate: documentForm.nextReviewDate,
               revisionNo: documentForm.revisionNo || doc.revisionNo,
               owner: documentForm.owner!,
               description: documentForm.description || '',
@@ -2239,8 +2149,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       number: '',
       unit: '',
       effectiveDate: new Date().toISOString().split('T')[0],
-      lastReviewDate: undefined,
-      nextReviewDate: undefined,
       revisionNo: 1,
       owner: '',
       description: '',
@@ -2271,8 +2179,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
     number: '',
     unit: '',
     effectiveDate: new Date().toISOString().split('T')[0],
-    lastReviewDate: undefined,
-    nextReviewDate: undefined,
     revisionNo: 1,
     owner: '',
     description: '',
@@ -2300,7 +2206,8 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       name: '',
       registrationNo: '',
       department: '',
-      position: ''
+      position: '',
+      nationalId: ''
     });
     setPersonnelFormMode('add');
     setPersonnelFormDialog(true);
@@ -2312,7 +2219,8 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       name: personnel.name,
       registrationNo: personnel.registrationNo,
       department: personnel.department,
-      position: personnel.position
+      position: personnel.position,
+      nationalId: personnel.nationalId
     });
     setPersonnelFormMode('edit');
     setPersonnelFormDialog(true);
@@ -2332,8 +2240,15 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
 
   const handleSavePersonnel = () => {
     if (!currentPersonnelForm.name || !currentPersonnelForm.registrationNo || 
-        !currentPersonnelForm.department || !currentPersonnelForm.position) {
+        !currentPersonnelForm.department || !currentPersonnelForm.position || 
+        !currentPersonnelForm.nationalId) {
       setSnackbar({ open: true, message: 'Lütfen tüm alanları doldurun!', severity: 'error' });
+      return;
+    }
+
+    // TC Kimlik numarası kontrolü
+    if (currentPersonnelForm.nationalId.length !== 11) {
+      setSnackbar({ open: true, message: 'TC Kimlik numarası 11 haneli olmalıdır!', severity: 'error' });
       return;
     }
 
@@ -2347,13 +2262,24 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       return;
     }
 
+    // TC Kimlik numarası benzersizlik kontrolü
+    const duplicateNationalId = personnelOptions.find(p => 
+      p.nationalId === currentPersonnelForm.nationalId && 
+      p.id !== currentPersonnelForm.id
+    );
+    if (duplicateNationalId) {
+      setSnackbar({ open: true, message: 'Bu TC Kimlik numarası zaten kayıtlı!', severity: 'error' });
+      return;
+    }
+
     if (personnelFormMode === 'add') {
       const newPersonnel: PersonnelOption = {
         id: `P${String(personnelOptions.length + 1).padStart(3, '0')}`,
         name: currentPersonnelForm.name,
         registrationNo: currentPersonnelForm.registrationNo,
         department: currentPersonnelForm.department,
-        position: currentPersonnelForm.position
+        position: currentPersonnelForm.position,
+        nationalId: currentPersonnelForm.nationalId
       };
       setPersonnelOptions(prev => [...prev, newPersonnel]);
       setSnackbar({ 
@@ -2370,7 +2296,8 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                 name: currentPersonnelForm.name,
                 registrationNo: currentPersonnelForm.registrationNo,
                 department: currentPersonnelForm.department,
-                position: currentPersonnelForm.position
+                position: currentPersonnelForm.position,
+                nationalId: currentPersonnelForm.nationalId
               }
             : p
         )
@@ -2568,7 +2495,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="primary">
-                        {documents.filter(d => !d.type.includes('ISO') && !d.type.includes('TS 3834-2')).length}
+                        {documentStats.total}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Toplam Teknik Doküman
@@ -2583,7 +2510,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="success.main">
-                        {documents.filter(d => d.status === 'active' && !d.type.includes('ISO') && !d.type.includes('TS 3834-2') && !d.type.includes('İSG Sertifikası') && !d.type.includes('Kaynakçı') && !d.type.includes('NDT Sertifikası') && !d.type.includes('Yetki Belgesi')).length}
+                        {documentStats.active}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Aktif Doküman
@@ -2598,7 +2525,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="warning.main">
-                        {documents.filter(d => d.approvalStatus === 'pending' && !d.type.includes('ISO') && !d.type.includes('TS 3834-2') && !d.type.includes('İSG Sertifikası') && !d.type.includes('Kaynakçı') && !d.type.includes('NDT Sertifikası') && !d.type.includes('Yetki Belgesi')).length}
+                        {documentStats.pending}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Onay Bekleyen
@@ -2613,13 +2540,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
                       <Typography variant="h4" fontWeight={700} color="error.main">
-                        {documents.filter(d => {
-                          if (!d.expiryDate) return false;
-                          const today = new Date();
-                          const expiry = new Date(d.expiryDate);
-                          const isExpiring = (expiry.getTime() - today.getTime()) <= (30 * 24 * 60 * 60 * 1000) && expiry.getTime() > today.getTime();
-                          return isExpiring && !d.type.includes('ISO') && !d.type.includes('TS 3834-2') && !d.type.includes('İSG Sertifikası') && !d.type.includes('Kaynakçı') && !d.type.includes('NDT Sertifikası') && !d.type.includes('Yetki Belgesi');
-                        }).length}
+                        {documentStats.expiring}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Süresi Dolacak
@@ -2691,6 +2612,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       <MenuItem value="ISO 27001 Belgesi">ISO 27001 Belgesi</MenuItem>
                       <MenuItem value="ISO 45001 Belgesi">ISO 45001 Belgesi</MenuItem>
                       <MenuItem value="ISO 50001 Belgesi">ISO 50001 Belgesi</MenuItem>
+                      <MenuItem value="ISO 10002 Belgesi">ISO 10002 Belgesi</MenuItem>
+                      <MenuItem value="OHSAS 18001 Belgesi">OHSAS 18001 Belgesi</MenuItem>
+                      <MenuItem value="ISO 28001 Belgesi">ISO 28001 Belgesi</MenuItem>
                       <MenuItem value="TS 3834-2 Belgesi">TS 3834-2 Belgesi</MenuItem>
                       
                       <ListSubheader>Personel Belgeleri</ListSubheader>
@@ -2968,7 +2892,23 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               </DocumentCard>
             </Box>
 
-
+            {/* Action Buttons */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => openCreateDialog('personnel')}
+              >
+                Yeni Personel Belgesi
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<ExportIcon />}
+                onClick={handleExportData}
+              >
+                Rapor Dışa Aktar
+              </Button>
+            </Box>
 
             {/* Personnel Filters */}
             <StyledAccordion
@@ -3425,7 +3365,30 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               </DocumentCard>
             </Box>
 
-
+            {/* Action Buttons */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => openCreateDialog('document')}
+              >
+                Yeni Kalite Belgesi
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<AssessmentIcon />}
+                onClick={handleGenerateDocumentInventoryReport}
+              >
+                Kalite Raporu
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<ExportIcon />}
+                onClick={handleExportData}
+              >
+                Dışa Aktar
+              </Button>
+            </Box>
 
             {/* Quality Certificates List */}
             <Box sx={{ display: 'grid', gap: 3 }}>
@@ -3436,7 +3399,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   ISO Yönetim Sistemi Belgeleri
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
-                  {/* Existing Quality Certificates */}
+                  {/* Mevcut ISO Belgelerini Göster */}
                   {certificateStats.certificatesWithStatus
                     .filter(cert => ['ISO 9001:2015', 'ISO 14001:2015', 'ISO 45001:2018', 'ISO 50001:2018', 'ISO 27001:2013'].includes(cert.name))
                     .map((cert, index) => (
@@ -3493,11 +3456,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     </Card>
                   ))}
                   
-                  {/* NEW: User-added Quality Certificates from documents state */}
-                  {filteredDocuments
-                    .filter(doc => doc.type.includes('ISO'))
-                    .map((doc, index) => (
-                    <Card key={`doc-${doc.id}`} variant="outlined" sx={{ p: 2 }}>
+                  {/* Kullanıcı Tarafından Eklenen ISO Belgelerini Göster */}
+                  {userAddedQualityCertificates.map((doc) => (
+                    <Card key={doc.id} variant="outlined" sx={{ p: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                         <Box>
                           <Typography variant="subtitle1" fontWeight={600}>
@@ -3507,7 +3468,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             {doc.type}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Sorumlu: {doc.owner}
+                            Veren Kurum: {doc.issuingAuthority || 'Belirtilmemiş'}
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -3515,7 +3476,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             label={
                               doc.status === 'active' ? 'Aktif' : 
                               doc.status === 'review' ? 'İncelemede' : 
-                              doc.status === 'draft' ? 'Taslak' : 
+                              doc.status === 'draft' ? 'Taslak' :
                               'Geçersiz'
                             }
                             statustype={doc.status}
@@ -3523,10 +3484,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                           />
                           <StatusChip
                             label={
-                              doc.approvalStatus === 'approved' ? 'Onaylandı' : 
-                              doc.approvalStatus === 'pending' ? 'Onay Bekliyor' : 
-                              doc.approvalStatus === 'rejected' ? 'Reddedildi' : 
-                              'Revizyon Gerekli'
+                              doc.approvalStatus === 'approved' ? 'Onaylandı' :
+                              doc.approvalStatus === 'pending' ? 'Bekliyor' : 
+                              'Reddedildi'
                             }
                             statustype={doc.approvalStatus}
                             size="small"
@@ -3534,8 +3494,8 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                         </Box>
                       </Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Yürürlük: {doc.effectiveDate}
+                        <Typography variant="caption" color={doc.expiryDate && new Date(doc.expiryDate) < new Date() ? 'error.main' : 'text.secondary'}>
+                          Son Geçerlilik: {doc.expiryDate || 'Belirtilmemiş'}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 0.5 }}>
                           <Tooltip title="Görüntüle">
@@ -3572,7 +3532,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   Kaynak Kalite Belgeleri
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
-                  {/* Existing Welding Certificates */}
                   {weldingCertificates.map((cert, index) => (
                     <Card key={index} variant="outlined" sx={{ p: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
@@ -3615,76 +3574,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                           </Tooltip>
                           <Tooltip title="Sil">
                             <IconButton size="small" color="error" onClick={() => handleDeleteQualityCertificate(cert.id)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </Box>
-                    </Card>
-                  ))}
-                  
-                  {/* NEW: User-added TS 3834-2 Certificates from documents state */}
-                  {filteredDocuments
-                    .filter(doc => doc.type.includes('TS 3834-2'))
-                    .map((doc, index) => (
-                    <Card key={`doc-ts-${doc.id}`} variant="outlined" sx={{ p: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                        <Box>
-                          <Typography variant="subtitle1" fontWeight={600}>
-                            {doc.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {doc.type}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Sorumlu: {doc.owner}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                          <StatusChip
-                            label={
-                              doc.status === 'active' ? 'Aktif' : 
-                              doc.status === 'review' ? 'İncelemede' : 
-                              doc.status === 'draft' ? 'Taslak' : 
-                              'Geçersiz'
-                            }
-                            statustype={doc.status}
-                            size="small"
-                          />
-                          <StatusChip
-                            label={
-                              doc.approvalStatus === 'approved' ? 'Onaylandı' : 
-                              doc.approvalStatus === 'pending' ? 'Onay Bekliyor' : 
-                              doc.approvalStatus === 'rejected' ? 'Reddedildi' : 
-                              'Revizyon Gerekli'
-                            }
-                            statustype={doc.approvalStatus}
-                            size="small"
-                          />
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Yürürlük: {doc.effectiveDate}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          <Tooltip title="Görüntüle">
-                            <IconButton size="small" onClick={() => handleViewDocument(doc.id)}>
-                              <ViewIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="İndir">
-                            <IconButton size="small" onClick={() => handleDownloadDocument(doc.id)}>
-                              <DownloadIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Düzenle">
-                            <IconButton size="small" onClick={() => handleEditDocument(doc.id)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Sil">
-                            <IconButton size="small" onClick={() => handleDeleteDocument(doc.id)} color="error">
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -4279,8 +4168,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               number: '',
               unit: '',
               effectiveDate: new Date().toISOString().split('T')[0],
-              lastReviewDate: undefined,
-              nextReviewDate: undefined,
               revisionNo: 1,
               owner: '',
               description: '',
@@ -4393,6 +4280,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       <MenuItem value="ISO 27001 Belgesi">ISO 27001 Belgesi</MenuItem>
                       <MenuItem value="ISO 45001 Belgesi">ISO 45001 Belgesi</MenuItem>
                       <MenuItem value="ISO 50001 Belgesi">ISO 50001 Belgesi</MenuItem>
+                      <MenuItem value="ISO 10002 Belgesi">ISO 10002 Belgesi</MenuItem>
+                      <MenuItem value="OHSAS 18001 Belgesi">OHSAS 18001 Belgesi</MenuItem>
+                      <MenuItem value="ISO 28001 Belgesi">ISO 28001 Belgesi</MenuItem>
                       <MenuItem value="TS 3834-2 Belgesi">TS 3834-2 Belgesi</MenuItem>
                       
                       <ListSubheader>Personel Belgeleri</ListSubheader>
@@ -4412,9 +4302,15 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       onChange={(e) => setDocumentForm(prev => ({ ...prev, unit: e.target.value }))}
                       label="Birim"
                     >
-                      {UNITS.map((unit) => (
-                        <MenuItem key={unit} value={unit}>{unit}</MenuItem>
-                      ))}
+                      <MenuItem value="Kaynak Atölyesi">Kaynak Atölyesi</MenuItem>
+                      <MenuItem value="Kalite Kontrol">Kalite Kontrol</MenuItem>
+                      <MenuItem value="Üretim">Üretim</MenuItem>
+                      <MenuItem value="Montaj">Montaj</MenuItem>
+                      <MenuItem value="Boyahane">Boyahane</MenuItem>
+                      <MenuItem value="Makine Atölyesi">Makine Atölyesi</MenuItem>
+                      <MenuItem value="Planlama">Planlama</MenuItem>
+                      <MenuItem value="İSG">İSG</MenuItem>
+                      <MenuItem value="Genel">Genel</MenuItem>
                     </Select>
                   </FormControl>
                   
@@ -4435,27 +4331,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     value={documentForm.effectiveDate || ''}
                     onChange={(e) => setDocumentForm(prev => ({ ...prev, effectiveDate: e.target.value }))}
                     InputLabelProps={{ shrink: true }}
-                    helperText="Dokümanın yürürlüğe girdiği tarih"
-                  />
-                  
-                  <TextField
-                    label="Son Denetim Tarihi"
-                    type="date"
-                    fullWidth
-                    value={documentForm.lastReviewDate || ''}
-                    onChange={(e) => setDocumentForm(prev => ({ ...prev, lastReviewDate: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Dokümanın son denetim tarihi"
-                  />
-                  
-                  <TextField
-                    label="Sonraki Denetim Tarihi"
-                    type="date"
-                    fullWidth
-                    value={documentForm.nextReviewDate || ''}
-                    onChange={(e) => setDocumentForm(prev => ({ ...prev, nextReviewDate: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Planlanan denetim tarihi"
                   />
                 </Box>
 
@@ -4480,19 +4355,19 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             <Select
                               value={documentForm.welderName || ''}
                               onChange={(e) => {
-                                const selectedWelder = welderOptions.find(w => w.welderName === e.target.value);
+                                const selectedPersonnel = personnelOptions.find(p => p.name === e.target.value);
                                 setDocumentForm(prev => ({ 
                                   ...prev, 
                                   welderName: e.target.value,
-                                  registrationNo: selectedWelder?.registrationNo || '',
-                                  certificateNumber: selectedWelder?.certificateNumber || ''
+                                  registrationNo: selectedPersonnel?.registrationNo || '',
+                                  personnelId: selectedPersonnel?.registrationNo || ''
                                 }));
                               }}
                               label="Kaynakçı Seçimi"
                             >
-                              {welderOptions.map((welder) => (
-                                <MenuItem key={welder.id} value={welder.welderName}>
-                                  {welder.welderName} - {welder.registrationNo} ({welder.department})
+                              {personnelOptions.filter(p => p.position.toLowerCase().includes('kaynak')).map((personnel) => (
+                                <MenuItem key={personnel.id} value={personnel.name}>
+                                  {personnel.name} - {personnel.registrationNo} ({personnel.department})
                                 </MenuItem>
                               ))}
                             </Select>
@@ -4536,13 +4411,26 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             helperText="Kaynakçı seçildiğinde otomatik doldurulur, düzenlenebilir"
                           />
                           
-                          <TextField
-                            label="Veren Kurum"
-                            fullWidth
-                            value={documentForm.issuingAuthority || ''}
-                            onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
-                            helperText="Örn: TSE, TÜRKAK, Bureau Veritas"
-                          />
+                          <FormControl fullWidth>
+                            <InputLabel>Belge Veren Kuruluş</InputLabel>
+                            <Select
+                              value={documentForm.issuingAuthority || ''}
+                              onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
+                              label="Belge Veren Kuruluş"
+                            >
+                              <MenuItem value="TSE (Türk Standartları Enstitüsü)">TSE (Türk Standartları Enstitüsü)</MenuItem>
+                              <MenuItem value="TÜV NORD">TÜV NORD</MenuItem>
+                              <MenuItem value="TÜV SÜD">TÜV SÜD</MenuItem>
+                              <MenuItem value="Bureau Veritas">Bureau Veritas</MenuItem>
+                              <MenuItem value="SGS">SGS</MenuItem>
+                              <MenuItem value="BSI">BSI</MenuItem>
+                              <MenuItem value="Lloyd's Register">Lloyd's Register</MenuItem>
+                              <MenuItem value="TÜRKAK">TÜRKAK</MenuItem>
+                              <MenuItem value="DNV GL">DNV GL</MenuItem>
+                              <MenuItem value="Intertek">Intertek</MenuItem>
+                              <MenuItem value="Diğer">Diğer</MenuItem>
+                            </Select>
+                          </FormControl>
                           
                           <FormControl fullWidth>
                             <InputLabel>Kaynak Prosesleri</InputLabel>
@@ -4998,12 +4886,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       <Typography><strong>Birim:</strong> {documentForm.unit}</Typography>
                       <Typography><strong>Sahip:</strong> {documentForm.owner}</Typography>
                       <Typography><strong>Yürürlük:</strong> {documentForm.effectiveDate}</Typography>
-                      {documentForm.lastReviewDate && (
-                        <Typography><strong>Son Denetim:</strong> {documentForm.lastReviewDate}</Typography>
-                      )}
-                      {documentForm.nextReviewDate && (
-                        <Typography><strong>Sonraki Denetim:</strong> {documentForm.nextReviewDate}</Typography>
-                      )}
                       <Typography><strong>Revizyon:</strong> {documentForm.revisionNo}</Typography>
                       {documentForm.expiryDate && (
                         <Typography><strong>Geçerlilik:</strong> {documentForm.expiryDate}</Typography>
@@ -5738,6 +5620,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <TableCell>Sicil No</TableCell>
                   <TableCell>Departman</TableCell>
                   <TableCell>Pozisyon</TableCell>
+                  <TableCell>TC Kimlik</TableCell>
                   <TableCell align="center">İşlemler</TableCell>
                 </TableRow>
               </TableHead>
@@ -5748,6 +5631,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     <TableCell>{personnel.registrationNo}</TableCell>
                     <TableCell>{personnel.department}</TableCell>
                     <TableCell>{personnel.position}</TableCell>
+                    <TableCell>{personnel.nationalId}</TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                         <Tooltip title="Düzenle">
@@ -5836,7 +5720,16 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               placeholder="Örn: Kaynakçı, NDT Uzmanı"
             />
             
-
+            <TextField
+              label="TC Kimlik Numarası"
+              fullWidth
+              required
+              value={currentPersonnelForm.nationalId}
+              onChange={(e) => setCurrentPersonnelForm(prev => ({ ...prev, nationalId: e.target.value }))}
+              placeholder="11 haneli TC kimlik numarası"
+              inputProps={{ maxLength: 11 }}
+              helperText="11 haneli TC kimlik numarası giriniz"
+            />
           </Box>
         </DialogContent>
         <DialogActions>
