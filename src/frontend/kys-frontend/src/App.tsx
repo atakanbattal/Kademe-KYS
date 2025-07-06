@@ -23,6 +23,7 @@ import QualityCostManagement from './pages/QualityCostManagement';
 import Settings from './pages/Settings';
 import ISO5817WeldLimit from './pages/ISO5817WeldLimit';
 import WpsGenerator from './pages/WpsGenerator';
+import DocumentManagement from './pages/DocumentManagement';
 import SupplierQualityManagement from './pages/SupplierQualityManagement';
 import WeldingCostCalculation from './pages/WeldingCostCalculation';
 import EquipmentCalibrationManagement from './pages/EquipmentCalibrationManagement';
@@ -122,7 +123,11 @@ const AppContent = () => {
               <QualityManagement />
             </Layout>
           } />
-
+          <Route path="/document-management" element={
+            <Layout>
+              <DocumentManagement />
+            </Layout>
+          } />
           <Route path="/supplier-quality" element={
             <Layout>
               <SupplierQualityManagement />

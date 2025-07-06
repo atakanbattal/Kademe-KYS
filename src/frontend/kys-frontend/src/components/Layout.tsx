@@ -257,7 +257,7 @@ const getModuleTitle = (pathname) => {
     // Operasyonel Yönetim
   
     if (pathname.startsWith('/equipment-calibration')) return 'Ekipman ve Kalibrasyon Yönetimi';
-  
+    if (pathname.startsWith('/document-management')) return 'Doküman Yönetimi';
     
     // Sistem Yönetimi
     if (pathname.startsWith('/settings')) return 'Ayarlar';
@@ -346,6 +346,7 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
 
   // Doküman ve Tedarik Yönetimi Modülleri
   const documentSupplyModules = [
+    { text: 'Doküman Yönetimi', icon: <DescriptionIcon />, path: '/document-management', color: '#009688' },
     { text: 'Tedarikçi Kalite Yönetimi', icon: <BusinessIcon />, path: '/supplier-quality', color: '#3f51b5' },
     { text: 'Malzeme Sertifika Takibi', icon: <AssignmentTurnedInIcon />, path: '/material-certificate-tracking', color: '#4caf50' },
   ];
