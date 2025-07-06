@@ -1171,6 +1171,8 @@ const TankLeakTest: React.FC = () => {
             console.log('testResult içeriği:', tests[0]?.testResult);
           setSavedTests(tests);
           calculateStatistics(tests);
+          // Test kayıtları yüklendikten sonra tamir kayıtlarını yükle
+          loadRepairRecords(tests);
         } else {
           // Boş array ise örnek veri oluştur
           const sampleTests = generateSampleTestData();
@@ -1179,6 +1181,8 @@ const TankLeakTest: React.FC = () => {
           setSavedTests(sampleTests);
           localStorage.setItem('tankLeakTests', JSON.stringify(sampleTests));
           calculateStatistics(sampleTests);
+          // Test kayıtları oluşturulduktan sonra tamir kayıtlarını yükle
+          loadRepairRecords(sampleTests);
         }
       } catch (error) {
         console.error('Tank test verileri parse edilemedi:', error);
@@ -1186,6 +1190,8 @@ const TankLeakTest: React.FC = () => {
         setSavedTests(sampleTests);
         localStorage.setItem('tankLeakTests', JSON.stringify(sampleTests));
         calculateStatistics(sampleTests);
+        // Test kayıtları oluşturulduktan sonra tamir kayıtlarını yükle
+        loadRepairRecords(sampleTests);
       }
     } else {
       // localStorage'da veri yoksa örnek veri oluştur
@@ -1194,17 +1200,16 @@ const TankLeakTest: React.FC = () => {
       setSavedTests(sampleTests);
       localStorage.setItem('tankLeakTests', JSON.stringify(sampleTests));
       calculateStatistics(sampleTests);
+      // Test kayıtları oluşturulduktan sonra tamir kayıtlarını yükle
+      loadRepairRecords(sampleTests);
     }
     
     // Load custom personnel lists
     loadPersonnelLists();
-    
-    // Load repair records
-    loadRepairRecords();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load repair records from localStorage
-  const loadRepairRecords = () => {
+  const loadRepairRecords = (testRecords: TestRecord[]) => {
     const storedRepairs = localStorage.getItem('tankRepairRecords');
     if (storedRepairs) {
       try {
@@ -1220,7 +1225,7 @@ const TankLeakTest: React.FC = () => {
       }
     } else {
       // Örnek tamir kayıtları oluştur
-      const sampleRepairs = generateSampleRepairData();
+      const sampleRepairs = generateSampleRepairData(testRecords);
       setRepairRecords(sampleRepairs);
       localStorage.setItem('tankRepairRecords', JSON.stringify(sampleRepairs));
       calculateTankRepairHistory(sampleRepairs);
@@ -1597,8 +1602,8 @@ const TankLeakTest: React.FC = () => {
   };
 
   // Generate sample repair data
-  const generateSampleRepairData = (): RepairRecord[] => {
-    console.log('generateSampleRepairData başladı...');
+  const generateSampleRepairData = (testRecords: TestRecord[]): RepairRecord[] => {
+    console.log('generateSampleRepairData başladı...', testRecords.length, 'test kaydı ile');
     
     const sampleRepairs: RepairRecord[] = [];
     const repairTypes: Array<'welding' | 'patching' | 'replacement' | 'cleaning' | 'adjustment' | 'other'> = 
@@ -1609,55 +1614,50 @@ const TankLeakTest: React.FC = () => {
     
     const now = new Date();
     
-    // 3 tamir kaydı oluştur
-    for (let i = 0; i < 3; i++) {
-      const repairDate = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000); // Son 30 gün
+    // Başarısız ve şartlı testler için tamir kayıtları oluştur
+    const failedTests = testRecords.filter(test => 
+      test.testResult?.result === 'failed' || test.testResult?.result === 'conditional'
+    );
+    
+    console.log('🔧 Tamir gerektiren test sayısı:', failedTests.length);
+    
+    failedTests.forEach((test, index) => {
+      const testDate = new Date(test.testParameters.testDate);
+      const repairDate = new Date(testDate.getTime() + (1 + Math.random() * 5) * 24 * 60 * 60 * 1000); // Test tarihinden 1-6 gün sonra
       const status = statuses[Math.floor(Math.random() * statuses.length)];
       const repairType = repairTypes[Math.floor(Math.random() * repairTypes.length)];
       const priority = priorities[Math.floor(Math.random() * priorities.length)];
       
       const repairRecord: RepairRecord = {
-        id: `RPR-${String(i + 1).padStart(3, '0')}`,
-        testRecordId: `TST-${String(i + 1).padStart(3, '0')}`,
-        tankInfo: {
-          serialNumber: `TK-2024-${String(i + 1).padStart(3, '0')}`,
-          type: ['Yakıt Tankı', 'Hidrolik Tankı', 'Su Tankı'][i % 3],
-          material: 'Çelik',
-          capacity: 200 + (i * 100),
-          productionDate: repairDate.toISOString().split('T')[0]
-        },
+        id: test.repairRecordId!, // Test kaydından gelen tamir ID'si
+        testRecordId: test.id,
+        tankInfo: test.tankInfo, // Test kaydından tank bilgilerini kopyala
         repairInfo: {
           repairDate: repairDate.toISOString().split('T')[0],
-          duration: 4 + (i * 2), // 4, 6, 8 saat
-          actualDuration: status === 'completed' ? (4 + (i * 2) + Math.floor(Math.random() * 2)) : undefined,
+          duration: 4 + (index * 2), // 4, 6, 8 saat
+          actualDuration: status === 'completed' ? (4 + (index * 2) + Math.floor(Math.random() * 2)) : undefined,
           priority: priority,
           repairType: repairType,
           rootCause: 'Kaynak kalitesi yetersiz',
           preventiveAction: 'WPS prosedürlerinin güncellenmesi'
         },
         personnel: {
-          repairTechnician: WELDERS_LIST[i % WELDERS_LIST.length].name,
-          qualityControlPersonnel: INSPECTORS_LIST[i % INSPECTORS_LIST.length].name
+          repairTechnician: test.personnel.welder, // Test kaydından kaynak yapan bilgisini al
+          qualityControlPersonnel: test.personnel.inspector // Test kaydından kontrol eden bilgisini al
         },
-        errors: [{
-          id: `ERR-${i + 1}`,
-          errorType: 'Kaynak Hatası',
-          location: `Bölge ${i + 1}`,
-          size: 2.5 + (i * 0.5),
-          repairMethod: 'Yeniden kaynak'
-        }],
+        errors: test.errors, // Test kaydından hata bilgilerini kopyala
         repairPlan: {
           plannedActions: ['Hasarlı bölgenin temizlenmesi', 'Yeniden kaynak yapılması', 'Kalite kontrolü'],
           requiredTools: ['Kaynak makinesi', 'Taşlama makinesi', 'Test ekipmanları'],
           safetyPrecautions: ['Koruyucu ekipman kullanımı', 'Havalandırma kontrolü'],
-          estimatedCost: 1500 + (i * 500) // 1500, 2000, 2500 TL
+          estimatedCost: 1500 + (index * 500) // 1500, 2000, 2500 TL
         },
         repairSteps: [
           {
-            id: `STEP-${i + 1}-1`,
+            id: `STEP-${test.id}-1`,
             stepNumber: 1,
             description: 'Hasarlı bölgenin temizlenmesi',
-            responsible: WELDERS_LIST[i % WELDERS_LIST.length].name,
+            responsible: test.personnel.welder,
             startTime: repairDate.toISOString(),
             endTime: status !== 'planned' ? new Date(repairDate.getTime() + 60*60*1000).toISOString() : undefined,
             status: status === 'planned' ? 'pending' : 'completed',
@@ -1666,7 +1666,7 @@ const TankLeakTest: React.FC = () => {
         ],
         materialsUsed: [
           {
-            id: `MAT-${i + 1}`,
+            id: `MAT-${test.id}`,
             name: 'Kaynak Tel',
             quantity: 2,
             unit: 'kg',
@@ -1675,29 +1675,29 @@ const TankLeakTest: React.FC = () => {
         ],
         qualityChecks: status !== 'planned' ? [
           {
-            id: `QC-${i + 1}`,
+            id: `QC-${test.id}`,
             checkType: 'Görsel Kontrol',
-            inspector: INSPECTORS_LIST[i % INSPECTORS_LIST.length].name,
+            inspector: test.personnel.inspector,
             result: 'passed',
             checkDate: new Date(repairDate.getTime() + 2*60*60*1000).toISOString().split('T')[0],
             notes: 'Kalite standartlarına uygun'
           }
         ] : [],
         retestRecord: status === 'completed' ? {
-          retestId: `RT-${i + 1}`,
+          retestId: `RT-${test.id}`,
           retestDate: new Date(repairDate.getTime() + 3*60*60*1000).toISOString().split('T')[0],
           retestResult: 'passed',
           finalApproval: true
         } : undefined,
         status: status,
-        totalCost: 1500 + (i * 500),
+        totalCost: 1500 + (index * 500),
         createdAt: repairDate.toISOString(),
         updatedAt: repairDate.toISOString(),
         completedAt: status === 'completed' ? new Date(repairDate.getTime() + 4*60*60*1000).toISOString() : undefined
       };
       
       sampleRepairs.push(repairRecord);
-    }
+    });
     
     console.log('✅ generateSampleRepairData tamamlandı. Toplam kayıt:', sampleRepairs.length);
     return sampleRepairs;
@@ -1747,6 +1747,10 @@ const TankLeakTest: React.FC = () => {
         result
       });
       
+      // Başarısız testler için tamir kaydı ID'si oluştur
+      const repairRecordId = (result === 'failed' || result === 'conditional') ? 
+        `RPR-${String(i + 1).padStart(3, '0')}` : undefined;
+      
       const testRecord: TestRecord = {
         id: `TST-${String(i + 1).padStart(3, '0')}`,
         tankInfo: {
@@ -1784,7 +1788,8 @@ const TankLeakTest: React.FC = () => {
                  'Şartlı onay - kontrol tekrarı önerilir'
         },
         createdAt: testDate.toISOString(), // KRİTİK: Örnek kayıtlar için tutarlı tarih
-        updatedAt: testDate.toISOString()  // KRİTİK: Güncelleme tarihi aynı
+        updatedAt: testDate.toISOString(),  // KRİTİK: Güncelleme tarihi aynı
+        repairRecordId: repairRecordId // Başarısız testlerde tamir kaydı ID'si
       };
       
       sampleTests.push(testRecord);
@@ -3911,12 +3916,20 @@ const TankLeakTest: React.FC = () => {
                             </TableCell>
                             <TableCell>
                               <Typography variant="caption" sx={{ 
-                                color: 'text.secondary',
-                                fontStyle: 'italic'
+                                color: relatedRepair ? 'primary.main' : 'text.secondary',
+                                fontWeight: relatedRepair ? 'bold' : 'normal'
                               }}>
                                 {(() => {
-                                  if (relatedRepair && relatedRepair.status === 'completed' && relatedRepair.completedAt) {
-                                    return new Date(relatedRepair.completedAt).toLocaleDateString('tr-TR', {day: '2-digit', month: '2-digit', year: '2-digit'});
+                                  if (relatedRepair) {
+                                    if (relatedRepair.status === 'completed' && relatedRepair.completedAt) {
+                                      return new Date(relatedRepair.completedAt).toLocaleDateString('tr-TR', {day: '2-digit', month: '2-digit', year: '2-digit'});
+                                    } else if (relatedRepair.status === 'in_progress') {
+                                      return 'Devam Ediyor';
+                                    } else if (relatedRepair.status === 'planned') {
+                                      return 'Planlandı';
+                                    } else {
+                                      return relatedRepair.status;
+                                    }
                                   }
                                   return '-';
                                 })()}
@@ -4168,7 +4181,7 @@ const TankLeakTest: React.FC = () => {
                   </Button>
                   <IconButton
                     onClick={() => {
-                      loadRepairRecords();
+                      loadRepairRecords(savedTests);
                       calculateTankRepairHistory(repairRecords);
                     }}
                     size="small"
