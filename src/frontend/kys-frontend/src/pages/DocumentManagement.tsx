@@ -467,22 +467,27 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 const UNITS = [
-  'Kaynak Atölyesi', 
-  'Boyahane', 
-  'Montaj Hattı', 
+  'Genel Müdürlük',
+  'Kalite Güvence',
   'Kalite Kontrol',
-  'Elektrik', 
-  'Han', 
-  'Büküm', 
-  'Arge', 
-  'Satın Alma', 
-  'Kesim', 
-  'Ambar/Depo',
-  'Üretim',
+  'Ar-Ge',
+  'Üretim Planlama',
+  'Kaynak Atölyesi',
   'Makine Atölyesi',
-  'Planlama',
-  'İSG',
-  'Genel'
+  'Montaj Hattı',
+  'Boyahane',
+  'Kesim Atölyesi',
+  'Büküm Atölyesi',
+  'Ambar ve Depo',
+  'Satın Alma',
+  'Teknik Büro',
+  'İş Sağlığı ve Güvenliği',
+  'İnsan Kaynakları',
+  'Muhasebe ve Finans',
+  'Bilgi İşlem',
+  'Bakım Onarım',
+  'Sevkiyat',
+  'Proje Yönetimi'
 ];
 
 const CERTIFICATE_TYPES: CertificateType[] = [
@@ -491,8 +496,27 @@ const CERTIFICATE_TYPES: CertificateType[] = [
 ];
 
 const DEPARTMENTS = [
-  'Kaynak Atölyesi', 'Boyahane', 'Montaj', 'Kalite Kontrol',
-  'Elektrik', 'Han', 'Büküm', 'Kesim'
+  'Genel Müdürlük',
+  'Kalite Güvence',
+  'Kalite Kontrol',
+  'Ar-Ge',
+  'Üretim Planlama',
+  'Kaynak Atölyesi',
+  'Makine Atölyesi',
+  'Montaj Hattı',
+  'Boyahane',
+  'Kesim Atölyesi',
+  'Büküm Atölyesi',
+  'Ambar ve Depo',
+  'Satın Alma',
+  'Teknik Büro',
+  'İş Sağlığı ve Güvenliği',
+  'İnsan Kaynakları',
+  'Muhasebe ve Finans',
+  'Bilgi İşlem',
+  'Bakım Onarım',
+  'Sevkiyat',
+  'Proje Yönetimi'
 ];
 
 const PERSONNEL_DOCUMENT_CATEGORIES = [
@@ -591,11 +615,19 @@ const ISSUING_AUTHORITIES = [
   'TÜV SÜD', 
   'Bureau Veritas',
   'SGS',
+  'BSI (British Standards Institution)',
+  'Lloyd\'s Register',
+  'TÜRKAK',
+  'DNV GL',
+  'Intertek',
+  'RWTUV',
+  'DEKRA',
   'İSG Uzmanı',
   'Çalışma Bakanlığı',
   'TMMO (Türk Metalurji Mühendisleri Odası)',
   'İMO (İnşaat Mühendisleri Odası)',
-  'Firmaya Özel Eğitim'
+  'Firmaya Özel Eğitim',
+  'Diğer'
 ];
 
 const CRITICALITY_LEVELS = [
@@ -821,6 +853,9 @@ const DocumentManagement: React.FC = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' | 'warning' });
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  
+  // 🔥 KRİTİK: Kurum ekleme sistemi için state
+  const [customIssuingAuthority, setCustomIssuingAuthority] = useState('');
   const [welderPage, setWelderPage] = useState(0);
   const [welderRowsPerPage, setWelderRowsPerPage] = useState(10);
   const [expandedApprovalPanel, setExpandedApprovalPanel] = useState<string | false>('pending');
@@ -909,6 +944,37 @@ const DocumentManagement: React.FC = () => {
     
     console.log('DocumentManagement: Mock veri sistemi devre dışı - kullanıcı verileri korunuyor');
   }, []);
+
+  // 🔥 KRİTİK: BELGE KATEGORİLENDİRME SİSTEMİ - ISO belgelerini kalite belgelerine otomatik ekle
+  React.useEffect(() => {
+    if (documents.length > 0) {
+      const qualityDocumentTypes = [
+        'ISO 9001 Belgesi', 'ISO 14001 Belgesi', 'ISO 45001 Belgesi', 
+        'TS 3834-2 Belgesi', 'ISO 50001 Belgesi', 'ISO 27001 Belgesi'
+      ];
+      
+      // Kalite belgesi tipindeki dokümanları kalite sertifikalarına otomatik ekle
+      const qualityDocs = documents.filter(doc => qualityDocumentTypes.includes(doc.type));
+      
+      const newQualityCertificates = qualityDocs.map(doc => ({
+        id: doc.id,
+        name: doc.name,
+        type: doc.type,
+        expiry: doc.expiryDate || '2025-12-31',
+        status: doc.status === 'active' ? 'active' as const : 'expired' as const,
+        authority: doc.issuingAuthority || 'Belirtilmemiş'
+      }));
+      
+      // Mevcut kalite sertifikalarıyla birleştir (duplicateleri önle)
+      setQualityCertificates(prev => {
+        const existingIds = prev.map(cert => cert.id);
+        const uniqueNewCerts = newQualityCertificates.filter(cert => !existingIds.includes(cert.id));
+        return [...prev, ...uniqueNewCerts];
+      });
+      
+      console.log('✅ BAŞARI: Kalite belgeleri otomatik kategorize edildi:', newQualityCertificates.length, 'adet');
+    }
+  }, [documents]);
 
   // 🔥 KRİTİK: documents state değişikliklerini localStorage'a otomatik kaydet
   React.useEffect(() => {
@@ -1480,6 +1546,18 @@ const DocumentManagement: React.FC = () => {
         examResult: doc.examResult,
         criticalityLevel: doc.criticalityLevel
       });
+      
+      // 🔥 KRİTİK DÜZELTİM: Custom issuing authority'yi de restore et
+      if (doc.issuingAuthority && !ISSUING_AUTHORITIES.includes(doc.issuingAuthority)) {
+        // Eğer mevcut listede yoksa, bu custom bir kurum
+        setCustomIssuingAuthority(doc.issuingAuthority);
+        // Form'da "Diğer" seçili olacak ama document'ta asıl değer kalacak
+        setTimeout(() => {
+          setDocumentForm(prev => ({ ...prev, issuingAuthority: 'Diğer' }));
+        }, 100);
+      } else {
+        setCustomIssuingAuthority('');
+      }
       
       setDialogMode('edit');
       setOpenDialog(true);
@@ -2054,6 +2132,10 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
     setOpenDialog(false);
     setActiveStep(0);
     setSelectedDocument(null);
+    
+    // 🔥 KRİTİK DÜZELTİM: Custom issuing authority'yi de temizle
+    setCustomIssuingAuthority('');
+    
     setDocumentForm({
       id: undefined,
       type: 'WPS',
@@ -4001,6 +4083,10 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
             setOpenDialog(false);
             setSelectedDocument(null);
             setActiveStep(0);
+            
+            // 🔥 KRİTİK DÜZELTİM: Custom issuing authority'yi de temizle
+            setCustomIssuingAuthority('');
+            
             // Form verilerini temizle
             setDocumentForm({
               id: undefined,
@@ -4033,7 +4119,27 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
           fullWidth
           maxWidth="md"
         >
-          <DialogTitle>{dialogMode === 'create' ? 'Yeni Doküman Oluştur' : 'Doküman Düzenle'}</DialogTitle>
+          <DialogTitle 
+            sx={{ 
+              background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+              color: 'white',
+              textAlign: 'center',
+              borderRadius: '8px 8px 0 0',
+              py: 3
+            }}
+          >
+                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+               <DescriptionIcon sx={{ fontSize: 32 }} />
+               <Typography variant="h5" component="span" sx={{ fontWeight: 'bold' }}>
+                 {dialogMode === 'create' ? '📄 Yeni Doküman Oluştur' : '✏️ Doküman Düzenle'}
+               </Typography>
+             </Box>
+            {selectedDocument && dialogMode === 'edit' && (
+              <Typography variant="subtitle1" sx={{ mt: 1, opacity: 0.9 }}>
+                {selectedDocument.name} ({selectedDocument.number})
+              </Typography>
+            )}
+          </DialogTitle>
           <DialogContent>
             {/* Stepper and form content */}
             <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
@@ -4211,9 +4317,15 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     <TextField
                       label="Kuruluş Adı (Manuel)"
                       fullWidth
-                      value={documentForm.certificateNumber || ''}
-                      onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
-                      helperText="Veren kuruluş adını manuel olarak girin"
+                      required
+                      value={customIssuingAuthority}
+                      onChange={(e) => {
+                        setCustomIssuingAuthority(e.target.value);
+                        // Yazdığı kuruluş adını issuingAuthority field'ına kaydet
+                        setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }));
+                      }}
+                      helperText="Veren kuruluş adını manuel olarak yazın"
+                      placeholder="Örn: Kendi Kurumumuz A.Ş."
                     />
                   )}
                 </Box>
