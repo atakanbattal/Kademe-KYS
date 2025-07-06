@@ -182,6 +182,19 @@ interface Document {
   revisionHistory: Document[];
   keywords: string[];
   attachments: DocumentAttachment[];
+  // Dinamik form alanları
+  personnelName?: string;
+  personnelId?: string;
+  registrationNo?: string;
+  welderName?: string;
+  certificateNumber?: string;
+  issuingAuthority?: string;
+  weldingProcess?: string[];
+  materialGroup?: string[];
+  weldingPosition?: string[];
+  trainingHours?: number;
+  examResult?: string;
+  criticalityLevel?: CriticalityLevel;
 }
 
 interface WelderCertificate {
@@ -375,6 +388,27 @@ interface PersonnelDocumentFilterState {
   };
   criticalityLevel: string;
   renewalRequired: boolean;
+}
+
+// Personel seçimi için interface
+interface PersonnelOption {
+  id: string;
+  name: string;
+  registrationNo: string;
+  department: string;
+  position: string;
+  nationalId: string;
+}
+
+// Kaynakçı seçimi için interface
+interface WelderOption {
+  id: string;
+  welderName: string;
+  registrationNo: string;
+  department: string;
+  certificateType: CertificateType;
+  certificateNumber: string;
+  status: CertificateStatus;
 }
 
 // Constants
@@ -695,6 +729,27 @@ const DocumentManagement: React.FC = () => {
   const [selectedPersonnelDocumentForEdit, setSelectedPersonnelDocumentForEdit] = useState<PersonnelDocument | null>(null);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [welderCertificates, setWelderCertificates] = useState<WelderCertificate[]>([]);
+  
+  // Personel seçimi için veri
+  const [personnelOptions, setPersonnelOptions] = useState<PersonnelOption[]>([
+    { id: 'P001', name: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678901' },
+    { id: 'P002', name: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678902' },
+    { id: 'P003', name: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678903' },
+    { id: 'P004', name: 'Fatma Ak', registrationNo: '004', department: 'Kalite Kontrol', position: 'NDT Uzmanı', nationalId: '12345678904' },
+    { id: 'P005', name: 'Ayşe Özkan', registrationNo: '005', department: 'Kalite Kontrol', position: 'Kalite Teknisyeni', nationalId: '12345678905' },
+    { id: 'P006', name: 'Osman Şen', registrationNo: '006', department: 'Üretim', position: 'Operatör', nationalId: '12345678906' },
+    { id: 'P007', name: 'Zeynep Çelik', registrationNo: '007', department: 'İSG', position: 'İş Güvenliği Uzmanı', nationalId: '12345678907' },
+    { id: 'P008', name: 'Hasan Güven', registrationNo: '008', department: 'Montaj', position: 'Montaj Teknisyeni', nationalId: '12345678908' },
+  ]);
+  
+  // Kaynakçı seçimi için veri
+  const [welderOptions, setWelderOptions] = useState<WelderOption[]>([
+    { id: 'W001', welderName: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-1', certificateNumber: 'W001-2024', status: 'active' },
+    { id: 'W002', welderName: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-2', certificateNumber: 'W002-2024', status: 'active' },
+    { id: 'W003', welderName: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 14732', certificateNumber: 'W003-2024', status: 'active' },
+    { id: 'W004', welderName: 'Mustafa Öz', registrationNo: '004', department: 'Kaynak Atölyesi', certificateType: 'ASME IX', certificateNumber: 'W004-2024', status: 'active' },
+    { id: 'W005', welderName: 'Emre Baz', registrationNo: '005', department: 'Kaynak Atölyesi', certificateType: 'AWS D1.1', certificateNumber: 'W005-2024', status: 'active' },
+  ]);
   const [personnelDocuments, setPersonnelDocuments] = useState<PersonnelDocument[]>([]);
   const [qualityCertificates, setQualityCertificates] = useState<QualityCertificate[]>([]);
   const [productCertificates, setProductCertificates] = useState<ProductCertificate[]>([]);
@@ -1785,7 +1840,20 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         approvalHistory: [],
         revisionHistory: [],
         keywords: documentForm.keywords || [],
-        attachments: documentForm.attachments || []
+        attachments: documentForm.attachments || [],
+        // Dinamik alanlar
+        personnelName: documentForm.personnelName,
+        personnelId: documentForm.personnelId,
+        registrationNo: documentForm.registrationNo,
+        welderName: documentForm.welderName,
+        certificateNumber: documentForm.certificateNumber,
+        issuingAuthority: documentForm.issuingAuthority,
+        weldingProcess: documentForm.weldingProcess,
+        materialGroup: documentForm.materialGroup,
+        weldingPosition: documentForm.weldingPosition,
+        trainingHours: documentForm.trainingHours,
+        examResult: documentForm.examResult,
+        criticalityLevel: documentForm.criticalityLevel
       };
       
       setDocuments(prevDocs => [...prevDocs, newDocument]);
@@ -1809,7 +1877,20 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               approvalStatus: documentForm.approvalStatus as ApprovalStatus || doc.approvalStatus,
               expiryDate: documentForm.expiryDate,
               keywords: documentForm.keywords || [],
-              isActive: (documentForm.status as DocumentStatus || doc.status) === 'active'
+              isActive: (documentForm.status as DocumentStatus || doc.status) === 'active',
+              // Dinamik alanlar
+              personnelName: documentForm.personnelName,
+              personnelId: documentForm.personnelId,
+              registrationNo: documentForm.registrationNo,
+              welderName: documentForm.welderName,
+              certificateNumber: documentForm.certificateNumber,
+              issuingAuthority: documentForm.issuingAuthority,
+              weldingProcess: documentForm.weldingProcess,
+              materialGroup: documentForm.materialGroup,
+              weldingPosition: documentForm.weldingPosition,
+              trainingHours: documentForm.trainingHours,
+              examResult: documentForm.examResult,
+              criticalityLevel: documentForm.criticalityLevel
             };
           }
           return doc;
@@ -1833,7 +1914,20 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       description: '',
       status: 'draft',
       approvalStatus: 'pending',
-      keywords: []
+      keywords: [],
+      // Dinamik alanları da temizle
+      personnelName: undefined,
+      personnelId: undefined,
+      registrationNo: undefined,
+      welderName: undefined,
+      certificateNumber: undefined,
+      issuingAuthority: undefined,
+      weldingProcess: undefined,
+      materialGroup: undefined,
+      weldingPosition: undefined,
+      trainingHours: undefined,
+      examResult: undefined,
+      criticalityLevel: undefined
     });
   };
 
@@ -1850,7 +1944,20 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
     description: '',
     status: 'draft',
     approvalStatus: 'pending',
-    keywords: []
+    keywords: [],
+    // Dinamik alanları başlangıçta boş
+    personnelName: undefined,
+    personnelId: undefined,
+    registrationNo: undefined,
+    welderName: undefined,
+    certificateNumber: undefined,
+    issuingAuthority: undefined,
+    weldingProcess: undefined,
+    materialGroup: undefined,
+    weldingPosition: undefined,
+    trainingHours: undefined,
+    examResult: undefined,
+    criticalityLevel: undefined
   });
 
   return (
@@ -3564,7 +3671,26 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     <InputLabel>Doküman Tipi</InputLabel>
                     <Select
                       value={documentForm.type || 'WPS'}
-                      onChange={(e) => setDocumentForm(prev => ({ ...prev, type: e.target.value as DocumentType }))}
+                      onChange={(e) => {
+                        const selectedType = e.target.value as DocumentType;
+                        setDocumentForm(prev => ({ 
+                          ...prev, 
+                          type: selectedType,
+                          // Tip değiştiğinde dinamik alanları temizle
+                          personnelName: undefined,
+                          personnelId: undefined,
+                          registrationNo: undefined,
+                          welderName: undefined,
+                          certificateNumber: undefined,
+                          issuingAuthority: undefined,
+                          weldingProcess: undefined,
+                          materialGroup: undefined,
+                          weldingPosition: undefined,
+                          trainingHours: undefined,
+                          examResult: undefined,
+                          criticalityLevel: undefined
+                        }));
+                      }}
                       label="Doküman Tipi"
                     >
                       <ListSubheader>Kaynak Dokümanları</ListSubheader>
@@ -3639,6 +3765,335 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Box>
+
+                {/* Doküman Tipine Göre Dinamik Alanlar */}
+                {documentForm.type && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      {documentForm.type} Özel Bilgileri
+                    </Typography>
+                    
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+                      {/* Kaynakçı Sertifikası veya Kaynakçı Nitelik Belgesi için */}
+                      {(documentForm.type === 'Kaynakçı Sertifikası' || documentForm.type === 'Kaynakçı Nitelik Belgesi' || documentForm.type === 'Kaynak Operatörü Belgesi') && (
+                        <>
+                          <FormControl fullWidth required>
+                            <InputLabel>Kaynakçı Seçimi</InputLabel>
+                            <Select
+                              value={documentForm.welderName || ''}
+                              onChange={(e) => {
+                                const selectedWelder = welderOptions.find(w => w.welderName === e.target.value);
+                                setDocumentForm(prev => ({ 
+                                  ...prev, 
+                                  welderName: e.target.value,
+                                  registrationNo: selectedWelder?.registrationNo || '',
+                                  certificateNumber: selectedWelder?.certificateNumber || ''
+                                }));
+                              }}
+                              label="Kaynakçı Seçimi"
+                            >
+                              {welderOptions.map((welder) => (
+                                <MenuItem key={welder.id} value={welder.welderName}>
+                                  {welder.welderName} - {welder.registrationNo} ({welder.department})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          
+                          <TextField
+                            label="Sicil Numarası"
+                            fullWidth
+                            value={documentForm.registrationNo || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, registrationNo: e.target.value }))}
+                            InputProps={{ readOnly: true }}
+                            helperText="Kaynakçı seçildiğinde otomatik doldurulur"
+                          />
+                          
+                          <TextField
+                            label="Sertifika Numarası"
+                            fullWidth
+                            value={documentForm.certificateNumber || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                            helperText="Kaynakçı seçildiğinde otomatik doldurulur, düzenlenebilir"
+                          />
+                          
+                          <TextField
+                            label="Veren Kurum"
+                            fullWidth
+                            value={documentForm.issuingAuthority || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
+                            helperText="Örn: TSE, TÜRKAK, Bureau Veritas"
+                          />
+                          
+                          <FormControl fullWidth>
+                            <InputLabel>Kaynak Prosesleri</InputLabel>
+                            <Select
+                              multiple
+                              value={documentForm.weldingProcess || []}
+                              onChange={(e) => setDocumentForm(prev => ({ ...prev, weldingProcess: e.target.value as string[] }))}
+                              label="Kaynak Prosesleri"
+                            >
+                              <MenuItem value="111">111 - MMA (Elektrod Kaynak)</MenuItem>
+                              <MenuItem value="131">131 - MIG (Gaz Altı Kaynak)</MenuItem>
+                              <MenuItem value="141">141 - TIG (Argon Kaynak)</MenuItem>
+                              <MenuItem value="121">121 - SAW (Alttan Kaynak)</MenuItem>
+                              <MenuItem value="114">114 - Flux Cored</MenuItem>
+                            </Select>
+                          </FormControl>
+                          
+                          <FormControl fullWidth>
+                            <InputLabel>Malzeme Grupları</InputLabel>
+                            <Select
+                              multiple
+                              value={documentForm.materialGroup || []}
+                              onChange={(e) => setDocumentForm(prev => ({ ...prev, materialGroup: e.target.value as string[] }))}
+                              label="Malzeme Grupları"
+                            >
+                              <MenuItem value="1">Grup 1 - Karbon Çelik</MenuItem>
+                              <MenuItem value="2">Grup 2 - Düşük Alaşımlı Çelik</MenuItem>
+                              <MenuItem value="3">Grup 3 - Yüksek Alaşımlı Çelik</MenuItem>
+                              <MenuItem value="4">Grup 4 - Paslanmaz Çelik</MenuItem>
+                              <MenuItem value="5">Grup 5 - Alüminyum</MenuItem>
+                            </Select>
+                          </FormControl>
+                          
+                          <FormControl fullWidth>
+                            <InputLabel>Kaynak Pozisyonları</InputLabel>
+                            <Select
+                              multiple
+                              value={documentForm.weldingPosition || []}
+                              onChange={(e) => setDocumentForm(prev => ({ ...prev, weldingPosition: e.target.value as string[] }))}
+                              label="Kaynak Pozisyonları"
+                            >
+                              <MenuItem value="PA">PA - Düz Pozisyon</MenuItem>
+                              <MenuItem value="PB">PB - Yatay Pozisyon</MenuItem>
+                              <MenuItem value="PC">PC - Dikey Pozisyon</MenuItem>
+                              <MenuItem value="PD">PD - Tavan Pozisyon</MenuItem>
+                              <MenuItem value="PE">PE - Tüp Yatay</MenuItem>
+                              <MenuItem value="PF">PF - Tüp Dikey</MenuItem>
+                              <MenuItem value="PG">PG - Tüp Eğik</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </>
+                      )}
+                      
+                      {/* NDT Sertifikası için */}
+                      {documentForm.type === 'NDT Sertifikası' && (
+                        <>
+                          <FormControl fullWidth required>
+                            <InputLabel>Personel Seçimi</InputLabel>
+                            <Select
+                              value={documentForm.personnelName || ''}
+                              onChange={(e) => {
+                                const selectedPersonnel = personnelOptions.find(p => p.name === e.target.value);
+                                setDocumentForm(prev => ({ 
+                                  ...prev, 
+                                  personnelName: e.target.value,
+                                  personnelId: selectedPersonnel?.registrationNo || ''
+                                }));
+                              }}
+                              label="Personel Seçimi"
+                            >
+                              {personnelOptions.filter(p => p.position.includes('NDT')).map((personnel) => (
+                                <MenuItem key={personnel.id} value={personnel.name}>
+                                  {personnel.name} - {personnel.registrationNo} ({personnel.position})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          
+                          <TextField
+                            label="Sicil Numarası"
+                            fullWidth
+                            value={documentForm.personnelId || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, personnelId: e.target.value }))}
+                            InputProps={{ readOnly: true }}
+                            helperText="Personel seçildiğinde otomatik doldurulur"
+                          />
+                          
+                          <TextField
+                            label="Sertifika Numarası"
+                            fullWidth
+                            value={documentForm.certificateNumber || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                            helperText="NDT sertifika numarası"
+                          />
+                          
+                          <TextField
+                            label="Veren Kurum"
+                            fullWidth
+                            value={documentForm.issuingAuthority || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
+                            helperText="Örn: TÜRKAK, ASNT, PCN"
+                          />
+                          
+                          <FormControl fullWidth>
+                            <InputLabel>Önem Düzeyi</InputLabel>
+                            <Select
+                              value={documentForm.criticalityLevel || ''}
+                              onChange={(e) => setDocumentForm(prev => ({ ...prev, criticalityLevel: e.target.value as CriticalityLevel }))}
+                              label="Önem Düzeyi"
+                            >
+                              <MenuItem value="Kritik">Kritik</MenuItem>
+                              <MenuItem value="Yüksek">Yüksek</MenuItem>
+                              <MenuItem value="Orta">Orta</MenuItem>
+                              <MenuItem value="Düşük">Düşük</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </>
+                      )}
+                      
+                      {/* İSG Sertifikası için */}
+                      {documentForm.type === 'İSG Sertifikası' && (
+                        <>
+                          <FormControl fullWidth required>
+                            <InputLabel>Personel Seçimi</InputLabel>
+                            <Select
+                              value={documentForm.personnelName || ''}
+                              onChange={(e) => {
+                                const selectedPersonnel = personnelOptions.find(p => p.name === e.target.value);
+                                setDocumentForm(prev => ({ 
+                                  ...prev, 
+                                  personnelName: e.target.value,
+                                  personnelId: selectedPersonnel?.registrationNo || ''
+                                }));
+                              }}
+                              label="Personel Seçimi"
+                            >
+                              {personnelOptions.map((personnel) => (
+                                <MenuItem key={personnel.id} value={personnel.name}>
+                                  {personnel.name} - {personnel.registrationNo} ({personnel.position})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          
+                          <TextField
+                            label="Sicil Numarası"
+                            fullWidth
+                            value={documentForm.personnelId || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, personnelId: e.target.value }))}
+                            InputProps={{ readOnly: true }}
+                            helperText="Personel seçildiğinde otomatik doldurulur"
+                          />
+                          
+                          <TextField
+                            label="Sertifika Numarası"
+                            fullWidth
+                            value={documentForm.certificateNumber || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                            helperText="İSG sertifika numarası"
+                          />
+                          
+                          <TextField
+                            label="Veren Kurum"
+                            fullWidth
+                            value={documentForm.issuingAuthority || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
+                            helperText="Örn: İSGÜM, Çalışma Bakanlığı"
+                          />
+                          
+                          <TextField
+                            label="Eğitim Saati"
+                            type="number"
+                            fullWidth
+                            value={documentForm.trainingHours || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, trainingHours: parseInt(e.target.value) || 0 }))}
+                            helperText="Toplam eğitim süresi (saat)"
+                          />
+                          
+                          <TextField
+                            label="Sınav Sonucu"
+                            fullWidth
+                            value={documentForm.examResult || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, examResult: e.target.value }))}
+                            helperText="Örn: Başarılı, 85/100"
+                          />
+                          
+                          <FormControl fullWidth>
+                            <InputLabel>Önem Düzeyi</InputLabel>
+                            <Select
+                              value={documentForm.criticalityLevel || ''}
+                              onChange={(e) => setDocumentForm(prev => ({ ...prev, criticalityLevel: e.target.value as CriticalityLevel }))}
+                              label="Önem Düzeyi"
+                            >
+                              <MenuItem value="Kritik">Kritik</MenuItem>
+                              <MenuItem value="Yüksek">Yüksek</MenuItem>
+                              <MenuItem value="Orta">Orta</MenuItem>
+                              <MenuItem value="Düşük">Düşük</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </>
+                      )}
+                      
+                      {/* Yetki Belgesi için */}
+                      {documentForm.type === 'Yetki Belgesi' && (
+                        <>
+                          <FormControl fullWidth required>
+                            <InputLabel>Personel Seçimi</InputLabel>
+                            <Select
+                              value={documentForm.personnelName || ''}
+                              onChange={(e) => {
+                                const selectedPersonnel = personnelOptions.find(p => p.name === e.target.value);
+                                setDocumentForm(prev => ({ 
+                                  ...prev, 
+                                  personnelName: e.target.value,
+                                  personnelId: selectedPersonnel?.registrationNo || ''
+                                }));
+                              }}
+                              label="Personel Seçimi"
+                            >
+                              {personnelOptions.map((personnel) => (
+                                <MenuItem key={personnel.id} value={personnel.name}>
+                                  {personnel.name} - {personnel.registrationNo} ({personnel.position})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          
+                          <TextField
+                            label="Sicil Numarası"
+                            fullWidth
+                            value={documentForm.personnelId || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, personnelId: e.target.value }))}
+                            InputProps={{ readOnly: true }}
+                            helperText="Personel seçildiğinde otomatik doldurulur"
+                          />
+                          
+                          <TextField
+                            label="Yetki Belge Numarası"
+                            fullWidth
+                            value={documentForm.certificateNumber || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                            helperText="Yetki belgesi numarası"
+                          />
+                          
+                          <TextField
+                            label="Veren Kurum"
+                            fullWidth
+                            value={documentForm.issuingAuthority || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
+                            helperText="Yetkiyi veren kurum"
+                          />
+                          
+                          <FormControl fullWidth>
+                            <InputLabel>Önem Düzeyi</InputLabel>
+                            <Select
+                              value={documentForm.criticalityLevel || ''}
+                              onChange={(e) => setDocumentForm(prev => ({ ...prev, criticalityLevel: e.target.value as CriticalityLevel }))}
+                              label="Önem Düzeyi"
+                            >
+                              <MenuItem value="Kritik">Kritik</MenuItem>
+                              <MenuItem value="Yüksek">Yüksek</MenuItem>
+                              <MenuItem value="Orta">Orta</MenuItem>
+                              <MenuItem value="Düşük">Düşük</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </>
+                      )}
+                    </Box>
+                  </Box>
+                )}
               </Box>
             )}
 
