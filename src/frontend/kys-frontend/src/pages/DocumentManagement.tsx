@@ -4597,6 +4597,69 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   sx={{ mb: 2 }}
                 />
 
+                {/* Veren Kuruluş - Sadece sertifika/belge tipleri için */}
+                {documentForm.type && (documentForm.type === 'Kaynakçı Sertifikası' || 
+                                       documentForm.type === 'Kaynakçı Nitelik Belgesi' || 
+                                       documentForm.type === 'Kaynak Operatörü Belgesi' ||
+                                       documentForm.type === 'NDT Sertifikası' ||
+                                       documentForm.type === 'İSG Sertifikası' ||
+                                       documentForm.type === 'Yetki Belgesi' ||
+                                       documentForm.type === 'TS 3834-2 Belgesi' ||
+                                       documentForm.type === 'ISO 9001 Belgesi' ||
+                                       documentForm.type === 'ISO 14001 Belgesi' ||
+                                       documentForm.type === 'ISO 45001 Belgesi' ||
+                                       documentForm.type === 'ISO 50001 Belgesi' ||
+                                       documentForm.type === 'ISO 27001 Belgesi' ||
+                                       documentForm.type === 'ISO 10002 Belgesi' ||
+                                       documentForm.type === 'OHSAS 18001 Belgesi' ||
+                                       documentForm.type === 'ISO 28001 Belgesi') && (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2, mb: 2 }}>
+                    <FormControl fullWidth variant="outlined">
+                      <InputLabel>Veren Kuruluş</InputLabel>
+                      <Select
+                        value={documentForm.issuingAuthority || ''}
+                        onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
+                        label="Veren Kuruluş"
+                      >
+                        <MenuItem value="">Seçiniz</MenuItem>
+                        <MenuItem value="TSE (Türk Standartları Enstitüsü)">TSE (Türk Standartları Enstitüsü)</MenuItem>
+                        <MenuItem value="TÜV NORD">TÜV NORD</MenuItem>
+                        <MenuItem value="TÜV SÜD">TÜV SÜD</MenuItem>
+                        <MenuItem value="Bureau Veritas">Bureau Veritas</MenuItem>
+                        <MenuItem value="SGS">SGS</MenuItem>
+                        <MenuItem value="BSI">BSI</MenuItem>
+                        <MenuItem value="Lloyd's Register">Lloyd's Register</MenuItem>
+                        <MenuItem value="TÜRKAK">TÜRKAK</MenuItem>
+                        <MenuItem value="DNV GL">DNV GL</MenuItem>
+                        <MenuItem value="Intertek">Intertek</MenuItem>
+                        <MenuItem value="RWTUV">RWTUV</MenuItem>
+                        <MenuItem value="DEKRA">DEKRA</MenuItem>
+                        <MenuItem value="Diğer">Diğer</MenuItem>
+                      </Select>
+                    </FormControl>
+                    
+                    {documentForm.issuingAuthority === 'Diğer' && (
+                      <TextField
+                        label="Kuruluş Adı"
+                        fullWidth
+                        value={documentForm.certificateNumber || ''}
+                        onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                        helperText="Manuel olarak kuruluş adını girin"
+                        variant="outlined"
+                      />
+                    )}
+                    
+                    <TextField
+                      label="Belge/Sertifika Numarası"
+                      fullWidth
+                      value={documentForm.certificateNumber || ''}
+                      onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                      helperText="Belge veya sertifika numarası"
+                      variant="outlined"
+                    />
+                  </Box>
+                )}
+
                 {/* Doküman Tipine Göre Dinamik Alanlar - Sadece gerekli tiplerde göster */}
                 {documentForm.type && (documentForm.type === 'Kaynakçı Sertifikası' || 
                                        documentForm.type === 'Kaynakçı Nitelik Belgesi' || 
