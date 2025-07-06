@@ -1351,12 +1351,19 @@ const DocumentManagement: React.FC = () => {
     }
   }, [weldingCertificates]);
 
-  // Updated certificate statistics with dynamic data
+  // Updated certificate statistics with dynamic data - Include user-added certificates
+  const userAddedQualityCertificates = documents.filter(doc => 
+    doc.type.includes('ISO') || doc.type.includes('TS 3834-2')
+  );
+  
   const certificateStats = {
-    total: qualityCertificates.length,
-    active: qualityCertificates.filter(c => c.status === 'active').length,
-    expiring: qualityCertificates.filter(c => c.status === 'expiring').length,
-    expired: qualityCertificates.filter(c => c.status === 'expired').length,
+    total: qualityCertificates.length + userAddedQualityCertificates.length,
+    active: qualityCertificates.filter(c => c.status === 'active').length + 
+            userAddedQualityCertificates.filter(c => c.status === 'active').length,
+    expiring: qualityCertificates.filter(c => c.status === 'expiring').length + 
+              userAddedQualityCertificates.filter(c => c.status === 'review' || c.status === 'draft').length,
+    expired: qualityCertificates.filter(c => c.status === 'expired').length + 
+             userAddedQualityCertificates.filter(c => c.status === 'obsolete').length,
     certificatesWithStatus: qualityCertificates
   };
 
@@ -3466,6 +3473,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   ISO Yönetim Sistemi Belgeleri
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+                  {/* Existing Quality Certificates */}
                   {certificateStats.certificatesWithStatus
                     .filter(cert => ['ISO 9001:2015', 'ISO 14001:2015', 'ISO 45001:2018', 'ISO 50001:2018', 'ISO 27001:2013'].includes(cert.name))
                     .map((cert, index) => (
@@ -3521,6 +3529,76 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       </Box>
                     </Card>
                   ))}
+                  
+                  {/* NEW: User-added Quality Certificates from documents state */}
+                  {filteredDocuments
+                    .filter(doc => doc.type.includes('ISO'))
+                    .map((doc, index) => (
+                    <Card key={`doc-${doc.id}`} variant="outlined" sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight={600}>
+                            {doc.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {doc.type}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Sorumlu: {doc.owner}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <StatusChip
+                            label={
+                              doc.status === 'active' ? 'Aktif' : 
+                              doc.status === 'review' ? 'İncelemede' : 
+                              doc.status === 'draft' ? 'Taslak' : 
+                              'Geçersiz'
+                            }
+                            statustype={doc.status}
+                            size="small"
+                          />
+                          <StatusChip
+                            label={
+                              doc.approvalStatus === 'approved' ? 'Onaylandı' : 
+                              doc.approvalStatus === 'pending' ? 'Onay Bekliyor' : 
+                              doc.approvalStatus === 'rejected' ? 'Reddedildi' : 
+                              'Revizyon Gerekli'
+                            }
+                            statustype={doc.approvalStatus}
+                            size="small"
+                          />
+                        </Box>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Yürürlük: {doc.effectiveDate}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Tooltip title="Görüntüle">
+                            <IconButton size="small" onClick={() => handleViewDocument(doc.id)}>
+                              <ViewIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="İndir">
+                            <IconButton size="small" onClick={() => handleDownloadDocument(doc.id)}>
+                              <DownloadIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Düzenle">
+                            <IconButton size="small" onClick={() => handleEditDocument(doc.id)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Sil">
+                            <IconButton size="small" onClick={() => handleDeleteDocument(doc.id)} color="error">
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Card>
+                  ))}
                 </Box>
               </Paper>
 
@@ -3531,6 +3609,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   Kaynak Kalite Belgeleri
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+                  {/* Existing Welding Certificates */}
                   {weldingCertificates.map((cert, index) => (
                     <Card key={index} variant="outlined" sx={{ p: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
@@ -3573,6 +3652,76 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                           </Tooltip>
                           <Tooltip title="Sil">
                             <IconButton size="small" color="error" onClick={() => handleDeleteQualityCertificate(cert.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Card>
+                  ))}
+                  
+                  {/* NEW: User-added TS 3834-2 Certificates from documents state */}
+                  {filteredDocuments
+                    .filter(doc => doc.type.includes('TS 3834-2'))
+                    .map((doc, index) => (
+                    <Card key={`doc-ts-${doc.id}`} variant="outlined" sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight={600}>
+                            {doc.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {doc.type}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Sorumlu: {doc.owner}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <StatusChip
+                            label={
+                              doc.status === 'active' ? 'Aktif' : 
+                              doc.status === 'review' ? 'İncelemede' : 
+                              doc.status === 'draft' ? 'Taslak' : 
+                              'Geçersiz'
+                            }
+                            statustype={doc.status}
+                            size="small"
+                          />
+                          <StatusChip
+                            label={
+                              doc.approvalStatus === 'approved' ? 'Onaylandı' : 
+                              doc.approvalStatus === 'pending' ? 'Onay Bekliyor' : 
+                              doc.approvalStatus === 'rejected' ? 'Reddedildi' : 
+                              'Revizyon Gerekli'
+                            }
+                            statustype={doc.approvalStatus}
+                            size="small"
+                          />
+                        </Box>
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          Yürürlük: {doc.effectiveDate}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Tooltip title="Görüntüle">
+                            <IconButton size="small" onClick={() => handleViewDocument(doc.id)}>
+                              <ViewIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="İndir">
+                            <IconButton size="small" onClick={() => handleDownloadDocument(doc.id)}>
+                              <DownloadIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Düzenle">
+                            <IconButton size="small" onClick={() => handleEditDocument(doc.id)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Sil">
+                            <IconButton size="small" onClick={() => handleDeleteDocument(doc.id)} color="error">
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
