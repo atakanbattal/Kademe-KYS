@@ -89,6 +89,7 @@ interface AuditRecord {
   delayReason?: string; // Gecikme açıklaması
   delayDays?: number; // Kaç gün gecikti
   isDelayed?: boolean; // Gecikmiş mi?
+  attachments?: Attachment[]; // Dosya ekleri
 }
 
 interface NonconformityRecord {
@@ -300,6 +301,10 @@ const SupplierQualityManagement: React.FC = () => {
   // Audit details view dialog
   const [auditDetailsDialogOpen, setAuditDetailsDialogOpen] = useState(false);
   const [selectedAuditForView, setSelectedAuditForView] = useState<AuditRecord | null>(null);
+  
+  // Audit attachments view dialog
+  const [auditAttachmentsDialogOpen, setAuditAttachmentsDialogOpen] = useState(false);
+  const [selectedAuditForAttachments, setSelectedAuditForAttachments] = useState<AuditRecord | null>(null);
   
   // Auto-audit settings
   const [autoAuditEnabled, setAutoAuditEnabled] = useState(true);
@@ -1662,6 +1667,71 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Denetim kayıtları için dosya ekleme fonksiyonları
+  const handleAuditFileUpload = (event: React.ChangeEvent<HTMLInputElement>, auditId: string) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Dosya boyutu kontrolü (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      showSnackbar('Dosya boyutu 10MB\'dan büyük olamaz', 'error');
+      return;
+    }
+
+    // Dosya türü kontrolü
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 
+                         'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      showSnackbar('Sadece PDF, JPG, PNG, DOC, DOCX dosyaları yüklenebilir', 'error');
+      return;
+    }
+
+    // Dosya yükleme simülasyonu
+    const newAttachment: Attachment = {
+      id: Date.now().toString(),
+      name: file.name,
+      size: file.size,
+      uploadDate: new Date().toISOString(),
+      type: file.type,
+      url: URL.createObjectURL(file)
+    };
+
+    // Denetim kaydını güncelle
+    setAudits(prevAudits => prevAudits.map(audit => 
+      audit.id === auditId 
+        ? { ...audit, attachments: [...(audit.attachments || []), newAttachment] }
+        : audit
+    ));
+
+    showSnackbar('Dosya başarıyla yüklendi', 'success');
+  };
+
+  const handleAuditDeleteAttachment = (auditId: string, attachmentId: string) => {
+    setAudits(prevAudits => prevAudits.map(audit => 
+      audit.id === auditId 
+        ? { ...audit, attachments: audit.attachments?.filter(att => att.id !== attachmentId) }
+        : audit
+    ));
+    showSnackbar('Dosya başarıyla silindi', 'success');
+  };
+
+  const handleAuditDownloadAttachment = (attachment: Attachment) => {
+    const link = document.createElement('a');
+    link.href = attachment.url;
+    link.download = attachment.name;
+    link.click();
+    showSnackbar('Dosya indiriliyor', 'info');
+  };
+
+  const handleAuditViewAttachment = (attachment: Attachment) => {
+    if (attachment.type === 'application/pdf') {
+      window.open(attachment.url, '_blank');
+    } else {
+      window.open(attachment.url, '_blank');
+    }
+    showSnackbar('Dosya görüntüleniyor', 'info');
   };
 
   // Supplier switch functions
@@ -5506,6 +5576,59 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                   </IconButton>
                                 </Tooltip>
                               </Box>
+                              {/* Dosya Ekleme ve Silme Butonları */}
+                              <Box display="flex" justifyContent="center" gap={0.5} mt={1}>
+                                <input
+                                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                  style={{ display: 'none' }}
+                                  id={`audit-file-upload-${audit.id}`}
+                                  type="file"
+                                  onChange={(e) => handleAuditFileUpload(e, audit.id)}
+                                />
+                                <label htmlFor={`audit-file-upload-${audit.id}`}>
+                                  <Tooltip title="Dosya Ekle" arrow>
+                                    <IconButton 
+                                      size="small" 
+                                      color="primary"
+                                      component="span"
+                                      sx={{ 
+                                        width: 28, 
+                                        height: 28,
+                                        border: '1px solid',
+                                        borderColor: 'primary.main',
+                                        '&:hover': {
+                                          backgroundColor: 'primary.50'
+                                        }
+                                      }}
+                                    >
+                                      <UploadIcon sx={{ fontSize: 14 }} />
+                                    </IconButton>
+                                  </Tooltip>
+                                </label>
+                                                                {audit.attachments && audit.attachments.length > 0 && (
+                                   <Tooltip title={`${audit.attachments.length} dosya var`} arrow>
+                                     <IconButton 
+                                       size="small" 
+                                       color="info"
+                                       onClick={() => {
+                                         setSelectedAuditForAttachments(audit);
+                                         setAuditAttachmentsDialogOpen(true);
+                                       }}
+                                       sx={{ 
+                                         width: 28, 
+                                         height: 28,
+                                         border: '1px solid',
+                                         borderColor: 'info.main',
+                                         '&:hover': {
+                                           backgroundColor: 'info.50'
+                                         }
+                                       }}
+                                     >
+                                       <AttachFileIcon sx={{ fontSize: 14 }} />
+                                     </IconButton>
+                                   </Tooltip>
+                                 )}
+                              </Box>
                             </TableCell>
                           </TableRow>
                         );
@@ -8753,6 +8876,134 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             </Button>
                    </DialogActions>
          </Dialog>
+
+        {/* Denetim Dosya Ekleri Dialog */}
+        <Dialog open={auditAttachmentsDialogOpen} onClose={() => setAuditAttachmentsDialogOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>
+            <Box display="flex" alignItems="center" gap={1}>
+              <AttachFileIcon color="primary" />
+              Denetim Dosya Ekleri
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2 }}>
+              {selectedAuditForAttachments && (
+                <>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>Tedarikçi:</strong> {suppliers.find(s => s.id === selectedAuditForAttachments.supplierId)?.name || 'Bilinmiyor'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
+                    Denetim Tarihi: {new Date(selectedAuditForAttachments.auditDate).toLocaleDateString('tr-TR')}
+                  </Typography>
+                  
+                  <Typography variant="h6" gutterBottom>
+                    Dosya Ekleri ({selectedAuditForAttachments.attachments?.length || 0})
+                  </Typography>
+                  
+                  {selectedAuditForAttachments.attachments && selectedAuditForAttachments.attachments.length > 0 ? (
+                    <List>
+                      {selectedAuditForAttachments.attachments.map((attachment, index) => (
+                        <ListItem 
+                          key={attachment.id} 
+                          sx={{ 
+                            border: '1px solid',
+                            borderColor: 'grey.300',
+                            borderRadius: 1,
+                            mb: 1,
+                            bgcolor: 'grey.50'
+                          }}
+                        >
+                          <ListItemIcon>
+                            <AttachFileIcon color="primary" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={attachment.name}
+                            secondary={
+                              <Box display="flex" gap={2}>
+                                <Typography variant="caption">
+                                  {formatFileSize(attachment.size)}
+                                </Typography>
+                                <Typography variant="caption">
+                                  {new Date(attachment.uploadDate).toLocaleDateString('tr-TR')}
+                                </Typography>
+                              </Box>
+                            }
+                          />
+                          <Box display="flex" gap={1}>
+                            <Tooltip title="Görüntüle" arrow>
+                              <IconButton 
+                                size="small" 
+                                color="info"
+                                onClick={() => handleAuditViewAttachment(attachment)}
+                              >
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="İndir" arrow>
+                              <IconButton 
+                                size="small" 
+                                color="primary"
+                                onClick={() => handleAuditDownloadAttachment(attachment)}
+                              >
+                                <DownloadIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Sil" arrow>
+                              <IconButton 
+                                size="small" 
+                                color="error"
+                                onClick={() => handleAuditDeleteAttachment(selectedAuditForAttachments.id, attachment.id)}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </ListItem>
+                      ))}
+                    </List>
+                  ) : (
+                    <Box textAlign="center" py={4}>
+                      <AttachFileIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        Bu denetim için henüz dosya eklenmemiş
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Dosya Ekleme Butonları */}
+                  <Box mt={3} display="flex" justifyContent="center">
+                    <input
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      style={{ display: 'none' }}
+                      id={`audit-file-upload-dialog-${selectedAuditForAttachments.id}`}
+                      type="file"
+                      onChange={(e) => handleAuditFileUpload(e, selectedAuditForAttachments.id)}
+                    />
+                    <label htmlFor={`audit-file-upload-dialog-${selectedAuditForAttachments.id}`}>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        component="span"
+                        startIcon={<UploadIcon />}
+                      >
+                        Dosya Ekle
+                      </Button>
+                    </label>
+                  </Box>
+                  
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block', textAlign: 'center' }}>
+                    PDF, DOC, DOCX, JPG, PNG dosyaları yükleyebilirsiniz (Max 10MB)
+                  </Typography>
+                </>
+              )}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAuditAttachmentsDialogOpen(false)} color="inherit">
+              Kapat
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Snackbar for notifications */}
         <Snackbar
