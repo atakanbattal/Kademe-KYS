@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import {
   Typography,
   Box,
@@ -157,6 +157,7 @@ interface TestRecord {
   createdAt: string;
   updatedAt: string;
   repairRecordId?: string; // Tamir kaydı linklemesi
+  calculatedResult?: 'repaired_passed' | 'repaired_failed' | 'repaired_completed' | 'passed' | 'failed' | 'conditional'; // Tamir sonrası hesaplanan sonuç
 }
 
 // Tamir/Tashih Formu Interface'leri
@@ -648,6 +649,133 @@ const UltraStableSearchInput = React.memo<{
   );
 });
 
+// ============================================
+// KUSURSUZ ARAMA COMPONENT'İ
+// ============================================
+
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
+  
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Input ref - focus korunması için
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // İlk değer sadece mount'ta set edilir, sonra hiç dokunulmaz
+  const [isInitialized, setIsInitialized] = useState(false);
+  useEffect(() => {
+    if (!isInitialized) {
+      setLocalValue(initialValue);
+      setIsInitialized(true);
+    }
+  }, [initialValue, isInitialized]);
+  
+  // Clear trigger değiştiğinde arama kutusunu temizle
+  useEffect(() => {
+    if (clearTrigger > 0 && isInitialized) {
+      console.log('🧹 Arama kutusu temizleniyor...');
+      setLocalValue('');
+      // Debounce'u da temizle
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    }
+  }, [clearTrigger, isInitialized]);
+  
+  // Input değişiklik handler'ı - PARENT'TAN TAMAMEN BAĞIMSIZ
+  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    console.log('🔍 Local arama değişiyor:', newValue);
+    
+    // Local state'i hemen güncelle (UI responsive)
+    setLocalValue(newValue);
+    
+    // Önceki debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Yeni debounce başlat - DİNAMİK ARAMA İÇİN MAKUL SÜRE
+    debounceRef.current = setTimeout(() => {
+      console.log('📤 Debounce tamamlandı, parent\'a gönderiliyor:', newValue);
+      onDebouncedChange(newValue);
+     }, 800); // 800ms - dinamik arama, ama yine de stabil odak
+  }, [onDebouncedChange]);
+  
+  // Blur handler - başka yere tıkladığında arama yap
+  const handleBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
+    const currentValue = event.target.value;
+    console.log('🎯 Odak kaybedildi, hemen arama yapılıyor:', currentValue);
+    
+    // Debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Hemen arama yap
+    onDebouncedChange(currentValue);
+  }, [onDebouncedChange]);
+  
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+  
+  // STATİK PROPS - HİÇ DEĞİŞMEZ
+  const staticInputProps = useMemo(() => ({
+    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+  }), []);
+  
+  const staticSxProps = useMemo(() => ({
+    '& .MuiInputLabel-root': { fontWeight: 600 },
+    '& .MuiOutlinedInput-root': {
+      height: 56,
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main'
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+        borderWidth: '2px',
+      },
+    },
+  }), []);
+  
+  return (
+    <TextField
+      ref={inputRef}
+      fullWidth={fullWidth}
+      size={size}
+      label={label}
+      value={localValue} // SADECE LOCAL STATE
+      onChange={handleInputChange}
+      onBlur={handleBlur} // Başka yere tıkladığında arama yap
+      placeholder={placeholder}
+      autoComplete="off"
+      spellCheck={false}
+      InputProps={staticInputProps}
+      sx={staticSxProps}
+    />
+  );
+});
+
+// Component displayName
+UltraIsolatedSearchInput.displayName = 'UltraIsolatedSearchInput';
+
 const TankLeakTest: React.FC = () => {
   const { theme: muiTheme, appearanceSettings } = useThemeContext();
 
@@ -801,6 +929,26 @@ const TankLeakTest: React.FC = () => {
     quarter: ''
   });
 
+  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  const [clearTrigger, setClearTrigger] = useState(0);
+
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 Debounced arama terimi geldi:', debouncedSearchTerm);
+    setFilters(prev => {
+      // Eğer değer değişmemişse state'i güncelleme
+      if (prev.searchTerm === debouncedSearchTerm) {
+        console.log('🔍 Arama terimi aynı, state güncellenmeyecek');
+        return prev;
+      }
+      console.log('🔍 Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
+      return {
+        ...prev,
+        searchTerm: debouncedSearchTerm
+      };
+    });
+  }, []);
+
   // Filter expansion state
   const [filterExpanded, setFilterExpanded] = useState(false);
 
@@ -841,44 +989,49 @@ const TankLeakTest: React.FC = () => {
 
   // ✅ OPTIMIZED: Filtrelenmiş veri döndüren fonksiyon - useCallback ile performance artışı
   const getFilteredData = React.useCallback(() => {
-    // Tamir kayıtlarını test kayıtları formatına çevir
-    const repairAsTests: TestRecord[] = repairRecords.map(repair => ({
-      id: `repair-${repair.id}`,
-      tankInfo: repair.tankInfo,
-      personnel: {
-        welder: repair.personnel.repairTechnician,
-        inspector: repair.personnel.qualityControlPersonnel
-      },
-      vehicleInfo: {
-        model: 'Tamir Kaydı',
-        vinNumber: '',
-        tankPosition: '',
-        projectCode: ''
-      },
-      testParameters: {
-        testType: 'Tamir Tashih',
-        testDate: repair.repairInfo.repairDate,
-        testPressure: 0,
-        testDuration: repair.repairInfo.duration,
-        ambientTemp: 20,
-        testEquipment: 'Tamir Ekipmanları',
-        pressureDrop: 0
-      },
-      errors: repair.errors,
-      testResult: {
-        result: 'failed' as const,
-        retestRequired: repair.status !== 'completed',
-        notes: `Tamir Kaydı - ${repair.status === 'completed' ? 'Tamamlandı' : 'Devam Ediyor'}`
-      },
-      createdAt: repair.createdAt,
-      updatedAt: repair.updatedAt,
-      repairRecordId: repair.id
-    }));
+    // ✅ SADECE TEST KAYITLARI - Tamir durumu ile birlikte göster
+    // Tamir kayıtlarını ayrı listelemek yerine, test kayıtlarının tamir durumunu zenginleştir
+    const enrichedTests = savedTests.map(test => {
+      // İlgili tamir kaydını bul
+      const relatedRepair = repairRecords.find(repair => repair.testRecordId === test.id);
+      
+      if (relatedRepair) {
+        // Test kaydına tamir durumu bilgisini ekle
+        return {
+          ...test,
+          repairRecordId: relatedRepair.id,
+          // Tamir durumuna göre test sonucunu güncelle
+          testResult: {
+            ...test.testResult,
+            notes: relatedRepair.status === 'completed' 
+              ? `${test.testResult.notes} | TAMİR TAMAMLANDI (${relatedRepair.completedAt ? new Date(relatedRepair.completedAt).toLocaleDateString('tr-TR') : 'Tarih belirtilmemiş'})`
+              : relatedRepair.status === 'in_progress'
+              ? `${test.testResult.notes} | TAMİR DEVAM EDİYOR`
+              : relatedRepair.status === 'planned'
+              ? `${test.testResult.notes} | TAMİR PLANLANDI`
+              : `${test.testResult.notes} | TAMİR DURUMU: ${relatedRepair.status.toUpperCase()}`
+          },
+          // Tamir tamamlandıysa test sonucunu güncelle
+          calculatedResult: (
+            relatedRepair.status === 'completed' 
+              ? (relatedRepair.retestRecord?.retestResult === 'passed' 
+                  ? 'repaired_passed'    // Tamir sonrası yeniden test başarılı
+                  : relatedRepair.retestRecord?.retestResult === 'failed'
+                  ? 'repaired_failed'    // Tamir sonrası yeniden test başarısız
+                  : 'repaired_completed' // Tamir tamamlandı ama henüz yeniden test yok
+                )
+              : test.testResult.result   // Orijinal sonuç (tamir devam ediyor)
+          ) as 'repaired_passed' | 'repaired_failed' | 'repaired_completed' | 'passed' | 'failed' | 'conditional'
+        };
+      }
+      
+      return test;
+    });
 
-    // Test kayıtları ve tamir kayıtlarını birleştir
-    const allRecords = [...savedTests, ...repairAsTests];
+    // Zenginleştirilmiş test kayıtlarını kullan
+    const allRecords = enrichedTests;
 
-    return allRecords.filter(test => {
+    const filteredAndSortedData = allRecords.filter(test => {
       // Seri numarası filtresi
       if (filters.serialNumber && !test.tankInfo.serialNumber.toLowerCase().includes(filters.serialNumber.toLowerCase())) {
         return false;
@@ -949,12 +1102,59 @@ const TankLeakTest: React.FC = () => {
 
       return true;
     })
-    // 📅 TARİHE GÖRE SIRALAMA - EN YENİ TEST KAYITLARI ÖNCE
+    // 🎯 DOĞRU SIRALAMA ALGORİTMASI - ÖNCE TEST TARİHİ, SONRA OLUŞTURULMA SIRASI
     .sort((a, b) => {
-      const dateA = new Date(a.testParameters.testDate || a.createdAt);
-      const dateB = new Date(b.testParameters.testDate || b.createdAt);
-      return dateB.getTime() - dateA.getTime(); // Yeniden eskiye doğru sıralama
+      // 1. ÖNCELİK: Test tarihine göre sırala
+      const testDateA = a.testParameters?.testDate ? new Date(a.testParameters.testDate) : new Date(0);
+      const testDateB = b.testParameters?.testDate ? new Date(b.testParameters.testDate) : new Date(0);
+      
+      const testDateComparison = testDateB.getTime() - testDateA.getTime(); // Yeniden eskiye
+      
+      // Eğer test tarihleri farklıysa, test tarihine göre sırala
+      if (testDateComparison !== 0) {
+        return testDateComparison;
+      }
+      
+      // 2. İKİNCİL: Aynı test tarihindeyse, oluşturulma sırasına göre sırala
+      const createdAtA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+      const createdAtB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+      
+      const createdAtComparison = createdAtB.getTime() - createdAtA.getTime(); // Yeniden eskiye
+      
+      // DEBUG: Detaylı sıralama log'u
+      console.log('🎯 DOĞRU SIRALAMA:', {
+        aId: a.id,
+        bId: b.id,
+        aTestDate: a.testParameters?.testDate,
+        bTestDate: b.testParameters?.testDate,
+        aCreatedAt: a.createdAt,
+        bCreatedAt: b.createdAt,
+        testDateComparison,
+        createdAtComparison,
+        finalResult: createdAtComparison
+      });
+      
+      return createdAtComparison;
     });
+
+    // ✅ Final sıralama doğrulaması
+    if (filteredAndSortedData.length > 0) {
+      console.log('🎯 Final sıralama kontrolü:', {
+        toplamKayit: filteredAndSortedData.length,
+        ilkKayit: {
+          id: filteredAndSortedData[0].id,
+          createdAt: filteredAndSortedData[0].createdAt,
+          serialNumber: filteredAndSortedData[0].tankInfo?.serialNumber
+        },
+        sonKayit: filteredAndSortedData.length > 1 ? {
+          id: filteredAndSortedData[filteredAndSortedData.length - 1].id,
+          createdAt: filteredAndSortedData[filteredAndSortedData.length - 1].createdAt,
+          serialNumber: filteredAndSortedData[filteredAndSortedData.length - 1].tankInfo?.serialNumber
+        } : null
+      });
+    }
+
+    return filteredAndSortedData;
   }, [filters, savedTests, repairRecords]);
 
   // Load saved tests from localStorage on component mount
@@ -1280,7 +1480,7 @@ const TankLeakTest: React.FC = () => {
     return checkDOFStatus('tankLeak', test.id);
   };
 
-  // Test kaydı silme fonksiyonu - GÜÇLENDİRİLMİŞ VERSİYON
+  // ✅ KRİTİK: TANK TEST SİLME FONKSİYONU - CANLI GÜNCELLEME
   const handleDeleteTest = (testId: string) => {
     if (!window.confirm('Bu test kaydını silmek istediğinizden emin misiniz?')) {
       return;
@@ -1297,14 +1497,28 @@ const TankLeakTest: React.FC = () => {
         return;
       }
       
-      // Test kaydını sil
+      console.log('🔍 Silinecek test:', {
+        id: testToDelete.id,
+        serialNumber: testToDelete.tankInfo?.serialNumber,
+        testType: testToDelete.testParameters?.testType,
+        mevcutTestSayisi: savedTests.length
+      });
+      
+      // Test kaydını sil - CRITICAL UPDATE
       const updatedTests = savedTests.filter(test => test.id !== testId);
+      console.log('🔄 State güncelleniyor:', {
+        eskiSayi: savedTests.length,
+        yeniSayi: updatedTests.length,
+        filtreliKayitVarMi: updatedTests.some(t => t.id === testId)
+      });
+      
+      // STATE'İ HEMEN GÜNCELLE
       setSavedTests(updatedTests);
       
       // localStorage'a kaydet ve hata durumunda geri al
       try {
         localStorage.setItem('tankLeakTests', JSON.stringify(updatedTests));
-        console.log('✅ Test kaydı localStorage\'dan silindi');
+        console.log('✅ Test kaydı localStorage\'dan silindi, yeni test sayısı:', updatedTests.length);
       } catch (storageError) {
         console.error('❌ localStorage yazma hatası:', storageError);
         // Geri al
@@ -1323,10 +1537,15 @@ const TankLeakTest: React.FC = () => {
       calculateTankRepairHistory(updatedRepairs);
       
       console.log('✅ Test kaydı ve ilgili tamir kayıtları başarıyla silindi:', testId);
+      console.log('📊 Güncel test listesi uzunluğu:', updatedTests.length);
       
       // Kullanıcıya bilgi ver
       const deletedTestInfo = `${testToDelete.tankInfo.serialNumber} - ${testToDelete.testParameters.testType}`;
-      alert(`Test kaydı başarıyla silindi: ${deletedTestInfo}`);
+      
+      // Kullanıcıya göster
+      setTimeout(() => {
+        console.log('🎯 Silme işlemi tamamlandı, kullanıcıya bildirim gösteriliyor');
+      }, 100);
       
     } catch (error) {
       console.error('❌ Test kaydı silinirken kritik hata:', error);
@@ -1564,8 +1783,8 @@ const TankLeakTest: React.FC = () => {
                  result === 'failed' ? 'Test başarısız - düzeltme gerekli' : 
                  'Şartlı onay - kontrol tekrarı önerilir'
         },
-        createdAt: testDate.toISOString(),
-        updatedAt: testDate.toISOString()
+        createdAt: testDate.toISOString(), // KRİTİK: Örnek kayıtlar için tutarlı tarih
+        updatedAt: testDate.toISOString()  // KRİTİK: Güncelleme tarihi aynı
       };
       
       sampleTests.push(testRecord);
@@ -1863,6 +2082,9 @@ const TankLeakTest: React.FC = () => {
           : 'Test başarıyla tamamlandı. Herhangi bir hata tespit edilmedi.'
       };
 
+      // ✅ KRİTİK TARİH DÜZELTMESİ - TUTARLI OLUŞTURMA TARİHİ
+      const currentTimestamp = new Date().toISOString();
+      
       // Yeni test kaydı oluştur
       const newTest: TestRecord = {
         id: (() => {
@@ -1880,9 +2102,18 @@ const TankLeakTest: React.FC = () => {
         },
         errors: errors,
         testResult: automaticTestResult, // Otomatik belirlenen sonuç
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: currentTimestamp, // KRİTİK: Tutarlı oluşturma tarihi
+        updatedAt: currentTimestamp  // KRİTİK: Tutarlı güncelleme tarihi
       };
+
+      console.log('💾 Yeni test kaydı oluşturuluyor:', {
+        id: newTest.id,
+        serialNumber: newTest.tankInfo.serialNumber,
+        testType: newTest.testParameters.testType,
+        createdAt: newTest.createdAt,
+        testDate: newTest.testParameters.testDate,
+        currentTime: currentTimestamp
+      });
 
       // Kayıtlı testlere ekle
       const updatedTests = [...savedTests, newTest];
@@ -2454,13 +2685,14 @@ const TankLeakTest: React.FC = () => {
           <Grid container spacing={3}>
             {/* Genel Arama */}
             <Grid item xs={12} md={6}>
-              <UltraStableSearchInput
-                value={filters.searchTerm}
-                onChange={(value) => setFilters({...filters, searchTerm: value})}
+              <UltraIsolatedSearchInput
+                initialValue={filters.searchTerm}
+                onDebouncedChange={handleDebouncedSearchChange}
                 label="Genel Arama"
                 placeholder="Seri no, tank türü, model, personel..."
                 size="medium"
                 fullWidth={true}
+                clearTrigger={clearTrigger}
               />
             </Grid>
 
@@ -2658,20 +2890,25 @@ const TankLeakTest: React.FC = () => {
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                 <Button
                   variant="outlined"
-                  onClick={() => setFilters({
-                    serialNumber: '',
-                    tankType: '',
-                    testType: '',
-                    testResult: '',
-                    dateFrom: '',
-                    dateTo: '',
-                    searchTerm: '',
-                    repairStatus: '',
-                    period: '',
-                    year: new Date().getFullYear().toString(),
-                    month: '',
-                    quarter: ''
-                  })}
+                  onClick={() => {
+                    console.log('🧹 Tüm filtreler temizleniyor...');
+                    setFilters({
+                      serialNumber: '',
+                      tankType: '',
+                      testType: '',
+                      testResult: '',
+                      dateFrom: '',
+                      dateTo: '',
+                      searchTerm: '',
+                      repairStatus: '',
+                      period: '',
+                      year: new Date().getFullYear().toString(),
+                      month: '',
+                      quarter: ''
+                    });
+                    // Arama kutusunu da temizlemek için trigger güncelle
+                    setClearTrigger(prev => prev + 1);
+                  }}
                   startIcon={<ClearIcon />}
                 >
                   Filtreleri Temizle
@@ -3688,17 +3925,42 @@ const TankLeakTest: React.FC = () => {
                             <TableCell>
                               <Chip
                                 label={
+                                  (test as any).calculatedResult === 'repaired_passed' ? 'Tamir Başarılı ✓' :
+                                  (test as any).calculatedResult === 'repaired_failed' ? 'Tamir Başarısız ✗' :
+                                  (test as any).calculatedResult === 'repaired_completed' ? 'Tamir Edildi' :
                                   test.testResult?.result === 'passed' ? 'Başarılı' :
                                   test.testResult?.result === 'failed' ? 'Başarısız' : 
                                   test.testResult?.result === 'conditional' ? 'Şartlı' : 'Belirsiz'
                                 }
                                 color={
+                                  (test as any).calculatedResult === 'repaired_passed' ? 'success' :
+                                  (test as any).calculatedResult === 'repaired_failed' ? 'error' :
+                                  (test as any).calculatedResult === 'repaired_completed' ? 'info' :
                                   test.testResult?.result === 'passed' ? 'success' :
                                   test.testResult?.result === 'failed' ? 'error' : 
                                   test.testResult?.result === 'conditional' ? 'warning' : 'default'
                                 }
                                 size="small"
-                                sx={{ height: '20px', fontSize: '0.6rem' }}
+                                sx={{ 
+                                  height: '20px', 
+                                  fontSize: '0.6rem',
+                                  // Tamir durumu için özel stil
+                                  ...((test as any).calculatedResult === 'repaired_passed' && {
+                                    bgcolor: 'success.main',
+                                    color: 'white',
+                                    fontWeight: 'bold'
+                                  }),
+                                  ...((test as any).calculatedResult === 'repaired_failed' && {
+                                    bgcolor: 'error.main',
+                                    color: 'white',
+                                    fontWeight: 'bold'
+                                  }),
+                                  ...((test as any).calculatedResult === 'repaired_completed' && {
+                                    bgcolor: 'info.main',
+                                    color: 'white',
+                                    fontWeight: 'bold'
+                                  })
+                                }}
                               />
                             </TableCell>
                             <TableCell align="center">

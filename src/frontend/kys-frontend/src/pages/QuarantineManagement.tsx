@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -396,6 +396,138 @@ const MONTHS = [
 ];
 
 // ============================================
+// KUSURSUZ ARAMA COMPONENT'İ
+// ============================================
+
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
+  
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Input ref - focus korunması için
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // İlk değer sadece mount'ta set edilir, sonra hiç dokunulmaz
+  const [isInitialized, setIsInitialized] = useState(false);
+  useEffect(() => {
+    if (!isInitialized) {
+      setLocalValue(initialValue);
+      setIsInitialized(true);
+    }
+  }, [initialValue, isInitialized]);
+  
+  // Clear trigger değiştiğinde arama kutusunu temizle
+  useEffect(() => {
+    if (clearTrigger > 0 && isInitialized) {
+      console.log('🧹 Arama kutusu temizleniyor...');
+      setLocalValue('');
+      // Debounce'u da temizle
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    }
+  }, [clearTrigger, isInitialized]);
+  
+  // Input değişiklik handler'ı - PARENT'TAN TAMAMEN BAĞIMSIZ
+  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    console.log('🔍 Local arama değişiyor:', newValue);
+    
+    // Local state'i hemen güncelle (UI responsive)
+    setLocalValue(newValue);
+    
+    // Önceki debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Yeni debounce başlat - DİNAMİK ARAMA İÇİN MAKUL SÜRE
+    debounceRef.current = setTimeout(() => {
+      console.log('📤 Debounce tamamlandı, parent\'a gönderiliyor:', newValue);
+      onDebouncedChange(newValue);
+     }, 800); // 800ms - dinamik arama, ama yine de stabil odak
+  }, [onDebouncedChange]);
+  
+  // Blur handler - başka yere tıkladığında arama yap
+  const handleBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
+    const currentValue = event.target.value;
+    console.log('🎯 Odak kaybedildi, hemen arama yapılıyor:', currentValue);
+    
+    // Debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Hemen arama yap
+    onDebouncedChange(currentValue);
+  }, [onDebouncedChange]);
+  
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+  
+  // STATİK PROPS - HİÇ DEĞİŞMEZ
+  const staticInputProps = useMemo(() => ({
+    startAdornment: (
+      <InputAdornment position="start">
+        <SearchIcon />
+      </InputAdornment>
+    ),
+  }), []);
+  
+  const staticSxProps = useMemo(() => ({
+    height: 56,
+    '& .MuiOutlinedInput-root': {
+      height: 56,
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main'
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+        borderWidth: '2px',
+      },
+    },
+  }), []);
+  
+  return (
+    <TextField
+      ref={inputRef}
+      fullWidth={fullWidth}
+      size={size}
+      variant="outlined"
+      label={label}
+      value={localValue} // SADECE LOCAL STATE
+      onChange={handleInputChange}
+      onBlur={handleBlur} // Başka yere tıkladığında arama yap
+      placeholder={placeholder}
+      autoComplete="off"
+      spellCheck={false}
+      InputProps={staticInputProps}
+      sx={staticSxProps}
+    />
+  );
+});
+
+// Component displayName
+UltraIsolatedSearchInput.displayName = 'UltraIsolatedSearchInput';
+
+// ============================================
 // ENHANCED MAIN COMPONENT
 // ============================================
 
@@ -531,6 +663,26 @@ const QuarantineManagement: React.FC = () => {
     endDate: '',
     searchText: ''
   });
+
+  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  const [clearTrigger, setClearTrigger] = useState(0);
+
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 Debounced arama terimi geldi:', debouncedSearchTerm);
+    setFilters(prev => {
+      // Eğer değer değişmemişse state'i güncelleme
+      if (prev.searchText === debouncedSearchTerm) {
+        console.log('🔍 Arama terimi aynı, state güncellenmeyecek');
+        return prev;
+      }
+      console.log('🔍 Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
+      return {
+        ...prev,
+        searchText: debouncedSearchTerm
+      };
+    });
+  }, []);
   
   // Notification states
   const [notification, setNotification] = useState({
@@ -627,6 +779,7 @@ const QuarantineManagement: React.FC = () => {
   };
 
   const clearFilters = () => {
+    console.log('🧹 Tüm filtreler temizleniyor...');
     setFilters({
       status: 'ALL',
       department: 'ALL',
@@ -640,6 +793,8 @@ const QuarantineManagement: React.FC = () => {
       endDate: '',
       searchText: ''
     });
+    // Arama kutusunu da temizlemek için trigger güncelle
+    setClearTrigger(prev => prev + 1);
     showNotification('Tüm filtreler temizlendi', 'success');
   };
 
@@ -2442,29 +2597,14 @@ const QuarantineManagement: React.FC = () => {
               </FormControl>
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <TextField
-                fullWidth
-                variant="outlined"
+              <UltraIsolatedSearchInput
                 label="Gelişmiş Arama"
                 placeholder="Parça kodu, başlık, açıklama..."
-                value={filters.searchText}
-                onChange={(e) => handleFilterChange('searchText', e.target.value)}
-                sx={{
-                  height: 56,
-                  '& .MuiOutlinedInput-root': {
-                    height: 56,
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'primary.main'
-                    }
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
+                initialValue={filters.searchText}
+                onDebouncedChange={handleDebouncedSearchChange}
+                size="small"
+                fullWidth
+                clearTrigger={clearTrigger}
               />
             </Box>
             <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>

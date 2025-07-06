@@ -1324,6 +1324,132 @@ const MetricCard = styled(Card)(({ theme }) => ({
   }
 }));
 
+// ============================================
+// KUSURSUZ ARAMA COMPONENT'İ
+// ============================================
+
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
+  
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Input ref - focus korunması için
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // İlk değer sadece mount'ta set edilir, sonra hiç dokunulmaz
+  const [isInitialized, setIsInitialized] = useState(false);
+  useEffect(() => {
+    if (!isInitialized) {
+      setLocalValue(initialValue);
+      setIsInitialized(true);
+    }
+  }, [initialValue, isInitialized]);
+  
+  // Clear trigger değiştiğinde arama kutusunu temizle
+  useEffect(() => {
+    if (clearTrigger > 0 && isInitialized) {
+      console.log('🧹 Arama kutusu temizleniyor...');
+      setLocalValue('');
+      // Debounce'u da temizle
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    }
+  }, [clearTrigger, isInitialized]);
+  
+  // Input değişiklik handler'ı - PARENT'TAN TAMAMEN BAĞIMSIZ
+  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    console.log('🔍 Local arama değişiyor:', newValue);
+    
+    // Local state'i hemen güncelle (UI responsive)
+    setLocalValue(newValue);
+    
+    // Önceki debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Yeni debounce başlat - DİNAMİK ARAMA İÇİN MAKUL SÜRE
+    debounceRef.current = setTimeout(() => {
+      console.log('📤 Debounce tamamlandı, parent\'a gönderiliyor:', newValue);
+      onDebouncedChange(newValue);
+     }, 800); // 800ms - dinamik arama, ama yine de stabil odak
+  }, [onDebouncedChange]);
+  
+  // Blur handler - başka yere tıkladığında arama yap
+  const handleBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
+    const currentValue = event.target.value;
+    console.log('🎯 Odak kaybedildi, hemen arama yapılıyor:', currentValue);
+    
+    // Debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Hemen arama yap
+    onDebouncedChange(currentValue);
+  }, [onDebouncedChange]);
+  
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+  
+  // STATİK PROPS - HİÇ DEĞİŞMEZ
+  const staticInputProps = useMemo(() => ({
+    startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+  }), []);
+  
+  const staticSxProps = useMemo(() => ({
+    '& .MuiInputLabel-root': { fontWeight: 600 },
+    '& .MuiOutlinedInput-root': {
+      height: 56,
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main'
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+        borderWidth: '2px',
+      },
+    },
+  }), []);
+  
+  return (
+    <TextField
+      ref={inputRef}
+      fullWidth={fullWidth}
+      label={label}
+      value={localValue} // SADECE LOCAL STATE
+      onChange={handleInputChange}
+      onBlur={handleBlur} // Başka yere tıkladığında arama yap
+      placeholder={placeholder}
+      autoComplete="off"
+      spellCheck={false}
+      InputProps={staticInputProps}
+      sx={staticSxProps}
+    />
+  );
+});
+
+// Component displayName
+UltraIsolatedSearchInput.displayName = 'UltraIsolatedSearchInput';
+
 // BASIT ARAMA INPUT - Material Certificate Tracking'den kopyalandı (FOCUS KAYBI SORUNU YOK!) // ASLA re-render olmuyor
 
 const DOF8DManagement: React.FC = () => {
@@ -1388,6 +1514,26 @@ const DOF8DManagement: React.FC = () => {
     delayStatus: '',
     priority: '',
   });
+
+  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  const [clearTrigger, setClearTrigger] = useState(0);
+
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 Debounced arama terimi geldi:', debouncedSearchTerm);
+    setFilters(prev => {
+      // Eğer değer değişmemişse state'i güncelleme
+      if (prev.searchTerm === debouncedSearchTerm) {
+        console.log('🔍 Arama terimi aynı, state güncellenmeyecek');
+        return prev;
+      }
+      console.log('🔍 Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
+      return {
+        ...prev,
+        searchTerm: debouncedSearchTerm
+      };
+    });
+  }, []);
 
   // ✅ Yeni State'ler - Gelişmiş Özellikler İçin
 
@@ -3143,24 +3289,13 @@ const DOF8DManagement: React.FC = () => {
               </FormControl>
             </Box>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <TextField
+              <UltraIsolatedSearchInput
                 label="Gelişmiş Arama"
                 placeholder="DÖF numarası, başlık, açıklama..."
-                value={filters.searchTerm}
-                onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                InputProps={{
-                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                }}
+                initialValue={filters.searchTerm}
+                onDebouncedChange={handleDebouncedSearchChange}
                 fullWidth
-                sx={{ 
-                  '& .MuiInputLabel-root': { fontWeight: 600 },
-                  '& .MuiOutlinedInput-root': {
-                    height: 56,
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'primary.main'
-                    }
-                  }
-                }}
+                clearTrigger={clearTrigger}
               />
             </Box>
             <Box sx={{ flex: '1 1 150px', minWidth: '150px' }}>
@@ -3272,6 +3407,7 @@ const DOF8DManagement: React.FC = () => {
                 variant="outlined"
                 startIcon={<CloseIcon />}
                 onClick={() => {
+                  console.log('🧹 Tüm filtreler temizleniyor...');
                   setFilters({
                     department: '',
                     status: '',
@@ -3282,6 +3418,8 @@ const DOF8DManagement: React.FC = () => {
                     delayStatus: '',
                     priority: '',
                   });
+                  // Arama kutusunu da temizlemek için trigger güncelle
+                  setClearTrigger(prev => prev + 1);
                 }}
                 sx={{ 
                   height: 56,

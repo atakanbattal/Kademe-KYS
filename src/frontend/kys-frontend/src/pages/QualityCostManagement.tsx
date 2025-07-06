@@ -139,77 +139,130 @@ import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/d
 
 
 
-// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
-const UltimateStableSearchInput = memo<{
-  value?: string;
-  onChange: (value: string) => void;
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
   placeholder?: string;
   label?: string;
   size?: 'small' | 'medium';
   fullWidth?: boolean;
-}>(({ value = '', onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
-  const [inputValue, setInputValue] = useState<string>(value);
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
   
-  // Update internal value when external value changes
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Input ref - focus korunması için
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // İlk değer sadece mount'ta set edilir, sonra hiç dokunulmaz
+  const [isInitialized, setIsInitialized] = useState(false);
   useEffect(() => {
-    setInputValue(value);
-  }, [value]);
+    if (!isInitialized) {
+      setLocalValue(initialValue);
+      setIsInitialized(true);
+    }
+  }, [initialValue, isInitialized]);
   
-  // Simple input change handler with debounce
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInputValue(newValue);
+  // Clear trigger değiştiğinde arama kutusunu temizle
+  useEffect(() => {
+    if (clearTrigger > 0 && isInitialized) {
+      console.log('🧹 Arama kutusu temizleniyor...');
+      setLocalValue('');
+      // Debounce'u da temizle
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    }
+  }, [clearTrigger, isInitialized]);
+  
+    // Input değişiklik handler'ı - PARENT'TAN TAMAMEN BAĞIMSIZ
+  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    console.log('🔍 Local arama değişiyor:', newValue);
     
-    // Clear previous timeout
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
+    // Local state'i hemen güncelle (UI responsive)
+    setLocalValue(newValue);
+    
+    // Önceki debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
     
-    // Set new timeout for debounced callback
-    debounceTimer.current = setTimeout(() => {
-      onChange(newValue);
-    }, 300);
-  }, [onChange]);
+         // Yeni debounce başlat - DİNAMİK ARAMA İÇİN MAKUL SÜRE
+     debounceRef.current = setTimeout(() => {
+       console.log('📤 Debounce tamamlandı, parent\'a gönderiliyor:', newValue);
+       onDebouncedChange(newValue);
+      }, 800); // 800ms - dinamik arama, ama yine de stabil odak
+  }, [onDebouncedChange]);
+  
+  // Blur handler - başka yere tıkladığında arama yap
+  const handleBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
+    const currentValue = event.target.value;
+    console.log('🎯 Odak kaybedildi, hemen arama yapılıyor:', currentValue);
+    
+    // Debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Hemen arama yap
+    onDebouncedChange(currentValue);
+  }, [onDebouncedChange]);
   
   // Cleanup
   useEffect(() => {
     return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
     };
   }, []);
   
+  // STATİK PROPS - HİÇ DEĞİŞMEZ
+  const staticInputProps = useMemo(() => ({
+    startAdornment: (
+      <InputAdornment position="start">
+        <SearchIcon />
+      </InputAdornment>
+    ),
+  }), []);
+  
+  const staticSxProps = useMemo(() => ({
+    '& .MuiOutlinedInput-root': {
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+        borderWidth: '2px',
+      },
+    },
+  }), []);
+  
   return (
     <TextField
+      ref={inputRef}
       fullWidth={fullWidth}
       size={size}
       label={label}
-      value={inputValue}
+      value={localValue} // SADECE LOCAL STATE
       onChange={handleInputChange}
+      onBlur={handleBlur} // Başka yere tıkladığında arama yap
       placeholder={placeholder}
       autoComplete="off"
       spellCheck={false}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon />
-          </InputAdornment>
-        ),
-      }}
-      sx={{
-        '& .MuiOutlinedInput-root': {
-          '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-          },
-          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-            borderWidth: '2px',
-          },
-        },
-      }}
+      InputProps={staticInputProps}
+      sx={staticSxProps}
     />
   );
 });
+
+// Component displayName
+UltraIsolatedSearchInput.displayName = 'UltraIsolatedSearchInput';
 
 // ============================================
 // 🚗 YENİ: UNIFIED QUALITY & VEHICLE INTERFACES
@@ -837,12 +890,37 @@ export default function QualityCostManagement() {
     selectedYear: new Date().getFullYear().toString()
   });
 
-  // ✅ Optimize edilmiş search handler fonksiyonu
-  const handleSearchTermChange = useCallback((newSearchTerm: string) => {
-    setGlobalFilters(prev => ({
-      ...prev,
-      searchTerm: newSearchTerm
-    }));
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 Debounced arama terimi geldi:', debouncedSearchTerm);
+    setGlobalFilters(prev => {
+      // Eğer değer değişmemişse state'i güncelleme
+      if (prev.searchTerm === debouncedSearchTerm) {
+        console.log('🔍 Arama terimi aynı, state güncellenmeyecek');
+        return prev;
+      }
+      console.log('🔍 Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
+      return {
+        ...prev,
+        searchTerm: debouncedSearchTerm
+      };
+    });
+  }, []);
+
+  // ✅ FİLTRE TEMİZLEME HANDLER - STABLE REFERENCE
+  const [clearTrigger, setClearTrigger] = useState(0);
+  const handleClearFilters = useCallback(() => {
+    console.log('🧹 Filtreler temizleniyor...');
+    setGlobalFilters({
+      maliyetTuru: '', // Araç kategorisi
+      birim: '', // Üretim durumu
+      arac: '',
+      searchTerm: '',
+      selectedMonth: '',
+      selectedYear: new Date().getFullYear().toString()
+    });
+    // Arama kutusunu da temizlemek için trigger güncelle
+    setClearTrigger(prev => prev + 1);
   }, []);
 
   // ✅ Context7: Global Filtered Data for All Tabs
@@ -1424,6 +1502,7 @@ export default function QualityCostManagement() {
   }, [globalFilteredData, vehicleTargets, generateUnifiedRecords, generateVehiclePerformanceAnalysis, compareWithTargets]);
 
   // ✅ Context7: Global Filtering Function (Memoized)
+  // ✅ ULTRA PERFORMANSLI GLOBAL FILTER SISTEMI - MINIMUM RE-RENDER
   const applyGlobalFilters = useCallback(() => {
     console.log('🔍 applyGlobalFilters çalışıyor:', {
       globalFilters,
@@ -1474,22 +1553,29 @@ export default function QualityCostManagement() {
         });
       }
 
-      // Arama filtresi
-      if (globalFilters.searchTerm) {
-        const searchLower = globalFilters.searchTerm.toLowerCase();
+      // Arama filtresi - GELİŞMİŞ PERFORMANS İYİLEŞTİRMESİ
+      if (globalFilters.searchTerm && globalFilters.searchTerm.trim()) {
+        const searchLower = globalFilters.searchTerm.toLowerCase().trim();
         console.log('🔍 Arama filtresi uygulanıyor:', {
           searchTerm: globalFilters.searchTerm,
           searchLower,
           beforeFilterCount: filtered.length
         });
         
-        filtered = filtered.filter((item: any) =>
-          (item.parcaKodu?.toLowerCase().includes(searchLower)) ||
-          (item.maliyetTuru?.toLowerCase().includes(searchLower)) ||
-          (item.birim?.toLowerCase().includes(searchLower)) ||
-          (item.arac?.toLowerCase().includes(searchLower)) ||
-          (item.maliyet?.toString().includes(searchLower))
-        );
+        filtered = filtered.filter((item: any) => {
+          // Tüm arama alanlarını tek seferde kontrol et
+          const searchFields = [
+            item.parcaKodu?.toLowerCase() || '',
+            item.maliyetTuru?.toLowerCase() || '',
+            item.birim?.toLowerCase() || '',
+            item.arac?.toLowerCase() || '',
+            item.aracModeli?.toLowerCase() || '',
+            item.aciklama?.toLowerCase() || '',
+            item.maliyet?.toString() || ''
+          ];
+          
+          return searchFields.some(field => field.includes(searchLower));
+        });
         
         console.log('✅ Arama filtresi uygulandı:', {
           afterFilterCount: filtered.length,
@@ -1500,7 +1586,13 @@ export default function QualityCostManagement() {
       // Sort by newest first
       filtered = filtered.sort((a: any, b: any) => new Date(b.tarih).getTime() - new Date(a.tarih).getTime());
 
-      setGlobalFilteredData(filtered);
+      // Sadece değişiklik varsa state'i güncelle
+      setGlobalFilteredData(prevFiltered => {
+        if (JSON.stringify(prevFiltered) === JSON.stringify(filtered)) {
+          return prevFiltered; // Değişiklik yoksa mevcut state'i koru
+        }
+        return filtered;
+      });
 
       console.log('🔍 Global filters applied - FINAL RESULT:', {
         originalCount: costData.length,
@@ -1516,9 +1608,16 @@ export default function QualityCostManagement() {
     }
   }, [globalFilters, dataRefreshTrigger]);
 
-  // ✅ Filtreleme effect'i
+  // ✅ ULTRA OPTIMIZE EDİLMİŞ FİLTRELEME EFFECT - MINIMUM ÇALIŞMA
   useEffect(() => {
-    applyGlobalFilters();
+    console.log('🔄 Filtreleme effect çalışıyor...');
+    const timeoutId = setTimeout(() => {
+      applyGlobalFilters();
+    }, 50); // 50ms gecikme ile batch güncelleme
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [applyGlobalFilters]);
 
   // ✅ Context7: Update Analytics Based on Global Filtered Data
@@ -8062,6 +8161,26 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             <Typography variant="h6" fontWeight="600">
               Filtreleme ve Arama
             </Typography>
+            {/* Aktif filtre sayısı badge */}
+            {(() => {
+              const activeFilters = [
+                globalFilters.maliyetTuru,
+                globalFilters.birim,
+                globalFilters.arac,
+                globalFilters.searchTerm,
+                globalFilters.selectedMonth,
+                globalFilters.selectedYear !== new Date().getFullYear().toString() ? globalFilters.selectedYear : null
+              ].filter(Boolean).length;
+              
+              return activeFilters > 0 ? (
+                <Chip
+                  label={`${activeFilters} aktif filtre`}
+                  size="small"
+                  color="primary"
+                  sx={{ ml: 1 }}
+                />
+              ) : null;
+            })()}
           </Box>
         </AccordionSummary>
         <AccordionDetails>
@@ -8153,13 +8272,14 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
             </Grid>
             
             <Grid item xs={12} sm={6} md={4} lg={2.4}>
-              <UltimateStableSearchInput
-                value={globalFilters.searchTerm}
-                onChange={handleSearchTermChange}
+              <UltraIsolatedSearchInput
+                initialValue={globalFilters.searchTerm}
+                onDebouncedChange={handleDebouncedSearchChange}
                 label="Gelişmiş Arama"
                 placeholder="Araç modeli, kategori, açıklama..."
                 size="small"
                 fullWidth
+                clearTrigger={clearTrigger}
               />
             </Grid>
 
@@ -8169,16 +8289,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 variant="outlined"
                 size="small"
                 fullWidth
-                onClick={() => {
-                  setGlobalFilters({
-                    maliyetTuru: '', // Araç kategorisi
-                    birim: '', // Üretim durumu
-                    arac: '',
-                    searchTerm: '',
-                    selectedMonth: '',
-                    selectedYear: new Date().getFullYear().toString()
-                  });
-                }}
+                onClick={handleClearFilters}
                 sx={{ height: 40, minWidth: 'auto' }}
               >
                 Temizle

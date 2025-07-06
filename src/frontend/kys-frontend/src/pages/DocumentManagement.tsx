@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, memo, useEffect } from 'react';
 import {
   Typography,
   Box,
@@ -85,77 +85,136 @@ import {
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 
-// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
-const UltraStableSearchInput = React.memo<{
-  value: string;
-  onChange: (value: string) => void;
+// ============================================
+// KUSURSUZ ARAMA COMPONENT'İ
+// ============================================
+
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
   placeholder?: string;
   label?: string;
   size?: 'small' | 'medium';
   fullWidth?: boolean;
-}>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
-  const [inputValue, setInputValue] = React.useState<string>(value);
-  const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
   
-  // Update internal value when external value changes
-  React.useEffect(() => {
-    setInputValue(value);
-  }, [value]);
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Simple input change handler with debounce
-  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInputValue(newValue);
+  // Input ref - focus korunması için
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // İlk değer sadece mount'ta set edilir, sonra hiç dokunulmaz
+  const [isInitialized, setIsInitialized] = useState(false);
+  useEffect(() => {
+    if (!isInitialized) {
+      setLocalValue(initialValue);
+      setIsInitialized(true);
+    }
+  }, [initialValue, isInitialized]);
+  
+  // Clear trigger değiştiğinde arama kutusunu temizle
+  useEffect(() => {
+    if (clearTrigger > 0 && isInitialized) {
+      console.log('🧹 Arama kutusu temizleniyor...');
+      setLocalValue('');
+      // Debounce'u da temizle
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    }
+  }, [clearTrigger, isInitialized]);
+  
+  // Input değişiklik handler'ı - PARENT'TAN TAMAMEN BAĞIMSIZ
+  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    console.log('🔍 Local arama değişiyor:', newValue);
     
-    // Clear previous timeout
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
+    // Local state'i hemen güncelle (UI responsive)
+    setLocalValue(newValue);
+    
+    // Önceki debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
     
-    // Set new timeout for debounced callback
-    debounceTimer.current = setTimeout(() => {
-      onChange(newValue);
-    }, 300);
-  }, [onChange]);
+    // Yeni debounce başlat - DİNAMİK ARAMA İÇİN MAKUL SÜRE
+    debounceRef.current = setTimeout(() => {
+      console.log('📤 Debounce tamamlandı, parent\'a gönderiliyor:', newValue);
+      onDebouncedChange(newValue);
+     }, 800); // 800ms - dinamik arama, ama yine de stabil odak
+  }, [onDebouncedChange]);
+  
+  // Blur handler - başka yere tıkladığında arama yap
+  const handleBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
+    const currentValue = event.target.value;
+    console.log('🎯 Odak kaybedildi, hemen arama yapılıyor:', currentValue);
+    
+    // Debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Hemen arama yap
+    onDebouncedChange(currentValue);
+  }, [onDebouncedChange]);
   
   // Cleanup
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
     };
   }, []);
   
+  // STATİK PROPS - HİÇ DEĞİŞMEZ
+  const staticInputProps = useMemo(() => ({
+    startAdornment: (
+      <InputAdornment position="start">
+        <SearchIcon />
+      </InputAdornment>
+    ),
+  }), []);
+  
+  const staticSxProps = useMemo(() => ({
+    '& .MuiInputLabel-root': { fontWeight: 600 },
+    '& .MuiOutlinedInput-root': {
+      height: 56,
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main'
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+        borderWidth: '2px',
+      },
+    },
+  }), []);
+  
   return (
     <TextField
+      ref={inputRef}
       fullWidth={fullWidth}
       size={size}
       label={label}
-      value={inputValue}
+      value={localValue} // SADECE LOCAL STATE
       onChange={handleInputChange}
+      onBlur={handleBlur} // Başka yere tıkladığında arama yap
       placeholder={placeholder}
       autoComplete="off"
       spellCheck={false}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon />
-          </InputAdornment>
-        ),
-      }}
-      sx={{
-        '& .MuiOutlinedInput-root': {
-          '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-          },
-          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-            borderWidth: '2px',
-          },
-        },
-      }}
+      InputProps={staticInputProps}
+      sx={staticSxProps}
     />
   );
 });
+
+// Component displayName
+UltraIsolatedSearchInput.displayName = 'UltraIsolatedSearchInput';
 
 // Types & Interfaces
 interface Document {
@@ -792,6 +851,44 @@ const DocumentManagement: React.FC = () => {
     showFavoritesOnly: false,
     showExpiring: false,
   });
+
+  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  const [clearTrigger, setClearTrigger] = useState(0);
+  const [personnelClearTrigger, setPersonnelClearTrigger] = useState(0);
+
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 Debounced arama terimi geldi:', debouncedSearchTerm);
+    setFilters(prev => {
+      // Eğer değer değişmemişse state'i güncelleme
+      if (prev.searchTerm === debouncedSearchTerm) {
+        console.log('🔍 Arama terimi aynı, state güncellenmeyecek');
+        return prev;
+      }
+      console.log('🔍 Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
+      return {
+        ...prev,
+        searchTerm: debouncedSearchTerm
+      };
+    });
+  }, []);
+
+  // ✅ PERSONEL ARAMA HANDLER
+  const handlePersonnelDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 Personel arama terimi geldi:', debouncedSearchTerm);
+    setPersonnelFilters(prev => {
+      // Eğer değer değişmemişse state'i güncelleme
+      if (prev.searchTerm === debouncedSearchTerm) {
+        console.log('🔍 Personel arama terimi aynı, state güncellenmeyecek');
+        return prev;
+      }
+      console.log('🔍 Personel arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
+      return {
+        ...prev,
+        searchTerm: debouncedSearchTerm
+      };
+    });
+  }, []);
   const [welderFilters, setWelderFilters] = useState<WelderFilterState>({
     searchTerm: '',
     certificateType: '',
@@ -2633,13 +2730,14 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   gap: 3,
                   mb: 3
                 }}>
-                  <UltraStableSearchInput
-                    value={filters.searchTerm}
-                    onChange={(value) => handleFilterChange('searchTerm', value)}
+                  <UltraIsolatedSearchInput
+                    initialValue={filters.searchTerm}
+                    onDebouncedChange={handleDebouncedSearchChange}
                     label="Arama"
                     placeholder="Doküman adı, numarası veya açıklama..."
                     size="medium"
                     fullWidth={true}
+                    clearTrigger={clearTrigger}
                   />
                   <FormControl fullWidth variant="outlined">
                     <InputLabel>Doküman Tipi</InputLabel>
@@ -2747,6 +2845,38 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.875rem' } }}
                     />
                   </FormGroup>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Button
+                      variant="outlined"
+                      size="medium"
+                      onClick={() => {
+                        console.log('🧹 Ana doküman filtreleri temizleniyor...');
+                        setFilters({
+                          searchTerm: '',
+                          type: '',
+                          unit: '',
+                          status: '',
+                          approvalStatus: '',
+                          dateRange: { start: '', end: '' },
+                          showFavoritesOnly: false,
+                          showExpiring: false,
+                        });
+                        // Ana arama kutusunu da temizlemek için trigger güncelle
+                        setClearTrigger(prev => prev + 1);
+                      }}
+                      sx={{
+                        borderColor: 'primary.main',
+                        color: 'primary.main',
+                        '&:hover': {
+                          borderColor: 'primary.dark',
+                          backgroundColor: 'primary.light',
+                          color: '#ffffff'
+                        }
+                      }}
+                    >
+                      Filtreleri Temizle
+                    </Button>
+                  </Box>
                 </Box>
               </AccordionDetails>
             </StyledAccordion>
@@ -2993,14 +3123,14 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   gap: 3,
                   mb: 3
                 }}>
-                  <TextField
-                    fullWidth
+                  <UltraIsolatedSearchInput
+                    initialValue={personnelFilters.searchTerm}
+                    onDebouncedChange={handlePersonnelDebouncedSearchChange}
                     label="Personel Adı / Sicil No"
-                    value={personnelFilters.searchTerm}
-                    onChange={(e) => handlePersonnelFilterChange('searchTerm', e.target.value)}
-                    InputProps={{
-                      startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
-                    }}
+                    placeholder="Personel adı veya sicil numarası..."
+                    size="medium"
+                    fullWidth={true}
+                    clearTrigger={personnelClearTrigger}
                   />
                   <FormControl fullWidth>
                     <InputLabel>Belge Kategorisi</InputLabel>
@@ -3122,18 +3252,23 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Button
                     variant="outlined"
                     size="medium"
-                    onClick={() => setPersonnelFilters({
-                      searchTerm: '',
-                      documentCategory: '',
-                      certificateType: '',
-                      department: '',
-                      status: '',
-                      issuingAuthority: '',
-                      expiringWithin: 30,
-                      validityDateRange: { start: '', end: '' },
-                      criticalityLevel: '',
-                      renewalRequired: false
-                    })}
+                    onClick={() => {
+                      console.log('🧹 Personel filtreleri temizleniyor...');
+                      setPersonnelFilters({
+                        searchTerm: '',
+                        documentCategory: '',
+                        certificateType: '',
+                        department: '',
+                        status: '',
+                        issuingAuthority: '',
+                        expiringWithin: 30,
+                        validityDateRange: { start: '', end: '' },
+                        criticalityLevel: '',
+                        renewalRequired: false
+                      });
+                      // Personel arama kutusunu da temizlemek için trigger güncelle
+                      setPersonnelClearTrigger(prev => prev + 1);
+                    }}
                     sx={{
                       borderColor: 'primary.main',
                       color: 'primary.main',

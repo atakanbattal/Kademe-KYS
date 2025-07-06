@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
 import {
   Container,
   Paper,
@@ -116,87 +116,130 @@ interface ProductionUnitPerformance {
   color: string;
 }
 
-// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
-const UltimateStableSearchInput = memo(({ 
-  label, 
-  placeholder, 
-  onChange, 
-  value = '', 
-  debounceMs = 300,
-  icon: Icon,
-  ...otherProps 
-}: {
-  label: string;
-  placeholder: string;
-  onChange: (value: string) => void;
-  value?: string;
-  debounceMs?: number;
-  icon?: any;
-  [key: string]: any;
-}) => {
-  const [inputValue, setInputValue] = useState<string>(value);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Update internal value when external value changes
+// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+const UltraIsolatedSearchInput = memo<{
+  initialValue?: string;
+  onDebouncedChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
+  size?: 'small' | 'medium';
+  fullWidth?: boolean;
+  clearTrigger?: number;
+}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
+  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
+  const [localValue, setLocalValue] = useState<string>(initialValue);
+  
+  // Debounce ref - asla değişmez
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Input ref - focus korunması için
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // İlk değer sadece mount'ta set edilir, sonra hiç dokunulmaz
+  const [isInitialized, setIsInitialized] = useState(false);
   useEffect(() => {
-    setInputValue(value);
-  }, [value]);
-
-  // Simple input change handler with debounce
-  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isInitialized) {
+      setLocalValue(initialValue);
+      setIsInitialized(true);
+    }
+  }, [initialValue, isInitialized]);
+  
+  // Clear trigger değiştiğinde arama kutusunu temizle
+  useEffect(() => {
+    if (clearTrigger > 0 && isInitialized) {
+      console.log('🧹 Arama kutusu temizleniyor...');
+      setLocalValue('');
+      // Debounce'u da temizle
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    }
+  }, [clearTrigger, isInitialized]);
+  
+  // Input değişiklik handler'ı - PARENT'TAN TAMAMEN BAĞIMSIZ
+  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
-    setInputValue(newValue);
+    console.log('🔍 Local arama değişiyor:', newValue);
     
-    // Clear previous timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+    // Local state'i hemen güncelle (UI responsive)
+    setLocalValue(newValue);
+    
+    // Önceki debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
     }
     
-    // Set new timeout for debounced callback
-    timeoutRef.current = setTimeout(() => {
-      onChange(newValue);
-    }, debounceMs);
-  }, [onChange, debounceMs]);
-
+    // Yeni debounce başlat - DİNAMİK ARAMA İÇİN MAKUL SÜRE
+    debounceRef.current = setTimeout(() => {
+      console.log('📤 Debounce tamamlandı, parent\'a gönderiliyor:', newValue);
+      onDebouncedChange(newValue);
+     }, 800); // 800ms - dinamik arama, ama yine de stabil odak
+  }, [onDebouncedChange]);
+  
+  // Blur handler - başka yere tıkladığında arama yap
+  const handleBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
+    const currentValue = event.target.value;
+    console.log('🎯 Odak kaybedildi, hemen arama yapılıyor:', currentValue);
+    
+    // Debounce'u temizle
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Hemen arama yap
+    onDebouncedChange(currentValue);
+  }, [onDebouncedChange]);
+  
   // Cleanup
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
     };
   }, []);
-
+  
+  // STATİK PROPS - HİÇ DEĞİŞMEZ
+  const staticInputProps = useMemo(() => ({
+    startAdornment: (
+      <InputAdornment position="start">
+        <SearchIcon />
+      </InputAdornment>
+    ),
+  }), []);
+  
+  const staticSxProps = useMemo(() => ({
+    '& .MuiOutlinedInput-root': {
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+        borderWidth: '2px',
+      },
+    },
+  }), []);
+  
   return (
     <TextField
-      {...otherProps}
-      fullWidth
-      size="small"
+      ref={inputRef}
+      fullWidth={fullWidth}
+      size={size}
       label={label}
-      value={inputValue}
-      onChange={handleChange}
+      value={localValue} // SADECE LOCAL STATE
+      onChange={handleInputChange}
+      onBlur={handleBlur} // Başka yere tıkladığında arama yap
       placeholder={placeholder}
       autoComplete="off"
       spellCheck={false}
-      InputProps={{
-        startAdornment: Icon ? (
-          <InputAdornment position="start">
-            <Icon />
-          </InputAdornment>
-        ) : undefined,
-      }}
-      sx={{
-        '& .MuiOutlinedInput-root': {
-          '&:hover .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-          },
-          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: 'primary.main',
-            borderWidth: '2px',
-          },
-        },
-      }}
+      InputProps={staticInputProps}
+      sx={staticSxProps}
     />
   );
 });
+
+// Component displayName
+UltraIsolatedSearchInput.displayName = 'UltraIsolatedSearchInput';
 
 // Styled Components - Tema entegreli olacak şekilde component içinde tanımlanacak
 
@@ -285,6 +328,26 @@ const ProductionQualityTracking: React.FC = () => {
 
   // Filter expansion state
   const [filterExpanded, setFilterExpanded] = useState(false);
+
+  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  const [clearTrigger, setClearTrigger] = useState(0);
+
+  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
+    console.log('🔍 Debounced arama terimi geldi:', debouncedSearchTerm);
+    setFilters(prev => {
+      // Eğer değer değişmemişse state'i güncelleme
+      if (prev.searchTerm === debouncedSearchTerm) {
+        console.log('🔍 Arama terimi aynı, state güncellenmeyecek');
+        return prev;
+      }
+      console.log('🔍 Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
+      return {
+        ...prev,
+        searchTerm: debouncedSearchTerm
+      };
+    });
+  }, []);
 
   // Dönem seçenekleri
   const periodOptions = [
@@ -2044,13 +2107,14 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
 
               {/* Arama Alanı */}
               <Grid item xs={12} sm={6} md={3}>
-                <UltimateStableSearchInput
+                <UltraIsolatedSearchInput
                   label="Arama"
                   placeholder="Seri no, hata türü..."
-                  defaultValue={filters.searchTerm}
-                  onChange={(value: string) => setFilters(prev => ({ ...prev, searchTerm: value }))}
-                  debounceMs={350}
-                  icon={SearchIcon}
+                  initialValue={filters.searchTerm}
+                  onDebouncedChange={handleDebouncedSearchChange}
+                  size="small"
+                  fullWidth
+                  clearTrigger={clearTrigger}
                 />
               </Grid>
 
@@ -2060,18 +2124,23 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                   variant="outlined"
                   size="medium"
                   fullWidth
-                  onClick={() => setFilters({
-                    vehicleType: '',
-                    productionUnit: '',
-                    status: '',
-                    dateFrom: '',
-                    dateTo: '',
-                    searchTerm: '',
-                    period: '',
-                    year: new Date().getFullYear().toString(),
-                    month: '',
-                    quarter: ''
-                  })}
+                  onClick={() => {
+                    console.log('🧹 Tüm filtreler temizleniyor...');
+                    setFilters({
+                      vehicleType: '',
+                      productionUnit: '',
+                      status: '',
+                      dateFrom: '',
+                      dateTo: '',
+                      searchTerm: '',
+                      period: '',
+                      year: new Date().getFullYear().toString(),
+                      month: '',
+                      quarter: ''
+                    });
+                    // Arama kutusunu da temizlemek için trigger güncelle
+                    setClearTrigger(prev => prev + 1);
+                  }}
                   sx={{ height: 40 }}
                 >
                   Filtreleri Temizle
