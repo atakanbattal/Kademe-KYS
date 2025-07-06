@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, memo, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Typography,
   Box,
@@ -85,136 +85,77 @@ import {
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 
-// ============================================
-// KUSURSUZ ARAMA COMPONENT'İ
-// ============================================
-
-// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
-const UltraIsolatedSearchInput = memo<{
-  initialValue?: string;
-  onDebouncedChange: (value: string) => void;
+// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
+const UltraStableSearchInput = React.memo<{
+  value: string;
+  onChange: (value: string) => void;
   placeholder?: string;
   label?: string;
   size?: 'small' | 'medium';
   fullWidth?: boolean;
-  clearTrigger?: number;
-}>(({ initialValue = '', onDebouncedChange, placeholder = "", label = "", size = "small", fullWidth = true, clearTrigger = 0 }) => {
-  // TAMAMEN İZOLE EDİLMİŞ STATE - Parent'dan bağımsız
-  const [localValue, setLocalValue] = useState<string>(initialValue);
+}>(({ value, onChange, placeholder = "", label = "", size = "small", fullWidth = true }) => {
+  const [inputValue, setInputValue] = React.useState<string>(value);
+  const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
   
-  // Debounce ref - asla değişmez
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  // Update internal value when external value changes
+  React.useEffect(() => {
+    setInputValue(value);
+  }, [value]);
   
-  // Input ref - focus korunması için
-  const inputRef = useRef<HTMLInputElement>(null);
-  
-  // İlk değer sadece mount'ta set edilir, sonra hiç dokunulmaz
-  const [isInitialized, setIsInitialized] = useState(false);
-  useEffect(() => {
-    if (!isInitialized) {
-      setLocalValue(initialValue);
-      setIsInitialized(true);
-    }
-  }, [initialValue, isInitialized]);
-  
-  // Clear trigger değiştiğinde arama kutusunu temizle
-  useEffect(() => {
-    if (clearTrigger > 0 && isInitialized) {
-      console.log('🧹 Arama kutusu temizleniyor...');
-      setLocalValue('');
-      // Debounce'u da temizle
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    }
-  }, [clearTrigger, isInitialized]);
-  
-  // Input değişiklik handler'ı - PARENT'TAN TAMAMEN BAĞIMSIZ
-  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
-    console.log('🔍 Local arama değişiyor:', newValue);
+  // Simple input change handler with debounce
+  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
     
-    // Local state'i hemen güncelle (UI responsive)
-    setLocalValue(newValue);
-    
-    // Önceki debounce'u temizle
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
+    // Clear previous timeout
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
     }
     
-    // Yeni debounce başlat - DİNAMİK ARAMA İÇİN MAKUL SÜRE
-    debounceRef.current = setTimeout(() => {
-      console.log('📤 Debounce tamamlandı, parent\'a gönderiliyor:', newValue);
-      onDebouncedChange(newValue);
-     }, 800); // 800ms - dinamik arama, ama yine de stabil odak
-  }, [onDebouncedChange]);
-  
-  // Blur handler - başka yere tıkladığında arama yap
-  const handleBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
-    const currentValue = event.target.value;
-    console.log('🎯 Odak kaybedildi, hemen arama yapılıyor:', currentValue);
-    
-    // Debounce'u temizle
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    
-    // Hemen arama yap
-    onDebouncedChange(currentValue);
-  }, [onDebouncedChange]);
+    // Set new timeout for debounced callback
+    debounceTimer.current = setTimeout(() => {
+      onChange(newValue);
+    }, 300);
+  }, [onChange]);
   
   // Cleanup
-  useEffect(() => {
+  React.useEffect(() => {
     return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
   }, []);
   
-  // STATİK PROPS - HİÇ DEĞİŞMEZ
-  const staticInputProps = useMemo(() => ({
-    startAdornment: (
-      <InputAdornment position="start">
-        <SearchIcon />
-      </InputAdornment>
-    ),
-  }), []);
-  
-  const staticSxProps = useMemo(() => ({
-    '& .MuiInputLabel-root': { fontWeight: 600 },
-    '& .MuiOutlinedInput-root': {
-      height: 56,
-      '&:hover .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'primary.main'
-      },
-      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'primary.main',
-        borderWidth: '2px',
-      },
-    },
-  }), []);
-  
   return (
     <TextField
-      ref={inputRef}
       fullWidth={fullWidth}
       size={size}
       label={label}
-      value={localValue} // SADECE LOCAL STATE
+      value={inputValue}
       onChange={handleInputChange}
-      onBlur={handleBlur} // Başka yere tıkladığında arama yap
       placeholder={placeholder}
       autoComplete="off"
       spellCheck={false}
-      InputProps={staticInputProps}
-      sx={staticSxProps}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon />
+          </InputAdornment>
+        ),
+      }}
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'primary.main',
+            borderWidth: '2px',
+          },
+        },
+      }}
     />
   );
 });
-
-// Component displayName
-UltraIsolatedSearchInput.displayName = 'UltraIsolatedSearchInput';
 
 // Types & Interfaces
 interface Document {
@@ -235,8 +176,6 @@ interface Document {
   fileSize?: number;
   isActive: boolean;
   expiryDate?: string;
-  lastReviewDate?: string;
-  nextReviewDate?: string;
   lastViewedDate?: string;
   viewCount: number;
   isFavorite: boolean;
@@ -346,12 +285,9 @@ type DocumentType =
   | 'ISO 9001 Belgesi'
   | 'ISO 14001 Belgesi'
   | 'ISO 45001 Belgesi'
+  | 'TS 3834-2 Belgesi'
   | 'ISO 50001 Belgesi'
   | 'ISO 27001 Belgesi'
-  | 'ISO 10002 Belgesi'
-  | 'OHSAS 18001 Belgesi'
-  | 'ISO 28001 Belgesi'
-  | 'TS 3834-2 Belgesi'
   | 'Kaynakçı Sertifikası'
   | 'Kaynakçı Nitelik Belgesi'
   | 'Kaynak Operatörü Belgesi'
@@ -519,9 +455,6 @@ const DOCUMENT_TYPES: DocumentType[] = [
   'ISO 27001 Belgesi',
   'ISO 45001 Belgesi',
   'ISO 50001 Belgesi',
-  'ISO 10002 Belgesi',
-  'OHSAS 18001 Belgesi',
-  'ISO 28001 Belgesi',
   'TS 3834-2 Belgesi',
   
   // Personel Belgeleri
@@ -534,24 +467,8 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 const UNITS = [
-  'Üretim Planlama',
-  'Kaynak Atölyesi', 
-  'Makine Atölyesi',
-  'Kalite Kontrol',
-  'Kalite Güvence',
-  'İSG',
-  'Çevre Yönetimi',
-  'Ar-Ge',
-  'İnsan Kaynakları',
-  'Finans',
-  'Muhasebe',
-  'Bilgi İşlem',
-  'Genel Müdürlük',
-  'Boyahane',
-  'Montaj',
-  'Elektrik',
-  'Kesim',
-  'Ambar/Depo'
+  'Kaynak Atölyesi', 'Boyahane', 'Montaj Hattı', 'Kalite Kontrol',
+  'Elektrik', 'Han', 'Büküm', 'Arge', 'Satın Alma', 'Kesim', 'Ambar/Depo'
 ];
 
 const CERTIFICATE_TYPES: CertificateType[] = [
@@ -833,11 +750,26 @@ const DocumentManagement: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [welderCertificates, setWelderCertificates] = useState<WelderCertificate[]>([]);
   
-  // Personel seçimi için veri - Boş başlatılıyor, kullanıcı tarafından doldurulacak
-  const [personnelOptions, setPersonnelOptions] = useState<PersonnelOption[]>([]);
+  // Personel seçimi için veri
+  const [personnelOptions, setPersonnelOptions] = useState<PersonnelOption[]>([
+    { id: 'P001', name: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678901' },
+    { id: 'P002', name: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678902' },
+    { id: 'P003', name: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678903' },
+    { id: 'P004', name: 'Fatma Ak', registrationNo: '004', department: 'Kalite Kontrol', position: 'NDT Uzmanı', nationalId: '12345678904' },
+    { id: 'P005', name: 'Ayşe Özkan', registrationNo: '005', department: 'Kalite Kontrol', position: 'Kalite Teknisyeni', nationalId: '12345678905' },
+    { id: 'P006', name: 'Osman Şen', registrationNo: '006', department: 'Üretim', position: 'Operatör', nationalId: '12345678906' },
+    { id: 'P007', name: 'Zeynep Çelik', registrationNo: '007', department: 'İSG', position: 'İş Güvenliği Uzmanı', nationalId: '12345678907' },
+    { id: 'P008', name: 'Hasan Güven', registrationNo: '008', department: 'Montaj', position: 'Montaj Teknisyeni', nationalId: '12345678908' },
+  ]);
   
-  // Kaynakçı seçimi için veri - Boş başlatılıyor, kullanıcı tarafından doldurulacak  
-  const [welderOptions, setWelderOptions] = useState<WelderOption[]>([]);
+  // Kaynakçı seçimi için veri
+  const [welderOptions, setWelderOptions] = useState<WelderOption[]>([
+    { id: 'W001', welderName: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-1', certificateNumber: 'W001-2024', status: 'active' },
+    { id: 'W002', welderName: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-2', certificateNumber: 'W002-2024', status: 'active' },
+    { id: 'W003', welderName: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 14732', certificateNumber: 'W003-2024', status: 'active' },
+    { id: 'W004', welderName: 'Mustafa Öz', registrationNo: '004', department: 'Kaynak Atölyesi', certificateType: 'ASME IX', certificateNumber: 'W004-2024', status: 'active' },
+    { id: 'W005', welderName: 'Emre Baz', registrationNo: '005', department: 'Kaynak Atölyesi', certificateType: 'AWS D1.1', certificateNumber: 'W005-2024', status: 'active' },
+  ]);
   const [personnelDocuments, setPersonnelDocuments] = useState<PersonnelDocument[]>([]);
   const [qualityCertificates, setQualityCertificates] = useState<QualityCertificate[]>([]);
   const [productCertificates, setProductCertificates] = useState<ProductCertificate[]>([]);
@@ -851,44 +783,6 @@ const DocumentManagement: React.FC = () => {
     showFavoritesOnly: false,
     showExpiring: false,
   });
-
-  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
-  const [clearTrigger, setClearTrigger] = useState(0);
-  const [personnelClearTrigger, setPersonnelClearTrigger] = useState(0);
-
-  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
-  const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
-    console.log('🔍 Debounced arama terimi geldi:', debouncedSearchTerm);
-    setFilters(prev => {
-      // Eğer değer değişmemişse state'i güncelleme
-      if (prev.searchTerm === debouncedSearchTerm) {
-        console.log('🔍 Arama terimi aynı, state güncellenmeyecek');
-        return prev;
-      }
-      console.log('🔍 Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
-      return {
-        ...prev,
-        searchTerm: debouncedSearchTerm
-      };
-    });
-  }, []);
-
-  // ✅ PERSONEL ARAMA HANDLER
-  const handlePersonnelDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
-    console.log('🔍 Personel arama terimi geldi:', debouncedSearchTerm);
-    setPersonnelFilters(prev => {
-      // Eğer değer değişmemişse state'i güncelleme
-      if (prev.searchTerm === debouncedSearchTerm) {
-        console.log('🔍 Personel arama terimi aynı, state güncellenmeyecek');
-        return prev;
-      }
-      console.log('🔍 Personel arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
-      return {
-        ...prev,
-        searchTerm: debouncedSearchTerm
-      };
-    });
-  }, []);
   const [welderFilters, setWelderFilters] = useState<WelderFilterState>({
     searchTerm: '',
     certificateType: '',
@@ -953,32 +847,12 @@ const DocumentManagement: React.FC = () => {
 
   const colors = getColors();
 
-  // Certificate data arrays - State olarak tanımlandı, Mock data kaldırıldı
-  const [weldingCertificates, setWeldingCertificates] = useState<QualityCertificate[]>([]);
-
-  // TS 3834-2 PROBLEM SOLVED - localStorage temizleme
-  React.useEffect(() => {
-    // localStorage'daki TS 3834-2 verilerini temizle
-    localStorage.removeItem('documentManagement_weldingCertificates');
-    localStorage.removeItem('documentManagement_qualityCertificates');
-    
-    // Ayrıca documents'tan da TS 3834-2 belgelerini temizle
-    const currentDocuments = localStorage.getItem('documentManagement_documents');
-    if (currentDocuments) {
-      try {
-        const parsedDocs = JSON.parse(currentDocuments);
-        // TS 3834-2 artık sistem dışı, doğrudan kaydet
-        localStorage.setItem('documentManagement_documents', JSON.stringify(parsedDocs));
-      } catch (error) {
-        console.error('Error cleaning documents:', error);
-      }
-    }
-    
-    // State'i de temizle
-    setWeldingCertificates([]);
-    // TS 3834-2 artık sistem dışı, kalite sertifikalarını temizle
-    setQualityCertificates([]);
-  }, []);
+  // Certificate data arrays - State olarak tanımlandı
+  const [weldingCertificates, setWeldingCertificates] = useState<QualityCertificate[]>([
+    { id: 'QC001', name: 'TS 3834-2:2019', type: 'Kaynak Kalite Yönetimi', expiry: '2025-12-31', status: 'active', authority: 'TSE' },
+    { id: 'QC002', name: 'EN 1090-1:2009+A1', type: 'Çelik Yapı Uygunluk', expiry: '2025-09-15', status: 'active', authority: 'TÜV NORD' },
+    { id: 'QC003', name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
+  ]);
 
   // Initialize sample documents with approval data - ONLY ON FIRST LOAD
   React.useEffect(() => {
@@ -1293,140 +1167,12 @@ const DocumentManagement: React.FC = () => {
     }
   }, []);
 
-  // Auto-save ve auto-load sistemleri
-  React.useEffect(() => {
-    const savedData = localStorage.getItem('documentManagement_documents');
-    if (savedData && documents.length === 0) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        // TS 3834-2 artık sistem dışı, doğrudan yükle
-        setDocuments(parsedData);
-      } catch (error) {
-        console.error('Error loading documents from localStorage:', error);
-      }
-    }
-  }, []);
-
-  React.useEffect(() => {
-    const savedData = localStorage.getItem('documentManagement_personnelOptions');
-    if (savedData && personnelOptions.length === 0) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        setPersonnelOptions(parsedData);
-      } catch (error) {
-        console.error('Error loading personnelOptions from localStorage:', error);
-      }
-    }
-  }, []);
-
-  React.useEffect(() => {
-    const savedData = localStorage.getItem('documentManagement_welderOptions');
-    if (savedData && welderOptions.length === 0) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        setWelderOptions(parsedData);
-      } catch (error) {
-        console.error('Error loading welderOptions from localStorage:', error);
-      }
-    }
-  }, []);
-
-  React.useEffect(() => {
-    const savedData = localStorage.getItem('documentManagement_weldingCertificates');
-    if (savedData && weldingCertificates.length === 0) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        // TS 3834-2 artık sistem dışı, doğrudan yükle
-        setWeldingCertificates(parsedData);
-      } catch (error) {
-        console.error('Error loading weldingCertificates from localStorage:', error);
-      }
-    }
-  }, []);
-
-  React.useEffect(() => {
-    const savedData = localStorage.getItem('documentManagement_personnelDocuments');
-    if (savedData && personnelDocuments.length === 0) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        setPersonnelDocuments(parsedData);
-      } catch (error) {
-        console.error('Error loading personnelDocuments from localStorage:', error);
-      }
-    }
-  }, []);
-
-  React.useEffect(() => {
-    const savedData = localStorage.getItem('documentManagement_qualityCertificates');
-    if (savedData && qualityCertificates.length === 0) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        // TS 3834-2 artık sistem dışı, doğrudan yükle
-        setQualityCertificates(parsedData);
-      } catch (error) {
-        console.error('Error loading qualityCertificates from localStorage:', error);
-      }
-    }
-  }, []);
-
-  // Auto-save when data changes
-  React.useEffect(() => {
-    if (documents.length > 0) {
-      // Geçerli belgeleri kaydet (TS 3834-2 artık sistemde yok)
-      localStorage.setItem('documentManagement_documents', JSON.stringify(documents));
-    }
-  }, [documents]);
-
-  React.useEffect(() => {
-    if (personnelOptions.length > 0) {
-      localStorage.setItem('documentManagement_personnelOptions', JSON.stringify(personnelOptions));
-    }
-  }, [personnelOptions]);
-
-  React.useEffect(() => {
-    if (welderOptions.length > 0) {
-      localStorage.setItem('documentManagement_welderOptions', JSON.stringify(welderOptions));
-    }
-  }, [welderOptions]);
-
-  React.useEffect(() => {
-    if (weldingCertificates.length > 0) {
-      // Geçerli kaynak kalite belgelerini kaydet (TS 3834-2 artık sistemde yok)
-      localStorage.setItem('documentManagement_weldingCertificates', JSON.stringify(weldingCertificates));
-    }
-  }, [weldingCertificates]);
-
-  React.useEffect(() => {
-    if (personnelDocuments.length > 0) {
-      localStorage.setItem('documentManagement_personnelDocuments', JSON.stringify(personnelDocuments));
-    }
-  }, [personnelDocuments]);
-
-  React.useEffect(() => {
-    if (qualityCertificates.length > 0) {
-      // Geçerli kalite belgelerini kaydet (TS 3834-2 artık sistemde yok)
-      localStorage.setItem('documentManagement_qualityCertificates', JSON.stringify(qualityCertificates));
-    }
-  }, [qualityCertificates]);
-
   // Updated certificate statistics with dynamic data
-  const userAddedQualityCertificates = documents.filter(doc => 
-    doc.type === 'ISO 9001 Belgesi' || 
-    doc.type === 'ISO 14001 Belgesi' || 
-    doc.type === 'ISO 27001 Belgesi' || 
-    doc.type === 'ISO 45001 Belgesi' || 
-    doc.type === 'ISO 50001 Belgesi' ||
-    doc.type === 'ISO 10002 Belgesi' ||
-    doc.type === 'OHSAS 18001 Belgesi' ||
-    doc.type === 'ISO 28001 Belgesi'
-    // TS 3834-2 Belgesi kasıtlı olarak hariç tutuldu
-  );
-  
   const certificateStats = {
-    total: qualityCertificates.length + userAddedQualityCertificates.length,
-    active: qualityCertificates.filter(c => c.status === 'active').length + userAddedQualityCertificates.filter(c => c.status === 'active').length,
-    expiring: qualityCertificates.filter(c => c.status === 'expiring').length + userAddedQualityCertificates.filter(c => c.status === 'review').length,
-    expired: qualityCertificates.filter(c => c.status === 'expired').length + userAddedQualityCertificates.filter(c => c.status === 'obsolete').length,
+    total: qualityCertificates.length,
+    active: qualityCertificates.filter(c => c.status === 'active').length,
+    expiring: qualityCertificates.filter(c => c.status === 'expiring').length,
+    expired: qualityCertificates.filter(c => c.status === 'expired').length,
     certificatesWithStatus: qualityCertificates
   };
 
@@ -1638,8 +1384,6 @@ const DocumentManagement: React.FC = () => {
       status: 'draft',
       approvalStatus: 'pending',
       keywords: [],
-      lastReviewDate: undefined,
-      nextReviewDate: undefined,
       // Dinamik alanları da temizle
       personnelName: undefined,
       personnelId: undefined,
@@ -1718,8 +1462,6 @@ const DocumentManagement: React.FC = () => {
         status: doc.status,
         approvalStatus: doc.approvalStatus,
         expiryDate: doc.expiryDate,
-        lastReviewDate: doc.lastReviewDate,
-        nextReviewDate: doc.nextReviewDate,
         keywords: doc.keywords || [],
         attachments: doc.attachments || [],
         // Dinamik alanları da doldur
@@ -2139,7 +1881,7 @@ ${welderCertificates.map(cert => JSON.stringify(cert, null, 2)).join('\n---\n')}
     // Create a temporary document object for quality certificates
     const tempDoc: Document = {
       id: `QUAL-${Date.now()}`,
-      type: certData.name.includes('ISO') ? 'ISO 9001 Belgesi' : 'ISO 9001 Belgesi',
+      type: certData.name.includes('ISO') ? 'ISO 9001 Belgesi' : 'TS 3834-2 Belgesi',
       name: certData.name,
       number: `QUAL-${certData.name.replace(/\s+/g, '-')}`,
       unit: 'Kalite Güvence',
@@ -2222,8 +1964,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         fileSize: undefined,
         isActive: documentForm.status === 'active',
         expiryDate: documentForm.expiryDate,
-        lastReviewDate: documentForm.lastReviewDate,
-        nextReviewDate: documentForm.nextReviewDate,
         lastViewedDate: undefined,
         viewCount: 0,
         isFavorite: false,
@@ -2266,8 +2006,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               status: documentForm.status as DocumentStatus || doc.status,
               approvalStatus: documentForm.approvalStatus as ApprovalStatus || doc.approvalStatus,
               expiryDate: documentForm.expiryDate,
-              lastReviewDate: documentForm.lastReviewDate,
-              nextReviewDate: documentForm.nextReviewDate,
               keywords: documentForm.keywords || [],
               isActive: (documentForm.status as DocumentStatus || doc.status) === 'active',
               // Dinamik alanlar
@@ -2308,8 +2046,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       status: 'draft',
       approvalStatus: 'pending',
       keywords: [],
-      lastReviewDate: undefined,
-      nextReviewDate: undefined,
       // Dinamik alanları da temizle
       personnelName: undefined,
       personnelId: undefined,
@@ -2340,8 +2076,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
     status: 'draft',
     approvalStatus: 'pending',
     keywords: [],
-    lastReviewDate: undefined,
-    nextReviewDate: undefined,
     // Dinamik alanları başlangıçta boş
     personnelName: undefined,
     personnelId: undefined,
@@ -2730,14 +2464,13 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   gap: 3,
                   mb: 3
                 }}>
-                  <UltraIsolatedSearchInput
-                    initialValue={filters.searchTerm}
-                    onDebouncedChange={handleDebouncedSearchChange}
+                  <UltraStableSearchInput
+                    value={filters.searchTerm}
+                    onChange={(value) => handleFilterChange('searchTerm', value)}
                     label="Arama"
                     placeholder="Doküman adı, numarası veya açıklama..."
                     size="medium"
                     fullWidth={true}
-                    clearTrigger={clearTrigger}
                   />
                   <FormControl fullWidth variant="outlined">
                     <InputLabel>Doküman Tipi</InputLabel>
@@ -2770,9 +2503,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       <MenuItem value="ISO 27001 Belgesi">ISO 27001 Belgesi</MenuItem>
                       <MenuItem value="ISO 45001 Belgesi">ISO 45001 Belgesi</MenuItem>
                       <MenuItem value="ISO 50001 Belgesi">ISO 50001 Belgesi</MenuItem>
-                      <MenuItem value="ISO 10002 Belgesi">ISO 10002 Belgesi</MenuItem>
-                      <MenuItem value="OHSAS 18001 Belgesi">OHSAS 18001 Belgesi</MenuItem>
-                      <MenuItem value="ISO 28001 Belgesi">ISO 28001 Belgesi</MenuItem>
                       <MenuItem value="TS 3834-2 Belgesi">TS 3834-2 Belgesi</MenuItem>
                       
                       <ListSubheader>Personel Belgeleri</ListSubheader>
@@ -2846,38 +2576,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       sx={{ '& .MuiFormControlLabel-label': { fontSize: '0.875rem' } }}
                     />
                   </FormGroup>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                    <Button
-                      variant="outlined"
-                      size="medium"
-                      onClick={() => {
-                        console.log('🧹 Ana doküman filtreleri temizleniyor...');
-                        setFilters({
-                          searchTerm: '',
-                          type: '',
-                          unit: '',
-                          status: '',
-                          approvalStatus: '',
-                          dateRange: { start: '', end: '' },
-                          showFavoritesOnly: false,
-                          showExpiring: false,
-                        });
-                        // Ana arama kutusunu da temizlemek için trigger güncelle
-                        setClearTrigger(prev => prev + 1);
-                      }}
-                      sx={{
-                        borderColor: 'primary.main',
-                        color: 'primary.main',
-                        '&:hover': {
-                          borderColor: 'primary.dark',
-                          backgroundColor: 'primary.light',
-                          color: '#ffffff'
-                        }
-                      }}
-                    >
-                      Filtreleri Temizle
-                    </Button>
-                  </Box>
                 </Box>
               </AccordionDetails>
             </StyledAccordion>
@@ -3124,14 +2822,14 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   gap: 3,
                   mb: 3
                 }}>
-                  <UltraIsolatedSearchInput
-                    initialValue={personnelFilters.searchTerm}
-                    onDebouncedChange={handlePersonnelDebouncedSearchChange}
+                  <TextField
+                    fullWidth
                     label="Personel Adı / Sicil No"
-                    placeholder="Personel adı veya sicil numarası..."
-                    size="medium"
-                    fullWidth={true}
-                    clearTrigger={personnelClearTrigger}
+                    value={personnelFilters.searchTerm}
+                    onChange={(e) => handlePersonnelFilterChange('searchTerm', e.target.value)}
+                    InputProps={{
+                      startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />
+                    }}
                   />
                   <FormControl fullWidth>
                     <InputLabel>Belge Kategorisi</InputLabel>
@@ -3253,23 +2951,18 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <Button
                     variant="outlined"
                     size="medium"
-                    onClick={() => {
-                      console.log('🧹 Personel filtreleri temizleniyor...');
-                      setPersonnelFilters({
-                        searchTerm: '',
-                        documentCategory: '',
-                        certificateType: '',
-                        department: '',
-                        status: '',
-                        issuingAuthority: '',
-                        expiringWithin: 30,
-                        validityDateRange: { start: '', end: '' },
-                        criticalityLevel: '',
-                        renewalRequired: false
-                      });
-                      // Personel arama kutusunu da temizlemek için trigger güncelle
-                      setPersonnelClearTrigger(prev => prev + 1);
-                    }}
+                    onClick={() => setPersonnelFilters({
+                      searchTerm: '',
+                      documentCategory: '',
+                      certificateType: '',
+                      department: '',
+                      status: '',
+                      issuingAuthority: '',
+                      expiringWithin: 30,
+                      validityDateRange: { start: '', end: '' },
+                      criticalityLevel: '',
+                      renewalRequired: false
+                    })}
                     sx={{
                       borderColor: 'primary.main',
                       color: 'primary.main',
@@ -3594,7 +3287,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   ISO Yönetim Sistemi Belgeleri
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
-                  {/* Mevcut ISO Belgelerini Göster */}
                   {certificateStats.certificatesWithStatus
                     .filter(cert => ['ISO 9001:2015', 'ISO 14001:2015', 'ISO 45001:2018', 'ISO 50001:2018', 'ISO 27001:2013'].includes(cert.name))
                     .map((cert, index) => (
@@ -3643,73 +3335,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                           </Tooltip>
                           <Tooltip title="Sil">
                             <IconButton size="small" onClick={() => handleDeleteQualityCertificate(cert.id)} color="error">
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </Box>
-                    </Card>
-                  ))}
-                  
-                  {/* Kullanıcı Tarafından Eklenen ISO Belgelerini Göster */}
-                  {userAddedQualityCertificates.map((doc) => (
-                    <Card key={doc.id} variant="outlined" sx={{ p: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                        <Box>
-                          <Typography variant="subtitle1" fontWeight={600}>
-                            {doc.name}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {doc.type}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Veren Kurum: {doc.issuingAuthority || 'Belirtilmemiş'}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                          <StatusChip
-                            label={
-                              doc.status === 'active' ? 'Aktif' : 
-                              doc.status === 'review' ? 'İncelemede' : 
-                              doc.status === 'draft' ? 'Taslak' :
-                              'Geçersiz'
-                            }
-                            statustype={doc.status}
-                            size="small"
-                          />
-                          <StatusChip
-                            label={
-                              doc.approvalStatus === 'approved' ? 'Onaylandı' :
-                              doc.approvalStatus === 'pending' ? 'Bekliyor' : 
-                              'Reddedildi'
-                            }
-                            statustype={doc.approvalStatus}
-                            size="small"
-                          />
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-                        <Typography variant="caption" color={doc.expiryDate && new Date(doc.expiryDate) < new Date() ? 'error.main' : 'text.secondary'}>
-                          Son Geçerlilik: {doc.expiryDate || 'Belirtilmemiş'}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          <Tooltip title="Görüntüle">
-                            <IconButton size="small" onClick={() => handleViewDocument(doc.id)}>
-                              <ViewIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="İndir">
-                            <IconButton size="small" onClick={() => handleDownloadDocument(doc.id)}>
-                              <DownloadIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Düzenle">
-                            <IconButton size="small" onClick={() => handleEditDocument(doc.id)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Sil">
-                            <IconButton size="small" onClick={() => handleDeleteDocument(doc.id)} color="error">
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -4369,8 +3994,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               status: 'draft',
               approvalStatus: 'pending',
               keywords: [],
-              lastReviewDate: undefined,
-              nextReviewDate: undefined,
               personnelName: undefined,
               personnelId: undefined,
               registrationNo: undefined,
@@ -4410,8 +4033,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   Temel Doküman Bilgileri
                 </Typography>
                 
-                {/* Temel Doküman Bilgileri */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2, mb: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
                   <TextField
                     label="Doküman Adı"
                     required
@@ -4419,7 +4041,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     value={documentForm.name || ''}
                     onChange={(e) => setDocumentForm(prev => ({ ...prev, name: e.target.value }))}
                     helperText="Doküman için açıklayıcı bir isim girin"
-                    variant="outlined"
                   />
                   
                   <TextField
@@ -4428,14 +4049,10 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     fullWidth
                     value={documentForm.number || ''}
                     onChange={(e) => setDocumentForm(prev => ({ ...prev, number: e.target.value }))}
-                    helperText="Benzersiz doküman numarası (örn: DOC-2024-001)"
-                    variant="outlined"
+                    helperText="Benzersiz doküman numarası"
                   />
-                </Box>
-
-                {/* Doküman Tipi ve Birim */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2, mb: 2 }}>
-                  <FormControl fullWidth required variant="outlined">
+                  
+                  <FormControl fullWidth required>
                     <InputLabel>Doküman Tipi</InputLabel>
                     <Select
                       value={documentForm.type || 'WPS'}
@@ -4483,9 +4100,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       <MenuItem value="ISO 27001 Belgesi">ISO 27001 Belgesi</MenuItem>
                       <MenuItem value="ISO 45001 Belgesi">ISO 45001 Belgesi</MenuItem>
                       <MenuItem value="ISO 50001 Belgesi">ISO 50001 Belgesi</MenuItem>
-                      <MenuItem value="ISO 10002 Belgesi">ISO 10002 Belgesi</MenuItem>
-                      <MenuItem value="OHSAS 18001 Belgesi">OHSAS 18001 Belgesi</MenuItem>
-                      <MenuItem value="ISO 28001 Belgesi">ISO 28001 Belgesi</MenuItem>
                       <MenuItem value="TS 3834-2 Belgesi">TS 3834-2 Belgesi</MenuItem>
                       
                       <ListSubheader>Personel Belgeleri</ListSubheader>
@@ -4498,22 +4112,25 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     </Select>
                   </FormControl>
                   
-                  <FormControl fullWidth required variant="outlined">
-                    <InputLabel>Sorumlu Birim</InputLabel>
+                  <FormControl fullWidth required>
+                    <InputLabel>Birim</InputLabel>
                     <Select
                       value={documentForm.unit || ''}
                       onChange={(e) => setDocumentForm(prev => ({ ...prev, unit: e.target.value }))}
-                      label="Sorumlu Birim"
+                      label="Birim"
                     >
-                      {UNITS.map((unit) => (
-                        <MenuItem key={unit} value={unit}>{unit}</MenuItem>
-                      ))}
+                      <MenuItem value="Kaynak Atölyesi">Kaynak Atölyesi</MenuItem>
+                      <MenuItem value="Kalite Kontrol">Kalite Kontrol</MenuItem>
+                      <MenuItem value="Üretim">Üretim</MenuItem>
+                      <MenuItem value="Montaj">Montaj</MenuItem>
+                      <MenuItem value="Boyahane">Boyahane</MenuItem>
+                      <MenuItem value="Makine Atölyesi">Makine Atölyesi</MenuItem>
+                      <MenuItem value="Planlama">Planlama</MenuItem>
+                      <MenuItem value="İSG">İSG</MenuItem>
+                      <MenuItem value="Genel">Genel</MenuItem>
                     </Select>
                   </FormControl>
-                </Box>
-
-                {/* Sorumlu Kişi ve Tarih Bilgileri */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2, mb: 2 }}>
+                  
                   <TextField
                     label="Doküman Sahibi"
                     required
@@ -4521,7 +4138,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     value={documentForm.owner || ''}
                     onChange={(e) => setDocumentForm(prev => ({ ...prev, owner: e.target.value }))}
                     helperText="Dokümandan sorumlu kişi"
-                    variant="outlined"
                   />
                   
                   <TextField
@@ -4532,89 +4148,24 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     value={documentForm.effectiveDate || ''}
                     onChange={(e) => setDocumentForm(prev => ({ ...prev, effectiveDate: e.target.value }))}
                     InputLabelProps={{ shrink: true }}
-                    helperText="Dokümanın yürürlüğe girdiği tarih"
-                    variant="outlined"
                   />
-                  
-                  <TextField
-                    label="Revizyon No"
-                    type="number"
-                    fullWidth
-                    value={documentForm.revisionNo || 1}
-                    onChange={(e) => setDocumentForm(prev => ({ ...prev, revisionNo: parseInt(e.target.value) || 1 }))}
-                    helperText="Doküman revizyon numarası"
-                    variant="outlined"
-                    inputProps={{ min: 1 }}
-                  />
-                </Box>
 
-                {/* Ek Tarih Bilgileri */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2, mb: 2 }}>
-                  <TextField
-                    label="Son Denetim Tarihi"
-                    type="date"
-                    fullWidth
-                    value={documentForm.lastReviewDate || ''}
-                    onChange={(e) => setDocumentForm(prev => ({ ...prev, lastReviewDate: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Son gözden geçirme tarihi"
-                    variant="outlined"
-                  />
-                  
-                  <TextField
-                    label="Sonraki Denetim Tarihi"
-                    type="date"
-                    fullWidth
-                    value={documentForm.nextReviewDate || ''}
-                    onChange={(e) => setDocumentForm(prev => ({ ...prev, nextReviewDate: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Planlanan denetim tarihi"
-                    variant="outlined"
-                  />
-                  
-                  <TextField
-                    label="Son Geçerlilik Tarihi"
-                    type="date"
-                    fullWidth
-                    value={documentForm.expiryDate || ''}
-                    onChange={(e) => setDocumentForm(prev => ({ ...prev, expiryDate: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Dokümanın son geçerlilik tarihi"
-                    variant="outlined"
-                  />
-                </Box>
-
-                {/* Açıklama */}
-                <TextField
-                  label="Doküman Açıklaması"
-                  fullWidth
-                  multiline
-                  rows={3}
-                  value={documentForm.description || ''}
-                  onChange={(e) => setDocumentForm(prev => ({ ...prev, description: e.target.value }))}
-                  helperText="Doküman hakkında detaylı açıklama"
-                  variant="outlined"
-                  sx={{ mb: 2 }}
-                />
-
-                {/* Veren Kuruluş - Sadece sertifika/belge tipleri için */}
-                {documentForm.type && (documentForm.type === 'Kaynakçı Sertifikası' || 
-                                       documentForm.type === 'Kaynakçı Nitelik Belgesi' || 
-                                       documentForm.type === 'Kaynak Operatörü Belgesi' ||
-                                       documentForm.type === 'NDT Sertifikası' ||
-                                       documentForm.type === 'İSG Sertifikası' ||
-                                       documentForm.type === 'Yetki Belgesi' ||
-                                       documentForm.type === 'TS 3834-2 Belgesi' ||
-                                       documentForm.type === 'ISO 9001 Belgesi' ||
-                                       documentForm.type === 'ISO 14001 Belgesi' ||
-                                       documentForm.type === 'ISO 45001 Belgesi' ||
-                                       documentForm.type === 'ISO 50001 Belgesi' ||
-                                       documentForm.type === 'ISO 27001 Belgesi' ||
-                                       documentForm.type === 'ISO 10002 Belgesi' ||
-                                       documentForm.type === 'OHSAS 18001 Belgesi' ||
-                                       documentForm.type === 'ISO 28001 Belgesi') && (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2, mb: 2 }}>
-                    <FormControl fullWidth variant="outlined">
+                  {/* Veren Kuruluş - Sadece belge/sertifika tipleri için */}
+                  {documentForm.type && (
+                    documentForm.type === 'ISO 9001 Belgesi' ||
+                    documentForm.type === 'ISO 14001 Belgesi' ||
+                    documentForm.type === 'ISO 45001 Belgesi' ||
+                    documentForm.type === 'TS 3834-2 Belgesi' ||
+                    documentForm.type === 'ISO 50001 Belgesi' ||
+                    documentForm.type === 'ISO 27001 Belgesi' ||
+                    documentForm.type === 'Kaynakçı Sertifikası' ||
+                    documentForm.type === 'Kaynakçı Nitelik Belgesi' ||
+                    documentForm.type === 'Kaynak Operatörü Belgesi' ||
+                    documentForm.type === 'NDT Sertifikası' ||
+                    documentForm.type === 'Yetki Belgesi' ||
+                    documentForm.type === 'İSG Sertifikası'
+                  ) && (
+                    <FormControl fullWidth>
                       <InputLabel>Veren Kuruluş</InputLabel>
                       <Select
                         value={documentForm.issuingAuthority || ''}
@@ -4637,28 +4188,19 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                         <MenuItem value="Diğer">Diğer</MenuItem>
                       </Select>
                     </FormControl>
-                    
-                    {documentForm.issuingAuthority === 'Diğer' && (
-                      <TextField
-                        label="Kuruluş Adı"
-                        fullWidth
-                        value={documentForm.certificateNumber || ''}
-                        onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
-                        helperText="Manuel olarak kuruluş adını girin"
-                        variant="outlined"
-                      />
-                    )}
-                    
+                  )}
+
+                  {/* Diğer seçildiğinde manuel giriş */}
+                  {documentForm.issuingAuthority === 'Diğer' && (
                     <TextField
-                      label="Belge/Sertifika Numarası"
+                      label="Kuruluş Adı (Manuel)"
                       fullWidth
                       value={documentForm.certificateNumber || ''}
                       onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
-                      helperText="Belge veya sertifika numarası"
-                      variant="outlined"
+                      helperText="Veren kuruluş adını manuel olarak girin"
                     />
-                  </Box>
-                )}
+                  )}
+                </Box>
 
                 {/* Doküman Tipine Göre Dinamik Alanlar - Sadece gerekli tiplerde göster */}
                 {documentForm.type && (documentForm.type === 'Kaynakçı Sertifikası' || 
@@ -4666,16 +4208,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                                        documentForm.type === 'Kaynak Operatörü Belgesi' ||
                                        documentForm.type === 'NDT Sertifikası' ||
                                        documentForm.type === 'İSG Sertifikası' ||
-                                       documentForm.type === 'Yetki Belgesi' ||
-                                       documentForm.type === 'TS 3834-2 Belgesi' ||
-                                       documentForm.type === 'ISO 9001 Belgesi' ||
-                                       documentForm.type === 'ISO 14001 Belgesi' ||
-                                       documentForm.type === 'ISO 45001 Belgesi' ||
-                                       documentForm.type === 'ISO 50001 Belgesi' ||
-                                       documentForm.type === 'ISO 27001 Belgesi' ||
-                                       documentForm.type === 'ISO 10002 Belgesi' ||
-                                       documentForm.type === 'OHSAS 18001 Belgesi' ||
-                                       documentForm.type === 'ISO 28001 Belgesi') && (
+                                       documentForm.type === 'Yetki Belgesi') && (
                   <Box sx={{ mt: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       {documentForm.type} Özel Bilgileri
@@ -4690,19 +4223,19 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             <Select
                               value={documentForm.welderName || ''}
                               onChange={(e) => {
-                                const selectedPersonnel = personnelOptions.find(p => p.name === e.target.value);
+                                const selectedWelder = welderOptions.find(w => w.welderName === e.target.value);
                                 setDocumentForm(prev => ({ 
                                   ...prev, 
                                   welderName: e.target.value,
-                                  registrationNo: selectedPersonnel?.registrationNo || '',
-                                  personnelId: selectedPersonnel?.registrationNo || ''
+                                  registrationNo: selectedWelder?.registrationNo || '',
+                                  certificateNumber: selectedWelder?.certificateNumber || ''
                                 }));
                               }}
                               label="Kaynakçı Seçimi"
                             >
-                              {personnelOptions.filter(p => p.position.toLowerCase().includes('kaynak')).map((personnel) => (
-                                <MenuItem key={personnel.id} value={personnel.name}>
-                                  {personnel.name} - {personnel.registrationNo} ({personnel.department})
+                              {welderOptions.map((welder) => (
+                                <MenuItem key={welder.id} value={welder.welderName}>
+                                  {welder.welderName} - {welder.registrationNo} ({welder.department})
                                 </MenuItem>
                               ))}
                             </Select>
@@ -4746,26 +4279,13 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             helperText="Kaynakçı seçildiğinde otomatik doldurulur, düzenlenebilir"
                           />
                           
-                          <FormControl fullWidth>
-                            <InputLabel>Belge Veren Kuruluş</InputLabel>
-                            <Select
-                              value={documentForm.issuingAuthority || ''}
-                              onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
-                              label="Belge Veren Kuruluş"
-                            >
-                              <MenuItem value="TSE (Türk Standartları Enstitüsü)">TSE (Türk Standartları Enstitüsü)</MenuItem>
-                              <MenuItem value="TÜV NORD">TÜV NORD</MenuItem>
-                              <MenuItem value="TÜV SÜD">TÜV SÜD</MenuItem>
-                              <MenuItem value="Bureau Veritas">Bureau Veritas</MenuItem>
-                              <MenuItem value="SGS">SGS</MenuItem>
-                              <MenuItem value="BSI">BSI</MenuItem>
-                              <MenuItem value="Lloyd's Register">Lloyd's Register</MenuItem>
-                              <MenuItem value="TÜRKAK">TÜRKAK</MenuItem>
-                              <MenuItem value="DNV GL">DNV GL</MenuItem>
-                              <MenuItem value="Intertek">Intertek</MenuItem>
-                              <MenuItem value="Diğer">Diğer</MenuItem>
-                            </Select>
-                          </FormControl>
+                          <TextField
+                            label="Veren Kurum"
+                            fullWidth
+                            value={documentForm.issuingAuthority || ''}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
+                            helperText="Örn: TSE, TÜRKAK, Bureau Veritas"
+                          />
                           
                           <FormControl fullWidth>
                             <InputLabel>Kaynak Prosesleri</InputLabel>
@@ -5096,65 +4616,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                           </FormControl>
                         </>
                       )}
-                      
-                      {/* TS 3834-2 Belgesi ve ISO Belgeleri için */}
-                      {(documentForm.type === 'TS 3834-2 Belgesi' || 
-                        documentForm.type === 'ISO 9001 Belgesi' ||
-                        documentForm.type === 'ISO 14001 Belgesi' ||
-                        documentForm.type === 'ISO 45001 Belgesi' ||
-                        documentForm.type === 'ISO 50001 Belgesi' ||
-                        documentForm.type === 'ISO 27001 Belgesi' ||
-                        documentForm.type === 'ISO 10002 Belgesi' ||
-                        documentForm.type === 'OHSAS 18001 Belgesi' ||
-                        documentForm.type === 'ISO 28001 Belgesi') && (
-                        <>
-                          <TextField
-                            label="Belge Numarası"
-                            required
-                            fullWidth
-                            value={documentForm.certificateNumber || ''}
-                            onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
-                            helperText="Belge numarası"
-                          />
-                          
-                          <FormControl fullWidth required>
-                            <InputLabel>Belge Veren Kuruluş</InputLabel>
-                            <Select
-                              value={documentForm.issuingAuthority || ''}
-                              onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
-                              label="Belge Veren Kuruluş"
-                            >
-                              <MenuItem value="TSE (Türk Standartları Enstitüsü)">TSE (Türk Standartları Enstitüsü)</MenuItem>
-                              <MenuItem value="TÜV NORD">TÜV NORD</MenuItem>
-                              <MenuItem value="TÜV SÜD">TÜV SÜD</MenuItem>
-                              <MenuItem value="Bureau Veritas">Bureau Veritas</MenuItem>
-                              <MenuItem value="SGS">SGS</MenuItem>
-                              <MenuItem value="BSI">BSI</MenuItem>
-                              <MenuItem value="Lloyd's Register">Lloyd's Register</MenuItem>
-                              <MenuItem value="TÜRKAK">TÜRKAK</MenuItem>
-                              <MenuItem value="DNV GL">DNV GL</MenuItem>
-                              <MenuItem value="Intertek">Intertek</MenuItem>
-                              <MenuItem value="RWTUV">RWTUV</MenuItem>
-                              <MenuItem value="DEKRA">DEKRA</MenuItem>
-                              <MenuItem value="Diğer">Diğer</MenuItem>
-                            </Select>
-                          </FormControl>
-                          
-                          <FormControl fullWidth>
-                            <InputLabel>Önem Düzeyi</InputLabel>
-                            <Select
-                              value={documentForm.criticalityLevel || ''}
-                              onChange={(e) => setDocumentForm(prev => ({ ...prev, criticalityLevel: e.target.value as CriticalityLevel }))}
-                              label="Önem Düzeyi"
-                            >
-                              <MenuItem value="Kritik">Kritik</MenuItem>
-                              <MenuItem value="Yüksek">Yüksek</MenuItem>
-                              <MenuItem value="Orta">Orta</MenuItem>
-                              <MenuItem value="Düşük">Düşük</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </>
-                      )}
                     </Box>
                   </Box>
                 )}
@@ -5164,20 +4625,40 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
             {/* Step 1: Details and Content */}
             {activeStep === 1 && (
               <Box sx={{ display: 'grid', gap: 3 }}>
-                <Typography variant="h6" gutterBottom color="primary">
-                  Doküman Detayları ve İçerik
+                <Typography variant="h6" gutterBottom>
+                  Doküman Detayları
                 </Typography>
                 
                 <TextField
-                  label="Doküman Açıklaması"
+                  label="Açıklama"
                   multiline
                   rows={4}
                   fullWidth
                   value={documentForm.description || ''}
                   onChange={(e) => setDocumentForm(prev => ({ ...prev, description: e.target.value }))}
                   helperText="Dokümanın içeriği ve amacı hakkında detaylı bilgi"
-                  variant="outlined"
                 />
+                
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
+                  <TextField
+                    label="Revizyon Numarası"
+                    type="number"
+                    inputProps={{ min: 1 }}
+                    fullWidth
+                    value={documentForm.revisionNo || 1}
+                    onChange={(e) => setDocumentForm(prev => ({ ...prev, revisionNo: parseInt(e.target.value) || 1 }))}
+                  />
+                  
+                  <TextField
+                    label="Son Geçerlilik Tarihi"
+                    type="date"
+                    fullWidth
+                    value={documentForm.expiryDate || ''}
+                    onChange={(e) => setDocumentForm(prev => ({ ...prev, expiryDate: e.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="İsteğe bağlı"
+                  />
+                </Box>
                 
                 <TextField
                   label="Anahtar Kelimeler"
@@ -5187,21 +4668,16 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     ...prev, 
                     keywords: e.target.value.split(',').map(k => k.trim()).filter(k => k)
                   }))}
-                  helperText="Arama için virgülle ayırarak girin (örn: kaynak, çelik, prosedür)"
-                  variant="outlined"
+                  helperText="Virgülle ayırarak girin (örn: kaynak, çelik, prosedür)"
                 />
                 
-                <Typography variant="h6" gutterBottom color="primary" sx={{ mt: 3 }}>
-                  Doküman Durumu
-                </Typography>
-                
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, gap: 2 }}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel>Doküman Durumu</InputLabel>
+                  <FormControl fullWidth>
+                    <InputLabel>Durum</InputLabel>
                     <Select
                       value={documentForm.status || 'draft'}
                       onChange={(e) => setDocumentForm(prev => ({ ...prev, status: e.target.value as DocumentStatus }))}
-                      label="Doküman Durumu"
+                      label="Durum"
                     >
                       <MenuItem value="draft">Taslak</MenuItem>
                       <MenuItem value="review">İnceleme</MenuItem>
@@ -5211,7 +4687,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     </Select>
                   </FormControl>
                   
-                  <FormControl fullWidth variant="outlined">
+                  <FormControl fullWidth>
                     <InputLabel>Onay Durumu</InputLabel>
                     <Select
                       value={documentForm.approvalStatus || 'pending'}
@@ -5226,31 +4702,15 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   </FormControl>
                 </Box>
                 
-                <Typography variant="h6" gutterBottom color="primary" sx={{ mt: 3 }}>
-                  Dosya Yükleme
-                </Typography>
-                
-                <Box sx={{ 
-                  border: '2px dashed', 
-                  borderColor: 'primary.main', 
-                  borderRadius: 2, 
-                  p: 3, 
-                  textAlign: 'center',
-                  bgcolor: 'grey.50',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    bgcolor: 'grey.100',
-                    borderColor: 'primary.dark'
-                  }
-                }}>
+                <Box sx={{ border: '2px dashed', borderColor: 'primary.main', borderRadius: 2, p: 3, textAlign: 'center' }}>
                   <CloudUploadIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
                   <Typography variant="h6" gutterBottom>
-                    Doküman Dosyası Yükle
+                    Dosya Yükle
                   </Typography>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    PDF, DOC, DOCX formatlarında dosya yükleyebilirsiniz (Max 10MB)
+                    PDF, DOC, DOCX formatlarında dosya yükleyebilirsiniz
                   </Typography>
-                  <Button variant="outlined" component="label" size="large" sx={{ mt: 2 }}>
+                  <Button variant="outlined" component="label">
                     Dosya Seç
                     <input type="file" hidden accept=".pdf,.doc,.docx" />
                   </Button>
