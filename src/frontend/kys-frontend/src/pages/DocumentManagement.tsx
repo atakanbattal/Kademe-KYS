@@ -847,12 +847,12 @@ const DocumentManagement: React.FC = () => {
 
   const colors = getColors();
 
-  // Certificate data arrays
-  const weldingCertificates = [
+  // Certificate data arrays - State olarak tanımlandı
+  const [weldingCertificates, setWeldingCertificates] = useState<QualityCertificate[]>([
     { id: 'QC001', name: 'TS 3834-2:2019', type: 'Kaynak Kalite Yönetimi', expiry: '2025-12-31', status: 'active', authority: 'TSE' },
     { id: 'QC002', name: 'EN 1090-1:2009+A1', type: 'Çelik Yapı Uygunluk', expiry: '2025-09-15', status: 'active', authority: 'TÜV NORD' },
     { id: 'QC003', name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
-  ];
+  ]);
 
   // Initialize sample documents with approval data - ONLY ON FIRST LOAD
   React.useEffect(() => {
@@ -1634,15 +1634,36 @@ const DocumentManagement: React.FC = () => {
   };
 
   const handleDeleteQualityCertificate = (certificateId: string) => {
-    const cert = qualityCertificates.find(c => c.id === certificateId);
-    if (cert) {
+    // Önce qualityCertificates'ta ara
+    const qualityCert = qualityCertificates.find(c => c.id === certificateId);
+    if (qualityCert) {
       setQualityCertificates(prev => prev.filter(c => c.id !== certificateId));
       setSnackbar({ 
         open: true, 
-        message: `${cert.name} kalite belgesi başarıyla silindi.`, 
+        message: `${qualityCert.name} kalite belgesi başarıyla silindi.`, 
         severity: 'success' 
       });
+      return;
     }
+
+    // Sonra weldingCertificates'ta ara
+    const weldingCert = weldingCertificates.find(c => c.id === certificateId);
+    if (weldingCert) {
+      setWeldingCertificates(prev => prev.filter(c => c.id !== certificateId));
+      setSnackbar({ 
+        open: true, 
+        message: `${weldingCert.name} kaynak belgesi başarıyla silindi.`, 
+        severity: 'success' 
+      });
+      return;
+    }
+
+    // Eğer bulunamazsa hata mesajı
+    setSnackbar({ 
+      open: true, 
+      message: 'Belge bulunamadı!', 
+      severity: 'error' 
+    });
   };
 
   const handleDeleteProductCertificate = (certificateId: string) => {
