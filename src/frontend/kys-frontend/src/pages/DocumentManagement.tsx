@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Typography,
   Box,
@@ -70,8 +70,7 @@ interface WelderData {
   name: string;
   registrationNo: string;
   department: string;
-  certificateType: string;
-  certificateNumber: string;
+  position: string;
 }
 
 interface PersonnelData {
@@ -295,6 +294,23 @@ const ISSUING_AUTHORITIES = [
   'Diğer Kuruluş'
 ];
 
+// ✅ BİRİM SEÇENEKLERİ
+const UNIT_OPTIONS = [
+  'Kalite Güvence',
+  'Kalite Kontrol',
+  'Üretim',
+  'Ar-Ge',
+  'İSG',
+  'Satın Alma',
+  'Proje Yönetimi',
+  'Bakım',
+  'Planlama',
+  'İnsan Kaynakları',
+  'Muhasebe',
+  'Genel Müdürlük',
+  'Diğer'
+];
+
 // ✅ AUTOCOMPLETE İÇİN DÜZLEŞTIRILMIŞ BELGE TİPLERİ
 const ALL_DOCUMENT_TYPES = Object.entries(DOCUMENT_TYPES).reduce((acc, [category, types]) => {
   types.forEach(type => {
@@ -340,8 +356,7 @@ const DocumentManagement: React.FC = () => {
     name: '',
     registrationNo: '',
     department: '',
-    certificateType: '',
-    certificateNumber: ''
+    position: ''
   });
   
   const [personnelForm, setPersonnelForm] = useState({
@@ -354,6 +369,25 @@ const DocumentManagement: React.FC = () => {
   // Search
   const [searchTerm, setSearchTerm] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
+
+  // ✅ KALAN GÜN SAYISI HESAPLAMA
+  const calculateDaysRemaining = (expiryDate: string): number => {
+    if (!expiryDate) return -1;
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // ✅ KALAN GÜN DURUMU VE RENK
+  const getDaysRemainingStatus = (daysRemaining: number) => {
+    if (daysRemaining < 0) return { text: 'Süresi Doldu', color: 'error' as const };
+    if (daysRemaining === 0) return { text: 'Bugün Sona Eriyor', color: 'warning' as const };
+    if (daysRemaining <= 7) return { text: `${daysRemaining} gün kaldı`, color: 'warning' as const };
+    if (daysRemaining <= 30) return { text: `${daysRemaining} gün kaldı`, color: 'info' as const };
+    return { text: `${daysRemaining} gün kaldı`, color: 'success' as const };
+  };
 
   // ✅ SADECE GERÇEK VERİ YÜKLEME - Mock veriler tamamen kaldırıldı
   React.useEffect(() => {
@@ -436,8 +470,7 @@ const DocumentManagement: React.FC = () => {
         name: '',
         registrationNo: '',
         department: '',
-        certificateType: '',
-        certificateNumber: ''
+        position: ''
       });
     } else {
       setPersonnelForm({
@@ -504,8 +537,7 @@ const DocumentManagement: React.FC = () => {
       name: welderForm.name,
       registrationNo: welderForm.registrationNo,
       department: welderForm.department,
-      certificateType: welderForm.certificateType,
-      certificateNumber: welderForm.certificateNumber
+      position: welderForm.position
     };
 
     if (editingItem) {
@@ -569,8 +601,7 @@ const DocumentManagement: React.FC = () => {
         name: item.name,
         registrationNo: item.registrationNo,
         department: item.department,
-        certificateType: item.certificateType,
-        certificateNumber: item.certificateNumber
+        position: item.position
       });
     } else {
       setPersonnelForm({
@@ -860,8 +891,18 @@ const DocumentManagement: React.FC = () => {
                               </Typography>
                               {doc.expiryDate && (
                                 <Typography variant="caption" display="block" color="text.secondary">
-                                  <strong>Bitiş:</strong> {doc.expiryDate}
+                                  <strong>Son Geçerlilik:</strong> {doc.expiryDate}
                                 </Typography>
+                              )}
+                              {doc.expiryDate && (
+                                <Box sx={{ mt: 1 }}>
+                                  <Chip 
+                                    label={getDaysRemainingStatus(calculateDaysRemaining(doc.expiryDate)).text}
+                                    color={getDaysRemainingStatus(calculateDaysRemaining(doc.expiryDate)).color}
+                                    size="small"
+                                    variant="outlined"
+                                  />
+                                </Box>
                               )}
                             </Box>
                             
@@ -973,8 +1014,7 @@ const DocumentManagement: React.FC = () => {
                       <TableCell>Ad Soyad</TableCell>
                       <TableCell>Sicil No</TableCell>
                       <TableCell>Departman</TableCell>
-                      <TableCell>Sertifika Tipi</TableCell>
-                      <TableCell>Sertifika No</TableCell>
+                      <TableCell>Pozisyon</TableCell>
                       <TableCell>İşlemler</TableCell>
                     </TableRow>
                   </TableHead>
@@ -984,10 +1024,7 @@ const DocumentManagement: React.FC = () => {
                         <TableCell>{welder.name}</TableCell>
                         <TableCell>{welder.registrationNo}</TableCell>
                         <TableCell>{welder.department}</TableCell>
-                        <TableCell>
-                          <Chip label={welder.certificateType} size="small" />
-                        </TableCell>
-                        <TableCell>{welder.certificateNumber}</TableCell>
+                        <TableCell>{welder.position}</TableCell>
                         <TableCell>
                           <IconButton onClick={() => handleEdit(welder, 'welder')} size="small">
                             <EditIcon />
@@ -1117,13 +1154,18 @@ const DocumentManagement: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Birim"
-                value={documentForm.unit}
-                onChange={(e) => setDocumentForm(prev => ({ ...prev, unit: e.target.value }))}
-                placeholder="Kalite Güvence"
-              />
+              <FormControl fullWidth>
+                <InputLabel>Birim</InputLabel>
+                <Select
+                  value={documentForm.unit}
+                  onChange={(e) => setDocumentForm(prev => ({ ...prev, unit: e.target.value }))}
+                  label="Birim"
+                >
+                  {UNIT_OPTIONS.map((unit) => (
+                    <MenuItem key={unit} value={unit}>{unit}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
 
             {/* Kaynakçı Sertifikaları için özel alanlar */}
@@ -1310,25 +1352,12 @@ const DocumentManagement: React.FC = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Sertifika Tipi</InputLabel>
-                <Select
-                  value={welderForm.certificateType}
-                  onChange={(e) => setWelderForm(prev => ({ ...prev, certificateType: e.target.value }))}
-                  label="Sertifika Tipi"
-                >
-                  {CERTIFICATE_TYPES.map((type) => (
-                    <MenuItem key={type} value={type}>{type}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Sertifika Numarası"
-                value={welderForm.certificateNumber}
-                onChange={(e) => setWelderForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                label="Pozisyon"
+                value={welderForm.position}
+                onChange={(e) => setWelderForm(prev => ({ ...prev, position: e.target.value }))}
+                placeholder="Kaynakçı, Operatör, Teknisyen..."
               />
             </Grid>
           </Grid>
