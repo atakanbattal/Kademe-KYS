@@ -1794,20 +1794,88 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
 
   const handleAuditViewAttachment = (attachment: Attachment) => {
     try {
-      // Base64 data URL'yi doğrudan aç
+      console.log('🔍 Dosya görüntüleme başlıyor:', attachment.name, attachment.type);
+      
+      // Base64 data URL kontrolü
+      if (!attachment.url || !attachment.url.startsWith('data:')) {
+        console.error('❌ Geçersiz dosya URL\'si:', attachment.url);
+        showSnackbar('Dosya URL\'si geçersiz! Dosya yeniden yüklenmeli.', 'error');
+        return;
+      }
+
+      // PDF dosyaları için
       if (attachment.type === 'application/pdf') {
-        window.open(attachment.url, '_blank');
-      } else if (attachment.type.startsWith('image/')) {
-        window.open(attachment.url, '_blank');
-      } else {
-        // Diğer dosya tipleri için indirme öner
+        console.log('📄 PDF dosyası açılıyor...');
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head>
+                <title>${attachment.name}</title>
+                <style>
+                  body { margin: 0; }
+                  iframe { width: 100%; height: 100vh; border: none; }
+                </style>
+              </head>
+              <body>
+                <iframe src="${attachment.url}" type="application/pdf"></iframe>
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
+        } else {
+          // Popup engellenirse direkt link aç
+          window.open(attachment.url, '_blank');
+        }
+      } 
+      // Resim dosyaları için
+      else if (attachment.type.startsWith('image/')) {
+        console.log('🖼️ Resim dosyası açılıyor...');
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head>
+                <title>${attachment.name}</title>
+                <style>
+                  body { 
+                    margin: 0; 
+                    padding: 20px; 
+                    background: #f5f5f5; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    min-height: 100vh; 
+                  }
+                  img { 
+                    max-width: 100%; 
+                    max-height: 100vh; 
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+                    border-radius: 8px; 
+                  }
+                </style>
+              </head>
+              <body>
+                <img src="${attachment.url}" alt="${attachment.name}" />
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
+        } else {
+          window.open(attachment.url, '_blank');
+        }
+      } 
+      // Diğer dosya tipleri için indirme öner
+      else {
+        console.log('📎 Desteklenmeyen dosya tipi, indirme öneriliyor...');
         handleAuditDownloadAttachment(attachment);
         return;
       }
-      showSnackbar('Dosya görüntüleniyor', 'info');
+      
+      showSnackbar(`${attachment.name} görüntüleniyor`, 'success');
     } catch (error) {
-      console.error('Dosya görüntüleme hatası:', error);
-      showSnackbar('Dosya görüntüleme sırasında hata oluştu', 'error');
+      console.error('❌ Dosya görüntüleme hatası:', error);
+      showSnackbar('Dosya görüntüleme sırasında hata oluştu. Lütfen dosyayı yeniden yükleyin.', 'error');
     }
   };
 

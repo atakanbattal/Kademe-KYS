@@ -726,7 +726,7 @@ const TankLeakTest: React.FC = () => {
   const [vehicleInfo, setVehicleInfo] = useState<VehicleInfo>({
     model: '',
     vinNumber: '',
-    tankPosition: '',
+    tankPosition: '', // Formda artık kullanılmıyor ama veri uyumluluğu için tutulur
     projectCode: '',
   });
 
@@ -948,6 +948,12 @@ const TankLeakTest: React.FC = () => {
       }
 
       return true;
+    })
+    // 📅 TARİHE GÖRE SIRALAMA - EN YENİ TEST KAYITLARI ÖNCE
+    .sort((a, b) => {
+      const dateA = new Date(a.testParameters.testDate || a.createdAt);
+      const dateB = new Date(b.testParameters.testDate || b.createdAt);
+      return dateB.getTime() - dateA.getTime(); // Yeniden eskiye doğru sıralama
     });
   }, [filters, savedTests, repairRecords]);
 
@@ -1274,17 +1280,38 @@ const TankLeakTest: React.FC = () => {
     return checkDOFStatus('tankLeak', test.id);
   };
 
-  // Test kaydı silme fonksiyonu
+  // Test kaydı silme fonksiyonu - GÜÇLENDİRİLMİŞ VERSİYON
   const handleDeleteTest = (testId: string) => {
     if (!window.confirm('Bu test kaydını silmek istediğinizden emin misiniz?')) {
       return;
     }
     
     try {
+      console.log('🗑️ Test kaydı silme işlemi başlıyor:', testId);
+      
+      // Test kaydının varlığını kontrol et
+      const testToDelete = savedTests.find(test => test.id === testId);
+      if (!testToDelete) {
+        console.error('❌ Silinmek istenen test kaydı bulunamadı:', testId);
+        alert('Test kaydı bulunamadı! Sayfa yenilenerek tekrar deneyin.');
+        return;
+      }
+      
       // Test kaydını sil
       const updatedTests = savedTests.filter(test => test.id !== testId);
       setSavedTests(updatedTests);
-      localStorage.setItem('tankLeakTests', JSON.stringify(updatedTests));
+      
+      // localStorage'a kaydet ve hata durumunda geri al
+      try {
+        localStorage.setItem('tankLeakTests', JSON.stringify(updatedTests));
+        console.log('✅ Test kaydı localStorage\'dan silindi');
+      } catch (storageError) {
+        console.error('❌ localStorage yazma hatası:', storageError);
+        // Geri al
+        setSavedTests(savedTests);
+        alert('Test kaydı silinirken bir hata oluştu. Lütfen tekrar deneyin.');
+        return;
+      }
       
       // İlgili tamir kayıtlarını da sil
       const updatedRepairs = repairRecords.filter(repair => repair.testRecordId !== testId);
@@ -1295,9 +1322,15 @@ const TankLeakTest: React.FC = () => {
       calculateStatistics(updatedTests);
       calculateTankRepairHistory(updatedRepairs);
       
-      console.log('Test kaydı silindi:', testId);
+      console.log('✅ Test kaydı ve ilgili tamir kayıtları başarıyla silindi:', testId);
+      
+      // Kullanıcıya bilgi ver
+      const deletedTestInfo = `${testToDelete.tankInfo.serialNumber} - ${testToDelete.testParameters.testType}`;
+      alert(`Test kaydı başarıyla silindi: ${deletedTestInfo}`);
+      
     } catch (error) {
-              console.error('Test kaydı silinirken hata:', error);
+      console.error('❌ Test kaydı silinirken kritik hata:', error);
+      alert('Test kaydı silinirken bir hata oluştu. Lütfen sayfayı yenileme yapın ve tekrar deneyin.');
     }
   };
 
@@ -1511,7 +1544,7 @@ const TankLeakTest: React.FC = () => {
         vehicleInfo: {
           model: vehicleModels[Math.floor(Math.random() * vehicleModels.length)],
           vinNumber: `VIN${String(i + 1).padStart(6, '0')}`,
-          tankPosition: ['Sol', 'Sağ', 'Merkez'][Math.floor(Math.random() * 3)],
+          tankPosition: '', // Tank pozisyonu artık kullanılmadığı için boş
           projectCode: `PRJ-${String(i + 1).padStart(3, '0')}`
         },
         testParameters: {
@@ -1877,7 +1910,7 @@ const TankLeakTest: React.FC = () => {
       setVehicleInfo({
         model: '',
         vinNumber: '',
-        tankPosition: '',
+        tankPosition: '', // Boş bırakılacak - formda artık kullanılmıyor
         projectCode: '',
       });
       setTestParameters({
@@ -3225,18 +3258,7 @@ const TankLeakTest: React.FC = () => {
                   fullWidth
                   helperText="Opsiyonel - Stok üretimi için boş bırakılabilir"
                 />
-                <FormControl fullWidth required>
-                  <InputLabel>Tank Pozisyonu</InputLabel>
-                  <Select
-                    value={vehicleInfo.tankPosition}
-                    onChange={(e) => setVehicleInfo({ ...vehicleInfo, tankPosition: e.target.value })}
-                    label="Tank Pozisyonu"
-                  >
-                    {customLists.tankPositions.map((position) => (
-                      <MenuItem key={position} value={position}>{position}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+
                 <TextField
                   label="Seri Numarası"
                   value={tankInfo.serialNumber}
