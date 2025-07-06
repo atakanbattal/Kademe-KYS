@@ -2998,23 +2998,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               </DocumentCard>
             </Box>
 
-            {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => openCreateDialog('personnel')}
-              >
-                Yeni Personel Belgesi
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<ExportIcon />}
-                onClick={handleExportData}
-              >
-                Rapor Dışa Aktar
-              </Button>
-            </Box>
+
 
             {/* Personnel Filters */}
             <StyledAccordion
@@ -3471,30 +3455,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               </DocumentCard>
             </Box>
 
-            {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => openCreateDialog('document')}
-              >
-                Yeni Kalite Belgesi
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<AssessmentIcon />}
-                onClick={handleGenerateDocumentInventoryReport}
-              >
-                Kalite Raporu
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<ExportIcon />}
-                onClick={handleExportData}
-              >
-                Dışa Aktar
-              </Button>
-            </Box>
+
 
             {/* Quality Certificates List */}
             <Box sx={{ display: 'grid', gap: 3 }}>
