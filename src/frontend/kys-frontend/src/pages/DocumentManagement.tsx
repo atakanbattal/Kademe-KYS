@@ -862,8 +862,9 @@ const DocumentManagement: React.FC = () => {
 
     const dataLoaded = loadStoredData();
     
-    // Only initialize with sample data if no stored data exists
-    if (!dataLoaded) {
+    // ⚠️ MOCK DATA GENERATION DISABLED FOR PRODUCTION USE
+    // User requested to stop automatic mock data generation
+    if (false && !dataLoaded) { // ALWAYS FALSE - No mock data generation
       const isInitialized = localStorage.getItem('documentManagement_initialized');
       if (!isInitialized) {
       const sampleDocuments: Document[] = [
@@ -1030,7 +1031,8 @@ const DocumentManagement: React.FC = () => {
 
     const personnelDataLoaded = loadStoredPersonnelData();
     
-    if (!personnelDataLoaded) {
+    // ⚠️ MOCK DATA GENERATION DISABLED FOR PRODUCTION USE  
+    if (false && !personnelDataLoaded) { // ALWAYS FALSE - No mock data generation
       const isPersonnelInitialized = localStorage.getItem('documentManagement_personnel_initialized');
       if (!isPersonnelInitialized) {
       const sampleDocuments: PersonnelDocument[] = [
@@ -1187,7 +1189,8 @@ const DocumentManagement: React.FC = () => {
 
     const productDataLoaded = loadStoredProductCerts();
     
-    if (!productDataLoaded) {
+    // ⚠️ MOCK DATA GENERATION DISABLED FOR PRODUCTION USE
+    if (false && !productDataLoaded) { // ALWAYS FALSE - No mock data generation
       const isProductCertInitialized = localStorage.getItem('documentManagement_productCert_initialized');
       if (!isProductCertInitialized) {
       const sampleProductCertificates: ProductCertificate[] = [
@@ -1223,7 +1226,8 @@ const DocumentManagement: React.FC = () => {
 
     const qualityDataLoaded = loadStoredQualityCerts();
     
-    if (!qualityDataLoaded) {
+    // ⚠️ MOCK DATA GENERATION DISABLED FOR PRODUCTION USE
+    if (false && !qualityDataLoaded) { // ALWAYS FALSE - No mock data generation
       const isQualityCertInitialized = localStorage.getItem('documentManagement_qualityCert_initialized');
       if (!isQualityCertInitialized) {
       const sampleQualityCertificates: QualityCertificate[] = [
@@ -1250,7 +1254,7 @@ const DocumentManagement: React.FC = () => {
           if (parsedPersonnelOptions.length > 0) {
             setPersonnelOptions(parsedPersonnelOptions);
           }
-        } else {
+        } else if (false) { // ⚠️ MOCK DATA DISABLED - No default personnel options
           // Initialize with default personnel options if none exist
           const defaultPersonnelOptions: PersonnelOption[] = [
             { id: 'P001', name: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678901' },
@@ -1272,7 +1276,7 @@ const DocumentManagement: React.FC = () => {
           if (parsedWelderOptions.length > 0) {
             setWelderOptions(parsedWelderOptions);
           }
-        } else {
+        } else if (false) { // ⚠️ MOCK DATA DISABLED - No default welder options
           // Initialize with default welder options if none exist
           const defaultWelderOptions: WelderOption[] = [
             { id: 'W001', welderName: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', certificateType: 'EN ISO 9606-1', certificateNumber: 'W001-2024', status: 'active' },
@@ -1291,7 +1295,7 @@ const DocumentManagement: React.FC = () => {
           if (parsedWeldingCerts.length > 0) {
             setWeldingCertificates(parsedWeldingCerts);
           }
-        } else {
+        } else if (false) { // ⚠️ MOCK DATA DISABLED - No default welding certificates
           // Initialize with default welding certificates if none exist
           const defaultWeldingCerts: QualityCertificate[] = [
             { id: 'QC001', name: 'TS 3834-2:2019', type: 'Kaynak Kalite Yönetimi', expiry: '2025-12-31', status: 'active', authority: 'TSE' },
