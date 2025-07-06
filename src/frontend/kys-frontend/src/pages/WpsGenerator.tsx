@@ -80,12 +80,18 @@ declare global {
 
 // Types
 interface WPSData {
+  id?: string;
+  wpsNumber?: string;
+  createdDate?: string;
+  createdBy?: string;
+  status?: 'draft' | 'approved' | 'active';
+  revision?: number;
   materialType: string;
   materialGroup: string;
   thickness: number;
   jointType: string;
-  connectionType: string; // Yeni: boru-boru, plaka-plaka, boru-plaka
-  pipeDiameter?: number; // Yeni: Eğer boru varsa çap
+  connectionType: string;
+  pipeDiameter?: number;
   process: string;
   position: string;
   wireSize: number;
@@ -145,6 +151,21 @@ interface GrooveType {
   recommendedAngle: number;
   description: string;
   jointTypes: string[];
+}
+
+interface SavedWPS {
+  id: string;
+  wpsNumber: string;
+  createdDate: string;
+  createdBy: string;
+  status: 'draft' | 'approved' | 'active';
+  revision: number;
+  materialType: string;
+  materialGroup: string;
+  thickness: number;
+  jointType: string;
+  process: string;
+  data: WPSData;
 }
 
 // Constants
@@ -216,6 +237,7 @@ const MATERIAL_TYPES = [
   'Nikel Alaşımları',
   'Bakır Alaşımları'
 ];
+
 
 const MATERIAL_GROUPS = {
   'Karbon Çelik': [
@@ -1195,6 +1217,11 @@ const WpsGenerator: React.FC = () => {
   const [autoApplyRecommendations, setAutoApplyRecommendations] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [savedWPSList, setSavedWPSList] = useState<SavedWPS[]>([]);
+  const [selectedWPS, setSelectedWPS] = useState<string | null>(null);
+  const [showWPSList, setShowWPSList] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentWPSId, setCurrentWPSId] = useState<string | null>(null);
 
   useEffect(() => {
     const recs = calculateRecommendations(wpsData);
@@ -1498,19 +1525,109 @@ const WpsGenerator: React.FC = () => {
     doc.save(`${wpsNumber}_Kaynak_Prosedur_Sartnamesi.pdf`);
   };
 
+  // LocalStorage functions
+  const loadSavedWPSList = () => {
+    const saved = localStorage.getItem('wps-generator-saved-wps');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setSavedWPSList(parsed);
+    }
+  };
+
+  const saveWPSToStorage = (wpsToSave: WPSData) => {
+    const wpsNumber = `WPS-${Date.now().toString().slice(-6)}`;
+    const savedWPS: SavedWPS = {
+      id: currentWPSId || `wps-${Date.now()}`,
+      wpsNumber,
+      createdDate: new Date().toISOString(),
+      createdBy: 'Kullanıcı',
+      status: 'draft',
+      revision: 1,
+      materialType: wpsToSave.materialType || '',
+      materialGroup: wpsToSave.materialGroup || '',
+      thickness: wpsToSave.thickness || 0,
+      jointType: wpsToSave.jointType || '',
+      process: wpsToSave.process || '',
+      data: {
+        ...wpsToSave,
+        id: currentWPSId || `wps-${Date.now()}`,
+        wpsNumber,
+        createdDate: new Date().toISOString(),
+        createdBy: 'Kullanıcı',
+        status: 'draft',
+        revision: 1
+      }
+    };
+
+    const currentList = [...savedWPSList];
+    if (isEditing && currentWPSId) {
+      const index = currentList.findIndex(wps => wps.id === currentWPSId);
+      if (index !== -1) {
+        currentList[index] = savedWPS;
+      }
+    } else {
+      currentList.push(savedWPS);
+    }
+
+    setSavedWPSList(currentList);
+    localStorage.setItem('wps-generator-saved-wps', JSON.stringify(currentList));
+    
+    return savedWPS;
+  };
+
+  const loadWPSFromStorage = (wpsId: string) => {
+    const wps = savedWPSList.find(w => w.id === wpsId);
+    if (wps) {
+      setWpsData(wps.data);
+      setCurrentWPSId(wpsId);
+      setIsEditing(true);
+      setShowWPSList(false);
+    }
+  };
+
+  const deleteWPSFromStorage = (wpsId: string) => {
+    const newList = savedWPSList.filter(w => w.id !== wpsId);
+    setSavedWPSList(newList);
+    localStorage.setItem('wps-generator-saved-wps', JSON.stringify(newList));
+    
+    if (currentWPSId === wpsId) {
+      setWpsData({});
+      setCurrentWPSId(null);
+      setIsEditing(false);
+    }
+  };
+
+  const createNewWPS = () => {
+    setWpsData({});
+    setCurrentWPSId(null);
+    setIsEditing(false);
+    setShowWPSList(false);
+  };
+
   const createWPS = () => {
     if (!wpsData.jointType || !wpsData.materialType || !wpsData.process || !wpsData.thickness) {
-      // Form validasyon hatası - sessiz hata
+      alert('Lütfen tüm zorunlu alanları doldurun: Malzeme Türü, Kalınlık, Birleştirme Tipi, Kaynak Yöntemi');
       return;
     }
     
-    const wpsNumber = `WPS-${Date.now().toString().slice(-6)}`;
+    // WPS'i kaydet
+    const savedWPS = saveWPSToStorage(wpsData as WPSData);
     
-    // WPS oluşturma onayı kaldırıldı - otomatik PDF oluşturma
-      generateEnhancedPDF();
+    // PDF oluştur
+    generateEnhancedPDF();
     
+    alert(`WPS başarıyla kaydedildi: ${savedWPS.wpsNumber}`);
+    
+    // Formu temizle
     setWpsData({});
+    setCurrentWPSId(null);
+    setIsEditing(false);
   };
+
+  // Load saved WPS list on component mount
+  useEffect(() => {
+    loadSavedWPSList();
+  }, []);
 
   const getFilteredSizes = () => {
     return wpsData.process ? WIRE_SIZES[wpsData.process as keyof typeof WIRE_SIZES] || [] : [];
@@ -1543,7 +1660,18 @@ const WpsGenerator: React.FC = () => {
         <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Box>
-              <Typography variant="h6" gutterBottom>Form İlerlemesi</Typography>
+              <Typography variant="h6" gutterBottom>
+                {isEditing ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="h6" component="span">
+                      WPS Düzenleme: {savedWPSList.find(w => w.id === currentWPSId)?.wpsNumber}
+                    </Typography>
+                    <Chip label="Düzenleme Modu" color="primary" size="small" />
+                  </Box>
+                ) : (
+                  'Yeni WPS Oluşturma'
+                )}
+              </Typography>
               <LinearProgress 
                 variant="determinate" 
                 value={getCompletionStatus().percentage}
@@ -1554,7 +1682,25 @@ const WpsGenerator: React.FC = () => {
               </Typography>
             </Box>
             
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Button 
+            variant="outlined" 
+            startIcon={<PlaylistAddCheckIcon />} 
+            onClick={() => setShowWPSList(true)}
+            color="info"
+          >
+            Kaydedilen WPS'ler ({savedWPSList.length})
+          </Button>
+          
+          <Button 
+            variant="outlined" 
+            startIcon={<AddIcon />} 
+            onClick={createNewWPS}
+            disabled={!isEditing}
+          >
+            Yeni WPS
+          </Button>
+          
           <FormControlLabel
             control={<Switch checked={showRecommendations} onChange={(e) => setShowRecommendations(e.target.checked)} />}
             label="Akıllı Öneriler"
@@ -1567,14 +1713,28 @@ const WpsGenerator: React.FC = () => {
           <Button variant="outlined" startIcon={<ExportIcon />} onClick={() => setPreviewOpen(true)}>
             Önizleme
           </Button>
+          
+          <Button 
+            variant="outlined" 
+            startIcon={<SaveIcon />} 
+            onClick={() => {
+              const savedWPS = saveWPSToStorage(wpsData as WPSData);
+              alert(`WPS kaydedildi: ${savedWPS.wpsNumber}`);
+            }}
+            disabled={getCompletionStatus().percentage < 50}
+            color="success"
+          >
+            {isEditing ? 'Güncelle' : 'Kaydet'}
+          </Button>
+          
               <Button 
                 variant="contained" 
                 startIcon={<PdfIcon />} 
                 size="large"
-                onClick={generateEnhancedPDF}
+                onClick={createWPS}
                 disabled={getCompletionStatus().percentage < 100}
               >
-            WPS Oluştur
+            {isEditing ? 'Güncelle & PDF' : 'WPS Oluştur'}
           </Button>
         </Box>
       </Box>
@@ -2052,6 +2212,112 @@ const WpsGenerator: React.FC = () => {
         <DialogActions>
           <Button onClick={() => setPreviewOpen(false)}>Kapat</Button>
           <Button variant="contained" startIcon={<PdfIcon />} onClick={() => {/* generateEnhancedPDF */}}>PDF İndir</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Saved WPS List Dialog */}
+      <Dialog open={showWPSList} onClose={() => setShowWPSList(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">Kaydedilen WPS'ler ({savedWPSList.length})</Typography>
+            <Button variant="outlined" startIcon={<AddIcon />} onClick={createNewWPS}>
+              Yeni WPS Oluştur
+            </Button>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {savedWPSList.length === 0 ? (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Henüz kaydedilmiş WPS bulunmamaktadır. Yeni bir WPS oluşturmaya başlayın.
+            </Alert>
+          ) : (
+            <TableContainer component={Paper} sx={{ mt: 2 }}>
+              <Table>
+                <TableBody>
+                  {savedWPSList.map((wps) => (
+                    <TableRow key={wps.id} hover>
+                      <TableCell sx={{ width: '25%' }}>
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {wps.wpsNumber}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(wps.createdDate).toLocaleDateString('tr-TR')}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ width: '20%' }}>
+                        <Typography variant="body2">
+                          {wps.materialType}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {wps.thickness} mm
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ width: '20%' }}>
+                        <Typography variant="body2">
+                          {JOINT_TYPES.find(j => j.code === wps.jointType)?.name || wps.jointType}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {wps.process}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ width: '15%' }}>
+                        <Chip 
+                          label={wps.status === 'draft' ? 'Taslak' : wps.status === 'approved' ? 'Onaylı' : 'Aktif'}
+                          color={wps.status === 'draft' ? 'warning' : wps.status === 'approved' ? 'success' : 'primary'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ width: '20%' }}>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Tooltip title="Düzenle">
+                            <IconButton 
+                              size="small" 
+                              color="primary"
+                              onClick={() => loadWPSFromStorage(wps.id)}
+                            >
+                              <BuildIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="PDF İndir">
+                            <IconButton 
+                              size="small" 
+                              color="secondary"
+                              onClick={() => {
+                                const tempData = wpsData;
+                                setWpsData(wps.data);
+                                setTimeout(() => {
+                                  generateEnhancedPDF();
+                                  setWpsData(tempData);
+                                }, 100);
+                              }}
+                            >
+                              <PdfIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Sil">
+                            <IconButton 
+                              size="small" 
+                              color="error"
+                              onClick={() => {
+                                if (window.confirm(`${wps.wpsNumber} numaralı WPS'i silmek istediğinizden emin misiniz?`)) {
+                                  deleteWPSFromStorage(wps.id);
+                                }
+                              }}
+                            >
+                              <ClearIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowWPSList(false)}>Kapat</Button>
         </DialogActions>
       </Dialog>
     </Box>
