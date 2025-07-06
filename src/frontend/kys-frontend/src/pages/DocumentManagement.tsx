@@ -165,7 +165,6 @@ interface Document {
   number: string;
   unit: string;
   effectiveDate: string;
-  firstPublishDate?: string;
   lastReviewDate?: string;
   nextReviewDate?: string;
   revisionNo: number;
@@ -1384,7 +1383,6 @@ const DocumentManagement: React.FC = () => {
       number: '',
       unit: '',
       effectiveDate: new Date().toISOString().split('T')[0],
-      firstPublishDate: undefined,
       lastReviewDate: undefined,
       nextReviewDate: undefined,
       revisionNo: 1,
@@ -1465,7 +1463,6 @@ const DocumentManagement: React.FC = () => {
         number: doc.number,
         unit: doc.unit,
         effectiveDate: doc.effectiveDate,
-        firstPublishDate: doc.firstPublishDate,
         lastReviewDate: doc.lastReviewDate,
         nextReviewDate: doc.nextReviewDate,
         revisionNo: doc.revisionNo,
@@ -1965,7 +1962,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         number: documentForm.number!,
         unit: documentForm.unit!,
         effectiveDate: documentForm.effectiveDate!,
-        firstPublishDate: documentForm.firstPublishDate,
         lastReviewDate: documentForm.lastReviewDate,
         nextReviewDate: documentForm.nextReviewDate,
         revisionNo: documentForm.revisionNo || 1,
@@ -2015,7 +2011,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               type: documentForm.type as DocumentType,
               unit: documentForm.unit!,
               effectiveDate: documentForm.effectiveDate!,
-              firstPublishDate: documentForm.firstPublishDate,
               lastReviewDate: documentForm.lastReviewDate,
               nextReviewDate: documentForm.nextReviewDate,
               revisionNo: documentForm.revisionNo || doc.revisionNo,
@@ -2058,7 +2053,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       number: '',
       unit: '',
       effectiveDate: new Date().toISOString().split('T')[0],
-      firstPublishDate: undefined,
       lastReviewDate: undefined,
       nextReviewDate: undefined,
       revisionNo: 1,
@@ -2091,7 +2085,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
     number: '',
     unit: '',
     effectiveDate: new Date().toISOString().split('T')[0],
-    firstPublishDate: undefined,
     lastReviewDate: undefined,
     nextReviewDate: undefined,
     revisionNo: 1,
@@ -4012,7 +4005,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               number: '',
               unit: '',
               effectiveDate: new Date().toISOString().split('T')[0],
-              firstPublishDate: undefined,
               lastReviewDate: undefined,
               nextReviewDate: undefined,
               revisionNo: 1,
@@ -4170,16 +4162,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     onChange={(e) => setDocumentForm(prev => ({ ...prev, effectiveDate: e.target.value }))}
                     InputLabelProps={{ shrink: true }}
                     helperText="Dokümanın yürürlüğe girdiği tarih"
-                  />
-                  
-                  <TextField
-                    label="İlk Yayınlanma Tarihi"
-                    type="date"
-                    fullWidth
-                    value={documentForm.firstPublishDate || ''}
-                    onChange={(e) => setDocumentForm(prev => ({ ...prev, firstPublishDate: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
-                    helperText="Dokümanın ilk kez yayınlandığı tarih"
                   />
                   
                   <TextField
@@ -4742,9 +4724,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       <Typography><strong>Birim:</strong> {documentForm.unit}</Typography>
                       <Typography><strong>Sahip:</strong> {documentForm.owner}</Typography>
                       <Typography><strong>Yürürlük:</strong> {documentForm.effectiveDate}</Typography>
-                      {documentForm.firstPublishDate && (
-                        <Typography><strong>İlk Yayınlanma:</strong> {documentForm.firstPublishDate}</Typography>
-                      )}
                       {documentForm.lastReviewDate && (
                         <Typography><strong>Son Denetim:</strong> {documentForm.lastReviewDate}</Typography>
                       )}
