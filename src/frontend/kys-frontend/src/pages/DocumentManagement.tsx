@@ -80,6 +80,7 @@ import {
   Person as PersonIcon,
   Verified as VerifiedIcon,
   Badge as BadgeIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -400,9 +401,28 @@ interface PersonnelOption {
   nationalId: string;
 }
 
+interface PersonnelForm {
+  id?: string;
+  name: string;
+  registrationNo: string;
+  department: string;
+  position: string;
+  nationalId: string;
+}
+
 // Kaynakçı seçimi için interface
 interface WelderOption {
   id: string;
+  welderName: string;
+  registrationNo: string;
+  department: string;
+  certificateType: CertificateType;
+  certificateNumber: string;
+  status: CertificateStatus;
+}
+
+interface WelderForm {
+  id?: string;
   welderName: string;
   registrationNo: string;
   department: string;
@@ -791,6 +811,31 @@ const DocumentManagement: React.FC = () => {
   const [welderRowsPerPage, setWelderRowsPerPage] = useState(10);
   const [expandedApprovalPanel, setExpandedApprovalPanel] = useState<string | false>('pending');
   const [openApproverDialog, setOpenApproverDialog] = useState(false);
+
+  // Personel yönetimi state'leri
+  const [personnelManagementDialog, setPersonnelManagementDialog] = useState(false);
+  const [personnelFormDialog, setPersonnelFormDialog] = useState(false);
+  const [personnelFormMode, setPersonnelFormMode] = useState<'add' | 'edit'>('add');
+  const [currentPersonnelForm, setCurrentPersonnelForm] = useState<PersonnelForm>({
+    name: '',
+    registrationNo: '',
+    department: '',
+    position: '',
+    nationalId: ''
+  });
+  
+  // Kaynakçı yönetimi state'leri
+  const [welderManagementDialog, setWelderManagementDialog] = useState(false);
+  const [welderFormDialog, setWelderFormDialog] = useState(false);
+  const [welderFormMode, setWelderFormMode] = useState<'add' | 'edit'>('add');
+  const [currentWelderForm, setCurrentWelderForm] = useState<WelderForm>({
+    welderName: '',
+    registrationNo: '',
+    department: '',
+    certificateType: 'EN ISO 9606-1',
+    certificateNumber: '',
+    status: 'active'
+  });
   
   // Get colors function
   const getColors = () => ({
@@ -804,9 +849,9 @@ const DocumentManagement: React.FC = () => {
 
   // Certificate data arrays
   const weldingCertificates = [
-    { name: 'TS 3834-2:2019', type: 'Kaynak Kalite Yönetimi', expiry: '2025-12-31', status: 'active', authority: 'TSE' },
-    { name: 'EN 1090-1:2009+A1', type: 'Çelik Yapı Uygunluk', expiry: '2025-09-15', status: 'active', authority: 'TÜV NORD' },
-    { name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
+    { id: 'QC001', name: 'TS 3834-2:2019', type: 'Kaynak Kalite Yönetimi', expiry: '2025-12-31', status: 'active', authority: 'TSE' },
+    { id: 'QC002', name: 'EN 1090-1:2009+A1', type: 'Çelik Yapı Uygunluk', expiry: '2025-09-15', status: 'active', authority: 'TÜV NORD' },
+    { id: 'QC003', name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
   ];
 
   // Initialize sample documents with approval data - ONLY ON FIRST LOAD
@@ -2024,6 +2069,229 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
     examResult: undefined,
     criticalityLevel: undefined
   });
+
+  // Personel Yönetimi Fonksiyonları
+  const handleAddPersonnel = () => {
+    setCurrentPersonnelForm({
+      name: '',
+      registrationNo: '',
+      department: '',
+      position: '',
+      nationalId: ''
+    });
+    setPersonnelFormMode('add');
+    setPersonnelFormDialog(true);
+  };
+
+  const handleEditPersonnel = (personnel: PersonnelOption) => {
+    setCurrentPersonnelForm({
+      id: personnel.id,
+      name: personnel.name,
+      registrationNo: personnel.registrationNo,
+      department: personnel.department,
+      position: personnel.position,
+      nationalId: personnel.nationalId
+    });
+    setPersonnelFormMode('edit');
+    setPersonnelFormDialog(true);
+  };
+
+  const handleDeletePersonnel = (personnelId: string) => {
+    const personnel = personnelOptions.find(p => p.id === personnelId);
+    if (personnel) {
+      setPersonnelOptions(prev => prev.filter(p => p.id !== personnelId));
+      setSnackbar({ 
+        open: true, 
+        message: `${personnel.name} personeli başarıyla silindi.`, 
+        severity: 'success' 
+      });
+    }
+  };
+
+  const handleSavePersonnel = () => {
+    if (!currentPersonnelForm.name || !currentPersonnelForm.registrationNo || 
+        !currentPersonnelForm.department || !currentPersonnelForm.position || 
+        !currentPersonnelForm.nationalId) {
+      setSnackbar({ open: true, message: 'Lütfen tüm alanları doldurun!', severity: 'error' });
+      return;
+    }
+
+    // TC Kimlik numarası kontrolü
+    if (currentPersonnelForm.nationalId.length !== 11) {
+      setSnackbar({ open: true, message: 'TC Kimlik numarası 11 haneli olmalıdır!', severity: 'error' });
+      return;
+    }
+
+    // Sicil numarası benzersizlik kontrolü
+    const duplicateRegistration = personnelOptions.find(p => 
+      p.registrationNo === currentPersonnelForm.registrationNo && 
+      p.id !== currentPersonnelForm.id
+    );
+    if (duplicateRegistration) {
+      setSnackbar({ open: true, message: 'Bu sicil numarası zaten kullanılıyor!', severity: 'error' });
+      return;
+    }
+
+    // TC Kimlik numarası benzersizlik kontrolü
+    const duplicateNationalId = personnelOptions.find(p => 
+      p.nationalId === currentPersonnelForm.nationalId && 
+      p.id !== currentPersonnelForm.id
+    );
+    if (duplicateNationalId) {
+      setSnackbar({ open: true, message: 'Bu TC Kimlik numarası zaten kayıtlı!', severity: 'error' });
+      return;
+    }
+
+    if (personnelFormMode === 'add') {
+      const newPersonnel: PersonnelOption = {
+        id: `P${String(personnelOptions.length + 1).padStart(3, '0')}`,
+        name: currentPersonnelForm.name,
+        registrationNo: currentPersonnelForm.registrationNo,
+        department: currentPersonnelForm.department,
+        position: currentPersonnelForm.position,
+        nationalId: currentPersonnelForm.nationalId
+      };
+      setPersonnelOptions(prev => [...prev, newPersonnel]);
+      setSnackbar({ 
+        open: true, 
+        message: `${newPersonnel.name} başarıyla eklendi!`, 
+        severity: 'success' 
+      });
+    } else if (personnelFormMode === 'edit') {
+      setPersonnelOptions(prev => 
+        prev.map(p => 
+          p.id === currentPersonnelForm.id 
+            ? {
+                ...p,
+                name: currentPersonnelForm.name,
+                registrationNo: currentPersonnelForm.registrationNo,
+                department: currentPersonnelForm.department,
+                position: currentPersonnelForm.position,
+                nationalId: currentPersonnelForm.nationalId
+              }
+            : p
+        )
+      );
+      setSnackbar({ 
+        open: true, 
+        message: `${currentPersonnelForm.name} başarıyla güncellendi!`, 
+        severity: 'success' 
+      });
+    }
+
+    setPersonnelFormDialog(false);
+    setPersonnelManagementDialog(false);
+  };
+
+  // Kaynakçı Yönetimi Fonksiyonları
+  const handleAddWelder = () => {
+    setCurrentWelderForm({
+      welderName: '',
+      registrationNo: '',
+      department: '',
+      certificateType: 'EN ISO 9606-1',
+      certificateNumber: '',
+      status: 'active'
+    });
+    setWelderFormMode('add');
+    setWelderFormDialog(true);
+  };
+
+  const handleEditWelder = (welder: WelderOption) => {
+    setCurrentWelderForm({
+      id: welder.id,
+      welderName: welder.welderName,
+      registrationNo: welder.registrationNo,
+      department: welder.department,
+      certificateType: welder.certificateType,
+      certificateNumber: welder.certificateNumber,
+      status: welder.status
+    });
+    setWelderFormMode('edit');
+    setWelderFormDialog(true);
+  };
+
+  const handleDeleteWelder = (welderId: string) => {
+    const welder = welderOptions.find(w => w.id === welderId);
+    if (welder) {
+      setWelderOptions(prev => prev.filter(w => w.id !== welderId));
+      setSnackbar({ 
+        open: true, 
+        message: `${welder.welderName} kaynakçısı başarıyla silindi.`, 
+        severity: 'success' 
+      });
+    }
+  };
+
+  const handleSaveWelder = () => {
+    if (!currentWelderForm.welderName || !currentWelderForm.registrationNo || 
+        !currentWelderForm.department || !currentWelderForm.certificateNumber) {
+      setSnackbar({ open: true, message: 'Lütfen tüm alanları doldurun!', severity: 'error' });
+      return;
+    }
+
+    // Sicil numarası benzersizlik kontrolü
+    const duplicateRegistration = welderOptions.find(w => 
+      w.registrationNo === currentWelderForm.registrationNo && 
+      w.id !== currentWelderForm.id
+    );
+    if (duplicateRegistration) {
+      setSnackbar({ open: true, message: 'Bu sicil numarası zaten kullanılıyor!', severity: 'error' });
+      return;
+    }
+
+    // Sertifika numarası benzersizlik kontrolü
+    const duplicateCertificate = welderOptions.find(w => 
+      w.certificateNumber === currentWelderForm.certificateNumber && 
+      w.id !== currentWelderForm.id
+    );
+    if (duplicateCertificate) {
+      setSnackbar({ open: true, message: 'Bu sertifika numarası zaten kullanılıyor!', severity: 'error' });
+      return;
+    }
+
+    if (welderFormMode === 'add') {
+      const newWelder: WelderOption = {
+        id: `W${String(welderOptions.length + 1).padStart(3, '0')}`,
+        welderName: currentWelderForm.welderName,
+        registrationNo: currentWelderForm.registrationNo,
+        department: currentWelderForm.department,
+        certificateType: currentWelderForm.certificateType,
+        certificateNumber: currentWelderForm.certificateNumber,
+        status: currentWelderForm.status
+      };
+      setWelderOptions(prev => [...prev, newWelder]);
+      setSnackbar({ 
+        open: true, 
+        message: `${newWelder.welderName} başarıyla eklendi!`, 
+        severity: 'success' 
+      });
+    } else if (welderFormMode === 'edit') {
+      setWelderOptions(prev => 
+        prev.map(w => 
+          w.id === currentWelderForm.id 
+            ? {
+                ...w,
+                welderName: currentWelderForm.welderName,
+                registrationNo: currentWelderForm.registrationNo,
+                department: currentWelderForm.department,
+                certificateType: currentWelderForm.certificateType,
+                certificateNumber: currentWelderForm.certificateNumber,
+                status: currentWelderForm.status
+              }
+            : w
+        )
+      );
+      setSnackbar({ 
+        open: true, 
+        message: `${currentWelderForm.welderName} başarıyla güncellendi!`, 
+        severity: 'success' 
+      });
+    }
+
+    setWelderFormDialog(false);
+    setWelderManagementDialog(false);
+  };
 
   return (
       <Box sx={{ p: 3 }}>
@@ -4003,6 +4271,27 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             </Select>
                           </FormControl>
                           
+                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={handleAddPersonnel}
+                              sx={{ flex: 1 }}
+                            >
+                              Yeni Personel Ekle
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<SettingsIcon />}
+                              onClick={() => setPersonnelManagementDialog(true)}
+                              sx={{ flex: 1 }}
+                            >
+                              Personel Yönet
+                            </Button>
+                          </Box>
+                          
                           <TextField
                             label="Sicil Numarası"
                             fullWidth
@@ -4068,6 +4357,27 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                               ))}
                             </Select>
                           </FormControl>
+                          
+                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={handleAddPersonnel}
+                              sx={{ flex: 1 }}
+                            >
+                              Yeni Personel Ekle
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<SettingsIcon />}
+                              onClick={() => setPersonnelManagementDialog(true)}
+                              sx={{ flex: 1 }}
+                            >
+                              Personel Yönet
+                            </Button>
+                          </Box>
                           
                           <TextField
                             label="Sicil Numarası"
@@ -4151,6 +4461,27 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                               ))}
                             </Select>
                           </FormControl>
+                          
+                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={handleAddPersonnel}
+                              sx={{ flex: 1 }}
+                            >
+                              Yeni Personel Ekle
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<SettingsIcon />}
+                              onClick={() => setPersonnelManagementDialog(true)}
+                              sx={{ flex: 1 }}
+                            >
+                              Personel Yönet
+                            </Button>
+                          </Box>
                           
                           <TextField
                             label="Sicil Numarası"
@@ -5021,4 +5352,377 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
    );
  };
  
- export default DocumentManagement; 
+       {/* Personel Yönetimi Dialog'u */}
+      <Dialog 
+        open={personnelManagementDialog} 
+        onClose={() => setPersonnelManagementDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PersonIcon color="primary" />
+            Personel Yönetimi
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Personel Listesi</Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddPersonnel}
+            >
+              Yeni Personel Ekle
+            </Button>
+          </Box>
+          
+          <TableContainer component={Paper} variant="outlined">
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Ad Soyad</TableCell>
+                  <TableCell>Sicil No</TableCell>
+                  <TableCell>Departman</TableCell>
+                  <TableCell>Pozisyon</TableCell>
+                  <TableCell>TC Kimlik</TableCell>
+                  <TableCell align="center">İşlemler</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {personnelOptions.map((personnel) => (
+                  <TableRow key={personnel.id} hover>
+                    <TableCell>{personnel.name}</TableCell>
+                    <TableCell>{personnel.registrationNo}</TableCell>
+                    <TableCell>{personnel.department}</TableCell>
+                    <TableCell>{personnel.position}</TableCell>
+                    <TableCell>{personnel.nationalId}</TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                        <Tooltip title="Düzenle">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleEditPersonnel(personnel)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Sil">
+                          <IconButton 
+                            size="small" 
+                            color="error"
+                            onClick={() => handleDeletePersonnel(personnel.id)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          
+          {personnelOptions.length === 0 && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Henüz personel eklenmemiş. Yeni personel eklemek için "Yeni Personel Ekle" butonunu kullanın.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPersonnelManagementDialog(false)}>
+            Kapat
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Personel Ekleme/Düzenleme Dialog'u */}
+      <Dialog 
+        open={personnelFormDialog} 
+        onClose={() => setPersonnelFormDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {personnelFormMode === 'add' ? 'Yeni Personel Ekle' : 'Personel Düzenle'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'grid', gap: 2, mt: 1 }}>
+            <TextField
+              label="Ad Soyad"
+              fullWidth
+              required
+              value={currentPersonnelForm.name}
+              onChange={(e) => setCurrentPersonnelForm(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Örn: Ahmet Yılmaz"
+            />
+            
+            <TextField
+              label="Sicil Numarası"
+              fullWidth
+              required
+              value={currentPersonnelForm.registrationNo}
+              onChange={(e) => setCurrentPersonnelForm(prev => ({ ...prev, registrationNo: e.target.value }))}
+              placeholder="Örn: 001"
+            />
+            
+            <TextField
+              label="Departman"
+              fullWidth
+              required
+              value={currentPersonnelForm.department}
+              onChange={(e) => setCurrentPersonnelForm(prev => ({ ...prev, department: e.target.value }))}
+              placeholder="Örn: Kaynak Atölyesi"
+            />
+            
+            <TextField
+              label="Pozisyon"
+              fullWidth
+              required
+              value={currentPersonnelForm.position}
+              onChange={(e) => setCurrentPersonnelForm(prev => ({ ...prev, position: e.target.value }))}
+              placeholder="Örn: Kaynakçı, NDT Uzmanı"
+            />
+            
+            <TextField
+              label="TC Kimlik Numarası"
+              fullWidth
+              required
+              value={currentPersonnelForm.nationalId}
+              onChange={(e) => setCurrentPersonnelForm(prev => ({ ...prev, nationalId: e.target.value }))}
+              placeholder="11 haneli TC kimlik numarası"
+              inputProps={{ maxLength: 11 }}
+              helperText="11 haneli TC kimlik numarası giriniz"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPersonnelFormDialog(false)}>
+            İptal
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSavePersonnel}
+            startIcon={personnelFormMode === 'add' ? <AddIcon /> : <EditIcon />}
+          >
+            {personnelFormMode === 'add' ? 'Ekle' : 'Güncelle'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Kaynakçı Yönetimi Dialog'u */}
+      <Dialog 
+        open={welderManagementDialog} 
+        onClose={() => setWelderManagementDialog(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CertificateIcon color="primary" />
+            Kaynakçı Yönetimi
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Kaynakçı Listesi</Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddWelder}
+            >
+              Yeni Kaynakçı Ekle
+            </Button>
+          </Box>
+          
+          <TableContainer component={Paper} variant="outlined">
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Kaynakçı Adı</TableCell>
+                  <TableCell>Sicil No</TableCell>
+                  <TableCell>Departman</TableCell>
+                  <TableCell>Sertifika Tipi</TableCell>
+                  <TableCell>Sertifika No</TableCell>
+                  <TableCell>Durum</TableCell>
+                  <TableCell align="center">İşlemler</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {welderOptions.map((welder) => (
+                  <TableRow key={welder.id} hover>
+                    <TableCell>{welder.welderName}</TableCell>
+                    <TableCell>{welder.registrationNo}</TableCell>
+                    <TableCell>{welder.department}</TableCell>
+                    <TableCell>{welder.certificateType}</TableCell>
+                    <TableCell>{welder.certificateNumber}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={welder.status === 'active' ? 'Aktif' : 'Pasif'} 
+                        color={welder.status === 'active' ? 'success' : 'default'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                        <Tooltip title="Düzenle">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleEditWelder(welder)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Sil">
+                          <IconButton 
+                            size="small" 
+                            color="error"
+                            onClick={() => handleDeleteWelder(welder.id)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          
+          {welderOptions.length === 0 && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Henüz kaynakçı eklenmemiş. Yeni kaynakçı eklemek için "Yeni Kaynakçı Ekle" butonunu kullanın.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWelderManagementDialog(false)}>
+            Kapat
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Kaynakçı Ekleme/Düzenleme Dialog'u */}
+      <Dialog 
+        open={welderFormDialog} 
+        onClose={() => setWelderFormDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {welderFormMode === 'add' ? 'Yeni Kaynakçı Ekle' : 'Kaynakçı Düzenle'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'grid', gap: 2, mt: 1 }}>
+            <TextField
+              label="Kaynakçı Adı"
+              fullWidth
+              required
+              value={currentWelderForm.welderName}
+              onChange={(e) => setCurrentWelderForm(prev => ({ ...prev, welderName: e.target.value }))}
+              placeholder="Örn: Ahmet Yılmaz"
+            />
+            
+            <TextField
+              label="Sicil Numarası"
+              fullWidth
+              required
+              value={currentWelderForm.registrationNo}
+              onChange={(e) => setCurrentWelderForm(prev => ({ ...prev, registrationNo: e.target.value }))}
+              placeholder="Örn: 001"
+            />
+            
+            <TextField
+              label="Departman"
+              fullWidth
+              required
+              value={currentWelderForm.department}
+              onChange={(e) => setCurrentWelderForm(prev => ({ ...prev, department: e.target.value }))}
+              placeholder="Örn: Kaynak Atölyesi"
+            />
+            
+            <FormControl fullWidth required>
+              <InputLabel>Sertifika Tipi</InputLabel>
+              <Select
+                value={currentWelderForm.certificateType}
+                onChange={(e) => setCurrentWelderForm(prev => ({ 
+                  ...prev, 
+                  certificateType: e.target.value as CertificateType 
+                }))}
+                label="Sertifika Tipi"
+              >
+                <MenuItem value="EN ISO 9606-1">EN ISO 9606-1</MenuItem>
+                <MenuItem value="EN ISO 9606-2">EN ISO 9606-2</MenuItem>
+                <MenuItem value="EN ISO 14732">EN ISO 14732</MenuItem>
+                <MenuItem value="WPQ">WPQ</MenuItem>
+                <MenuItem value="WPQR">WPQR</MenuItem>
+                <MenuItem value="ASME IX">ASME IX</MenuItem>
+                <MenuItem value="AWS D1.1">AWS D1.1</MenuItem>
+                <MenuItem value="EN 287-1">EN 287-1</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <TextField
+              label="Sertifika Numarası"
+              fullWidth
+              required
+              value={currentWelderForm.certificateNumber}
+              onChange={(e) => setCurrentWelderForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+              placeholder="Örn: W001-2024"
+            />
+            
+            <FormControl fullWidth>
+              <InputLabel>Durum</InputLabel>
+              <Select
+                value={currentWelderForm.status}
+                onChange={(e) => setCurrentWelderForm(prev => ({ 
+                  ...prev, 
+                  status: e.target.value as CertificateStatus 
+                }))}
+                label="Durum"
+              >
+                <MenuItem value="active">Aktif</MenuItem>
+                <MenuItem value="expired">Süresi Dolmuş</MenuItem>
+                <MenuItem value="suspended">Askıya Alınmış</MenuItem>
+                <MenuItem value="renewed">Yenilenmiş</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setWelderFormDialog(false)}>
+            İptal
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleSaveWelder}
+            startIcon={welderFormMode === 'add' ? <AddIcon /> : <EditIcon />}
+          >
+            {welderFormMode === 'add' ? 'Ekle' : 'Güncelle'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+};
+
+export default DocumentManagement; 
