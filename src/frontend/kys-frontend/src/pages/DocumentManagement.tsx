@@ -4169,6 +4169,27 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             </Select>
                           </FormControl>
                           
+                          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<AddIcon />}
+                              onClick={handleAddPersonnel}
+                              sx={{ flex: 1 }}
+                            >
+                              Yeni Personel Ekle
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<SettingsIcon />}
+                              onClick={() => setPersonnelManagementDialog(true)}
+                              sx={{ flex: 1 }}
+                            >
+                              Personel Yönet
+                            </Button>
+                          </Box>
+                          
                           <TextField
                             label="Sicil Numarası"
                             fullWidth
