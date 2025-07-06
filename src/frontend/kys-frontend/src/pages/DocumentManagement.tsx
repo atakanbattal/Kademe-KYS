@@ -3104,7 +3104,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Sil">
-                            <IconButton size="small" color="error" onClick={() => handleDeleteQualityCertificate(cert.name)}>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteQualityCertificate(cert.id)}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
