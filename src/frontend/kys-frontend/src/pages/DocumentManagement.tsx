@@ -2354,15 +2354,8 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
 
   const handleSavePersonnel = () => {
     if (!currentPersonnelForm.name || !currentPersonnelForm.registrationNo || 
-        !currentPersonnelForm.department || !currentPersonnelForm.position || 
-        !currentPersonnelForm.nationalId) {
+        !currentPersonnelForm.department || !currentPersonnelForm.position) {
       setSnackbar({ open: true, message: 'Lütfen tüm alanları doldurun!', severity: 'error' });
-      return;
-    }
-
-    // TC Kimlik numarası kontrolü
-    if (currentPersonnelForm.nationalId.length !== 11) {
-      setSnackbar({ open: true, message: 'TC Kimlik numarası 11 haneli olmalıdır!', severity: 'error' });
       return;
     }
 
@@ -2373,16 +2366,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
     );
     if (duplicateRegistration) {
       setSnackbar({ open: true, message: 'Bu sicil numarası zaten kullanılıyor!', severity: 'error' });
-      return;
-    }
-
-    // TC Kimlik numarası benzersizlik kontrolü
-    const duplicateNationalId = personnelOptions.find(p => 
-      p.nationalId === currentPersonnelForm.nationalId && 
-      p.id !== currentPersonnelForm.id
-    );
-    if (duplicateNationalId) {
-      setSnackbar({ open: true, message: 'Bu TC Kimlik numarası zaten kayıtlı!', severity: 'error' });
       return;
     }
 
@@ -5879,16 +5862,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               placeholder="Örn: Kaynakçı, NDT Uzmanı"
             />
             
-            <TextField
-              label="TC Kimlik Numarası"
-              fullWidth
-              required
-              value={currentPersonnelForm.nationalId}
-              onChange={(e) => setCurrentPersonnelForm(prev => ({ ...prev, nationalId: e.target.value }))}
-              placeholder="11 haneli TC kimlik numarası"
-              inputProps={{ maxLength: 11 }}
-              helperText="11 haneli TC kimlik numarası giriniz"
-            />
+
           </Box>
         </DialogContent>
         <DialogActions>
