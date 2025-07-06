@@ -400,7 +400,6 @@ interface PersonnelOption {
   registrationNo: string;
   department: string;
   position: string;
-  nationalId: string;
 }
 
 interface PersonnelForm {
@@ -409,7 +408,6 @@ interface PersonnelForm {
   registrationNo: string;
   department: string;
   position: string;
-  nationalId: string;
 }
 
 // Kaynakçı seçimi için interface
@@ -810,8 +808,7 @@ const DocumentManagement: React.FC = () => {
     name: '',
     registrationNo: '',
     department: '',
-    position: '',
-    nationalId: ''
+    position: ''
   });
   
   // Kaynakçı yönetimi state'leri
@@ -1254,20 +1251,9 @@ const DocumentManagement: React.FC = () => {
           if (parsedPersonnelOptions.length > 0) {
             setPersonnelOptions(parsedPersonnelOptions);
           }
-        } else if (false) { // ⚠️ MOCK DATA DISABLED - No default personnel options
-          // Initialize with default personnel options if none exist
-          const defaultPersonnelOptions: PersonnelOption[] = [
-            { id: 'P001', name: 'Ahmet Yılmaz', registrationNo: '001', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678901' },
-            { id: 'P002', name: 'Mehmet Kaya', registrationNo: '002', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678902' },
-            { id: 'P003', name: 'Ali Demir', registrationNo: '003', department: 'Kaynak Atölyesi', position: 'Kaynakçı', nationalId: '12345678903' },
-            { id: 'P004', name: 'Fatma Ak', registrationNo: '004', department: 'Kalite Kontrol', position: 'NDT Uzmanı', nationalId: '12345678904' },
-            { id: 'P005', name: 'Ayşe Özkan', registrationNo: '005', department: 'Kalite Kontrol', position: 'Kalite Teknisyeni', nationalId: '12345678905' },
-            { id: 'P006', name: 'Osman Şen', registrationNo: '006', department: 'Üretim', position: 'Operatör', nationalId: '12345678906' },
-            { id: 'P007', name: 'Zeynep Çelik', registrationNo: '007', department: 'İSG', position: 'İş Güvenliği Uzmanı', nationalId: '12345678907' },
-            { id: 'P008', name: 'Hasan Güven', registrationNo: '008', department: 'Montaj', position: 'Montaj Teknisyeni', nationalId: '12345678908' },
-          ];
-          setPersonnelOptions(defaultPersonnelOptions);
         }
+        // ⚠️ PERSONNEL OPTIONS MOCK DATA COMPLETELY REMOVED
+        // No more automatic personnel generation
 
         // Load welderOptions
         const storedWelderOptions = localStorage.getItem('documentManagement_welderOptions');
@@ -1295,15 +1281,9 @@ const DocumentManagement: React.FC = () => {
           if (parsedWeldingCerts.length > 0) {
             setWeldingCertificates(parsedWeldingCerts);
           }
-        } else if (false) { // ⚠️ MOCK DATA DISABLED - No default welding certificates
-          // Initialize with default welding certificates if none exist
-          const defaultWeldingCerts: QualityCertificate[] = [
-            { id: 'QC001', name: 'TS 3834-2:2019', type: 'Kaynak Kalite Yönetimi', expiry: '2025-12-31', status: 'active', authority: 'TSE' },
-            { id: 'QC002', name: 'EN 1090-1:2009+A1', type: 'Çelik Yapı Uygunluk', expiry: '2025-09-15', status: 'active', authority: 'TÜV NORD' },
-            { id: 'QC003', name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
-          ];
-          setWeldingCertificates(defaultWeldingCerts);
         }
+        // ⚠️ WELDING CERTIFICATES MOCK DATA COMPLETELY REMOVED
+        // No more EN ISO 3834-2:2021 automatic generation
       } catch (error) {
         console.error('Error loading stored options:', error);
       }
@@ -2320,8 +2300,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       name: '',
       registrationNo: '',
       department: '',
-      position: '',
-      nationalId: ''
+      position: ''
     });
     setPersonnelFormMode('add');
     setPersonnelFormDialog(true);
@@ -2333,8 +2312,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       name: personnel.name,
       registrationNo: personnel.registrationNo,
       department: personnel.department,
-      position: personnel.position,
-      nationalId: personnel.nationalId
+      position: personnel.position
     });
     setPersonnelFormMode('edit');
     setPersonnelFormDialog(true);
@@ -2375,8 +2353,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         name: currentPersonnelForm.name,
         registrationNo: currentPersonnelForm.registrationNo,
         department: currentPersonnelForm.department,
-        position: currentPersonnelForm.position,
-        nationalId: currentPersonnelForm.nationalId
+        position: currentPersonnelForm.position
       };
       setPersonnelOptions(prev => [...prev, newPersonnel]);
       setSnackbar({ 
@@ -2393,8 +2370,7 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                 name: currentPersonnelForm.name,
                 registrationNo: currentPersonnelForm.registrationNo,
                 department: currentPersonnelForm.department,
-                position: currentPersonnelForm.position,
-                nationalId: currentPersonnelForm.nationalId
+                position: currentPersonnelForm.position
               }
             : p
         )
@@ -5762,7 +5738,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   <TableCell>Sicil No</TableCell>
                   <TableCell>Departman</TableCell>
                   <TableCell>Pozisyon</TableCell>
-                  <TableCell>TC Kimlik</TableCell>
                   <TableCell align="center">İşlemler</TableCell>
                 </TableRow>
               </TableHead>
@@ -5773,7 +5748,6 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     <TableCell>{personnel.registrationNo}</TableCell>
                     <TableCell>{personnel.department}</TableCell>
                     <TableCell>{personnel.position}</TableCell>
-                    <TableCell>{personnel.nationalId}</TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                         <Tooltip title="Düzenle">
