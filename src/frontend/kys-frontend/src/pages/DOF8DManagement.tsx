@@ -6104,7 +6104,7 @@ const DOF8DManagement: React.FC = () => {
             {/* 📎 DOSYA EKLERİ YÖNETİMİ - MaterialCertificateTracking modülünden uyarlandı */}
             <Paper sx={{ p: 3, borderRadius: 2 }}>
               <Typography variant="h6" gutterBottom color="primary">
-                📎 Dosya Ekleri
+                Dosya Ekleri
               </Typography>
               
               {dialogMode !== 'view' && (

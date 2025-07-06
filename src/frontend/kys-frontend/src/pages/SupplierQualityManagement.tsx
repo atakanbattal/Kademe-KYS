@@ -7213,7 +7213,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 {dialogType === 'supplier' && (
                   <Box sx={{ mt: 4 }}>
                     <Typography variant="h6" gutterBottom color="primary">
-                      📎 Dosya Ekleri
+                      Dosya Ekleri
                     </Typography>
                     
                     <Box sx={{ mb: 3 }}>

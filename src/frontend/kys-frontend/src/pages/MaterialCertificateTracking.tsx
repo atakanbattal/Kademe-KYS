@@ -3203,7 +3203,7 @@ const MaterialCertificateTracking: React.FC = () => {
             const parsed = JSON.parse(backupData);
             if (parsed && parsed.length > 0) {
               materialsData = parsed;
-              console.log(`📋 Malzemeler ${backupKey} backup'ından geri yüklendi!`);
+              console.log(`Malzemeler ${backupKey} backup'ından geri yüklendi!`);
               break;
       }
     } catch (error) {
@@ -3244,7 +3244,7 @@ const MaterialCertificateTracking: React.FC = () => {
           traceabilityNumber: 'TRC-sample-1'
         }
       ];
-      console.log('📋 Örnek malzeme verisi yüklendi');
+              console.log('Örnek malzeme verisi yüklendi');
     }
     
     setMaterials(materialsData);
