@@ -3862,8 +3862,13 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                   />
                 </Box>
 
-                {/* Doküman Tipine Göre Dinamik Alanlar */}
-                {documentForm.type && (
+                {/* Doküman Tipine Göre Dinamik Alanlar - Sadece gerekli tiplerde göster */}
+                {documentForm.type && (documentForm.type === 'Kaynakçı Sertifikası' || 
+                                       documentForm.type === 'Kaynakçı Nitelik Belgesi' || 
+                                       documentForm.type === 'Kaynak Operatörü Belgesi' ||
+                                       documentForm.type === 'NDT Sertifikası' ||
+                                       documentForm.type === 'İSG Sertifikası' ||
+                                       documentForm.type === 'Yetki Belgesi') && (
                   <Box sx={{ mt: 3 }}>
                     <Typography variant="h6" gutterBottom>
                       {documentForm.type} Özel Bilgileri
