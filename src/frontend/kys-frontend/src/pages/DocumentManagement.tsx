@@ -165,6 +165,9 @@ interface Document {
   number: string;
   unit: string;
   effectiveDate: string;
+  firstPublishDate?: string;
+  lastReviewDate?: string;
+  nextReviewDate?: string;
   revisionNo: number;
   owner: string;
   uploadDate: string;
@@ -467,8 +470,11 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 const UNITS = [
-  'Kaynak Atölyesi', 'Boyahane', 'Montaj Hattı', 'Kalite Kontrol',
-  'Elektrik', 'Han', 'Büküm', 'Arge', 'Satın Alma', 'Kesim', 'Ambar/Depo'
+  'Üretim Planlama', 'Kaynak Atölyesi', 'Makine Atölyesi', 'Montaj Hattı', 
+  'Kalite Kontrol', 'Kalite Güvence', 'Boyahane', 'Kesim Atölyesi',
+  'İSG', 'Çevre Yönetimi', 'Satın Alma', 'Ar-Ge', 'Proje Yönetimi',
+  'İnsan Kaynakları', 'Finans', 'Muhasebe', 'Bilgi İşlem',
+  'Ambar/Depo', 'Sevkiyat', 'Genel Müdürlük'
 ];
 
 const CERTIFICATE_TYPES: CertificateType[] = [
@@ -1378,6 +1384,9 @@ const DocumentManagement: React.FC = () => {
       number: '',
       unit: '',
       effectiveDate: new Date().toISOString().split('T')[0],
+      firstPublishDate: undefined,
+      lastReviewDate: undefined,
+      nextReviewDate: undefined,
       revisionNo: 1,
       owner: '',
       description: '',
@@ -1456,6 +1465,9 @@ const DocumentManagement: React.FC = () => {
         number: doc.number,
         unit: doc.unit,
         effectiveDate: doc.effectiveDate,
+        firstPublishDate: doc.firstPublishDate,
+        lastReviewDate: doc.lastReviewDate,
+        nextReviewDate: doc.nextReviewDate,
         revisionNo: doc.revisionNo,
         owner: doc.owner,
         description: doc.description,
@@ -1953,6 +1965,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
         number: documentForm.number!,
         unit: documentForm.unit!,
         effectiveDate: documentForm.effectiveDate!,
+        firstPublishDate: documentForm.firstPublishDate,
+        lastReviewDate: documentForm.lastReviewDate,
+        nextReviewDate: documentForm.nextReviewDate,
         revisionNo: documentForm.revisionNo || 1,
         owner: documentForm.owner!,
         uploadDate: now,
@@ -2000,6 +2015,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               type: documentForm.type as DocumentType,
               unit: documentForm.unit!,
               effectiveDate: documentForm.effectiveDate!,
+              firstPublishDate: documentForm.firstPublishDate,
+              lastReviewDate: documentForm.lastReviewDate,
+              nextReviewDate: documentForm.nextReviewDate,
               revisionNo: documentForm.revisionNo || doc.revisionNo,
               owner: documentForm.owner!,
               description: documentForm.description || '',
@@ -2040,6 +2058,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
       number: '',
       unit: '',
       effectiveDate: new Date().toISOString().split('T')[0],
+      firstPublishDate: undefined,
+      lastReviewDate: undefined,
+      nextReviewDate: undefined,
       revisionNo: 1,
       owner: '',
       description: '',
@@ -2070,6 +2091,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
     number: '',
     unit: '',
     effectiveDate: new Date().toISOString().split('T')[0],
+    firstPublishDate: undefined,
+    lastReviewDate: undefined,
+    nextReviewDate: undefined,
     revisionNo: 1,
     owner: '',
     description: '',
@@ -3988,6 +4012,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
               number: '',
               unit: '',
               effectiveDate: new Date().toISOString().split('T')[0],
+              firstPublishDate: undefined,
+              lastReviewDate: undefined,
+              nextReviewDate: undefined,
               revisionNo: 1,
               owner: '',
               description: '',
@@ -4119,15 +4146,9 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       onChange={(e) => setDocumentForm(prev => ({ ...prev, unit: e.target.value }))}
                       label="Birim"
                     >
-                      <MenuItem value="Kaynak Atölyesi">Kaynak Atölyesi</MenuItem>
-                      <MenuItem value="Kalite Kontrol">Kalite Kontrol</MenuItem>
-                      <MenuItem value="Üretim">Üretim</MenuItem>
-                      <MenuItem value="Montaj">Montaj</MenuItem>
-                      <MenuItem value="Boyahane">Boyahane</MenuItem>
-                      <MenuItem value="Makine Atölyesi">Makine Atölyesi</MenuItem>
-                      <MenuItem value="Planlama">Planlama</MenuItem>
-                      <MenuItem value="İSG">İSG</MenuItem>
-                      <MenuItem value="Genel">Genel</MenuItem>
+                      {UNITS.map((unit) => (
+                        <MenuItem key={unit} value={unit}>{unit}</MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                   
@@ -4148,6 +4169,37 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                     value={documentForm.effectiveDate || ''}
                     onChange={(e) => setDocumentForm(prev => ({ ...prev, effectiveDate: e.target.value }))}
                     InputLabelProps={{ shrink: true }}
+                    helperText="Dokümanın yürürlüğe girdiği tarih"
+                  />
+                  
+                  <TextField
+                    label="İlk Yayınlanma Tarihi"
+                    type="date"
+                    fullWidth
+                    value={documentForm.firstPublishDate || ''}
+                    onChange={(e) => setDocumentForm(prev => ({ ...prev, firstPublishDate: e.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="Dokümanın ilk kez yayınlandığı tarih"
+                  />
+                  
+                  <TextField
+                    label="Son Denetim Tarihi"
+                    type="date"
+                    fullWidth
+                    value={documentForm.lastReviewDate || ''}
+                    onChange={(e) => setDocumentForm(prev => ({ ...prev, lastReviewDate: e.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="Dokümanın son denetim tarihi"
+                  />
+                  
+                  <TextField
+                    label="Sonraki Denetim Tarihi"
+                    type="date"
+                    fullWidth
+                    value={documentForm.nextReviewDate || ''}
+                    onChange={(e) => setDocumentForm(prev => ({ ...prev, nextReviewDate: e.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                    helperText="Planlanan denetim tarihi"
                   />
                 </Box>
 
@@ -4690,6 +4742,15 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
                       <Typography><strong>Birim:</strong> {documentForm.unit}</Typography>
                       <Typography><strong>Sahip:</strong> {documentForm.owner}</Typography>
                       <Typography><strong>Yürürlük:</strong> {documentForm.effectiveDate}</Typography>
+                      {documentForm.firstPublishDate && (
+                        <Typography><strong>İlk Yayınlanma:</strong> {documentForm.firstPublishDate}</Typography>
+                      )}
+                      {documentForm.lastReviewDate && (
+                        <Typography><strong>Son Denetim:</strong> {documentForm.lastReviewDate}</Typography>
+                      )}
+                      {documentForm.nextReviewDate && (
+                        <Typography><strong>Sonraki Denetim:</strong> {documentForm.nextReviewDate}</Typography>
+                      )}
                       <Typography><strong>Revizyon:</strong> {documentForm.revisionNo}</Typography>
                       {documentForm.expiryDate && (
                         <Typography><strong>Geçerlilik:</strong> {documentForm.expiryDate}</Typography>
