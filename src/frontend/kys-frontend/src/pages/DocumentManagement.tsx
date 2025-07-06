@@ -847,12 +847,31 @@ const DocumentManagement: React.FC = () => {
 
   const colors = getColors();
 
-  // Certificate data arrays - State olarak tanımlandı
-  const [weldingCertificates, setWeldingCertificates] = useState<QualityCertificate[]>([
-    { id: 'QC001', name: 'TS 3834-2:2019', type: 'Kaynak Kalite Yönetimi', expiry: '2025-12-31', status: 'active', authority: 'TSE' },
-    { id: 'QC002', name: 'EN 1090-1:2009+A1', type: 'Çelik Yapı Uygunluk', expiry: '2025-09-15', status: 'active', authority: 'TÜV NORD' },
-    { id: 'QC003', name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
-  ]);
+  // ACİL: Kalite belgelerindeki mock veri sistemini de kapatıyorum
+  // Certificate data arrays - Mock veri temizlendi
+  const [weldingCertificates, setWeldingCertificates] = useState<QualityCertificate[]>([]);
+
+  // KALITE BELGELERİNİ LOCALSTORAGE'DAN YÜKLEME SİSTEMİ
+  React.useEffect(() => {
+    console.log('WeldingCertificates: Gerçek veri yükleme sistemi çalışıyor...');
+    
+    // LocalStorage'dan gerçek welding certificates veriyi yükleme
+    try {
+      const savedWeldingCerts = localStorage.getItem('weldingCertificates');
+      if (savedWeldingCerts && savedWeldingCerts !== 'undefined' && savedWeldingCerts !== 'null') {
+        const parsedCerts = JSON.parse(savedWeldingCerts);
+        if (Array.isArray(parsedCerts) && parsedCerts.length > 0) {
+          console.log('BAŞARILI: Welding certificates geri yüklendi:', parsedCerts.length, 'adet');
+          setWeldingCertificates(parsedCerts);
+          return;
+        }
+      }
+    } catch (error) {
+      console.log('Welding certificates veri yükleme hatası:', error);
+    }
+    
+    console.log('WeldingCertificates: Mock veri sistemi devre dışı');
+  }, []);
 
   // MOCK VERİ SİSTEMİ DEVRE DIŞI - KULLANICI VERİLERİNİ KORUMA
   // GERÇEK VERİ YÜKLEME SİSTEMİ - KULLANICI VERİLERİNİ KURTARMA
