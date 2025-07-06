@@ -2182,9 +2182,6 @@ const Dashboard: React.FC = () => {
         title="Kritik Performans Göstergeleri" 
         sx={{ mb: 3 }}
       />
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, mt: -2 }}>
-        Tüm modüllerden toplanan executive metrikler
-            </Typography>
       
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {executiveMetrics.map((metric) => (
@@ -2202,9 +2199,6 @@ const Dashboard: React.FC = () => {
         title="Kalite Yönetimi Özet Görünümü" 
         sx={{ mb: 3 }}
       />
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3, mt: -2 }}>
-        Kritik kalite verilerinin güncel durumu ve yaklaşan önemli tarihler
-      </Typography>
       
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* 💰 AYLIK KALİTESİZLİK MALİYETİ */}
