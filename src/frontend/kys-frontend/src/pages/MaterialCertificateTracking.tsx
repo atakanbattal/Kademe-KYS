@@ -4265,6 +4265,37 @@ const MaterialCertificateTracking: React.FC = () => {
                       <IconButton onClick={() => handleDownloadCertificate(cert)} title="İndir">
                       <DownloadIcon />
                     </IconButton>
+                      <IconButton 
+                        onClick={() => {
+                          if (window.confirm(`"${cert.fileName}" sertifikasını silmek istediğinizden emin misiniz?`)) {
+                            // Sertifikayı materials array'inden sil
+                            setMaterials(prevMaterials => 
+                              prevMaterials.map(material => 
+                                material.id === selectedMaterial.id 
+                                  ? { ...material, certificates: material.certificates.filter(c => c.id !== cert.id) }
+                                  : material
+                              )
+                            );
+                            // selectedMaterial'i güncelle
+                            if (selectedMaterial) {
+                              const updatedMaterial = {
+                                ...selectedMaterial,
+                                certificates: selectedMaterial.certificates.filter(c => c.id !== cert.id)
+                              };
+                              setSelectedMaterial(updatedMaterial);
+                            }
+                            setSnackbar({
+                              open: true,
+                              message: 'Sertifika başarıyla silindi',
+                              severity: 'success'
+                            });
+                          }
+                        }} 
+                        title="Sil" 
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
                   </ListItem>
                 ))}
                 </List>
