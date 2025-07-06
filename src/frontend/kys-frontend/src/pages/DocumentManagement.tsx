@@ -5348,11 +5348,8 @@ Durum: ${certData.status === 'active' ? 'Aktif' : 'Yenileme Gerekli'}
             {snackbar.message}
           </Alert>
         </Snackbar>
-      </Box>
-   );
- };
- 
-       {/* Personel Yönetimi Dialog'u */}
+
+        {/* Personel Yönetimi Dialog'u */}
       <Dialog 
         open={personnelManagementDialog} 
         onClose={() => setPersonnelManagementDialog(false)}
