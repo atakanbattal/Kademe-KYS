@@ -82,49 +82,217 @@ interface PersonnelData {
   nationalId: string;
 }
 
-// ✅ BASİT CONSTANTS - Sadece gerekli olanlar
-const DOCUMENT_TYPES = [
-  'Kaynakçı Sertifikası',
-  'Kaynakçı Nitelik Belgesi', 
-  'NDT Sertifikası',
-  'İSG Sertifikası',
-  'Yetki Belgesi',
-  'WPS',
-  'WPQR',
-  'Teknik Resim',
-  'Prosedür',
-  'Talimat',
-  'ISO 9001 Belgesi',
-  'ISO 14001 Belgesi',
-  'TS 3834-2 Belgesi'
-];
+// ✅ DETAYLANDIRILMIŞ VE GRUPLANDIRILMIŞ BELGE TİPLERİ
+const DOCUMENT_TYPES = {
+  'Kalite Sistem Belgeleri': [
+    'ISO 9001:2015 Kalite Yönetim Sistemi Belgesi',
+    'ISO 14001:2015 Çevre Yönetim Sistemi Belgesi',
+    'ISO 45001:2018 İSG Yönetim Sistemi Belgesi',
+    'ISO 50001:2018 Enerji Yönetim Sistemi Belgesi',
+    'ISO 27001:2013 Bilgi Güvenliği Yönetim Sistemi',
+    'TS 3834-2 Kaynak Kalite Gereksinimleri',
+    'TS EN ISO 15085 Demiryolu Uygulamaları',
+    'PED 2014/68/EU Basınçlı Ekipman Direktifi',
+    'CE İşaretleme Uygunluk Belgesi',
+    'GOST-R Rus Federasyonu Uygunluk Belgesi',
+    'EAC Avrasya Gümrük Birliği Belgesi'
+  ],
+  'Kaynakçı Belgeleri': [
+    'EN ISO 9606-1 Çelik Kaynak Sertifikası',
+    'EN ISO 9606-2 Alüminyum Kaynak Sertifikası',
+    'EN ISO 9606-3 Bakır Kaynak Sertifikası',
+    'EN ISO 9606-4 Nikel Kaynak Sertifikası',
+    'EN ISO 14732 Personel Kaynak Sertifikası',
+    'ASME IX Kaynakçı Nitelik Belgesi',
+    'AWS D1.1 Yapısal Kaynak Sertifikası',
+    'EN 287-1 Kaynak Operatörü Belgesi',
+    'API 1104 Boru Hattı Kaynak Sertifikası',
+    'DNV GL Offshore Kaynak Sertifikası'
+  ],
+  'NDT Personel Belgeleri': [
+    'EN ISO 9712 Level 1 - Görsel Muayene (VT)',
+    'EN ISO 9712 Level 2 - Görsel Muayene (VT)',
+    'EN ISO 9712 Level 3 - Görsel Muayene (VT)',
+    'EN ISO 9712 Level 1 - Penetrant Test (PT)',
+    'EN ISO 9712 Level 2 - Penetrant Test (PT)',
+    'EN ISO 9712 Level 3 - Penetrant Test (PT)',
+    'EN ISO 9712 Level 1 - Manyetik Parçacık (MT)',
+    'EN ISO 9712 Level 2 - Manyetik Parçacık (MT)',
+    'EN ISO 9712 Level 3 - Manyetik Parçacık (MT)',
+    'EN ISO 9712 Level 1 - Ultrasonik Test (UT)',
+    'EN ISO 9712 Level 2 - Ultrasonik Test (UT)',
+    'EN ISO 9712 Level 3 - Ultrasonik Test (UT)',
+    'EN ISO 9712 Level 1 - Radyografik Test (RT)',
+    'EN ISO 9712 Level 2 - Radyografik Test (RT)',
+    'EN ISO 9712 Level 3 - Radyografik Test (RT)',
+    'EN ISO 9712 Level 2 - Eddy Current Test (ET)',
+    'EN ISO 9712 Level 3 - Eddy Current Test (ET)',
+    'ASNT SNT-TC-1A NDT Sertifikası',
+    'PCN (Personnel Certification in NDT) Belgesi'
+  ],
+  'İSG ve Güvenlik Belgeleri': [
+    'İSG Uzmanı Belgesi (A Sınıfı)',
+    'İSG Uzmanı Belgesi (B Sınıfı)',
+    'İSG Uzmanı Belgesi (C Sınıfı)',
+    'İş Güvenliği Uzmanı Yetki Belgesi',
+    'İşyeri Hekimi Belgesi',
+    'İlk Yardım Eğitimi Sertifikası',
+    'Yangın Güvenliği Eğitimi Sertifikası',
+    'Çalışma Yüksekliği Eğitimi Belgesi',
+    'Kapalı Alan Güvenliği Eğitimi',
+    'Forklift Operatörü Belgesi',
+    'Vinç Operatörü Belgesi',
+    'İş Makinesi Operatörü Belgesi',
+    'Gerçek Kişi Güvenlik Görevlisi Belgesi',
+    'Tüzel Kişi Güvenlik Görevlisi Belgesi',
+    'Radyasyon Güvenliği Eğitimi Belgesi'
+  ],
+  'Mesleki Yeterlilik Belgeleri': [
+    'Kaynak Teknolojisi Seviye 4 MYB',
+    'Kaynak Teknolojisi Seviye 5 MYB',
+    'Makine İmalat Teknolojisi Seviye 4 MYB',
+    'Makine İmalat Teknolojisi Seviye 5 MYB',
+    'Kalite Kontrol Teknisyeni Seviye 4 MYB',
+    'Kalite Kontrol Teknisyeni Seviye 5 MYB',
+    'Endüstriyel Bakım Teknisyeni Seviye 4 MYB',
+    'Endüstriyel Bakım Teknisyeni Seviye 5 MYB',
+    'Proje Yöneticisi Seviye 6 MYB',
+    'Üretim Planlama Uzmanı Seviye 5 MYB'
+  ],
+  'Teknik Belgeler': [
+    'WPS (Welding Procedure Specification)',
+    'WPQR (Welding Procedure Qualification Record)',
+    'WQT (Welder Qualification Test)',
+    'Teknik Resim / Çizim',
+    'Malzeme Sertifikası (Mill Certificate)',
+    'Isıl İşlem Sertifikası',
+    'Boyutsal Kontrol Raporu',
+    'NDT Muayene Raporu',
+    'Basınç Testi Raporu',
+    'Kalibrmasyon Sertifikası',
+    'Test Prosedürü',
+    'Kontrol Planı',
+    'FMEA (Failure Mode and Effects Analysis)',
+    'SPC (Statistical Process Control) Çalışması'
+  ],
+  'Sistem Prosedür ve Talimatlar': [
+    'Kalite Prosedürü',
+    'İş Talimatı',
+    'Kontrol Listesi',
+    'Kalite Planı',
+    'Muayene ve Test Planı',
+    'Ürün Spesifikasyonu',
+    'Malzeme Spesifikasyonu',
+    'Üretim Prosedürü',
+    'Paketleme ve Sevkiyat Talimatı',
+    'Satın Alma Spesifikasyonu',
+    'Tedarikçi Değerlendirme Prosedürü',
+    'Düzeltici ve Önleyici Faaliyet Prosedürü',
+    'İç Denetim Prosedürü',
+    'Yönetim Gözden Geçirme Prosedürü'
+  ],
+  'Eğitim ve Gelişim Belgeleri': [
+    'Mesleki Gelişim Eğitimi Sertifikası',
+    'Teknik Eğitim Sertifikası',
+    'Liderlik Eğitimi Sertifikası',
+    'Proje Yönetimi Eğitimi (PMP)',
+    'Lean Six Sigma Eğitimi',
+    'Kaizen Eğitimi Sertifikası',
+    '5S Eğitimi Sertifikası',
+    'İstatistiksel Proses Kontrol Eğitimi',
+    'Müşteri Memnuniyeti Eğitimi',
+    'Tedarikçi Geliştirme Eğitimi',
+    'Bilgisayar Destekli Tasarım (CAD) Eğitimi',
+    'Bilgisayar Destekli İmalat (CAM) Eğitimi'
+  ],
+  'Diğer Belgeler': [
+    'Müşteri Onay Belgesi',
+    'Tedarikçi Onay Belgesi',
+    'Ürün Onay Belgesi',
+    'Prototip Onay Belgesi',
+    'Değişiklik Onay Belgesi',
+    'Sapma Onay Belgesi',
+    'Özel Durum Onay Belgesi',
+    'Konfidansiyel Belge',
+    'Gizlilik Sözleşmesi',
+    'Kalite Sözleşmesi'
+  ]
+};
 
+// ✅ DETAYLANDIRILMIŞ DEPARTMANLAR
 const DEPARTMENTS = [
   'Kaynak Atölyesi',
   'Kalite Kontrol',
+  'Kalite Güvence',
   'Üretim',
   'Montaj',
-  'İSG',
+  'Makine İmalat',
+  'Sac İşleri',
+  'Boyahane',
+  'Paketleme',
+  'Sevkiyat',
+  'Satın Alma',
   'Teknik Büro',
-  'Ar-Ge'
+  'Ar-Ge',
+  'Proje Yönetimi',
+  'İnsan Kaynakları',
+  'İSG',
+  'Çevre',
+  'Bilgi İşlem',
+  'Muhasebe',
+  'Genel Müdürlük'
 ];
 
+// ✅ DETAYLANDIRILMIŞ SERTİFİKA TİPLERİ
 const CERTIFICATE_TYPES = [
-  'EN ISO 9606-1',
-  'EN ISO 9606-2', 
-  'EN ISO 14732',
-  'ASME IX',
-  'AWS D1.1'
+  'EN ISO 9606-1 (Çelik Kaynak)',
+  'EN ISO 9606-2 (Alüminyum Kaynak)',
+  'EN ISO 9606-3 (Bakır Kaynak)',
+  'EN ISO 9606-4 (Nikel Kaynak)',
+  'EN ISO 14732 (Personel Kaynak)',
+  'ASME IX (Kaynakçı Nitelik)',
+  'AWS D1.1 (Yapısal Kaynak)',
+  'EN 287-1 (Kaynak Operatörü)',
+  'API 1104 (Boru Hattı Kaynak)',
+  'DNV GL (Offshore Kaynak)',
+  'EN ISO 9712 Level 1 (NDT)',
+  'EN ISO 9712 Level 2 (NDT)',
+  'EN ISO 9712 Level 3 (NDT)',
+  'ASNT SNT-TC-1A (NDT)',
+  'PCN (Personnel Certification)',
+  'MYB Seviye 4 (Mesleki Yeterlilik)',
+  'MYB Seviye 5 (Mesleki Yeterlilik)',
+  'MYB Seviye 6 (Mesleki Yeterlilik)'
 ];
 
+// ✅ DETAYLANDIRILMIŞ VEREN KURULUŞLAR
 const ISSUING_AUTHORITIES = [
-  'TSE',
-  'TÜV NORD',
-  'TÜV SÜD',
-  'Bureau Veritas',
-  'SGS',
-  'Çalışma Bakanlığı',
-  'Diğer'
+  'TSE (Türk Standartları Enstitüsü)',
+  'TÜV NORD Türkiye',
+  'TÜV SÜD Türkiye',
+  'TÜV AUSTRIA Türkiye',
+  'TÜV RHEINLAND Türkiye',
+  'Bureau Veritas Türkiye',
+  'SGS Türkiye',
+  'DEKRA Türkiye',
+  'RINA Türkiye',
+  'DNV GL Türkiye',
+  'Lloyd\'s Register Türkiye',
+  'Intertek Türkiye',
+  'Çalışma ve Sosyal Güvenlik Bakanlığı',
+  'Aile ve Sosyal Hizmetler Bakanlığı',
+  'Mesleki Yeterlilik Kurumu (MYK)',
+  'Türkiye İnsan Kaynakları Geliştirme Vakfı',
+  'MESS (Türkiye Metal Sanayicileri Sendikası)',
+  'İSKİ (İstanbul Su ve Kanalizasyon İdaresi)',
+  'Kızılay Eğitim Merkezi',
+  'AFAD (Afet ve Acil Durum Yönetimi)',
+  'İMO (İnşaat Mühendisleri Odası)',
+  'MMO (Makine Mühendisleri Odası)',
+  'TMMOB (Türk Mühendis ve Mimar Odaları Birliği)',
+  'KGM (Karayolları Genel Müdürlüğü)',
+  'TCDD (Türkiye Cumhuriyeti Devlet Demiryolları)',
+  'Diğer Kuruluş'
 ];
 
 const DocumentManagement: React.FC = () => {
@@ -413,8 +581,12 @@ const DocumentManagement: React.FC = () => {
   const filteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (doc.welderName && doc.welderName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (doc.personnelName && doc.personnelName.toLowerCase().includes(searchTerm.toLowerCase()))
+    (doc.personnelName && doc.personnelName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (doc.certificateNumber && doc.certificateNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (doc.issuingAuthority && doc.issuingAuthority.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    doc.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredWelders = welders.filter(w => 
@@ -540,7 +712,7 @@ const DocumentManagement: React.FC = () => {
             label="Arama"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Belge adı, tipi, kaynakçı veya personel adına göre arayın..."
+            placeholder="Belge adı, tipi, sertifika numarası, kaynakçı veya personel adına göre arayın..."
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -579,6 +751,8 @@ const DocumentManagement: React.FC = () => {
                       <TableCell>Tip</TableCell>
                       <TableCell>Numara</TableCell>
                       <TableCell>İlgili Kişi</TableCell>
+                      <TableCell>Sertifika No</TableCell>
+                      <TableCell>Veren Kuruluş</TableCell>
                       <TableCell>Durum</TableCell>
                       <TableCell>Tarih</TableCell>
                       <TableCell>İşlemler</TableCell>
@@ -593,6 +767,8 @@ const DocumentManagement: React.FC = () => {
                         </TableCell>
                         <TableCell>{doc.number}</TableCell>
                         <TableCell>{doc.welderName || doc.personnelName || '-'}</TableCell>
+                        <TableCell>{doc.certificateNumber || '-'}</TableCell>
+                        <TableCell>{doc.issuingAuthority || '-'}</TableCell>
                         <TableCell>
                           <Chip 
                             label={doc.status === 'active' ? 'Aktif' : 'Pasif'} 
@@ -736,9 +912,16 @@ const DocumentManagement: React.FC = () => {
                   onChange={(e) => setDocumentForm(prev => ({ ...prev, type: e.target.value }))}
                   label="Belge Tipi"
                 >
-                  {DOCUMENT_TYPES.map((type) => (
-                    <MenuItem key={type} value={type}>{type}</MenuItem>
-                  ))}
+                  {Object.entries(DOCUMENT_TYPES).map(([category, types]) => [
+                    <MenuItem key={category} disabled sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                      {category}
+                    </MenuItem>,
+                    ...types.map((type) => (
+                      <MenuItem key={type} value={type} sx={{ pl: 3 }}>
+                        {type}
+                      </MenuItem>
+                    ))
+                  ])}
                 </Select>
               </FormControl>
             </Grid>
@@ -771,7 +954,7 @@ const DocumentManagement: React.FC = () => {
             </Grid>
 
             {/* Kaynakçı Sertifikaları için özel alanlar */}
-            {(documentForm.type === 'Kaynakçı Sertifikası' || documentForm.type === 'Kaynakçı Nitelik Belgesi') && (
+            {DOCUMENT_TYPES['Kaynakçı Belgeleri'] && DOCUMENT_TYPES['Kaynakçı Belgeleri'].includes(documentForm.type) && (
               <>
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
@@ -804,7 +987,10 @@ const DocumentManagement: React.FC = () => {
             )}
 
             {/* Personel belgeleri için özel alanlar */}
-            {(documentForm.type === 'NDT Sertifikası' || documentForm.type === 'İSG Sertifikası' || documentForm.type === 'Yetki Belgesi') && (
+            {(DOCUMENT_TYPES['NDT Personel Belgeleri']?.includes(documentForm.type) ||
+              DOCUMENT_TYPES['İSG ve Güvenlik Belgeleri']?.includes(documentForm.type) ||
+              DOCUMENT_TYPES['Mesleki Yeterlilik Belgeleri']?.includes(documentForm.type) ||
+              DOCUMENT_TYPES['Eğitim ve Gelişim Belgeleri']?.includes(documentForm.type)) && (
               <>
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
@@ -1015,7 +1201,7 @@ const DocumentManagement: React.FC = () => {
                 label="Pozisyon"
                 value={personnelForm.position}
                 onChange={(e) => setPersonnelForm(prev => ({ ...prev, position: e.target.value }))}
-                placeholder="Kalite Teknisyeni, NDT Uzmanı vs."
+                placeholder="Kalite Teknisyeni, NDT Uzmanı, Kaynakçı, İSG Uzmanı, Proje Yöneticisi..."
               />
             </Grid>
           </Grid>
