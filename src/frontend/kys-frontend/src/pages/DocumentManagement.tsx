@@ -854,10 +854,33 @@ const DocumentManagement: React.FC = () => {
     { id: 'QC003', name: 'EN ISO 3834-2:2021', type: 'Kaynak Kalite Gereklilikleri', expiry: '2024-10-20', status: 'expiring', authority: 'Bureau Veritas' },
   ]);
 
-  // Initialize sample documents with approval data - ONLY ON FIRST LOAD
+  // MOCK VERİ SİSTEMİ DEVRE DIŞI - KULLANICI VERİLERİNİ KORUMA
+  // GERÇEK VERİ YÜKLEME SİSTEMİ - KULLANICI VERİLERİNİ KURTARMA
   React.useEffect(() => {
-    const isInitialized = localStorage.getItem('documentManagement_initialized');
-    if (!isInitialized && documents.length === 0) {
+    console.log('DocumentManagement: Gerçek veri yükleme sistemi çalışıyor...');
+    
+    // LocalStorage'dan gerçek veriyi yükleme girişimi
+    try {
+      const savedDocuments = localStorage.getItem('documents');
+      if (savedDocuments && savedDocuments !== 'undefined' && savedDocuments !== 'null') {
+        const parsedDocs = JSON.parse(savedDocuments);
+        if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
+          console.log('BAŞARILI: Kullanıcı dokümanları geri yüklendi:', parsedDocs.length, 'adet');
+          setDocuments(parsedDocs);
+          return; // Gerçek veri bulundu, mock veri çalıştırma
+        }
+      }
+    } catch (error) {
+      console.log('Veri yükleme hatası:', error);
+    }
+    
+    // ACİL: Mock veri oluşturma sistemi tamamen devre dışı bırakıldı
+    // Kullanıcı verilerini korumak için bu sistem kapatıldı
+    console.log('DocumentManagement: Mock veri sistemi devre dışı - kullanıcı verileri korunuyor');
+    
+    // YORUM: const isInitialized = localStorage.getItem('documentManagement_initialized');
+    // YORUM: if (!isInitialized && documents.length === 0) {
+    if (false) { // Mock veri sistemi tamamen kapatıldı
       const sampleDocuments: Document[] = [
         {
           id: '1',
@@ -1000,10 +1023,28 @@ const DocumentManagement: React.FC = () => {
     }
   }, []);
 
-  // Initialize sample personnel documents - ONLY ON FIRST LOAD
+  // ACİL: Personnel mock veri sistemi devre dışı
   React.useEffect(() => {
-    const isPersonnelInitialized = localStorage.getItem('documentManagement_personnel_initialized');
-    if (!isPersonnelInitialized && personnelDocuments.length === 0) {
+    console.log('PersonnelDocuments: Gerçek veri yükleme sistemi çalışıyor...');
+    
+    // LocalStorage'dan gerçek personnel veriyi yükleme
+    try {
+      const savedPersonnelDocs = localStorage.getItem('personnelDocuments');
+      if (savedPersonnelDocs && savedPersonnelDocs !== 'undefined' && savedPersonnelDocs !== 'null') {
+        const parsedDocs = JSON.parse(savedPersonnelDocs);
+        if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
+          console.log('BAŞARILI: Personnel dokümanları geri yüklendi:', parsedDocs.length, 'adet');
+          setPersonnelDocuments(parsedDocs);
+          return;
+        }
+      }
+    } catch (error) {
+      console.log('Personnel veri yükleme hatası:', error);
+    }
+    
+    console.log('PersonnelDocuments: Mock veri sistemi devre dışı');
+    // const isPersonnelInitialized = localStorage.getItem('documentManagement_personnel_initialized');
+    if (false) { // Mock veri sistemi kapatıldı
       const sampleDocuments: PersonnelDocument[] = [
         {
           id: '1',
@@ -1136,10 +1177,28 @@ const DocumentManagement: React.FC = () => {
     }
   }, []);
 
-  // Initialize product certificates - ONLY ON FIRST LOAD
+  // ACİL: Product certificates mock veri sistemi devre dışı
   React.useEffect(() => {
-    const isProductCertInitialized = localStorage.getItem('documentManagement_productCert_initialized');
-    if (!isProductCertInitialized && productCertificates.length === 0) {
+    console.log('ProductCertificates: Gerçek veri yükleme sistemi çalışıyor...');
+    
+    // LocalStorage'dan gerçek product certificates veriyi yükleme
+    try {
+      const savedProductCerts = localStorage.getItem('productCertificates');
+      if (savedProductCerts && savedProductCerts !== 'undefined' && savedProductCerts !== 'null') {
+        const parsedCerts = JSON.parse(savedProductCerts);
+        if (Array.isArray(parsedCerts) && parsedCerts.length > 0) {
+          console.log('BAŞARILI: Product certificates geri yüklendi:', parsedCerts.length, 'adet');
+          setProductCertificates(parsedCerts);
+          return;
+        }
+      }
+    } catch (error) {
+      console.log('Product certificates veri yükleme hatası:', error);
+    }
+    
+    console.log('ProductCertificates: Mock veri sistemi devre dışı');
+    // const isProductCertInitialized = localStorage.getItem('documentManagement_productCert_initialized');
+    if (false) { // Mock veri sistemi kapatıldı
       const sampleProductCertificates: ProductCertificate[] = [
         { id: '1', name: 'CE İşaretleme', type: 'Ürün Uygunluk Belgesi', expiry: '2025-07-30', status: 'active', authority: 'Notified Body' },
         { id: '2', name: 'TSE Belgesi', type: 'Türk Standartları Belgesi', expiry: '2025-05-15', status: 'active', authority: 'TSE' },
@@ -1151,10 +1210,28 @@ const DocumentManagement: React.FC = () => {
     }
   }, []);
 
-  // Initialize quality certificates - ONLY ON FIRST LOAD  
+  // ACİL: Quality certificates mock veri sistemi devre dışı
   React.useEffect(() => {
-    const isQualityCertInitialized = localStorage.getItem('documentManagement_qualityCert_initialized');
-    if (!isQualityCertInitialized && qualityCertificates.length === 0) {
+    console.log('QualityCertificates: Gerçek veri yükleme sistemi çalışıyor...');
+    
+    // LocalStorage'dan gerçek quality certificates veriyi yükleme
+    try {
+      const savedQualityCerts = localStorage.getItem('qualityCertificates');
+      if (savedQualityCerts && savedQualityCerts !== 'undefined' && savedQualityCerts !== 'null') {
+        const parsedCerts = JSON.parse(savedQualityCerts);
+        if (Array.isArray(parsedCerts) && parsedCerts.length > 0) {
+          console.log('BAŞARILI: Quality certificates geri yüklendi:', parsedCerts.length, 'adet');
+          setQualityCertificates(parsedCerts);
+          return;
+        }
+      }
+    } catch (error) {
+      console.log('Quality certificates veri yükleme hatası:', error);
+    }
+    
+    console.log('QualityCertificates: Mock veri sistemi devre dışı');
+    // const isQualityCertInitialized = localStorage.getItem('documentManagement_qualityCert_initialized');
+    if (false) { // Mock veri sistemi kapatıldı
       const sampleQualityCertificates: QualityCertificate[] = [
         { id: '1', name: 'ISO 9001:2015', type: 'Kalite Yönetim Sistemi', expiry: '2025-06-15', status: 'active', authority: 'TÜV NORD' },
         { id: '2', name: 'ISO 14001:2015', type: 'Çevre Yönetim Sistemi', expiry: '2025-08-20', status: 'active', authority: 'Bureau Veritas' },
