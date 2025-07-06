@@ -29,6 +29,7 @@ import {
   Snackbar,
   InputAdornment,
   Grid,
+  Autocomplete,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -79,7 +80,6 @@ interface PersonnelData {
   registrationNo: string;
   department: string;
   position: string;
-  nationalId: string;
 }
 
 // ✅ DETAYLANDIRILMIŞ VE GRUPLANDIRILMIŞ BELGE TİPLERİ
@@ -295,6 +295,19 @@ const ISSUING_AUTHORITIES = [
   'Diğer Kuruluş'
 ];
 
+// ✅ AUTOCOMPLETE İÇİN DÜZLEŞTIRILMIŞ BELGE TİPLERİ
+const ALL_DOCUMENT_TYPES = Object.entries(DOCUMENT_TYPES).reduce((acc, [category, types]) => {
+  types.forEach(type => {
+    acc.push({
+      category,
+      type,
+      label: type,
+      group: category
+    });
+  });
+  return acc;
+}, [] as Array<{category: string, type: string, label: string, group: string}>);
+
 const DocumentManagement: React.FC = () => {
   // ✅ BASİT STATE YÖNETİMİ - Karmaşıklık kaldırıldı
   const [activeTab, setActiveTab] = useState(0);
@@ -317,6 +330,7 @@ const DocumentManagement: React.FC = () => {
     personnelName: '',
     certificateNumber: '',
     issuingAuthority: '',
+    customIssuingAuthority: '', // Manuel veren kuruluş girişi için
     effectiveDate: new Date().toISOString().split('T')[0],
     expiryDate: '',
     description: ''
@@ -335,7 +349,6 @@ const DocumentManagement: React.FC = () => {
     registrationNo: '',
     department: '',
     position: '',
-    nationalId: ''
   });
   
   // Search
@@ -413,6 +426,7 @@ const DocumentManagement: React.FC = () => {
         personnelName: '',
         certificateNumber: '',
         issuingAuthority: '',
+        customIssuingAuthority: '',
         effectiveDate: new Date().toISOString().split('T')[0],
         expiryDate: '',
         description: ''
@@ -431,7 +445,6 @@ const DocumentManagement: React.FC = () => {
         registrationNo: '',
         department: '',
         position: '',
-        nationalId: ''
       });
     }
     
@@ -446,6 +459,12 @@ const DocumentManagement: React.FC = () => {
     }
 
     const now = new Date().toISOString().split('T')[0];
+    
+    // Veren kuruluş bilgisini doğru şekilde al
+    const finalIssuingAuthority = documentForm.issuingAuthority === 'Diğer Kuruluş' 
+      ? documentForm.customIssuingAuthority 
+      : documentForm.issuingAuthority;
+    
     const newDoc: Document = {
       id: editingItem?.id || `DOC-${Date.now()}`,
       type: documentForm.type,
@@ -455,7 +474,7 @@ const DocumentManagement: React.FC = () => {
       welderName: documentForm.welderName,
       personnelName: documentForm.personnelName,
       certificateNumber: documentForm.certificateNumber,
-      issuingAuthority: documentForm.issuingAuthority,
+      issuingAuthority: finalIssuingAuthority,
       effectiveDate: documentForm.effectiveDate,
       expiryDate: documentForm.expiryDate,
       status: 'active',
@@ -512,7 +531,6 @@ const DocumentManagement: React.FC = () => {
       registrationNo: personnelForm.registrationNo,
       department: personnelForm.department,
       position: personnelForm.position,
-      nationalId: personnelForm.nationalId
     };
 
     if (editingItem) {
@@ -541,6 +559,7 @@ const DocumentManagement: React.FC = () => {
         personnelName: item.personnelName || '',
         certificateNumber: item.certificateNumber || '',
         issuingAuthority: item.issuingAuthority || '',
+        customIssuingAuthority: '',
         effectiveDate: item.effectiveDate,
         expiryDate: item.expiryDate || '',
         description: item.description
@@ -559,7 +578,6 @@ const DocumentManagement: React.FC = () => {
         registrationNo: item.registrationNo,
         department: item.department,
         position: item.position,
-        nationalId: item.nationalId
       });
     }
     
@@ -577,7 +595,16 @@ const DocumentManagement: React.FC = () => {
     setSnackbar({ open: true, message: 'Başarıyla silindi!', severity: 'success' });
   };
 
-  // ✅ FİLTRELEME
+  // ✅ KALİTE BELGELERİ AYIRMA
+  const QUALITY_CERTIFICATE_CATEGORIES = [
+    'Kalite Sistem Belgeleri',
+    'Kaynakçı Belgeleri', 
+    'NDT Personel Belgeleri',
+    'İSG ve Güvenlik Belgeleri',
+    'Mesleki Yeterlilik Belgeleri'
+  ];
+
+  // ✅ FİLTRELEME VE AYIRMA
   const filteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -589,6 +616,17 @@ const DocumentManagement: React.FC = () => {
     doc.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Kalite sertifikalarını ve diğer belgeleri ayır
+  const qualityCertificates = filteredDocuments.filter(doc => {
+    const docCategory = ALL_DOCUMENT_TYPES.find(dt => dt.type === doc.type)?.category;
+    return docCategory && QUALITY_CERTIFICATE_CATEGORIES.includes(docCategory);
+  });
+
+  const otherDocuments = filteredDocuments.filter(doc => {
+    const docCategory = ALL_DOCUMENT_TYPES.find(dt => dt.type === doc.type)?.category;
+    return !docCategory || !QUALITY_CERTIFICATE_CATEGORIES.includes(docCategory);
+  });
+
   const filteredWelders = welders.filter(w => 
     w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     w.registrationNo.toLowerCase().includes(searchTerm.toLowerCase())
@@ -596,7 +634,9 @@ const DocumentManagement: React.FC = () => {
 
   const filteredPersonnel = personnel.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.registrationNo.toLowerCase().includes(searchTerm.toLowerCase())
+    p.registrationNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.position.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -733,66 +773,185 @@ const DocumentManagement: React.FC = () => {
 
       {/* Belgeler Tabı */}
       {activeTab === 0 && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Belgeler ({filteredDocuments.length})
-            </Typography>
-            {filteredDocuments.length === 0 ? (
-              <Alert severity="info">
-                Henüz belge eklenmemiş. "Yeni Belge" butonunu kullanarak belge ekleyebilirsiniz.
-              </Alert>
-            ) : (
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Belge Adı</TableCell>
-                      <TableCell>Tip</TableCell>
-                      <TableCell>Numara</TableCell>
-                      <TableCell>İlgili Kişi</TableCell>
-                      <TableCell>Sertifika No</TableCell>
-                      <TableCell>Veren Kuruluş</TableCell>
-                      <TableCell>Durum</TableCell>
-                      <TableCell>Tarih</TableCell>
-                      <TableCell>İşlemler</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredDocuments.map((doc) => (
-                      <TableRow key={doc.id}>
-                        <TableCell>{doc.name}</TableCell>
-                        <TableCell>
-                          <Chip label={doc.type} size="small" />
-                        </TableCell>
-                        <TableCell>{doc.number}</TableCell>
-                        <TableCell>{doc.welderName || doc.personnelName || '-'}</TableCell>
-                        <TableCell>{doc.certificateNumber || '-'}</TableCell>
-                        <TableCell>{doc.issuingAuthority || '-'}</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={doc.status === 'active' ? 'Aktif' : 'Pasif'} 
-                            color={doc.status === 'active' ? 'success' : 'default'} 
-                            size="small" 
-                          />
-                        </TableCell>
-                        <TableCell>{doc.effectiveDate}</TableCell>
-                        <TableCell>
-                          <IconButton onClick={() => handleEdit(doc, 'document')} size="small">
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small">
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
+        <Box>
+          {/* Kalite Sertifikaları - Kart Görünümü */}
+          {qualityCertificates.length > 0 && (
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <VerifiedUserIcon color="primary" />
+                  Kalite Sertifikaları ({qualityCertificates.length})
+                </Typography>
+                <Grid container spacing={2}>
+                  {qualityCertificates.map((doc) => {
+                    const docCategory = ALL_DOCUMENT_TYPES.find(dt => dt.type === doc.type)?.category;
+                    const getCategoryColor = (category: string) => {
+                      switch(category) {
+                        case 'Kalite Sistem Belgeleri': return 'primary';
+                        case 'Kaynakçı Belgeleri': return 'success';
+                        case 'NDT Personel Belgeleri': return 'warning';
+                        case 'İSG ve Güvenlik Belgeleri': return 'error';
+                        case 'Mesleki Yeterlilik Belgeleri': return 'info';
+                        default: return 'default';
+                      }
+                    };
+                    
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={doc.id}>
+                        <Card 
+                          sx={{ 
+                            height: '100%', 
+                            border: '1px solid #e0e0e0',
+                            '&:hover': { 
+                              boxShadow: 6,
+                              transform: 'translateY(-2px)',
+                              transition: 'all 0.2s ease-in-out'
+                            }
+                          }}
+                        >
+                          <CardContent>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                              <Chip 
+                                label={docCategory || 'Diğer'} 
+                                color={getCategoryColor(docCategory || '')} 
+                                size="small" 
+                              />
+                              <Chip 
+                                label={doc.status === 'active' ? 'Aktif' : 'Pasif'} 
+                                color={doc.status === 'active' ? 'success' : 'default'} 
+                                size="small" 
+                              />
+                            </Box>
+                            
+                            <Typography variant="h6" gutterBottom sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                              {doc.name}
+                            </Typography>
+                            
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              {doc.type}
+                            </Typography>
+                            
+                            <Box sx={{ mt: 2, mb: 2 }}>
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                <strong>Belge No:</strong> {doc.number}
+                              </Typography>
+                              {doc.welderName && (
+                                <Typography variant="caption" display="block" color="text.secondary">
+                                  <strong>Kaynakçı:</strong> {doc.welderName}
+                                </Typography>
+                              )}
+                              {doc.personnelName && (
+                                <Typography variant="caption" display="block" color="text.secondary">
+                                  <strong>Personel:</strong> {doc.personnelName}
+                                </Typography>
+                              )}
+                              {doc.certificateNumber && (
+                                <Typography variant="caption" display="block" color="text.secondary">
+                                  <strong>Sertifika No:</strong> {doc.certificateNumber}
+                                </Typography>
+                              )}
+                              {doc.issuingAuthority && (
+                                <Typography variant="caption" display="block" color="text.secondary">
+                                  <strong>Veren Kuruluş:</strong> {doc.issuingAuthority}
+                                </Typography>
+                              )}
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                <strong>Yürürlük:</strong> {doc.effectiveDate}
+                              </Typography>
+                              {doc.expiryDate && (
+                                <Typography variant="caption" display="block" color="text.secondary">
+                                  <strong>Bitiş:</strong> {doc.expiryDate}
+                                </Typography>
+                              )}
+                            </Box>
+                            
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Box>
+                                <IconButton onClick={() => handleEdit(doc, 'document')} size="small" color="primary">
+                                  <EditIcon />
+                                </IconButton>
+                                <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small" color="error">
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Box>
+                              <Button size="small" startIcon={<ViewIcon />}>
+                                Görüntüle
+                              </Button>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Diğer Belgeler - Liste Görünümü */}
+          {otherDocuments.length > 0 && (
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <DescriptionIcon color="secondary" />
+                  Diğer Belgeler ({otherDocuments.length})
+                </Typography>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Belge Adı</TableCell>
+                        <TableCell>Tip</TableCell>
+                        <TableCell>Numara</TableCell>
+                        <TableCell>Durum</TableCell>
+                        <TableCell>Tarih</TableCell>
+                        <TableCell>İşlemler</TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </CardContent>
-        </Card>
+                    </TableHead>
+                    <TableBody>
+                      {otherDocuments.map((doc) => (
+                        <TableRow key={doc.id}>
+                          <TableCell>{doc.name}</TableCell>
+                          <TableCell>
+                            <Chip label={doc.type} size="small" />
+                          </TableCell>
+                          <TableCell>{doc.number}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={doc.status === 'active' ? 'Aktif' : 'Pasif'} 
+                              color={doc.status === 'active' ? 'success' : 'default'} 
+                              size="small" 
+                            />
+                          </TableCell>
+                          <TableCell>{doc.effectiveDate}</TableCell>
+                          <TableCell>
+                            <IconButton onClick={() => handleEdit(doc, 'document')} size="small">
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small">
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Hiç belge yoksa */}
+          {filteredDocuments.length === 0 && (
+            <Card>
+              <CardContent>
+                <Alert severity="info">
+                  Henüz belge eklenmemiş. "Yeni Belge" butonunu kullanarak belge ekleyebilirsiniz.
+                </Alert>
+              </CardContent>
+            </Card>
+          )}
+        </Box>
       )}
 
       {/* Kaynakçılar Tabı */}
@@ -867,7 +1026,6 @@ const DocumentManagement: React.FC = () => {
                       <TableCell>Sicil No</TableCell>
                       <TableCell>Departman</TableCell>
                       <TableCell>Pozisyon</TableCell>
-                      <TableCell>TC Kimlik</TableCell>
                       <TableCell>İşlemler</TableCell>
                     </TableRow>
                   </TableHead>
@@ -878,7 +1036,6 @@ const DocumentManagement: React.FC = () => {
                         <TableCell>{person.registrationNo}</TableCell>
                         <TableCell>{person.department}</TableCell>
                         <TableCell>{person.position}</TableCell>
-                        <TableCell>{person.nationalId}</TableCell>
                         <TableCell>
                           <IconButton onClick={() => handleEdit(person, 'personnel')} size="small">
                             <EditIcon />
@@ -905,25 +1062,41 @@ const DocumentManagement: React.FC = () => {
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Belge Tipi</InputLabel>
-                <Select
-                  value={documentForm.type}
-                  onChange={(e) => setDocumentForm(prev => ({ ...prev, type: e.target.value }))}
-                  label="Belge Tipi"
-                >
-                  {Object.entries(DOCUMENT_TYPES).map(([category, types]) => [
-                    <MenuItem key={category} disabled sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                      {category}
-                    </MenuItem>,
-                    ...types.map((type) => (
-                      <MenuItem key={type} value={type} sx={{ pl: 3 }}>
-                        {type}
-                      </MenuItem>
-                    ))
-                  ])}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                fullWidth
+                options={ALL_DOCUMENT_TYPES}
+                groupBy={(option) => option.group}
+                getOptionLabel={(option) => option.label}
+                value={ALL_DOCUMENT_TYPES.find(item => item.type === documentForm.type) || null}
+                onChange={(event, newValue) => {
+                  setDocumentForm(prev => ({ ...prev, type: newValue?.type || '' }));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Belge Tipi"
+                    required
+                    placeholder="Belge tipi arayın veya seçin..."
+                  />
+                )}
+                renderGroup={(params) => (
+                  <Box key={params.key}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {params.group}
+                    </Typography>
+                    {params.children}
+                  </Box>
+                )}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -1027,7 +1200,13 @@ const DocumentManagement: React.FC = () => {
                 <InputLabel>Veren Kuruluş</InputLabel>
                 <Select
                   value={documentForm.issuingAuthority}
-                  onChange={(e) => setDocumentForm(prev => ({ ...prev, issuingAuthority: e.target.value }))}
+                  onChange={(e) => {
+                    setDocumentForm(prev => ({ 
+                      ...prev, 
+                      issuingAuthority: e.target.value,
+                      customIssuingAuthority: e.target.value === 'Diğer Kuruluş' ? prev.customIssuingAuthority : ''
+                    }));
+                  }}
                   label="Veren Kuruluş"
                 >
                   {ISSUING_AUTHORITIES.map((authority) => (
@@ -1036,6 +1215,20 @@ const DocumentManagement: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
+            
+            {/* Manuel Veren Kuruluş Girişi */}
+            {documentForm.issuingAuthority === 'Diğer Kuruluş' && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Veren Kuruluş Adı"
+                  value={documentForm.customIssuingAuthority}
+                  onChange={(e) => setDocumentForm(prev => ({ ...prev, customIssuingAuthority: e.target.value }))}
+                  placeholder="Veren kuruluş adını girin..."
+                />
+              </Grid>
+            )}
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -1171,14 +1364,6 @@ const DocumentManagement: React.FC = () => {
                 label="Sicil Numarası"
                 value={personnelForm.registrationNo}
                 onChange={(e) => setPersonnelForm(prev => ({ ...prev, registrationNo: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="TC Kimlik Numarası"
-                value={personnelForm.nationalId}
-                onChange={(e) => setPersonnelForm(prev => ({ ...prev, nationalId: e.target.value }))}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
