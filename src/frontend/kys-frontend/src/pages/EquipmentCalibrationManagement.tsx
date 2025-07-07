@@ -755,7 +755,8 @@ const DEPARTMENTS = [
   'Tesellüm',
   'Bakım-Onarım',
   'Bilgi İşlem',
-  'Güvenlik'
+  'Güvenlik',
+  'SSH'
 ];
 
 // Personel interface'i
@@ -790,7 +791,8 @@ const getPersonnelData = (): Personnel[] => {
     { id: '9', sicilNo: '009', name: 'Emine Koç', department: 'Mekanik Montaj', position: 'Tekniker', email: 'emine.koc@kademe.com', phone: '0532 901 2345', isActive: true },
     { id: '10', sicilNo: '010', name: 'İbrahim Güzel', department: 'Planlama', position: 'Planlama Uzmanı', email: 'ibrahim.guzel@kademe.com', phone: '0532 012 3456', isActive: true },
     { id: '11', sicilNo: '011', name: 'Sema Aydın', department: 'Satın Alma', position: 'Satın Alma Uzmanı', email: 'sema.aydin@kademe.com', phone: '0532 123 4567', isActive: true },
-    { id: '12', sicilNo: '012', name: 'Osman Polat', department: 'Depo', position: 'Depo Sorumlusu', email: 'osman.polat@kademe.com', phone: '0532 234 5678', isActive: true }
+    { id: '12', sicilNo: '012', name: 'Osman Polat', department: 'Depo', position: 'Depo Sorumlusu', email: 'osman.polat@kademe.com', phone: '0532 234 5678', isActive: true },
+    { id: '13', sicilNo: '013', name: 'Canan Özdemir', department: 'SSH', position: 'SSH Uzmanı', email: 'canan.ozdemir@kademe.com', phone: '0532 345 6789', isActive: true }
   ];
   
   localStorage.setItem('personnel_data', JSON.stringify(samplePersonnel));
@@ -3472,6 +3474,16 @@ const getPositionsByDepartment = (department: string): string[] => {
       'Kaynakçı',
       'Torna Tezgahı Operatörü',
       'CNC Operatörü'
+    ],
+    'SSH': [
+      'SSH Müdürü',
+      'SSH Uzmanı',
+      'Servis Teknisyeni',
+      'Saha Teknisyeni',
+      'Müşteri Hizmetleri Uzmanı',
+      'Teknik Destek Uzmanı',
+      'Montaj Teknisyeni',
+      'Bakım Teknisyeni'
     ]
   };
   
