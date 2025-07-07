@@ -338,6 +338,7 @@ const DocumentManagement: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [welders, setWelders] = useState<WelderData[]>([]);
   const [personnel, setPersonnel] = useState<PersonnelData[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
   
   // Form states
   const [openDialog, setOpenDialog] = useState(false);
@@ -596,15 +597,60 @@ const DocumentManagement: React.FC = () => {
 
   // ✅ SADECE GERÇEK VERİ YÜKLEME - Mock veriler tamamen kaldırıldı
   React.useEffect(() => {
+    console.log('🔄 DocumentManagement verileri yükleniyor...');
+    console.log('📊 localStorage boyutu:', Object.keys(localStorage).length);
+    
+    // LocalStorage'daki tüm anahtarları listele
+    const keys = Object.keys(localStorage);
+    console.log('🔑 localStorage anahtarları:', keys);
+    
     // Documents yükle
     const savedDocs = localStorage.getItem('dm-documents');
+    const backupDocs = localStorage.getItem('dm-documents-backup');
+    console.log('📄 Raw belgeler localStorage:', savedDocs ? 'Var' : 'Yok', savedDocs?.length);
+    console.log('📄 Backup belgeler localStorage:', backupDocs ? 'Var' : 'Yok', backupDocs?.length);
+    
+    let documentsToLoad = null;
+    
+    // Önce normal localStorage'dan yükle
     if (savedDocs) {
       try {
         const parsed = JSON.parse(savedDocs);
-        if (Array.isArray(parsed)) setDocuments(parsed);
+        console.log('📄 Parse edilen belgeler:', parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          documentsToLoad = parsed;
+          console.log('✅ Normal localStorage\'dan belgeler yüklendi:', parsed.length);
+        } else {
+          console.log('⚠️ Normal localStorage belgeler boş veya geçersiz array');
+        }
       } catch (error) {
-        console.log('Documents yükleme hatası:', error);
+        console.error('❌ Normal localStorage parse hatası:', error);
       }
+    }
+    
+    // Eğer normal localStorage'da veri yoksa backup'dan yükle
+    if (!documentsToLoad && backupDocs) {
+      try {
+        const parsed = JSON.parse(backupDocs);
+        console.log('📄 Backup\'dan parse edilen belgeler:', parsed);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          documentsToLoad = parsed;
+          console.log('✅ Backup localStorage\'dan belgeler yüklendi:', parsed.length);
+          
+          // Backup'dan yükledikten sonra normal localStorage'a da kaydet
+          localStorage.setItem('dm-documents', backupDocs);
+          console.log('💾 Backup veriler normal localStorage\'a kopyalandı');
+        }
+      } catch (error) {
+        console.error('❌ Backup localStorage parse hatası:', error);
+      }
+    }
+    
+    if (documentsToLoad) {
+      setDocuments(documentsToLoad);
+      console.log('✅ Belgeler state\'e yüklendi:', documentsToLoad.length);
+    } else {
+      console.log('📄 localStorage\'da hiç belge bulunamadı');
     }
 
     // Welders yükle
@@ -612,7 +658,10 @@ const DocumentManagement: React.FC = () => {
     if (savedWelders) {
       try {
         const parsed = JSON.parse(savedWelders);
-        if (Array.isArray(parsed)) setWelders(parsed);
+        if (Array.isArray(parsed)) {
+          setWelders(parsed);
+          console.log('👨‍🔧 Kaynakçılar yüklendi:', parsed.length);
+        }
       } catch (error) {
         console.log('Welders yükleme hatası:', error);
       }
@@ -623,23 +672,40 @@ const DocumentManagement: React.FC = () => {
     if (savedPersonnel) {
       try {
         const parsed = JSON.parse(savedPersonnel);
-        if (Array.isArray(parsed)) setPersonnel(parsed);
+        if (Array.isArray(parsed)) {
+          setPersonnel(parsed);
+          console.log('👥 Personel yüklendi:', parsed.length);
+        }
       } catch (error) {
         console.log('Personnel yükleme hatası:', error);
       }
     }
+    
+    // Yükleme tamamlandı
+    setDataLoaded(true);
+    console.log('✅ Tüm veriler yüklendi, localStorage kaydetme aktif edildi');
   }, []);
 
   // ✅ OTOMATIK KAYDETME - HATA YAKALAMA İLE GÜÇLENDİRİLDİ
   React.useEffect(() => {
+    // İlk yükleme tamamlanmadıysa kaydetme
+    if (!dataLoaded) {
+      console.log('⏳ Veri yüklenmedi, localStorage kaydetme bekleniyor...');
+      return;
+    }
+    
+    console.log('💾 localStorage KAYDETME tetiklendi!');
+    console.log('📊 Kaydedilecek belgeler:', documents.length);
+    console.log('📄 Belge detayları:', documents.map(d => ({ id: d.id, name: d.name })));
+    
     try {
-      console.log('💾 localStorage kaydetme tetiklendi. Belgeler:', documents.length);
-      
       const documentsData = JSON.stringify(documents);
       
       // Veri boyutunu kontrol et
       const dataSize = documentsData.length;
       const maxSize = 4 * 1024 * 1024; // 4MB limit (5MB'nin %80'i güvenlik için)
+      
+      console.log('📏 Veri boyutu:', (dataSize / 1024).toFixed(2), 'KB');
       
       if (dataSize > maxSize) {
         console.warn('⚠️ Belgeler verisi çok büyük, sadece son 20 belge saklanacak');
@@ -654,16 +720,21 @@ const DocumentManagement: React.FC = () => {
           severity: 'warning' 
         });
       } else {
+        console.log('💾 localStorage\'a kaydediliyor...');
         localStorage.setItem('dm-documents', documentsData);
         localStorage.setItem('documentManagementData', documentsData);
+        console.log('✅ localStorage\'a başarıyla kaydedildi');
       }
-      
-      console.log('✅ localStorage kaydetme tamamlandı');
       
       // Kontrolü için localStorage'dan okuma
       const saved = localStorage.getItem('dm-documents');
       const savedParsed = saved ? JSON.parse(saved) : [];
-      console.log('🔍 localStorage kontrolü - Kaydedilen belge sayısı:', savedParsed.length);
+      console.log('🔍 KONTROL - localStorage\'dan okunan belge sayısı:', savedParsed.length);
+      
+      if (savedParsed.length !== documents.length) {
+        console.error('❌ HATA: Kaydedilen belge sayısı eşleşmiyor!');
+        console.error('Bellekteki:', documents.length, 'localStorage\'daki:', savedParsed.length);
+      }
       
     } catch (error: any) {
       console.error('❌ localStorage belgeler kaydetme hatası:', error);
@@ -698,29 +769,35 @@ const DocumentManagement: React.FC = () => {
         }
       }
     }
-  }, [documents]);
+  }, [documents, dataLoaded]);
 
   React.useEffect(() => {
+    if (!dataLoaded) return;
+    
     try {
       localStorage.setItem('dm-welders', JSON.stringify(welders));
+      console.log('💾 Kaynakçılar localStorage\'a kaydedildi:', welders.length);
     } catch (error: any) {
       console.error('❌ Kaynakçılar kaydetme hatası:', error);
       if (error.name === 'QuotaExceededError') {
         clearLocalStorageIfNeeded();
       }
     }
-  }, [welders]);
+  }, [welders, dataLoaded]);
 
   React.useEffect(() => {
+    if (!dataLoaded) return;
+    
     try {
       localStorage.setItem('dm-personnel', JSON.stringify(personnel));
+      console.log('💾 Personel localStorage\'a kaydedildi:', personnel.length);
     } catch (error: any) {
       console.error('❌ Personel kaydetme hatası:', error);
       if (error.name === 'QuotaExceededError') {
         clearLocalStorageIfNeeded();
       }
     }
-  }, [personnel]);
+  }, [personnel, dataLoaded]);
 
   // ✅ BASİT FORMLAR AÇMA
   const openCreateDialog = (type: 'document' | 'welder' | 'personnel') => {
@@ -817,17 +894,31 @@ const DocumentManagement: React.FC = () => {
     console.log('💾 Yeni belge objesi oluşturuldu:', newDoc);
 
     if (editingItem) {
+      console.log('✏️ GÜNCELLEME modu - Mevcut belge:', editingItem.id);
       setDocuments(prev => {
         const updated = prev.map(doc => doc.id === editingItem.id ? newDoc : doc);
-        console.log('✏️ Belge güncellendi. Yeni liste:', updated);
+        console.log('✏️ Belge güncellendi. Önceki liste:', prev.length, 'Yeni liste:', updated.length);
+        console.log('📄 Güncellenmiş belgeler:', updated.map(d => ({ id: d.id, name: d.name })));
         return updated;
       });
       setSnackbar({ open: true, message: `${newDoc.name} güncellendi!`, severity: 'success' });
     } else {
+      console.log('➕ EKLEME modu - Yeni belge ekleniyor');
       setDocuments(prev => {
+        console.log('📊 Önceki belge sayısı:', prev.length);
         const updated = [...prev, newDoc];
-        console.log('➕ Yeni belge eklendi. Güncel liste:', updated);
-        console.log('📊 Toplam belge sayısı:', updated.length);
+        console.log('➕ Yeni belge eklendi. Güncel liste:', updated.length);
+        console.log('📄 Tüm belgeler:', updated.map(d => ({ id: d.id, name: d.name })));
+        
+        // Anında localStorage'a da kaydet (backup)
+        try {
+          const backupData = JSON.stringify(updated);
+          localStorage.setItem('dm-documents-backup', backupData);
+          console.log('💾 Backup localStorage\'a kaydedildi');
+        } catch (error) {
+          console.error('❌ Backup kaydetme hatası:', error);
+        }
+        
         return updated;
       });
       setSnackbar({ open: true, message: `${newDoc.name} eklendi!`, severity: 'success' });
@@ -1067,6 +1158,23 @@ const DocumentManagement: React.FC = () => {
             sx={{ ml: 1 }}
           >
             Temizlik
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              const backup = localStorage.getItem('dm-documents-backup');
+              const normal = localStorage.getItem('dm-documents');
+              console.log('🔍 localStorage DEBUG:');
+              console.log('Normal:', normal ? `${normal.length} chars` : 'Yok');
+              console.log('Backup:', backup ? `${backup.length} chars` : 'Yok');
+              console.log('Documents state:', documents.length);
+              alert(`Normal: ${normal ? JSON.parse(normal).length : 0} belgeler\nBackup: ${backup ? JSON.parse(backup).length : 0} belgeler\nState: ${documents.length} belgeler`);
+            }}
+            color="info"
+            size="small"
+            sx={{ ml: 1 }}
+          >
+            Debug
           </Button>
         </Box>
       </Box>
