@@ -734,6 +734,7 @@ const LOCATIONS = [
   'Planlama',
   'Proses Kalite Kontrol',
   'Satın Alma',
+  'SSH',
   'Test Sahası',
   'Tesellüm',
   'Torna'
