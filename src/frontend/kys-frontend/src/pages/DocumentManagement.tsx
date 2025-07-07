@@ -422,7 +422,7 @@ const DocumentManagement: React.FC = () => {
     reader.onload = () => {
       const base64 = reader.result as string;
       
-      setDocuments(prev => prev.map(doc => 
+      const updatedDocs = documents.map(doc => 
         doc.id === documentId 
           ? { 
               ...doc, 
@@ -431,7 +431,19 @@ const DocumentManagement: React.FC = () => {
               pdfSize: file.size
             }
           : doc
-      ));
+      );
+      
+      setDocuments(updatedDocs);
+      
+      // PDF yükleme sonrası anında kaydetme
+      try {
+        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
+        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
+        console.log('✅ PDF yükleme sonrası veriler kaydedildi');
+      } catch (error) {
+        console.error('❌ PDF yükleme sonrası kaydetme hatası:', error);
+      }
 
       setSnackbar({ open: true, message: 'PDF başarıyla yüklendi!', severity: 'success' });
       setUploadingFile(false);
@@ -472,58 +484,128 @@ const DocumentManagement: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // ✅ SADECE GERÇEK VERİ YÜKLEME - Mock veriler tamamen kaldırıldı
+  // ✅ GÜÇLENDİRİLMİŞ VERİ YÜKLEME - YEDEK KAYNAKLARDAN KURTARMA
   React.useEffect(() => {
-    // Documents yükle
-    const savedDocs = localStorage.getItem('dm-documents');
-    if (savedDocs) {
-      try {
-        const parsed = JSON.parse(savedDocs);
-        if (Array.isArray(parsed)) setDocuments(parsed);
-      } catch (error) {
-        console.log('Documents yükleme hatası:', error);
+    // Documents yükle - Çoklu kaynak kontrolü
+    const loadDocuments = () => {
+      const sources = [
+        'dm-documents',
+        'dm-documents-backup', 
+        'documentManagementData'
+      ];
+      
+      for (const source of sources) {
+        try {
+          const savedDocs = localStorage.getItem(source);
+          if (savedDocs) {
+            const parsed = JSON.parse(savedDocs);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setDocuments(parsed);
+              console.log(`✅ Belgeler ${source} kaynağından yüklendi:`, parsed.length);
+              return;
+            }
+          }
+        } catch (error) {
+          console.log(`❌ ${source} yükleme hatası:`, error);
+        }
       }
-    }
+      console.log('📄 Belge bulunamadı, boş liste başlatılıyor');
+    };
 
-    // Welders yükle
-    const savedWelders = localStorage.getItem('dm-welders');
-    if (savedWelders) {
-      try {
-        const parsed = JSON.parse(savedWelders);
-        if (Array.isArray(parsed)) setWelders(parsed);
-      } catch (error) {
-        console.log('Welders yükleme hatası:', error);
+    // Welders yükle - Çoklu kaynak kontrolü
+    const loadWelders = () => {
+      const sources = ['dm-welders', 'dm-welders-backup'];
+      
+      for (const source of sources) {
+        try {
+          const savedWelders = localStorage.getItem(source);
+          if (savedWelders) {
+            const parsed = JSON.parse(savedWelders);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setWelders(parsed);
+              console.log(`✅ Kaynakçılar ${source} kaynağından yüklendi:`, parsed.length);
+              return;
+            }
+          }
+        } catch (error) {
+          console.log(`❌ ${source} yükleme hatası:`, error);
+        }
       }
-    }
+      console.log('🔧 Kaynakçı bulunamadı, boş liste başlatılıyor');
+    };
 
-    // Personnel yükle
-    const savedPersonnel = localStorage.getItem('dm-personnel');
-    if (savedPersonnel) {
-      try {
-        const parsed = JSON.parse(savedPersonnel);
-        if (Array.isArray(parsed)) setPersonnel(parsed);
-      } catch (error) {
-        console.log('Personnel yükleme hatası:', error);
+    // Personnel yükle - Çoklu kaynak kontrolü
+    const loadPersonnel = () => {
+      const sources = ['dm-personnel', 'dm-personnel-backup'];
+      
+      for (const source of sources) {
+        try {
+          const savedPersonnel = localStorage.getItem(source);
+          if (savedPersonnel) {
+            const parsed = JSON.parse(savedPersonnel);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setPersonnel(parsed);
+              console.log(`✅ Personeller ${source} kaynağından yüklendi:`, parsed.length);
+              return;
+            }
+          }
+        } catch (error) {
+          console.log(`❌ ${source} yükleme hatası:`, error);
+        }
       }
-    }
+      console.log('👥 Personel bulunamadı, boş liste başlatılıyor');
+    };
+
+    // Tüm veri yükleme işlemlerini gerçekleştir
+    loadDocuments();
+    loadWelders();
+    loadPersonnel();
   }, []);
 
-  // ✅ OTOMATIK KAYDETME
+  // ✅ GÜÇLENDİRİLMİŞ OTOMATIK KAYDETME - VERİ KALICILIĞI GARANTİSİ
   React.useEffect(() => {
-    if (documents.length > 0) {
+    try {
+      // Ana kaydetme
       localStorage.setItem('dm-documents', JSON.stringify(documents));
+      
+      // Yedek kaydetme (güvenlik için)
+      localStorage.setItem('dm-documents-backup', JSON.stringify(documents));
+      
+      // Timestamp kaydetme
+      localStorage.setItem('dm-documents-timestamp', new Date().toISOString());
+      
+      // Başka key'lere de kaydetme (çapraz uyumluluk için)
+      localStorage.setItem('documentManagementData', JSON.stringify(documents));
+      
+      console.log('✅ Belgeler başarıyla kaydedildi:', documents.length);
+    } catch (error) {
+      console.error('❌ Belge kaydetme hatası:', error);
+      // Hata durumunda snackbar göster
+      setSnackbar({ open: true, message: 'Veriler kaydedilirken hata oluştu!', severity: 'error' });
     }
   }, [documents]);
 
   React.useEffect(() => {
-    if (welders.length > 0) {
+    try {
       localStorage.setItem('dm-welders', JSON.stringify(welders));
+      localStorage.setItem('dm-welders-backup', JSON.stringify(welders));
+      localStorage.setItem('dm-welders-timestamp', new Date().toISOString());
+      console.log('✅ Kaynakçılar başarıyla kaydedildi:', welders.length);
+    } catch (error) {
+      console.error('❌ Kaynakçı kaydetme hatası:', error);
+      setSnackbar({ open: true, message: 'Kaynakçı veriler kaydedilirken hata oluştu!', severity: 'error' });
     }
   }, [welders]);
 
   React.useEffect(() => {
-    if (personnel.length > 0) {
+    try {
       localStorage.setItem('dm-personnel', JSON.stringify(personnel));
+      localStorage.setItem('dm-personnel-backup', JSON.stringify(personnel));
+      localStorage.setItem('dm-personnel-timestamp', new Date().toISOString());
+      console.log('✅ Personeller başarıyla kaydedildi:', personnel.length);
+    } catch (error) {
+      console.error('❌ Personel kaydetme hatası:', error);
+      setSnackbar({ open: true, message: 'Personel veriler kaydedilirken hata oluştu!', severity: 'error' });
     }
   }, [personnel]);
 
@@ -599,10 +681,32 @@ const DocumentManagement: React.FC = () => {
     };
 
     if (editingItem) {
-      setDocuments(prev => prev.map(doc => doc.id === editingItem.id ? newDoc : doc));
+      const updatedDocs = documents.map(doc => doc.id === editingItem.id ? newDoc : doc);
+      setDocuments(updatedDocs);
+      
+      // Anında kaydetme
+      try {
+        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
+        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
+      } catch (error) {
+        console.error('❌ Belge güncelleme kaydetme hatası:', error);
+      }
+      
       setSnackbar({ open: true, message: `${newDoc.name} güncellendi!`, severity: 'success' });
     } else {
-      setDocuments(prev => [...prev, newDoc]);
+      const updatedDocs = [...documents, newDoc];
+      setDocuments(updatedDocs);
+      
+      // Anında kaydetme
+      try {
+        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
+        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
+      } catch (error) {
+        console.error('❌ Belge ekleme kaydetme hatası:', error);
+      }
+      
       setSnackbar({ open: true, message: `${newDoc.name} eklendi!`, severity: 'success' });
     }
 
@@ -700,11 +804,41 @@ const DocumentManagement: React.FC = () => {
 
   const handleDelete = (id: string, type: 'document' | 'welder' | 'personnel') => {
     if (type === 'document') {
-      setDocuments(prev => prev.filter(doc => doc.id !== id));
+      const updatedDocs = documents.filter(doc => doc.id !== id);
+      setDocuments(updatedDocs);
+      
+      // Anında kaydetme
+      try {
+        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
+        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
+      } catch (error) {
+        console.error('❌ Belge silme kaydetme hatası:', error);
+      }
+      
     } else if (type === 'welder') {
-      setWelders(prev => prev.filter(w => w.id !== id));
+      const updatedWelders = welders.filter(w => w.id !== id);
+      setWelders(updatedWelders);
+      
+      // Anında kaydetme
+      try {
+        localStorage.setItem('dm-welders', JSON.stringify(updatedWelders));
+        localStorage.setItem('dm-welders-backup', JSON.stringify(updatedWelders));
+      } catch (error) {
+        console.error('❌ Kaynakçı silme kaydetme hatası:', error);
+      }
+      
     } else {
-      setPersonnel(prev => prev.filter(p => p.id !== id));
+      const updatedPersonnel = personnel.filter(p => p.id !== id);
+      setPersonnel(updatedPersonnel);
+      
+      // Anında kaydetme
+      try {
+        localStorage.setItem('dm-personnel', JSON.stringify(updatedPersonnel));
+        localStorage.setItem('dm-personnel-backup', JSON.stringify(updatedPersonnel));
+      } catch (error) {
+        console.error('❌ Personel silme kaydetme hatası:', error);
+      }
     }
     setSnackbar({ open: true, message: 'Başarıyla silindi!', severity: 'success' });
   };
@@ -717,6 +851,72 @@ const DocumentManagement: React.FC = () => {
     'İSG ve Güvenlik Belgeleri',
     'Mesleki Yeterlilik Belgeleri'
   ];
+
+  // ✅ VERİ DURUMU KONTROL FONKSİYONU (DEBUG AMAÇLI)
+  const checkDataStatus = () => {
+    const sources = [
+      'dm-documents',
+      'dm-documents-backup',
+      'documentManagementData',
+      'dm-welders',
+      'dm-personnel'
+    ];
+    
+    console.log('📊 VERİ DURUMU RAPORU:');
+    sources.forEach(source => {
+      const data = localStorage.getItem(source);
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          console.log(`✅ ${source}: ${Array.isArray(parsed) ? parsed.length : 'N/A'} kayıt`);
+        } catch (error) {
+          console.log(`❌ ${source}: Parse hatası`);
+        }
+      } else {
+        console.log(`❌ ${source}: Bulunamadı`);
+      }
+    });
+    
+    setSnackbar({ 
+      open: true, 
+      message: 'Veri durumu konsola yazıldı. F12 ile Developer Console\'u açın', 
+      severity: 'info' 
+    });
+  };
+
+  // ✅ VERİ TEMİZLEME FONKSİYONU (ACİL DURUM)
+  const clearAllData = () => {
+    if (window.confirm('UYARI: Tüm belgeler, kaynakçılar ve personel bilgileri silinecek! Devam etmek istiyor musunuz?')) {
+      const sources = [
+        'dm-documents',
+        'dm-documents-backup',
+        'documentManagementData',
+        'dm-welders',
+        'dm-welders-backup',
+        'dm-personnel',
+        'dm-personnel-backup'
+      ];
+      
+      sources.forEach(source => {
+        localStorage.removeItem(source);
+      });
+      
+      // State'leri temizle
+      setDocuments([]);
+      setWelders([]);
+      setPersonnel([]);
+      
+      console.log('🧹 Tüm veriler temizlendi');
+      setSnackbar({ 
+        open: true, 
+        message: 'Tüm veriler temizlendi. Sayfa yenilendi.', 
+        severity: 'success' 
+      });
+      
+      // Sayfayı yenile
+      setTimeout(() => window.location.reload(), 1000);
+    }
+  };
 
   // ✅ FİLTRELEME VE AYIRMA
   const filteredDocuments = documents.filter(doc => 
@@ -782,6 +982,22 @@ const DocumentManagement: React.FC = () => {
             onClick={() => openCreateDialog('personnel')}
           >
             Yeni Personel
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={checkDataStatus}
+            sx={{ ml: 1, color: 'text.secondary' }}
+          >
+            Veri Durumu
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={clearAllData}
+            sx={{ ml: 1, color: 'error.main', borderColor: 'error.main', '&:hover': { borderColor: 'error.dark' } }}
+          >
+            Verileri Temizle
           </Button>
                 </Box>
                 </Box>
