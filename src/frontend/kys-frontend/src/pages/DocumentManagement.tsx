@@ -45,6 +45,7 @@ import {
   Warning as WarningIcon,
   Error as ErrorIcon,
   Close as CloseIcon,
+  CleaningServices as CleaningServicesIcon,
 } from '@mui/icons-material';
 import { useThemeContext } from '../context/ThemeContext';
 
@@ -375,7 +376,7 @@ const DocumentManagement: React.FC = () => {
   
   // Search
   const [searchTerm, setSearchTerm] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' | 'warning' });
 
   // Modal state
   const [viewModal, setViewModal] = useState(false);
@@ -401,7 +402,57 @@ const DocumentManagement: React.FC = () => {
     return { text: `${daysRemaining} gün kaldı`, color: 'success' as const };
   };
 
-  // ✅ PDF YÜKLEME VE İŞLEME FONKSİYONLARI
+  // ✅ LOCALSTORAGE KAPASİTE KONTROLÜ FONKSİYONLARI
+  const checkLocalStorageSize = () => {
+    try {
+      let total = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          total += localStorage[key].length;
+        }
+      }
+      return total;
+    } catch (error) {
+      return 0;
+    }
+  };
+
+  const clearLocalStorageIfNeeded = () => {
+    try {
+      const currentSize = checkLocalStorageSize();
+      const maxSize = 5 * 1024 * 1024; // 5MB limit
+      
+      if (currentSize > maxSize) {
+        console.log('⚠️ localStorage kapasitesi aşıldı, temizlik yapılıyor...');
+        
+        // Sadece gerekli anahtarları sakla
+        const keysToKeep = ['dm-documents', 'dm-welders', 'dm-personnel', 'documentManagementData'];
+        const dataToKeep: { [key: string]: string } = {};
+        
+        keysToKeep.forEach(key => {
+          const data = localStorage.getItem(key);
+          if (data) dataToKeep[key] = data;
+        });
+        
+        // localStorage'ı temizle
+        localStorage.clear();
+        
+        // Gerekli verileri geri yükle
+        Object.entries(dataToKeep).forEach(([key, value]) => {
+          localStorage.setItem(key, value);
+        });
+        
+        console.log('✅ localStorage temizlendi, sadece gerekli veriler saklandı');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('localStorage temizleme hatası:', error);
+      return false;
+    }
+  };
+
+  // ✅ PDF YÜKLEME VE İŞLEME FONKSİYONLARI - KAPASİTE KONTROLÜ EKLENDİ
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, documentId: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -411,8 +462,39 @@ const DocumentManagement: React.FC = () => {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      setSnackbar({ open: true, message: 'Dosya boyutu 10MB\'dan küçük olmalıdır!', severity: 'error' });
+    // ✅ Dosya boyutu limitini 2MB'a düşürdük (localStorage koruma için)
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      setSnackbar({ 
+        open: true, 
+        message: 'Dosya boyutu 2MB\'dan küçük olmalıdır! (localStorage kapasitesi koruması)', 
+        severity: 'error' 
+      });
+      return;
+    }
+
+    // ✅ localStorage kapasitesini önceden kontrol et
+    const currentSize = checkLocalStorageSize();
+    const estimatedFileSize = file.size * 1.4; // Base64 encoding yaklaşık %40 artırır
+    const maxSize = 5 * 1024 * 1024; // 5MB limit
+    
+    if (currentSize + estimatedFileSize > maxSize) {
+      setSnackbar({ 
+        open: true, 
+        message: 'localStorage kapasitesi doldu! Önce eski dosyaları silin veya temizlik yapılsın.', 
+        severity: 'warning' 
+      });
+      
+      // Otomatik temizlik öner
+      if (window.confirm('localStorage kapasitesi doldu. Gereksiz verileri temizleyip tekrar deneyelim mi?')) {
+        const cleaned = clearLocalStorageIfNeeded();
+        if (cleaned) {
+          setSnackbar({ 
+            open: true, 
+            message: 'Temizlik yapıldı! Şimdi dosyayı tekrar yüklemeyi deneyin.', 
+            severity: 'info' 
+          });
+        }
+      }
       return;
     }
 
@@ -420,25 +502,45 @@ const DocumentManagement: React.FC = () => {
     const reader = new FileReader();
     
     reader.onload = () => {
-      const base64 = reader.result as string;
-      
-      setDocuments(prev => prev.map(doc => 
-        doc.id === documentId 
-          ? { 
-              ...doc, 
-              pdfFile: base64,
-              pdfFileName: file.name,
-              pdfSize: file.size
-            }
-          : doc
-      ));
+      try {
+        const base64 = reader.result as string;
+        
+        // ✅ Kaydetme sırasında hata yakalama
+        setDocuments(prev => prev.map(doc => 
+          doc.id === documentId 
+            ? { 
+                ...doc, 
+                pdfFile: base64,
+                pdfFileName: file.name,
+                pdfSize: file.size
+              }
+            : doc
+        ));
 
-      setSnackbar({ open: true, message: 'PDF başarıyla yüklendi!', severity: 'success' });
-      setUploadingFile(false);
+        setSnackbar({ open: true, message: 'PDF başarıyla yüklendi!', severity: 'success' });
+        setUploadingFile(false);
+        
+      } catch (error: any) {
+        console.error('PDF yükleme hatası:', error);
+        
+        if (error.name === 'QuotaExceededError') {
+          setSnackbar({ 
+            open: true, 
+            message: 'localStorage kapasitesi aşıldı! Dosya çok büyük veya sistem dolu.', 
+            severity: 'error' 
+          });
+          
+          // Otomatik temizlik yap
+          clearLocalStorageIfNeeded();
+        } else {
+          setSnackbar({ open: true, message: 'Dosya yükleme hatası!', severity: 'error' });
+        }
+        setUploadingFile(false);
+      }
     };
 
     reader.onerror = () => {
-      setSnackbar({ open: true, message: 'Dosya yükleme hatası!', severity: 'error' });
+      setSnackbar({ open: true, message: 'Dosya okuma hatası!', severity: 'error' });
       setUploadingFile(false);
     };
 
@@ -525,26 +627,96 @@ const DocumentManagement: React.FC = () => {
     }
   }, []);
 
-  // ✅ OTOMATIK KAYDETME - İlk kaydetme problemini çözüldü
+  // ✅ OTOMATIK KAYDETME - HATA YAKALAMA İLE GÜÇLENDİRİLDİ
   React.useEffect(() => {
-    console.log('💾 localStorage kaydetme tetiklendi. Belgeler:', documents.length);
-    localStorage.setItem('dm-documents', JSON.stringify(documents));
-    // KPI Modülü için de kaydet (tutarlılık için)
-    localStorage.setItem('documentManagementData', JSON.stringify(documents));
-    console.log('✅ localStorage kaydetme tamamlandı');
-    
-    // Kontrolü için localStorage'dan okuma
-    const saved = localStorage.getItem('dm-documents');
-    const savedParsed = saved ? JSON.parse(saved) : [];
-    console.log('🔍 localStorage kontrolü - Kaydedilen belge sayısı:', savedParsed.length);
+    try {
+      console.log('💾 localStorage kaydetme tetiklendi. Belgeler:', documents.length);
+      
+      const documentsData = JSON.stringify(documents);
+      
+      // Veri boyutunu kontrol et
+      const dataSize = documentsData.length;
+      const maxSize = 4 * 1024 * 1024; // 4MB limit (5MB'nin %80'i güvenlik için)
+      
+      if (dataSize > maxSize) {
+        console.warn('⚠️ Belgeler verisi çok büyük, sadece son 20 belge saklanacak');
+        const reducedDocuments = documents.slice(0, 20);
+        const reducedData = JSON.stringify(reducedDocuments);
+        localStorage.setItem('dm-documents', reducedData);
+        localStorage.setItem('documentManagementData', reducedData);
+        
+        setSnackbar({ 
+          open: true, 
+          message: 'Veri boyutu çok büyük! Sadece son 20 belge saklandı.', 
+          severity: 'warning' 
+        });
+      } else {
+        localStorage.setItem('dm-documents', documentsData);
+        localStorage.setItem('documentManagementData', documentsData);
+      }
+      
+      console.log('✅ localStorage kaydetme tamamlandı');
+      
+      // Kontrolü için localStorage'dan okuma
+      const saved = localStorage.getItem('dm-documents');
+      const savedParsed = saved ? JSON.parse(saved) : [];
+      console.log('🔍 localStorage kontrolü - Kaydedilen belge sayısı:', savedParsed.length);
+      
+    } catch (error: any) {
+      console.error('❌ localStorage belgeler kaydetme hatası:', error);
+      
+      if (error.name === 'QuotaExceededError') {
+        console.log('🔄 localStorage dolu, acil temizlik yapılıyor...');
+        
+        // Acil durum temizliği
+        clearLocalStorageIfNeeded();
+        
+        // Tekrar dene - sadece en önemli belgeleri sakla
+        try {
+          const criticalDocuments = documents
+            .filter(doc => doc.status === 'active')
+            .slice(0, 10);
+          const criticalData = JSON.stringify(criticalDocuments);
+          localStorage.setItem('dm-documents', criticalData);
+          localStorage.setItem('documentManagementData', criticalData);
+          
+          setSnackbar({ 
+            open: true, 
+            message: 'localStorage doldu! Sadece kritik belgeler saklandı.', 
+            severity: 'warning' 
+          });
+        } catch (finalError) {
+          console.error('❌ Kritik belge kaydetme de başarısız:', finalError);
+          setSnackbar({ 
+            open: true, 
+            message: 'Veri kaydetme başarısız! Tarayıcı önbelleğini temizleyin.', 
+            severity: 'error' 
+          });
+        }
+      }
+    }
   }, [documents]);
 
   React.useEffect(() => {
-    localStorage.setItem('dm-welders', JSON.stringify(welders));
+    try {
+      localStorage.setItem('dm-welders', JSON.stringify(welders));
+    } catch (error: any) {
+      console.error('❌ Kaynakçılar kaydetme hatası:', error);
+      if (error.name === 'QuotaExceededError') {
+        clearLocalStorageIfNeeded();
+      }
+    }
   }, [welders]);
 
   React.useEffect(() => {
-    localStorage.setItem('dm-personnel', JSON.stringify(personnel));
+    try {
+      localStorage.setItem('dm-personnel', JSON.stringify(personnel));
+    } catch (error: any) {
+      console.error('❌ Personel kaydetme hatası:', error);
+      if (error.name === 'QuotaExceededError') {
+        clearLocalStorageIfNeeded();
+      }
+    }
   }, [personnel]);
 
   // ✅ BASİT FORMLAR AÇMA
@@ -756,6 +928,50 @@ const DocumentManagement: React.FC = () => {
     setSnackbar({ open: true, message: 'Başarıyla silindi!', severity: 'success' });
   };
 
+  // ✅ MANUEL LOCALSTORAGE TEMİZLEME FONKSİYONU
+  const handleManualCleanup = () => {
+    if (window.confirm('localStorage temizlemesi yapılacak. Bu işlem geri alınamaz ve tüm gereksiz veriler silinecek. Devam etmek istiyor musunuz?')) {
+      try {
+        const currentSize = checkLocalStorageSize();
+        const sizeMB = (currentSize / (1024 * 1024)).toFixed(2);
+        
+        console.log(`🧹 Manuel temizlik başlatıldı. Mevcut boyut: ${sizeMB}MB`);
+        
+        const cleaned = clearLocalStorageIfNeeded();
+        
+        const newSize = checkLocalStorageSize();
+        const newSizeMB = (newSize / (1024 * 1024)).toFixed(2);
+        
+        if (cleaned) {
+          setSnackbar({ 
+            open: true, 
+            message: `✅ Temizlik tamamlandı! ${sizeMB}MB → ${newSizeMB}MB`, 
+            severity: 'success' 
+          });
+        } else {
+          setSnackbar({ 
+            open: true, 
+            message: `ℹ️ Temizlik gereksizdi. Mevcut boyut: ${newSizeMB}MB`, 
+            severity: 'info' 
+          });
+        }
+        
+        // Sayfayı yenile ki yeni veriler yüklensin
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Manuel temizlik hatası:', error);
+        setSnackbar({ 
+          open: true, 
+          message: 'Temizlik sırasında hata oluştu!', 
+          severity: 'error' 
+        });
+      }
+    }
+  };
+
   // ✅ KALİTE BELGELERİ AYIRMA
   const QUALITY_CERTIFICATE_CATEGORIES = [
     'Kalite Sistem Belgeleri',
@@ -829,6 +1045,16 @@ const DocumentManagement: React.FC = () => {
             onClick={() => openCreateDialog('personnel')}
           >
             Yeni Personel
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<CleaningServicesIcon />}
+            onClick={handleManualCleanup}
+            color="warning"
+            size="small"
+            sx={{ ml: 1 }}
+          >
+            Temizlik
           </Button>
         </Box>
       </Box>
