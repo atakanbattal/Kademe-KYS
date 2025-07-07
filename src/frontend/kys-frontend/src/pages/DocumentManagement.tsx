@@ -450,6 +450,7 @@ const DocumentManagement: React.FC = () => {
     setViewModal(true);
   };
 
+  // ✅ PDF GÖRÜNTÜLEME VE İNDİRME FONKSİYONLARI - DOF8DManagement sistemi uygulandı
   const handleDownloadPDF = (doc: Document) => {
     if (!doc.pdfFile) {
       setSnackbar({ open: true, message: 'PDF dosyası yüklenememiş!', severity: 'error' });
@@ -462,6 +463,22 @@ const DocumentManagement: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    setSnackbar({ open: true, message: 'PDF dosyası indirildi!', severity: 'success' });
+  };
+
+  const handleViewPDF = (doc: Document) => {
+    if (!doc.pdfFile) {
+      setSnackbar({ open: true, message: 'PDF dosyası yüklenememiş!', severity: 'error' });
+      return;
+    }
+
+    try {
+      // PDF'i yeni sekmede aç
+      window.open(doc.pdfFile, '_blank');
+    } catch (error) {
+      setSnackbar({ open: true, message: 'PDF görüntüleme hatası!', severity: 'error' });
+    }
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -1036,13 +1053,36 @@ const DocumentManagement: React.FC = () => {
                                   <DeleteIcon />
                                 </IconButton>
                               </Box>
-                              <Button 
-                                size="small" 
-                                startIcon={<ViewIcon />}
-                                onClick={() => handleViewDocument(doc)}
-                              >
-                                Görüntüle
-                              </Button>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                {doc.pdfFile && (
+                                  <>
+                                    <Button 
+                                      size="small" 
+                                      startIcon={<ViewIcon />}
+                                      onClick={() => handleViewPDF(doc)}
+                                      color="info"
+                                    >
+                                      PDF Görüntüle
+                                    </Button>
+                                    <Button 
+                                      size="small" 
+                                      startIcon={<DownloadIcon />}
+                                      onClick={() => handleDownloadPDF(doc)}
+                                      color="success"
+                                    >
+                                      İndir
+                                    </Button>
+                                  </>
+                                )}
+                                <Button 
+                                  size="small" 
+                                  startIcon={<ViewIcon />}
+                                  onClick={() => handleViewDocument(doc)}
+                                  variant="outlined"
+                                >
+                                  Detay
+                                </Button>
+                              </Box>
                             </Box>
                           </CardContent>
                         </Card>
@@ -1108,15 +1148,27 @@ const DocumentManagement: React.FC = () => {
                           </TableCell>
                           <TableCell>{doc.effectiveDate}</TableCell>
                           <TableCell>
-                            <IconButton onClick={() => handleViewDocument(doc)} size="small" color="info">
-                              <ViewIcon />
-                            </IconButton>
-                            <IconButton onClick={() => handleEdit(doc, 'document')} size="small">
-                              <EditIcon />
-                            </IconButton>
-                            <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small">
-                              <DeleteIcon />
-                            </IconButton>
+                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                              {doc.pdfFile && (
+                                <>
+                                  <IconButton onClick={() => handleViewPDF(doc)} size="small" color="info" title="PDF Görüntüle">
+                                    <ViewIcon />
+                                  </IconButton>
+                                  <IconButton onClick={() => handleDownloadPDF(doc)} size="small" color="success" title="PDF İndir">
+                                    <DownloadIcon />
+                                  </IconButton>
+                                </>
+                              )}
+                              <IconButton onClick={() => handleViewDocument(doc)} size="small" color="primary" title="Detay Görüntüle">
+                                <ViewIcon />
+                              </IconButton>
+                              <IconButton onClick={() => handleEdit(doc, 'document')} size="small" title="Düzenle">
+                                <EditIcon />
+                              </IconButton>
+                              <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small" title="Sil">
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1690,8 +1742,19 @@ const DocumentManagement: React.FC = () => {
                         <Button
                           variant="outlined"
                           size="small"
+                          startIcon={<ViewIcon />}
+                          onClick={() => handleViewPDF(viewingDocument)}
+                          color="info"
+                          sx={{ mr: 1 }}
+                        >
+                          Görüntüle
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
                           startIcon={<DownloadIcon />}
                           onClick={() => handleDownloadPDF(viewingDocument)}
+                          color="success"
                         >
                           İndir
                         </Button>
