@@ -508,23 +508,26 @@ const DocumentManagement: React.FC = () => {
     }
   }, []);
 
-  // ✅ OTOMATIK KAYDETME
+  // ✅ OTOMATIK KAYDETME - İlk kaydetme problemini çözüldü
   React.useEffect(() => {
-    if (documents.length > 0) {
-      localStorage.setItem('dm-documents', JSON.stringify(documents));
-    }
+    console.log('💾 localStorage kaydetme tetiklendi. Belgeler:', documents.length);
+    localStorage.setItem('dm-documents', JSON.stringify(documents));
+    // KPI Modülü için de kaydet (tutarlılık için)
+    localStorage.setItem('documentManagementData', JSON.stringify(documents));
+    console.log('✅ localStorage kaydetme tamamlandı');
+    
+    // Kontrolü için localStorage'dan okuma
+    const saved = localStorage.getItem('dm-documents');
+    const savedParsed = saved ? JSON.parse(saved) : [];
+    console.log('🔍 localStorage kontrolü - Kaydedilen belge sayısı:', savedParsed.length);
   }, [documents]);
 
   React.useEffect(() => {
-    if (welders.length > 0) {
-      localStorage.setItem('dm-welders', JSON.stringify(welders));
-    }
+    localStorage.setItem('dm-welders', JSON.stringify(welders));
   }, [welders]);
 
   React.useEffect(() => {
-    if (personnel.length > 0) {
-      localStorage.setItem('dm-personnel', JSON.stringify(personnel));
-    }
+    localStorage.setItem('dm-personnel', JSON.stringify(personnel));
   }, [personnel]);
 
   // ✅ BASİT FORMLAR AÇMA
@@ -569,9 +572,24 @@ const DocumentManagement: React.FC = () => {
 
   // ✅ BASİT KAYDETME FONKSİYONLARI
   const handleSaveDocument = () => {
+    console.log('📄 Belge kaydetme başlatıldı:', documentForm);
+
     if (!documentForm.name || !documentForm.type) {
       setSnackbar({ open: true, message: 'Lütfen belge adı ve tipi doldurun!', severity: 'error' });
       return;
+    }
+
+    // Kaynakçı sertifikası için özel validasyon
+    if (DOCUMENT_TYPES['Kaynakçı Belgeleri']?.includes(documentForm.type)) {
+      if (!documentForm.welderName) {
+        setSnackbar({ open: true, message: 'Kaynakçı sertifikası için lütfen kaynakçı seçin!', severity: 'error' });
+        return;
+      }
+      console.log('👨‍🔧 Kaynakçı sertifikası kaydediliyor:', {
+        type: documentForm.type,
+        welderName: documentForm.welderName,
+        certificateNumber: documentForm.certificateNumber
+      });
     }
 
     const now = new Date().toISOString().split('T')[0];
@@ -598,15 +616,27 @@ const DocumentManagement: React.FC = () => {
       description: documentForm.description || `${documentForm.name} belgesi`
     };
 
+    console.log('💾 Yeni belge objesi oluşturuldu:', newDoc);
+
     if (editingItem) {
-      setDocuments(prev => prev.map(doc => doc.id === editingItem.id ? newDoc : doc));
+      setDocuments(prev => {
+        const updated = prev.map(doc => doc.id === editingItem.id ? newDoc : doc);
+        console.log('✏️ Belge güncellendi. Yeni liste:', updated);
+        return updated;
+      });
       setSnackbar({ open: true, message: `${newDoc.name} güncellendi!`, severity: 'success' });
     } else {
-      setDocuments(prev => [...prev, newDoc]);
+      setDocuments(prev => {
+        const updated = [...prev, newDoc];
+        console.log('➕ Yeni belge eklendi. Güncel liste:', updated);
+        console.log('📊 Toplam belge sayısı:', updated.length);
+        return updated;
+      });
       setSnackbar({ open: true, message: `${newDoc.name} eklendi!`, severity: 'success' });
     }
 
     setOpenDialog(false);
+    console.log('✅ Belge kaydetme işlemi tamamlandı');
   };
 
   const handleSaveWelder = () => {
