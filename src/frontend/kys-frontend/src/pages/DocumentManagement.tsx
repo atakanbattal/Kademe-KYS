@@ -45,7 +45,6 @@ import {
   Warning as WarningIcon,
   Error as ErrorIcon,
   Close as CloseIcon,
-  CleaningServices as CleaningServicesIcon,
 } from '@mui/icons-material';
 import { useThemeContext } from '../context/ThemeContext';
 
@@ -177,7 +176,7 @@ const DOCUMENT_TYPES = {
     'NDT Muayene Raporu',
     'Basınç Testi Raporu',
     'Kalibrmasyon Sertifikası',
-    'Test Prosedürü',
+  'Test Prosedürü',
     'Kontrol Planı',
     'FMEA (Failure Mode and Effects Analysis)',
     'SPC (Statistical Process Control) Çalışması'
@@ -186,7 +185,7 @@ const DOCUMENT_TYPES = {
     'Kalite Prosedürü',
     'İş Talimatı',
     'Kontrol Listesi',
-    'Kalite Planı',
+  'Kalite Planı',
     'Muayene ve Test Planı',
     'Ürün Spesifikasyonu',
     'Malzeme Spesifikasyonu',
@@ -228,7 +227,7 @@ const DOCUMENT_TYPES = {
 
 // ✅ DETAYLANDIRILMIŞ DEPARTMANLAR
 const DEPARTMENTS = [
-  'Kaynak Atölyesi',
+  'Kaynak Atölyesi', 
   'Kalite Kontrol',
   'Kalite Güvence',
   'Üretim',
@@ -252,8 +251,8 @@ const DEPARTMENTS = [
 
 // ✅ DETAYLANDIRILMIŞ SERTİFİKA TİPLERİ
 const CERTIFICATE_TYPES = [
-  'EN ISO 9606-1 (Çelik Kaynak)',
-  'EN ISO 9606-2 (Alüminyum Kaynak)',
+    'EN ISO 9606-1 (Çelik Kaynak)',
+    'EN ISO 9606-2 (Alüminyum Kaynak)',
   'EN ISO 9606-3 (Bakır Kaynak)',
   'EN ISO 9606-4 (Nikel Kaynak)',
   'EN ISO 14732 (Personel Kaynak)',
@@ -338,7 +337,6 @@ const DocumentManagement: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [welders, setWelders] = useState<WelderData[]>([]);
   const [personnel, setPersonnel] = useState<PersonnelData[]>([]);
-  const [dataLoaded, setDataLoaded] = useState(false);
   
   // Form states
   const [openDialog, setOpenDialog] = useState(false);
@@ -358,10 +356,7 @@ const DocumentManagement: React.FC = () => {
     customIssuingAuthority: '', // Manuel veren kuruluş girişi için
     effectiveDate: new Date().toISOString().split('T')[0],
     expiryDate: '',
-    description: '',
-    pdfFile: undefined as string | undefined,
-    pdfFileName: undefined as string | undefined,
-    pdfSize: undefined as number | undefined
+    description: ''
   });
   
   const [welderForm, setWelderForm] = useState({
@@ -380,7 +375,7 @@ const DocumentManagement: React.FC = () => {
   
   // Search
   const [searchTerm, setSearchTerm] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' | 'warning' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
 
   // Modal state
   const [viewModal, setViewModal] = useState(false);
@@ -406,57 +401,7 @@ const DocumentManagement: React.FC = () => {
     return { text: `${daysRemaining} gün kaldı`, color: 'success' as const };
   };
 
-  // ✅ LOCALSTORAGE KAPASİTE KONTROLÜ FONKSİYONLARI
-  const checkLocalStorageSize = () => {
-    try {
-      let total = 0;
-      for (let key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-          total += localStorage[key].length;
-        }
-      }
-      return total;
-    } catch (error) {
-      return 0;
-    }
-  };
-
-  const clearLocalStorageIfNeeded = () => {
-    try {
-      const currentSize = checkLocalStorageSize();
-      const maxSize = 5 * 1024 * 1024; // 5MB limit
-      
-      if (currentSize > maxSize) {
-        console.log('⚠️ localStorage kapasitesi aşıldı, temizlik yapılıyor...');
-        
-        // Sadece gerekli anahtarları sakla
-        const keysToKeep = ['dm-documents', 'dm-welders', 'dm-personnel', 'documentManagementData'];
-        const dataToKeep: { [key: string]: string } = {};
-        
-        keysToKeep.forEach(key => {
-          const data = localStorage.getItem(key);
-          if (data) dataToKeep[key] = data;
-        });
-        
-        // localStorage'ı temizle
-        localStorage.clear();
-        
-        // Gerekli verileri geri yükle
-        Object.entries(dataToKeep).forEach(([key, value]) => {
-          localStorage.setItem(key, value);
-        });
-        
-        console.log('✅ localStorage temizlendi, sadece gerekli veriler saklandı');
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('localStorage temizleme hatası:', error);
-      return false;
-    }
-  };
-
-  // 🔒 PDF YÜKLEME VE İŞLEME FONKSİYONLARI - ÇOKLU KORUMA SİSTEMİ V2.0
+  // ✅ PDF YÜKLEME VE İŞLEME FONKSİYONLARI
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, documentId: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -466,39 +411,8 @@ const DocumentManagement: React.FC = () => {
       return;
     }
 
-    // ✅ Dosya boyutu limitini 2MB'a düşürdük (localStorage koruma için)
-    if (file.size > 2 * 1024 * 1024) { // 2MB limit
-      setSnackbar({ 
-        open: true, 
-        message: 'Dosya boyutu 2MB\'dan küçük olmalıdır! (localStorage kapasitesi koruması)', 
-        severity: 'error' 
-      });
-      return;
-    }
-
-    // ✅ localStorage kapasitesini önceden kontrol et
-    const currentSize = checkLocalStorageSize();
-    const estimatedFileSize = file.size * 1.4; // Base64 encoding yaklaşık %40 artırır
-    const maxSize = 5 * 1024 * 1024; // 5MB limit
-    
-    if (currentSize + estimatedFileSize > maxSize) {
-      setSnackbar({ 
-        open: true, 
-        message: 'localStorage kapasitesi doldu! Önce eski dosyaları silin veya temizlik yapılsın.', 
-        severity: 'warning' 
-      });
-      
-      // Otomatik temizlik öner
-      if (window.confirm('localStorage kapasitesi doldu. Gereksiz verileri temizleyip tekrar deneyelim mi?')) {
-        const cleaned = clearLocalStorageIfNeeded();
-        if (cleaned) {
-          setSnackbar({ 
-            open: true, 
-            message: 'Temizlik yapıldı! Şimdi dosyayı tekrar yüklemeyi deneyin.', 
-            severity: 'info' 
-          });
-        }
-      }
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      setSnackbar({ open: true, message: 'Dosya boyutu 10MB\'dan küçük olmalıdır!', severity: 'error' });
       return;
     }
 
@@ -506,103 +420,29 @@ const DocumentManagement: React.FC = () => {
     const reader = new FileReader();
     
     reader.onload = () => {
-      try {
-        const base64 = reader.result as string;
-        
-        // 🔒 ÇOKLU KORUMA SİSTEMİ - PDF'lerin kaybolmasını önlemek için
-        let updatedDocuments: Document[] = [];
-        
-        setDocuments(prev => {
-          updatedDocuments = prev.map(doc => 
-            doc.id === documentId 
-              ? { 
-                  ...doc, 
-                  pdfFile: base64,
-                  pdfFileName: file.name,
-                  pdfSize: file.size
-                }
-              : doc
-          );
-          
-          // 🔒 ANINDA KAYDETME SİSTEMİ - useEffect'ten bağımsız
-          try {
-            const documentsData = JSON.stringify(updatedDocuments);
-            localStorage.setItem('dm-documents', documentsData);
-            localStorage.setItem('dm-documents-backup', documentsData);
-            localStorage.setItem('documentManagementData', documentsData);
-            localStorage.setItem('dm-documents-timestamp', Date.now().toString());
-            console.log('🔒 Belge PDF\'i anında localStorage\'a kaydedildi:', file.name);
-          } catch (saveError) {
-            console.error('❌ Belge PDF\'i localStorage kaydetme hatası:', saveError);
-            
-            if ((saveError as any).name === 'QuotaExceededError') {
-              setSnackbar({ 
-                open: true, 
-                message: 'localStorage kapasitesi aşıldı! Dosya kaydedilemedi.', 
-                severity: 'error' 
-              });
-              clearLocalStorageIfNeeded();
+      const base64 = reader.result as string;
+      
+      setDocuments(prev => prev.map(doc => 
+        doc.id === documentId 
+          ? { 
+              ...doc, 
+              pdfFile: base64,
+              pdfFileName: file.name,
+              pdfSize: file.size
             }
-          }
-          
-          return updatedDocuments;
-        });
+          : doc
+      ));
 
-        setSnackbar({ open: true, message: '✅ PDF başarıyla yüklendi ve kalıcı olarak kaydedildi!', severity: 'success' });
-        setUploadingFile(false);
-        
-        // 🔒 DOĞRULAMA SİSTEMİ - dosyanın gerçekten kaydedildiğini kontrol et
-        setTimeout(() => {
-          try {
-            const savedDocs = localStorage.getItem('dm-documents');
-            if (savedDocs) {
-              const parsedDocs = JSON.parse(savedDocs);
-              const targetDoc = parsedDocs.find((doc: Document) => doc.id === documentId);
-              
-              if (targetDoc && targetDoc.pdfFile && targetDoc.pdfFileName === file.name) {
-                console.log('✅ PDF kaydı doğrulandı:', file.name);
-              } else {
-                console.error('❌ PDF kaydı doğrulanamadı!');
-                setSnackbar({ 
-                  open: true, 
-                  message: '⚠️ PDF kaydı doğrulanamadı, lütfen kontrol edin!', 
-                  severity: 'warning' 
-                });
-              }
-            }
-          } catch (verificationError) {
-            console.error('❌ PDF doğrulama hatası:', verificationError);
-          }
-        }, 1000);
-        
-      } catch (error: any) {
-        console.error('PDF yükleme hatası:', error);
-        
-        if (error.name === 'QuotaExceededError') {
-          setSnackbar({ 
-            open: true, 
-            message: 'localStorage kapasitesi aşıldı! Dosya çok büyük veya sistem dolu.', 
-            severity: 'error' 
-          });
-          
-          // Otomatik temizlik yap
-          clearLocalStorageIfNeeded();
-        } else {
-          setSnackbar({ open: true, message: 'Dosya yükleme hatası!', severity: 'error' });
-        }
-        setUploadingFile(false);
-      }
+      setSnackbar({ open: true, message: 'PDF başarıyla yüklendi!', severity: 'success' });
+      setUploadingFile(false);
     };
 
     reader.onerror = () => {
-      setSnackbar({ open: true, message: 'Dosya okuma hatası!', severity: 'error' });
+      setSnackbar({ open: true, message: 'Dosya yükleme hatası!', severity: 'error' });
       setUploadingFile(false);
     };
 
     reader.readAsDataURL(file);
-    
-    // Input'u temizle
-    event.target.value = '';
   };
 
   const handleViewDocument = (doc: Document) => {
@@ -610,7 +450,6 @@ const DocumentManagement: React.FC = () => {
     setViewModal(true);
   };
 
-  // ✅ PDF GÖRÜNTÜLEME VE İNDİRME FONKSİYONLARI - DOF8DManagement sistemi uygulandı
   const handleDownloadPDF = (doc: Document) => {
     if (!doc.pdfFile) {
       setSnackbar({ open: true, message: 'PDF dosyası yüklenememiş!', severity: 'error' });
@@ -623,22 +462,6 @@ const DocumentManagement: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
-    setSnackbar({ open: true, message: 'PDF dosyası indirildi!', severity: 'success' });
-  };
-
-  const handleViewPDF = (doc: Document) => {
-    if (!doc.pdfFile) {
-      setSnackbar({ open: true, message: 'PDF dosyası yüklenememiş!', severity: 'error' });
-      return;
-    }
-
-    try {
-      // PDF'i yeni sekmede aç
-      window.open(doc.pdfFile, '_blank');
-    } catch (error) {
-      setSnackbar({ open: true, message: 'PDF görüntüleme hatası!', severity: 'error' });
-    }
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -650,70 +473,16 @@ const DocumentManagement: React.FC = () => {
   };
 
   // ✅ SADECE GERÇEK VERİ YÜKLEME - Mock veriler tamamen kaldırıldı
-  useEffect(() => {
-    console.log('🔄 DocumentManagement verileri yükleniyor...');
-    console.log('📊 localStorage boyutu:', Object.keys(localStorage).length);
-    
-    // LocalStorage'daki tüm anahtarları listele
-    const keys = Object.keys(localStorage);
-    console.log('🔑 localStorage anahtarları:', keys);
-    
+  React.useEffect(() => {
     // Documents yükle
     const savedDocs = localStorage.getItem('dm-documents');
-    const backupDocs = localStorage.getItem('dm-documents-backup');
-    console.log('📄 Raw belgeler localStorage:', savedDocs ? 'Var' : 'Yok', savedDocs?.length);
-    console.log('📄 Backup belgeler localStorage:', backupDocs ? 'Var' : 'Yok', backupDocs?.length);
-    
-    let documentsToLoad = null;
-    
-    // Önce normal localStorage'dan yükle
     if (savedDocs) {
       try {
         const parsed = JSON.parse(savedDocs);
-        console.log('📄 Parse edilen belgeler:', parsed);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          documentsToLoad = parsed;
-          console.log('✅ Normal localStorage\'dan belgeler yüklendi:', parsed.length);
-        
-        // PDF'li belge sayısını kontrol et
-        const documentsWithPDF = parsed.filter((doc: Document) => doc.pdfFile && doc.pdfFileName);
-        console.log('📄 PDF\'li belge sayısı:', documentsWithPDF.length);
-        
-        } else {
-          console.log('⚠️ Normal localStorage belgeler boş veya geçersiz array');
-        }
+        if (Array.isArray(parsed)) setDocuments(parsed);
       } catch (error) {
-        console.error('❌ Normal localStorage parse hatası:', error);
+        console.log('Documents yükleme hatası:', error);
       }
-    }
-    
-    // Eğer normal localStorage'da veri yoksa backup'dan yükle
-    if (!documentsToLoad && backupDocs) {
-      try {
-        const parsed = JSON.parse(backupDocs);
-        console.log('📄 Backup\'dan parse edilen belgeler:', parsed);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          documentsToLoad = parsed;
-          console.log('✅ Backup localStorage\'dan belgeler yüklendi:', parsed.length);
-          
-          // PDF'li belge sayısını kontrol et
-          const documentsWithPDF = parsed.filter((doc: Document) => doc.pdfFile && doc.pdfFileName);
-          console.log('📄 Backup PDF\'li belge sayısı:', documentsWithPDF.length);
-          
-          // Backup'dan yükledikten sonra normal localStorage'a da kaydet
-          localStorage.setItem('dm-documents', backupDocs);
-          console.log('💾 Backup veriler normal localStorage\'a kopyalandı');
-        }
-      } catch (error) {
-        console.error('❌ Backup localStorage parse hatası:', error);
-      }
-    }
-    
-    if (documentsToLoad) {
-      setDocuments(documentsToLoad);
-      console.log('✅ Belgeler state\'e yüklendi:', documentsToLoad.length);
-    } else {
-      console.log('📄 localStorage\'da hiç belge bulunamadı');
     }
 
     // Welders yükle
@@ -721,10 +490,7 @@ const DocumentManagement: React.FC = () => {
     if (savedWelders) {
       try {
         const parsed = JSON.parse(savedWelders);
-        if (Array.isArray(parsed)) {
-          setWelders(parsed);
-          console.log('👨‍🔧 Kaynakçılar yüklendi:', parsed.length);
-        }
+        if (Array.isArray(parsed)) setWelders(parsed);
       } catch (error) {
         console.log('Welders yükleme hatası:', error);
       }
@@ -735,132 +501,31 @@ const DocumentManagement: React.FC = () => {
     if (savedPersonnel) {
       try {
         const parsed = JSON.parse(savedPersonnel);
-        if (Array.isArray(parsed)) {
-          setPersonnel(parsed);
-          console.log('👥 Personel yüklendi:', parsed.length);
-        }
+        if (Array.isArray(parsed)) setPersonnel(parsed);
       } catch (error) {
         console.log('Personnel yükleme hatası:', error);
       }
     }
-    
-    // Yükleme tamamlandı
-    setDataLoaded(true);
-    console.log('✅ Tüm veriler yüklendi, localStorage kaydetme aktif edildi');
   }, []);
 
-  // ✅ OTOMATIK KAYDETME - HATA YAKALAMA İLE GÜÇLENDİRİLDİ
-  useEffect(() => {
-    // İlk yükleme tamamlanmadıysa kaydetme
-    if (!dataLoaded) {
-      console.log('⏳ Veri yüklenmedi, localStorage kaydetme bekleniyor...');
-      return;
+  // ✅ OTOMATIK KAYDETME
+  React.useEffect(() => {
+    if (documents.length > 0) {
+      localStorage.setItem('dm-documents', JSON.stringify(documents));
     }
-    
-    console.log('💾 localStorage KAYDETME tetiklendi!');
-    console.log('📊 Kaydedilecek belgeler:', documents.length);
-    console.log('📄 Belge detayları:', documents.map(d => ({ id: d.id, name: d.name })));
-    
-    try {
-      const documentsData = JSON.stringify(documents);
-      
-      // Veri boyutunu kontrol et
-      const dataSize = documentsData.length;
-      const maxSize = 4 * 1024 * 1024; // 4MB limit (5MB'nin %80'i güvenlik için)
-      
-      console.log('📏 Veri boyutu:', (dataSize / 1024).toFixed(2), 'KB');
-      
-      if (dataSize > maxSize) {
-        console.warn('⚠️ Belgeler verisi çok büyük, sadece son 20 belge saklanacak');
-        const reducedDocuments = documents.slice(0, 20);
-        const reducedData = JSON.stringify(reducedDocuments);
-        localStorage.setItem('dm-documents', reducedData);
-        localStorage.setItem('documentManagementData', reducedData);
-        
-        setSnackbar({ 
-          open: true, 
-          message: 'Veri boyutu çok büyük! Sadece son 20 belge saklandı.', 
-          severity: 'warning' 
-        });
-      } else {
-        console.log('💾 localStorage\'a kaydediliyor...');
-        localStorage.setItem('dm-documents', documentsData);
-        localStorage.setItem('documentManagementData', documentsData);
-        console.log('✅ localStorage\'a başarıyla kaydedildi');
-      }
-      
-      // Kontrolü için localStorage'dan okuma
-      const saved = localStorage.getItem('dm-documents');
-      const savedParsed = saved ? JSON.parse(saved) : [];
-      console.log('🔍 KONTROL - localStorage\'dan okunan belge sayısı:', savedParsed.length);
-      
-      if (savedParsed.length !== documents.length) {
-        console.error('❌ HATA: Kaydedilen belge sayısı eşleşmiyor!');
-        console.error('Bellekteki:', documents.length, 'localStorage\'daki:', savedParsed.length);
-      }
-      
-    } catch (error: any) {
-      console.error('❌ localStorage belgeler kaydetme hatası:', error);
-      
-      if (error.name === 'QuotaExceededError') {
-        console.log('🔄 localStorage dolu, acil temizlik yapılıyor...');
-        
-        // Acil durum temizliği
-        clearLocalStorageIfNeeded();
-        
-        // Tekrar dene - sadece en önemli belgeleri sakla
-        try {
-          const criticalDocuments = documents
-            .filter(doc => doc.status === 'active')
-            .slice(0, 10);
-          const criticalData = JSON.stringify(criticalDocuments);
-          localStorage.setItem('dm-documents', criticalData);
-          localStorage.setItem('documentManagementData', criticalData);
-          
-          setSnackbar({ 
-            open: true, 
-            message: 'localStorage doldu! Sadece kritik belgeler saklandı.', 
-            severity: 'warning' 
-          });
-        } catch (finalError) {
-          console.error('❌ Kritik belge kaydetme de başarısız:', finalError);
-          setSnackbar({ 
-            open: true, 
-            message: 'Veri kaydetme başarısız! Tarayıcı önbelleğini temizleyin.', 
-            severity: 'error' 
-          });
-        }
-      }
-    }
-  }, [documents, dataLoaded]);
+  }, [documents]);
 
-  useEffect(() => {
-    if (!dataLoaded) return;
-    
-    try {
+  React.useEffect(() => {
+    if (welders.length > 0) {
       localStorage.setItem('dm-welders', JSON.stringify(welders));
-      console.log('💾 Kaynakçılar localStorage\'a kaydedildi:', welders.length);
-    } catch (error: any) {
-      console.error('❌ Kaynakçılar kaydetme hatası:', error);
-      if (error.name === 'QuotaExceededError') {
-        clearLocalStorageIfNeeded();
-      }
     }
-  }, [welders, dataLoaded]);
+  }, [welders]);
 
-  useEffect(() => {
-    if (!dataLoaded) return;
-    
-    try {
+  React.useEffect(() => {
+    if (personnel.length > 0) {
       localStorage.setItem('dm-personnel', JSON.stringify(personnel));
-      console.log('💾 Personel localStorage\'a kaydedildi:', personnel.length);
-    } catch (error: any) {
-      console.error('❌ Personel kaydetme hatası:', error);
-      if (error.name === 'QuotaExceededError') {
-        clearLocalStorageIfNeeded();
-      }
     }
-  }, [personnel, dataLoaded]);
+  }, [personnel]);
 
   // ✅ BASİT FORMLAR AÇMA
   const openCreateDialog = (type: 'document' | 'welder' | 'personnel') => {
@@ -869,22 +534,19 @@ const DocumentManagement: React.FC = () => {
     
     // Form temizle
     if (type === 'document') {
-      setDocumentForm({
+    setDocumentForm({
         type: '',
-        name: '',
-        number: '',
-        unit: '',
+      name: '',
+      number: '',
+      unit: '',
         welderName: '',
         personnelName: '',
         certificateNumber: '',
         issuingAuthority: '',
         customIssuingAuthority: '',
-        effectiveDate: new Date().toISOString().split('T')[0],
+      effectiveDate: new Date().toISOString().split('T')[0],
         expiryDate: '',
-        description: '',
-        pdfFile: undefined,
-        pdfFileName: undefined,
-        pdfSize: undefined
+        description: ''
       });
     } else if (type === 'welder') {
       setWelderForm({
@@ -902,29 +564,14 @@ const DocumentManagement: React.FC = () => {
       });
     }
     
-    setOpenDialog(true);
+      setOpenDialog(true);
   };
 
   // ✅ BASİT KAYDETME FONKSİYONLARI
   const handleSaveDocument = () => {
-    console.log('📄 Belge kaydetme başlatıldı:', documentForm);
-
     if (!documentForm.name || !documentForm.type) {
       setSnackbar({ open: true, message: 'Lütfen belge adı ve tipi doldurun!', severity: 'error' });
       return;
-    }
-
-    // Kaynakçı sertifikası için özel validasyon
-    if (DOCUMENT_TYPES['Kaynakçı Belgeleri']?.includes(documentForm.type)) {
-      if (!documentForm.welderName) {
-        setSnackbar({ open: true, message: 'Kaynakçı sertifikası için lütfen kaynakçı seçin!', severity: 'error' });
-        return;
-      }
-      console.log('👨‍🔧 Kaynakçı sertifikası kaydediliyor:', {
-        type: documentForm.type,
-        welderName: documentForm.welderName,
-        certificateNumber: documentForm.certificateNumber
-      });
     }
 
     const now = new Date().toISOString().split('T')[0];
@@ -948,69 +595,18 @@ const DocumentManagement: React.FC = () => {
       expiryDate: documentForm.expiryDate,
       status: 'active',
       uploadDate: now,
-      description: documentForm.description || `${documentForm.name} belgesi`,
-      pdfFile: documentForm.pdfFile,
-      pdfFileName: documentForm.pdfFileName,
-      pdfSize: documentForm.pdfSize
+      description: documentForm.description || `${documentForm.name} belgesi`
     };
 
-    console.log('💾 Yeni belge objesi oluşturuldu:', newDoc);
-
     if (editingItem) {
-      console.log('✏️ GÜNCELLEME modu - Mevcut belge:', editingItem.id);
-      setDocuments(prev => {
-        const updated = prev.map(doc => doc.id === editingItem.id ? newDoc : doc);
-        console.log('✏️ Belge güncellendi. Önceki liste:', prev.length, 'Yeni liste:', updated.length);
-        console.log('📄 Güncellenmiş belgeler:', updated.map(d => ({ id: d.id, name: d.name })));
-        
-        // 🔒 ÇOKLU KORUMA SİSTEMİ - Güncelleme için anında localStorage'a kaydet
-        try {
-          const documentsData = JSON.stringify(updated);
-          localStorage.setItem('dm-documents', documentsData);
-          localStorage.setItem('dm-documents-backup', documentsData);
-          localStorage.setItem('documentManagementData', documentsData);
-          localStorage.setItem('dm-documents-timestamp', Date.now().toString());
-          console.log('🔒 Güncellenen belge anında localStorage\'a kaydedildi');
-        } catch (error) {
-          console.error('❌ Güncellenen belge kaydetme hatası:', error);
-          if ((error as any).name === 'QuotaExceededError') {
-            clearLocalStorageIfNeeded();
-          }
-        }
-        
-        return updated;
-      });
+      setDocuments(prev => prev.map(doc => doc.id === editingItem.id ? newDoc : doc));
       setSnackbar({ open: true, message: `${newDoc.name} güncellendi!`, severity: 'success' });
     } else {
-      console.log('➕ EKLEME modu - Yeni belge ekleniyor');
-      setDocuments(prev => {
-        console.log('📊 Önceki belge sayısı:', prev.length);
-        const updated = [...prev, newDoc];
-        console.log('➕ Yeni belge eklendi. Güncel liste:', updated.length);
-        console.log('📄 Tüm belgeler:', updated.map(d => ({ id: d.id, name: d.name })));
-        
-        // 🔒 ÇOKLU KORUMA SİSTEMİ - Anında localStorage'a kaydet
-        try {
-          const documentsData = JSON.stringify(updated);
-          localStorage.setItem('dm-documents', documentsData);
-          localStorage.setItem('dm-documents-backup', documentsData);
-          localStorage.setItem('documentManagementData', documentsData);
-          localStorage.setItem('dm-documents-timestamp', Date.now().toString());
-          console.log('🔒 Belge anında localStorage\'a kaydedildi (çoklu koruma)');
-        } catch (error) {
-          console.error('❌ Belge kaydetme hatası:', error);
-          if ((error as any).name === 'QuotaExceededError') {
-            clearLocalStorageIfNeeded();
-          }
-        }
-        
-        return updated;
-      });
+      setDocuments(prev => [...prev, newDoc]);
       setSnackbar({ open: true, message: `${newDoc.name} eklendi!`, severity: 'success' });
     }
 
     setOpenDialog(false);
-    console.log('✅ Belge kaydetme işlemi tamamlandı');
   };
 
   const handleSaveWelder = () => {
@@ -1081,10 +677,7 @@ const DocumentManagement: React.FC = () => {
         customIssuingAuthority: '',
         effectiveDate: item.effectiveDate,
         expiryDate: item.expiryDate || '',
-        description: item.description,
-        pdfFile: item.pdfFile || undefined,
-        pdfFileName: item.pdfFileName || undefined,
-        pdfSize: item.pdfSize || undefined
+        description: item.description
       });
     } else if (type === 'welder') {
       setWelderForm({
@@ -1105,110 +698,15 @@ const DocumentManagement: React.FC = () => {
     setOpenDialog(true);
   };
 
-  // 🔒 GÜVENLİ SİLME FONKSİYONU - ÇOKLU KORUMA SİSTEMİ
   const handleDelete = (id: string, type: 'document' | 'welder' | 'personnel') => {
-    try {
-      if (type === 'document') {
-        setDocuments(prev => {
-          const updated = prev.filter(doc => doc.id !== id);
-          
-          // 🔒 ÇOKLU KORUMA SİSTEMİ - Silme işlemi için anında localStorage'a kaydet
-          try {
-            const documentsData = JSON.stringify(updated);
-            localStorage.setItem('dm-documents', documentsData);
-            localStorage.setItem('dm-documents-backup', documentsData);
-            localStorage.setItem('documentManagementData', documentsData);
-            localStorage.setItem('dm-documents-timestamp', Date.now().toString());
-            console.log('🔒 Belge silme işlemi anında localStorage\'a kaydedildi');
-          } catch (saveError) {
-            console.error('❌ Belge silme işlemi localStorage kaydetme hatası:', saveError);
-            if ((saveError as any).name === 'QuotaExceededError') {
-              clearLocalStorageIfNeeded();
-            }
-          }
-          
-          return updated;
-        });
-      } else if (type === 'welder') {
-        setWelders(prev => {
-          const updated = prev.filter(w => w.id !== id);
-          
-          // Anında localStorage'a kaydet
-          try {
-            localStorage.setItem('dm-welders', JSON.stringify(updated));
-            console.log('🔒 Kaynakçı silme işlemi localStorage\'a kaydedildi');
-          } catch (saveError) {
-            console.error('❌ Kaynakçı silme işlemi kaydetme hatası:', saveError);
-          }
-          
-          return updated;
-        });
-      } else {
-        setPersonnel(prev => {
-          const updated = prev.filter(p => p.id !== id);
-          
-          // Anında localStorage'a kaydet
-          try {
-            localStorage.setItem('dm-personnel', JSON.stringify(updated));
-            console.log('🔒 Personel silme işlemi localStorage\'a kaydedildi');
-          } catch (saveError) {
-            console.error('❌ Personel silme işlemi kaydetme hatası:', saveError);
-          }
-          
-          return updated;
-        });
-      }
-      
-      setSnackbar({ open: true, message: '✅ Başarıyla silindi ve kaydedildi!', severity: 'success' });
-      
-    } catch (error) {
-      console.error('❌ Silme işlemi hatası:', error);
-      setSnackbar({ open: true, message: '❌ Silme işlemi sırasında hata oluştu!', severity: 'error' });
+    if (type === 'document') {
+      setDocuments(prev => prev.filter(doc => doc.id !== id));
+    } else if (type === 'welder') {
+      setWelders(prev => prev.filter(w => w.id !== id));
+    } else {
+      setPersonnel(prev => prev.filter(p => p.id !== id));
     }
-  };
-
-  // ✅ MANUEL LOCALSTORAGE TEMİZLEME FONKSİYONU
-  const handleManualCleanup = () => {
-    if (window.confirm('localStorage temizlemesi yapılacak. Bu işlem geri alınamaz ve tüm gereksiz veriler silinecek. Devam etmek istiyor musunuz?')) {
-      try {
-        const currentSize = checkLocalStorageSize();
-        const sizeMB = (currentSize / (1024 * 1024)).toFixed(2);
-        
-        console.log(`🧹 Manuel temizlik başlatıldı. Mevcut boyut: ${sizeMB}MB`);
-        
-        const cleaned = clearLocalStorageIfNeeded();
-        
-        const newSize = checkLocalStorageSize();
-        const newSizeMB = (newSize / (1024 * 1024)).toFixed(2);
-        
-        if (cleaned) {
-          setSnackbar({ 
-            open: true, 
-            message: `✅ Temizlik tamamlandı! ${sizeMB}MB → ${newSizeMB}MB`, 
-            severity: 'success' 
-          });
-        } else {
-          setSnackbar({ 
-            open: true, 
-            message: `ℹ️ Temizlik gereksizdi. Mevcut boyut: ${newSizeMB}MB`, 
-            severity: 'info' 
-          });
-        }
-        
-        // Sayfayı yenile ki yeni veriler yüklensin
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-        
-      } catch (error) {
-        console.error('Manuel temizlik hatası:', error);
-        setSnackbar({ 
-          open: true, 
-          message: 'Temizlik sırasında hata oluştu!', 
-          severity: 'error' 
-        });
-      }
-    }
+    setSnackbar({ open: true, message: 'Başarıyla silindi!', severity: 'success' });
   };
 
   // ✅ KALİTE BELGELERİ AYIRMA
@@ -1256,21 +754,21 @@ const DocumentManagement: React.FC = () => {
   );
 
   return (
-    <Box sx={{ p: 3 }}>
+      <Box sx={{ p: 3 }}>
       {/* Başlık ve Ana Buttonlar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" fontWeight={600} color="primary">
           Doküman Yönetimi
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => openCreateDialog('document')}
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => openCreateDialog('document')}
             sx={{ bgcolor: 'primary.main' }}
-          >
+            >
             Yeni Belge
-          </Button>
+            </Button>
           <Button
             variant="outlined"
             startIcon={<PersonIcon />}
@@ -1285,104 +783,77 @@ const DocumentManagement: React.FC = () => {
           >
             Yeni Personel
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<CleaningServicesIcon />}
-            onClick={handleManualCleanup}
-            color="warning"
-            size="small"
-            sx={{ ml: 1 }}
-          >
-            Temizlik
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={() => {
-              const backup = localStorage.getItem('dm-documents-backup');
-              const normal = localStorage.getItem('dm-documents');
-              console.log('🔍 localStorage DEBUG:');
-              console.log('Normal:', normal ? `${normal.length} chars` : 'Yok');
-              console.log('Backup:', backup ? `${backup.length} chars` : 'Yok');
-              console.log('Documents state:', documents.length);
-              alert(`Normal: ${normal ? JSON.parse(normal).length : 0} belgeler\nBackup: ${backup ? JSON.parse(backup).length : 0} belgeler\nState: ${documents.length} belgeler`);
-            }}
-            color="info"
-            size="small"
-            sx={{ ml: 1 }}
-          >
-            Debug
-          </Button>
-        </Box>
-      </Box>
+                </Box>
+                </Box>
 
       {/* İstatistikler */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+                <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <DescriptionIcon color="primary" sx={{ fontSize: 40 }} />
-                <Box>
+                    <Box>
                   <Typography variant="h4" fontWeight={700}>
                     {documents.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
                     Toplam Belge
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+                <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <PersonIcon color="success" sx={{ fontSize: 40 }} />
-                <Box>
+                    <Box>
                   <Typography variant="h4" fontWeight={700}>
                     {welders.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
                     Kaynakçı
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+                <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <VerifiedUserIcon color="warning" sx={{ fontSize: 40 }} />
-                <Box>
+                    <Box>
                   <Typography variant="h4" fontWeight={700}>
                     {personnel.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
                     Personel
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+                <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <CheckCircleIcon color="success" sx={{ fontSize: 40 }} />
-                <Box>
+                    <Box>
                   <Typography variant="h4" fontWeight={700}>
                     {documents.filter(d => d.status === 'active').length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
                     Aktif Belge
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
           </Card>
         </Grid>
       </Grid>
@@ -1390,13 +861,13 @@ const DocumentManagement: React.FC = () => {
       {/* Arama */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <TextField
-            fullWidth
+                  <TextField
+                    fullWidth
             label="Arama"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Belge adı, tipi, sertifika numarası, kaynakçı veya personel adına göre arayın..."
-            InputProps={{
+                    InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
                   <SearchIcon />
@@ -1442,191 +913,115 @@ const DocumentManagement: React.FC = () => {
                     return (
                       <Grid item xs={12} sm={6} md={4} key={doc.id}>
                         <Card 
-                          sx={{ 
-                            height: '450px', 
-                            display: 'flex',
-                            flexDirection: 'column',
+                    sx={{
+                            height: '100%', 
                             border: '1px solid #e0e0e0',
-                            '&:hover': { 
+                      '&:hover': {
                               boxShadow: 6,
                               transform: 'translateY(-2px)',
                               transition: 'all 0.2s ease-in-out'
                             }
                           }}
                         >
-                          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                            {/* Üst Kısım - Etiketler */}
+                          <CardContent>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                              <Chip 
+                              <Chip
                                 label={docCategory || 'Diğer'} 
                                 color={getCategoryColor(docCategory || '')} 
-                                size="small" 
+                                size="small"
                               />
-                              <Chip 
+                              <Chip
                                 label={doc.status === 'active' ? 'Aktif' : 'Pasif'} 
                                 color={doc.status === 'active' ? 'success' : 'default'} 
-                                size="small" 
+                                size="small"
                               />
                             </Box>
                             
-                            {/* Belge Numarası - Büyük */}
-                            <Typography 
-                              variant="h4" 
-                              sx={{ 
-                                color: 'primary.main', 
-                                fontWeight: 700, 
-                                mb: 1,
-                                textAlign: 'center'
-                              }}
-                            >
-                              {doc.number}
-                            </Typography>
-                            
-                            {/* Belge Adı */}
-                            <Typography 
-                              variant="h6" 
-                              gutterBottom 
-                              sx={{ 
-                                fontSize: '1rem', 
-                                fontWeight: 600,
-                                textAlign: 'center',
-                                mb: 2
-                              }}
-                            >
+                            <Typography variant="h6" gutterBottom sx={{ fontSize: '1rem', fontWeight: 600 }}>
                               {doc.name}
-                            </Typography>
+                      </Typography>
                             
-                            {/* Detay Bilgileri */}
-                            <Box sx={{ flexGrow: 1, mb: 2 }}>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              {doc.type}
+                      </Typography>
+                            
+                            <Box sx={{ mt: 2, mb: 2 }}>
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                <strong>Belge No:</strong> {doc.number}
+                      </Typography>
                               {doc.welderName && (
                                 <Typography variant="caption" display="block" color="text.secondary">
                                   <strong>Kaynakçı:</strong> {doc.welderName}
-                                </Typography>
+                      </Typography>
                               )}
                               {doc.personnelName && (
                                 <Typography variant="caption" display="block" color="text.secondary">
                                   <strong>Personel:</strong> {doc.personnelName}
-                                </Typography>
+                      </Typography>
                               )}
                               {doc.certificateNumber && (
                                 <Typography variant="caption" display="block" color="text.secondary">
                                   <strong>Sertifika No:</strong> {doc.certificateNumber}
-                                </Typography>
+                      </Typography>
                               )}
                               {doc.issuingAuthority && (
                                 <Typography variant="caption" display="block" color="text.secondary">
                                   <strong>Veren Kuruluş:</strong> {doc.issuingAuthority}
-                                </Typography>
+                </Typography>
                               )}
                               <Typography variant="caption" display="block" color="text.secondary">
                                 <strong>Yürürlük:</strong> {doc.effectiveDate}
-                              </Typography>
+                          </Typography>
                               {doc.expiryDate && (
                                 <Typography variant="caption" display="block" color="text.secondary">
                                   <strong>Son Geçerlilik:</strong> {doc.expiryDate}
-                                </Typography>
+                          </Typography>
                               )}
                               {doc.expiryDate && (
                                 <Box sx={{ mt: 1 }}>
                                   <Chip 
                                     label={getDaysRemainingStatus(calculateDaysRemaining(doc.expiryDate)).text}
                                     color={getDaysRemainingStatus(calculateDaysRemaining(doc.expiryDate)).color}
-                                    size="small"
+                          size="small"
                                     variant="outlined"
-                                  />
-                                </Box>
+                        />
+                      </Box>
                               )}
-                            </Box>
+                        </Box>
                             
-                            {/* Alt Kısım - Eylem Butonları */}
-                            <Box sx={{ mt: 'auto' }}>
-                              {/* İlk Satır - PDF ve Düzenleme */}
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  {doc.pdfFile && (
-                                    <Chip 
-                                      label="PDF" 
-                                      size="small" 
-                                      color="success" 
-                                      icon={<DescriptionIcon />}
-                                    />
-                                  )}
-                                </Box>
-                                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                  <IconButton onClick={() => handleEdit(doc, 'document')} size="small" color="primary">
-                                    <EditIcon />
-                                  </IconButton>
-                                  <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small" color="error">
-                                    <DeleteIcon />
-                                  </IconButton>
-                                </Box>
-                              </Box>
-                              
-                              {/* İkinci Satır - Eylem Butonları */}
-                              <Box sx={{ 
-                                display: 'flex', 
-                                gap: { xs: 0.5, sm: 1 }, 
-                                justifyContent: 'center',
-                                flexWrap: 'wrap'
-                              }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 {doc.pdfFile && (
-                                  <>
-                                    <Button 
-                                      size="small" 
-                                      startIcon={<ViewIcon />}
-                                      onClick={() => handleViewPDF(doc)}
-                                      color="info"
-                                      variant="outlined"
-                                      sx={{ 
-                                        fontSize: '0.75rem', 
-                                        minWidth: { xs: '70px', sm: '80px' },
-                                        px: { xs: 1, sm: 1.5 },
-                                        whiteSpace: 'nowrap'
-                                      }}
-                                    >
-                                      PDF Görüntüle
-                                    </Button>
-                                    <Button 
-                                      size="small" 
-                                      startIcon={<DownloadIcon />}
-                                      onClick={() => handleDownloadPDF(doc)}
-                                      color="success"
-                                      variant="outlined"
-                                      sx={{ 
-                                        fontSize: '0.75rem', 
-                                        minWidth: { xs: '50px', sm: '60px' },
-                                        px: { xs: 1, sm: 1.5 },
-                                        whiteSpace: 'nowrap'
-                                      }}
-                                    >
-                                      İndir
-                                    </Button>
-                                  </>
+                                  <Chip 
+                                    label="PDF" 
+                            size="small"
+                                    color="success" 
+                                    icon={<DescriptionIcon />}
+                                  />
                                 )}
-                                <Button 
-                                  size="small" 
-                                  startIcon={<ViewIcon />}
-                                  onClick={() => handleViewDocument(doc)}
-                                  variant="outlined"
-                                  sx={{ 
-                                    fontSize: '0.75rem', 
-                                    minWidth: { xs: '50px', sm: '60px' },
-                                    px: { xs: 1, sm: 1.5 },
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  Detay
-                                </Button>
-                              </Box>
-                            </Box>
+                                <IconButton onClick={() => handleEdit(doc, 'document')} size="small" color="primary">
+                                  <EditIcon />
+                            </IconButton>
+                                <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small" color="error">
+                                  <DeleteIcon />
+                            </IconButton>
+                        </Box>
+                              <Button 
+                          size="small"
+                                startIcon={<ViewIcon />}
+                                onClick={() => handleViewDocument(doc)}
+                              >
+                                Görüntüle
+                              </Button>
+                      </Box>
                           </CardContent>
-                        </Card>
+                    </Card>
                       </Grid>
                     );
                   })}
                 </Grid>
               </CardContent>
-            </Card>
+                    </Card>
           )}
 
           {/* Diğer Belgeler - Liste Görünümü */}
@@ -1636,11 +1031,11 @@ const DocumentManagement: React.FC = () => {
                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <DescriptionIcon color="secondary" />
                   Diğer Belgeler ({otherDocuments.length})
-                </Typography>
+            </Typography>
                 <TableContainer>
                   <Table>
-                    <TableHead>
-                      <TableRow>
+                          <TableHead>
+                            <TableRow>
                         <TableCell>Belge Adı</TableCell>
                         <TableCell>Tip</TableCell>
                         <TableCell>Numara</TableCell>
@@ -1648,17 +1043,17 @@ const DocumentManagement: React.FC = () => {
                         <TableCell>Durum</TableCell>
                         <TableCell>Tarih</TableCell>
                         <TableCell>İşlemler</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
                       {otherDocuments.map((doc) => (
                         <TableRow key={doc.id}>
                           <TableCell>{doc.name}</TableCell>
-                          <TableCell>
+                                <TableCell>
                             <Chip label={doc.type} size="small" />
-                          </TableCell>
+                                </TableCell>
                           <TableCell>{doc.number}</TableCell>
-                          <TableCell>
+                                <TableCell>
                             {doc.pdfFile ? (
                               <Chip 
                                 label="Yüklendi" 
@@ -1673,43 +1068,31 @@ const DocumentManagement: React.FC = () => {
                                 color="default"
                               />
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
+                                </TableCell>
+                                <TableCell>
+                                  <Chip 
                               label={doc.status === 'active' ? 'Aktif' : 'Pasif'} 
                               color={doc.status === 'active' ? 'success' : 'default'} 
-                              size="small" 
-                            />
-                          </TableCell>
+                                    size="small" 
+                                  />
+                                </TableCell>
                           <TableCell>{doc.effectiveDate}</TableCell>
                           <TableCell>
-                            <Box sx={{ display: 'flex', gap: 0.5 }}>
-                              {doc.pdfFile && (
-                                <>
-                                  <IconButton onClick={() => handleViewPDF(doc)} size="small" color="info" title="PDF Görüntüle">
-                                    <ViewIcon />
-                                  </IconButton>
-                                  <IconButton onClick={() => handleDownloadPDF(doc)} size="small" color="success" title="PDF İndir">
-                                    <DownloadIcon />
-                                  </IconButton>
-                                </>
-                              )}
-                              <IconButton onClick={() => handleViewDocument(doc)} size="small" color="primary" title="Detay Görüntüle">
-                                <ViewIcon />
-                              </IconButton>
-                              <IconButton onClick={() => handleEdit(doc, 'document')} size="small" title="Düzenle">
-                                <EditIcon />
-                              </IconButton>
-                              <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small" title="Sil">
-                                <DeleteIcon />
-                              </IconButton>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                            <IconButton onClick={() => handleViewDocument(doc)} size="small" color="info">
+                              <ViewIcon />
+                                      </IconButton>
+                            <IconButton onClick={() => handleEdit(doc, 'document')} size="small">
+                              <EditIcon />
+                                      </IconButton>
+                            <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small">
+                              <DeleteIcon />
+                                      </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
               </CardContent>
             </Card>
           )}
@@ -1724,7 +1107,7 @@ const DocumentManagement: React.FC = () => {
               </CardContent>
             </Card>
           )}
-        </Box>
+                  </Box>
       )}
 
       {/* Kaynakçılar Tabı */}
@@ -1740,36 +1123,36 @@ const DocumentManagement: React.FC = () => {
               </Alert>
             ) : (
               <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
+                      <Table>
+                        <TableHead>
+                          <TableRow>
                       <TableCell>Ad Soyad</TableCell>
                       <TableCell>Sicil No</TableCell>
                       <TableCell>Departman</TableCell>
                       <TableCell>Pozisyon</TableCell>
                       <TableCell>İşlemler</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
                     {filteredWelders.map((welder) => (
                       <TableRow key={welder.id}>
                         <TableCell>{welder.name}</TableCell>
                         <TableCell>{welder.registrationNo}</TableCell>
                         <TableCell>{welder.department}</TableCell>
                         <TableCell>{welder.position}</TableCell>
-                        <TableCell>
+                              <TableCell>
                           <IconButton onClick={() => handleEdit(welder, 'welder')} size="small">
                             <EditIcon />
                           </IconButton>
                           <IconButton onClick={() => handleDelete(welder.id, 'welder')} size="small">
                             <DeleteIcon />
                           </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
             )}
           </CardContent>
         </Card>
@@ -1781,7 +1164,7 @@ const DocumentManagement: React.FC = () => {
           <CardContent>
             <Typography variant="h6" gutterBottom>
               Personel ({filteredPersonnel.length})
-            </Typography>
+                    </Typography>
             {filteredPersonnel.length === 0 ? (
               <Alert severity="info">
                 Henüz personel eklenmemiş. "Yeni Personel" butonunu kullanarak personel ekleyebilirsiniz.
@@ -1789,37 +1172,37 @@ const DocumentManagement: React.FC = () => {
             ) : (
               <TableContainer>
                 <Table>
-                  <TableHead>
-                    <TableRow>
+                        <TableHead>
+                          <TableRow>
                       <TableCell>Ad Soyad</TableCell>
                       <TableCell>Sicil No</TableCell>
                       <TableCell>Departman</TableCell>
                       <TableCell>Pozisyon</TableCell>
                       <TableCell>İşlemler</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
                     {filteredPersonnel.map((person) => (
                       <TableRow key={person.id}>
                         <TableCell>{person.name}</TableCell>
                         <TableCell>{person.registrationNo}</TableCell>
                         <TableCell>{person.department}</TableCell>
                         <TableCell>{person.position}</TableCell>
-                        <TableCell>
+                              <TableCell>
                           <IconButton onClick={() => handleEdit(person, 'personnel')} size="small">
                             <EditIcon />
                           </IconButton>
                           <IconButton onClick={() => handleDelete(person.id, 'personnel')} size="small">
                             <DeleteIcon />
                           </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
             )}
-          </CardContent>
+                </CardContent>
         </Card>
       )}
 
@@ -1832,7 +1215,7 @@ const DocumentManagement: React.FC = () => {
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12} sm={6}>
               <Autocomplete
-                fullWidth
+          fullWidth
                 options={ALL_DOCUMENT_TYPES}
                 groupBy={(option) => option.group}
                 getOptionLabel={(option) => option.label}
@@ -1861,43 +1244,43 @@ const DocumentManagement: React.FC = () => {
                       }}
                     >
                       {params.group}
-                    </Typography>
+                </Typography>
                     {params.children}
                   </Box>
                 )}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+                  <TextField
+                    fullWidth
                 required
                 label="Belge Adı"
                 value={documentForm.name}
-                onChange={(e) => setDocumentForm(prev => ({ ...prev, name: e.target.value }))}
-              />
+                    onChange={(e) => setDocumentForm(prev => ({ ...prev, name: e.target.value }))}
+                  />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+                  <TextField
+                    fullWidth
                 label="Belge Numarası"
                 value={documentForm.number}
-                onChange={(e) => setDocumentForm(prev => ({ ...prev, number: e.target.value }))}
+                    onChange={(e) => setDocumentForm(prev => ({ ...prev, number: e.target.value }))}
                 placeholder="Otomatik oluşturulacak"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>Birim</InputLabel>
-                <Select
+                    <Select
                   value={documentForm.unit}
-                  onChange={(e) => setDocumentForm(prev => ({ ...prev, unit: e.target.value }))}
+                      onChange={(e) => setDocumentForm(prev => ({ ...prev, unit: e.target.value }))}
                   label="Birim"
-                >
+                    >
                   {UNIT_OPTIONS.map((unit) => (
-                    <MenuItem key={unit} value={unit}>{unit}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                        <MenuItem key={unit} value={unit}>{unit}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
             </Grid>
 
             {/* Kaynakçı Sertifikaları için özel alanlar */}
@@ -1905,34 +1288,34 @@ const DocumentManagement: React.FC = () => {
               <>
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
-                    <InputLabel>Kaynakçı Seçimi</InputLabel>
-                    <Select
+                            <InputLabel>Kaynakçı Seçimi</InputLabel>
+                            <Select
                       value={documentForm.welderName}
                       onChange={(e) => setDocumentForm(prev => ({ ...prev, welderName: e.target.value }))}
-                      label="Kaynakçı Seçimi"
-                    >
+                              label="Kaynakçı Seçimi"
+                            >
                       {welders.length === 0 && (
                         <MenuItem disabled value="">Önce kaynakçı ekleyin</MenuItem>
                       )}
                       {welders.map((welder) => (
                         <MenuItem key={welder.id} value={welder.name}>
                           {welder.name} - {welder.registrationNo}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Sertifika Numarası"
+                          <TextField
+                            fullWidth
+                            label="Sertifika Numarası"
                     value={documentForm.certificateNumber}
-                    onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
                   />
                 </Grid>
-              </>
-            )}
-
+                        </>
+                      )}
+                      
             {/* Personel belgeleri için özel alanlar */}
             {(DOCUMENT_TYPES['NDT Personel Belgeleri']?.includes(documentForm.type) ||
               DOCUMENT_TYPES['İSG ve Güvenlik Belgeleri']?.includes(documentForm.type) ||
@@ -1941,60 +1324,60 @@ const DocumentManagement: React.FC = () => {
               <>
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
-                    <InputLabel>Personel Seçimi</InputLabel>
-                    <Select
+                            <InputLabel>Personel Seçimi</InputLabel>
+                            <Select
                       value={documentForm.personnelName}
                       onChange={(e) => setDocumentForm(prev => ({ ...prev, personnelName: e.target.value }))}
-                      label="Personel Seçimi"
-                    >
+                              label="Personel Seçimi"
+                            >
                       {personnel.length === 0 && (
                         <MenuItem disabled value="">Önce personel ekleyin</MenuItem>
                       )}
                       {personnel.map((person) => (
                         <MenuItem key={person.id} value={person.name}>
                           {person.name} - {person.registrationNo}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Sertifika Numarası"
+                          <TextField
+                            fullWidth
+                            label="Sertifika Numarası"
                     value={documentForm.certificateNumber}
-                    onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
+                            onChange={(e) => setDocumentForm(prev => ({ ...prev, certificateNumber: e.target.value }))}
                   />
                 </Grid>
-              </>
-            )}
-
+                        </>
+                      )}
+                      
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>Veren Kuruluş</InputLabel>
-                <Select
+                            <Select
                   value={documentForm.issuingAuthority}
-                  onChange={(e) => {
-                    setDocumentForm(prev => ({ 
-                      ...prev, 
+                              onChange={(e) => {
+                                setDocumentForm(prev => ({ 
+                                  ...prev, 
                       issuingAuthority: e.target.value,
                       customIssuingAuthority: e.target.value === 'Diğer Kuruluş' ? prev.customIssuingAuthority : ''
-                    }));
-                  }}
+                                }));
+                              }}
                   label="Veren Kuruluş"
                 >
                   {ISSUING_AUTHORITIES.map((authority) => (
                     <MenuItem key={authority} value={authority}>{authority}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                              ))}
+                            </Select>
+                          </FormControl>
             </Grid>
             
             {/* Manuel Veren Kuruluş Girişi */}
             {documentForm.issuingAuthority === 'Diğer Kuruluş' && (
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
+                          <TextField
+                            fullWidth
                   required
                   label="Veren Kuruluş Adı"
                   value={documentForm.customIssuingAuthority}
@@ -2004,8 +1387,8 @@ const DocumentManagement: React.FC = () => {
               </Grid>
             )}
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+                          <TextField
+                            fullWidth
                 type="date"
                 label="Yürürlük Tarihi"
                 value={documentForm.effectiveDate}
@@ -2014,8 +1397,8 @@ const DocumentManagement: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+                          <TextField
+                            fullWidth
                 type="date"
                 label="Son Geçerlilik Tarihi"
                 value={documentForm.expiryDate}
@@ -2024,8 +1407,8 @@ const DocumentManagement: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
+                          <TextField
+                            fullWidth
                 multiline
                 rows={3}
                 label="Açıklama"
@@ -2033,151 +1416,6 @@ const DocumentManagement: React.FC = () => {
                 onChange={(e) => setDocumentForm(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Belge hakkında açıklama..."
               />
-            </Grid>
-            
-            {/* PDF Yükleme Bölümü */}
-            <Grid item xs={12}>
-              <Box sx={{ mt: 2, p: 2, border: '1px dashed #ccc', borderRadius: 1 }}>
-                <Typography variant="h6" gutterBottom>
-                  PDF Dosyası
-                </Typography>
-                
-                {editingItem?.pdfFile ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <DescriptionIcon color="error" />
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="body2" fontWeight={600}>
-                        {editingItem.pdfFileName || 'Mevcut PDF'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {editingItem.pdfSize && formatFileSize(editingItem.pdfSize)}
-                      </Typography>
-                    </Box>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<ViewIcon />}
-                      onClick={() => handleViewPDF(editingItem)}
-                      color="info"
-                      sx={{ mr: 1 }}
-                    >
-                      Görüntüle
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<DownloadIcon />}
-                      onClick={() => handleDownloadPDF(editingItem)}
-                      color="success"
-                      sx={{ mr: 1 }}
-                    >
-                      İndir
-                    </Button>
-                    <input
-                      accept="application/pdf"
-                      style={{ display: 'none' }}
-                      id={`dialog-upload-button-${editingItem.id}`}
-                      type="file"
-                      onChange={(e) => handleFileUpload(e, editingItem.id)}
-                    />
-                    <label htmlFor={`dialog-upload-button-${editingItem.id}`}>
-                      <Button variant="outlined" size="small" component="span" disabled={uploadingFile}>
-                        {uploadingFile ? 'Yükleniyor...' : 'Değiştir'}
-                      </Button>
-                    </label>
-                  </Box>
-                ) : (
-                  <Box sx={{ textAlign: 'center', py: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Henüz PDF dosyası yüklenmemiş
-                    </Typography>
-                    <input
-                      accept="application/pdf"
-                      style={{ display: 'none' }}
-                      id={`dialog-upload-button-new`}
-                      type="file"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-
-                        if (file.type !== 'application/pdf') {
-                          setSnackbar({ open: true, message: 'Sadece PDF dosyaları yüklenebilir!', severity: 'error' });
-                          return;
-                        }
-
-                        if (file.size > 2 * 1024 * 1024) {
-                          setSnackbar({ 
-                            open: true, 
-                            message: 'Dosya boyutu 2MB\'dan küçük olmalıdır!', 
-                            severity: 'error' 
-                          });
-                          return;
-                        }
-
-                        setUploadingFile(true);
-                        const reader = new FileReader();
-                        
-                        reader.onload = () => {
-                          const base64 = reader.result as string;
-                          setDocumentForm(prev => ({ 
-                            ...prev, 
-                            pdfFile: base64,
-                            pdfFileName: file.name,
-                            pdfSize: file.size
-                          }));
-                          setSnackbar({ open: true, message: 'PDF başarıyla yüklendi!', severity: 'success' });
-                          setUploadingFile(false);
-                        };
-
-                        reader.onerror = () => {
-                          setSnackbar({ open: true, message: 'Dosya okuma hatası!', severity: 'error' });
-                          setUploadingFile(false);
-                        };
-
-                        reader.readAsDataURL(file);
-                      }}
-                    />
-                    <label htmlFor={`dialog-upload-button-new`}>
-                      <Button 
-                        variant="contained" 
-                        component="span" 
-                        startIcon={<AddIcon />}
-                        disabled={uploadingFile}
-                      >
-                        {uploadingFile ? 'Yükleniyor...' : 'PDF Yükle'}
-                      </Button>
-                    </label>
-                    {documentForm.pdfFile && (
-                      <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <DescriptionIcon color="success" />
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="body2" fontWeight={600}>
-                            {documentForm.pdfFileName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {documentForm.pdfSize && formatFileSize(documentForm.pdfSize)}
-                          </Typography>
-                        </Box>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => {
-                            setDocumentForm(prev => ({ 
-                              ...prev, 
-                              pdfFile: undefined,
-                              pdfFileName: undefined,
-                              pdfSize: undefined
-                            }));
-                          }}
-                          color="error"
-                        >
-                          Sil
-                        </Button>
-                      </Box>
-                    )}
-                  </Box>
-                )}
-              </Box>
             </Grid>
           </Grid>
         </DialogContent>
@@ -2197,8 +1435,8 @@ const DocumentManagement: React.FC = () => {
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
+                          <TextField
+                            fullWidth
                 required
                 label="Ad Soyad"
                 value={welderForm.name}
@@ -2215,22 +1453,22 @@ const DocumentManagement: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
+                          <FormControl fullWidth>
                 <InputLabel>Departman</InputLabel>
-                <Select
+                            <Select
                   value={welderForm.department}
                   onChange={(e) => setWelderForm(prev => ({ ...prev, department: e.target.value }))}
                   label="Departman"
                 >
                   {DEPARTMENTS.map((dept) => (
                     <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                              ))}
+                            </Select>
+                          </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+                          <TextField
+                            fullWidth
                 label="Pozisyon"
                 value={welderForm.position}
                 onChange={(e) => setWelderForm(prev => ({ ...prev, position: e.target.value }))}
@@ -2255,8 +1493,8 @@ const DocumentManagement: React.FC = () => {
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
+                          <TextField
+                            fullWidth
                 required
                 label="Ad Soyad"
                 value={personnelForm.name}
@@ -2264,8 +1502,8 @@ const DocumentManagement: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+                          <TextField
+                            fullWidth
                 required
                 label="Sicil Numarası"
                 value={personnelForm.registrationNo}
@@ -2273,9 +1511,9 @@ const DocumentManagement: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
+                          <FormControl fullWidth>
                 <InputLabel>Departman</InputLabel>
-                <Select
+                            <Select
                   value={personnelForm.department}
                   onChange={(e) => setPersonnelForm(prev => ({ ...prev, department: e.target.value }))}
                   label="Departman"
@@ -2283,12 +1521,12 @@ const DocumentManagement: React.FC = () => {
                   {DEPARTMENTS.map((dept) => (
                     <MenuItem key={dept} value={dept}>{dept}</MenuItem>
                   ))}
-                </Select>
-              </FormControl>
+                            </Select>
+                          </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+                <TextField
+                  fullWidth
                 label="Pozisyon"
                 value={personnelForm.position}
                 onChange={(e) => setPersonnelForm(prev => ({ ...prev, position: e.target.value }))}
@@ -2296,43 +1534,43 @@ const DocumentManagement: React.FC = () => {
               />
             </Grid>
           </Grid>
-        </DialogContent>
+          </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>İptal</Button>
           <Button onClick={handleSavePersonnel} variant="contained">
             {editingItem ? 'Güncelle' : 'Kaydet'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            </Button>
+          </DialogActions>
+        </Dialog>
 
       {/* Modal - Belge Görüntüleme */}
-      <Dialog 
+        <Dialog
         open={viewModal} 
         onClose={() => setViewModal(false)} 
-        maxWidth="md" 
+          maxWidth="md"
         fullWidth
       >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6">
             {viewingDocument?.name}
-          </Typography>
+                    </Typography>
           <IconButton onClick={() => setViewModal(false)} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent>
           {viewingDocument && (
-            <Box>
+                      <Box>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
                     <strong>Belge Tipi:</strong> {viewingDocument.type}
-                  </Typography>
+                    </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
                     <strong>Belge Numarası:</strong> {viewingDocument.number}
-                  </Typography>
+                      </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
@@ -2355,7 +1593,7 @@ const DocumentManagement: React.FC = () => {
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">
                       <strong>Personel:</strong> {viewingDocument.personnelName}
-                    </Typography>
+                      </Typography>
                   </Grid>
                 )}
                 {viewingDocument.certificateNumber && (
@@ -2375,30 +1613,30 @@ const DocumentManagement: React.FC = () => {
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
                     <strong>Yürürlük Tarihi:</strong> {viewingDocument.effectiveDate}
-                  </Typography>
+                    </Typography>
                 </Grid>
                 {viewingDocument.expiryDate && (
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">
                       <strong>Son Geçerlilik:</strong> {viewingDocument.expiryDate}
-                    </Typography>
+                        </Typography>
                   </Grid>
                 )}
                 {viewingDocument.expiryDate && (
                   <Grid item xs={12}>
                     <Box sx={{ mt: 1 }}>
-                      <Chip 
+                        <Chip
                         label={getDaysRemainingStatus(calculateDaysRemaining(viewingDocument.expiryDate)).text}
                         color={getDaysRemainingStatus(calculateDaysRemaining(viewingDocument.expiryDate)).color}
-                        size="small"
-                      />
-                    </Box>
+                          size="small"
+                        />
+                      </Box>
                   </Grid>
                 )}
                 <Grid item xs={12}>
                   <Typography variant="body2" color="text.secondary">
                     <strong>Açıklama:</strong> {viewingDocument.description}
-                  </Typography>
+                    </Typography>
                 </Grid>
                 
                 {/* PDF Yükleme Bölümü */}
@@ -2414,30 +1652,19 @@ const DocumentManagement: React.FC = () => {
                         <Box sx={{ flexGrow: 1 }}>
                           <Typography variant="body2" fontWeight={600}>
                             {viewingDocument.pdfFileName}
-                          </Typography>
+                      </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {viewingDocument.pdfSize && formatFileSize(viewingDocument.pdfSize)}
-                          </Typography>
-                        </Box>
-                        <Button
+                    </Typography>
+                      </Box>
+                <Button 
                           variant="outlined"
                           size="small"
-                          startIcon={<ViewIcon />}
-                          onClick={() => handleViewPDF(viewingDocument)}
-                          color="info"
-                          sx={{ mr: 1 }}
-                        >
-                          Görüntüle
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<DownloadIcon />}
+                  startIcon={<DownloadIcon />} 
                           onClick={() => handleDownloadPDF(viewingDocument)}
-                          color="success"
-                        >
-                          İndir
-                        </Button>
+                >
+                  İndir
+                </Button>
                         <input
                           accept="application/pdf"
                           style={{ display: 'none' }}
@@ -2450,7 +1677,7 @@ const DocumentManagement: React.FC = () => {
                             {uploadingFile ? 'Yükleniyor...' : 'Değiştir'}
                           </Button>
                         </label>
-                      </Box>
+                </Box>
                     ) : (
                       <Box sx={{ textAlign: 'center', py: 2 }}>
                         <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -2464,28 +1691,28 @@ const DocumentManagement: React.FC = () => {
                           onChange={(e) => handleFileUpload(e, viewingDocument.id)}
                         />
                         <label htmlFor={`upload-button-${viewingDocument.id}`}>
-                          <Button 
-                            variant="contained" 
+            <Button 
+              variant="contained" 
                             component="span" 
-                            startIcon={<AddIcon />}
+              startIcon={<AddIcon />}
                             disabled={uploadingFile}
-                          >
+            >
                             {uploadingFile ? 'Yükleniyor...' : 'PDF Yükle'}
-                          </Button>
+            </Button>
                         </label>
-                      </Box>
+          </Box>
                     )}
-                  </Box>
+          </Box>
                 </Grid>
               </Grid>
-            </Box>
+          </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewModal(false)}>Kapat</Button>
           <Button 
             onClick={() => handleEdit(viewingDocument, 'document')} 
-            variant="contained"
+            variant="contained" 
             startIcon={<EditIcon />}
           >
             Düzenle

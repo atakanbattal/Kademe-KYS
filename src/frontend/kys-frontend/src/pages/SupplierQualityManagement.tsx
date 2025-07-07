@@ -593,26 +593,17 @@ const SupplierQualityManagement: React.FC = () => {
     }
   }, [defects, dataLoaded]);
 
-  // 🔥 ACİL KORUMA SİSTEMİ - Audits değiştiğinde ANINDA kaydet
+  // Audits değiştiğinde otomatik kaydet
   useEffect(() => {
-    if (dataLoaded && audits.length > 0) {
+    if (dataLoaded) {
       try {
-        const auditsData = JSON.stringify(audits);
-        localStorage.setItem('supplier-audits', auditsData);
-        localStorage.setItem('supplier-audits-backup', auditsData);
-        localStorage.setItem('supplier-audits-emergency', auditsData);
-        localStorage.setItem('supplier-audits-timestamp', Date.now().toString());
-        
-        // PDF sayısını kontrol et
-        const totalPDFs = audits.reduce((count, audit) => 
-          count + (audit.attachments?.length || 0), 0);
-        
-        console.log('🔥 ANINDA KORUMA - Audits localStorage\'a kaydedildi:', audits.length, 'audit,', totalPDFs, 'PDF');
+        localStorage.setItem('supplier-audits', JSON.stringify(audits));
+        console.log('✅ Audits otomatik localStorage\'a kaydedildi');
       } catch (error) {
-        console.error('❌ ANINDA KORUMA - Audits localStorage kaydetme hatası:', error);
+        console.error('❌ Audits localStorage kaydetme hatası:', error);
       }
     }
-  }, [audits, dataLoaded]); // dataLoaded dependency'si geri eklendi
+  }, [audits, dataLoaded]);
 
   // MANUEL KAYDETME FONKSİYONLARI - Acil durum için
   const saveToLocalStorage = () => {
@@ -691,74 +682,11 @@ const SupplierQualityManagement: React.FC = () => {
         }
       }
       
-      // 🔥 ACİL KURTARMA SİSTEMİ - DENETİM VERİLERİ YÜKLEME V3.0 
       if (storedAudits && storedAudits !== 'null' && storedAudits !== '[]') {
-        try {
-          const parsedAudits = JSON.parse(storedAudits);
-          if (parsedAudits.length > 0) {
-            // Dosya bütünlüğü kontrolü
-            const totalFiles = parsedAudits.reduce((count: number, audit: AuditRecord) => 
-              count + (audit.attachments ? audit.attachments.length : 0), 0);
-            
-            setAudits(parsedAudits);
-            console.log('✅ Denetim verileri localStorage\'dan yüklendi:', parsedAudits.length, 'kayıt,', totalFiles, 'dosya');
-            
-            // 🔥 ACİL KURTARMA - Dosya kayıplarını engelle
-            if (totalFiles === 0) {
-              console.log('⚠️ PDF dosyası bulunamadı, backup\'ları kontrol ediliyor...');
-              
-              // Backup kontrol sırası
-              const backupSources = [
-                'supplier-audits-backup',
-                'supplier-audits-emergency', 
-                'supplier-audits-timestamp-backup'
-              ];
-              
-              let recovered = false;
-              
-              for (const source of backupSources) {
-                const backupData = localStorage.getItem(source);
-                if (backupData && backupData !== 'null' && backupData !== '[]') {
-                  try {
-                    const parsedBackup = JSON.parse(backupData);
-                    const backupFiles = parsedBackup.reduce((count: number, audit: AuditRecord) => 
-                      count + (audit.attachments ? audit.attachments.length : 0), 0);
-                    
-                    if (backupFiles > 0) {
-                      setAudits(parsedBackup);
-                      console.log('🔥 ACİL KURTARMA - Dosyalar', source, 'kaynaðından yüklendi:', parsedBackup.length, 'kayıt,', backupFiles, 'dosya');
-                      recovered = true;
-                      break;
-                    }
-                  } catch (backupError) {
-                    console.error('❌ Backup kaynağı bozuk:', source, backupError);
-                    continue;
-                  }
-                }
-              }
-              
-              if (!recovered) {
-                console.log('⚠️ Hiçbir backup\'ta dosya bulunamadı!');
-              }
-            }
-          }
-        } catch (parseError) {
-          console.error('❌ Denetim verileri parse hatası:', parseError);
-          
-          // 🔥 ACİL KURTARMA - Backup sistemini devreye sok
-          const emergencyBackup = localStorage.getItem('supplier-audits-emergency');
-          if (emergencyBackup) {
-            try {
-              const parsedEmergency = JSON.parse(emergencyBackup);
-              setAudits(parsedEmergency);
-              console.log('🔥 ACİL KURTARMA - Emergency backup\'tan yüklendi:', parsedEmergency.length, 'kayıt');
-            } catch (emergencyError) {
-              console.error('❌ Emergency backup da bozuk:', emergencyError);
-              setAudits([]);
-            }
-          } else {
-            setAudits([]);
-          }
+        const parsedAudits = JSON.parse(storedAudits);
+        if (parsedAudits.length > 0) {
+          setAudits(parsedAudits);
+          console.log('✅ Denetim verileri localStorage\'dan yüklendi:', parsedAudits.length, 'kayıt');
         }
       }
       
@@ -1531,39 +1459,15 @@ const SupplierQualityManagement: React.FC = () => {
     }
   };
 
-  // 🔥 ULTRA CACHE TEMİZLEME FONKSİYONU - EMERGENCY BACKUP'LAR DAHİL
+  // Cache temizleme fonksiyonu
   const clearSupplierCache = () => {
     try {
-      // Ana verileri temizle
-      const mainKeys = [
-        'suppliers',
-        'supplier-nonconformities',
-        'supplier-defects',
-        'supplier-pairs',
-        'supplier-audits'
-      ];
-      
-      // Backup verilerini temizle
-      const backupKeys = [
-        'suppliers-backup',
-        'supplier-pairs-backup',
-        'supplier-audits-backup',
-        'supplier-audits-emergency',
-        'supplier-audits-timestamp',
-        'supplier-audits-last-upload',
-        'supplier-audits-last-delete',
-        'supplier-audits-timestamp-backup',
-        'suppliers-timestamp',
-        'supplier-pairs-timestamp'
-      ];
-      
-      // Hepsini temizle
-      [...mainKeys, ...backupKeys].forEach(key => {
-        localStorage.removeItem(key);
-        console.log('🗑️ Temizlendi:', key);
-      });
-      
-      console.log('🔥 ULTRA CACHE - Tedarikçi cache ve tüm backup\'lar temizlendi');
+      localStorage.removeItem('suppliers');
+      localStorage.removeItem('supplier-nonconformities');
+      localStorage.removeItem('supplier-defects');
+      localStorage.removeItem('supplier-pairs');
+      localStorage.removeItem('supplier-audits');
+      console.log('🗑️ Tedarikçi cache temizlendi');
       
       // State'leri temizle
       setSuppliers([]);
@@ -1572,10 +1476,10 @@ const SupplierQualityManagement: React.FC = () => {
       setSupplierPairs([]);
       setAudits([]);
       
-      showSnackbar('🔥 ULTRA CACHE temizlendi! Tüm veriler ve backup\'lar silindi.', 'info');
+      showSnackbar('Tedarikçi verileri cache\'i temizlendi. Yeni veriler girilebilir.', 'info');
     } catch (error) {
-      console.error('❌ ULTRA CACHE temizleme hatası:', error);
-      showSnackbar('❌ Cache temizleme sırasında hata oluştu', 'error');
+      console.error('❌ Cache temizleme hatası:', error);
+      showSnackbar('Cache temizleme sırasında hata oluştu', 'error');
     }
   };
 
@@ -1959,7 +1863,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // 🔒 DENETİM KAYITLARI İÇİN DOSYA EKLEME FONKSİYONLARI - PDF KORUMA V2.0
+  // Denetim kayıtları için dosya ekleme fonksiyonları
   const handleAuditFileUpload = (event: React.ChangeEvent<HTMLInputElement>, auditId: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -1978,28 +1882,13 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       return;
     }
 
-    // 🔒 localStorage kapasitesi kontrolü
-    try {
-      const estimatedSize = file.size * 1.4; // Base64 encoding yaklaşık %40 artırır
-      const currentData = localStorage.getItem('supplier-audits');
-      const currentSize = currentData ? currentData.length : 0;
-      const maxSize = 5 * 1024 * 1024; // 5MB limit
-      
-      if (currentSize + estimatedSize > maxSize) {
-        showSnackbar('localStorage kapasitesi doldu! Lütfen eski dosyaları silin.', 'warning');
-        return;
-      }
-    } catch (error) {
-      console.error('localStorage kapasitesi kontrolü hatası:', error);
-    }
-
     // Dosyayı base64 formatına çevir ve localStorage'a kalıcı olarak kaydet
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64Data = e.target?.result as string;
       
       const newAttachment: Attachment = {
-        id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9),
+        id: Date.now().toString(),
         name: file.name,
         size: file.size,
         uploadDate: new Date().toISOString(),
@@ -2007,140 +1896,31 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         url: base64Data // Base64 data URL olarak kaydet
       };
 
-      // 🔥 ULTRA KORUMA SİSTEMİ - PDF'lerin kaybolmasını %100 önlemek için
-      try {
-        // 1. Önce localStorage'a kaydet (state'ten bağımsız)
-        const currentAudits = JSON.parse(localStorage.getItem('supplier-audits') || '[]');
-        const updatedAudits = currentAudits.map((audit: AuditRecord) => 
-          audit.id === auditId 
-            ? { ...audit, attachments: [...(audit.attachments || []), newAttachment] }
-            : audit
-        );
-        
-        // 2. Çoklu backup sistemi ile kaydet
-        const auditsData = JSON.stringify(updatedAudits);
-        localStorage.setItem('supplier-audits', auditsData);
-        localStorage.setItem('supplier-audits-backup', auditsData);
-        localStorage.setItem('supplier-audits-emergency', auditsData);
-        localStorage.setItem('supplier-audits-timestamp', Date.now().toString());
-        localStorage.setItem('supplier-audits-last-upload', JSON.stringify({
-          auditId,
-          fileName: newAttachment.name,
-          timestamp: Date.now()
-        }));
-        
-        console.log('🔥 ULTRA KORUMA - Dosya localStorage\'a kaydedildi:', newAttachment.name);
-        
-        // 3. Sonra state'i güncelle
-        setAudits(prevAudits => {
-          const stateUpdatedAudits = prevAudits.map(audit => 
-            audit.id === auditId 
-              ? { ...audit, attachments: [...(audit.attachments || []), newAttachment] }
-              : audit
-          );
-          
-          console.log('🔥 ULTRA KORUMA - State güncellendi:', newAttachment.name);
-          return stateUpdatedAudits;
-        });
+      // Denetim kaydını güncelle
+      setAudits(prevAudits => prevAudits.map(audit => 
+        audit.id === auditId 
+          ? { ...audit, attachments: [...(audit.attachments || []), newAttachment] }
+          : audit
+      ));
 
-        showSnackbar('✅ Dosya başarıyla yüklendi ve ULTRA KORUMA ile kaydedildi', 'success');
-        
-        // 4. Çoklu doğrulama sistemi
-        setTimeout(() => {
-          const backupChecks = [
-            'supplier-audits',
-            'supplier-audits-backup', 
-            'supplier-audits-emergency'
-          ];
-          
-          let verifiedCount = 0;
-          
-          backupChecks.forEach(source => {
-            const savedAudits = localStorage.getItem(source);
-            if (savedAudits) {
-              try {
-                const parsedAudits = JSON.parse(savedAudits);
-                const targetAudit = parsedAudits.find((audit: AuditRecord) => audit.id === auditId);
-                const fileExists = targetAudit?.attachments?.some((att: Attachment) => att.id === newAttachment.id);
-                
-                if (fileExists) {
-                  verifiedCount++;
-                  console.log('✅ Dosya doğrulandı:', source, newAttachment.name);
-                }
-              } catch (error) {
-                console.error('❌ Doğrulama hatası:', source, error);
-              }
-            }
-          });
-          
-          if (verifiedCount >= 2) {
-            console.log('🔥 ULTRA KORUMA - Dosya', verifiedCount, 'kaynakta doğrulandı!');
-          } else {
-            console.error('❌ ULTRA KORUMA - Dosya doğrulanamadı! Verified:', verifiedCount);
-            showSnackbar('⚠️ Dosya kaydı şüpheli, lütfen kontrol edin!', 'warning');
-          }
-        }, 500);
-        
-      } catch (error) {
-        console.error('❌ ULTRA KORUMA - Dosya yükleme hatası:', error);
-        showSnackbar('❌ Dosya yükleme sırasında hata oluştu', 'error');
-      }
+      showSnackbar('Dosya başarıyla yüklendi ve kalıcı olarak kaydedildi', 'success');
     };
     
     reader.onerror = () => {
-      showSnackbar('Dosya okuma sırasında hata oluştu', 'error');
+      showSnackbar('Dosya yükleme sırasında hata oluştu', 'error');
     };
     
     // Dosyayı base64 formatına çevir
     reader.readAsDataURL(file);
-    
-    // Input'u temizle
-    event.target.value = '';
   };
 
   const handleAuditDeleteAttachment = (auditId: string, attachmentId: string) => {
-    // 🔥 ULTRA KORUMA SİSTEMİ - Denetim dosyası silme işlemi
-    try {
-      // 1. Önce localStorage'dan sil (state'ten bağımsız)
-      const currentAudits = JSON.parse(localStorage.getItem('supplier-audits') || '[]');
-      const updatedAudits = currentAudits.map((audit: AuditRecord) => 
-        audit.id === auditId 
-          ? { ...audit, attachments: audit.attachments?.filter(att => att.id !== attachmentId) }
-          : audit
-      );
-      
-      // 2. Çoklu backup sistemi ile kaydet
-      const auditsData = JSON.stringify(updatedAudits);
-      localStorage.setItem('supplier-audits', auditsData);
-      localStorage.setItem('supplier-audits-backup', auditsData);
-      localStorage.setItem('supplier-audits-emergency', auditsData);
-      localStorage.setItem('supplier-audits-timestamp', Date.now().toString());
-      localStorage.setItem('supplier-audits-last-delete', JSON.stringify({
-        auditId,
-        attachmentId,
-        timestamp: Date.now()
-      }));
-      
-      console.log('🔥 ULTRA KORUMA - Dosya localStorage\'dan silindi:', attachmentId);
-      
-      // 3. Sonra state'i güncelle
-      setAudits(prevAudits => {
-        const stateUpdatedAudits = prevAudits.map(audit => 
-          audit.id === auditId 
-            ? { ...audit, attachments: audit.attachments?.filter(att => att.id !== attachmentId) }
-            : audit
-        );
-        
-        console.log('🔥 ULTRA KORUMA - State güncellendi (silme):', attachmentId);
-        return stateUpdatedAudits;
-      });
-      
-      showSnackbar('✅ Dosya başarıyla silindi ve ULTRA KORUMA ile kaydedildi', 'success');
-      
-    } catch (error) {
-      console.error('❌ ULTRA KORUMA - Dosya silme hatası:', error);
-      showSnackbar('❌ Dosya silme sırasında hata oluştu', 'error');
-    }
+    setAudits(prevAudits => prevAudits.map(audit => 
+      audit.id === auditId 
+        ? { ...audit, attachments: audit.attachments?.filter(att => att.id !== attachmentId) }
+        : audit
+    ));
+    showSnackbar('Dosya başarıyla silindi', 'success');
   };
 
   const handleAuditDownloadAttachment = (attachment: Attachment) => {
