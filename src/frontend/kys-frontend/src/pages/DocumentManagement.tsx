@@ -1187,7 +1187,9 @@ const DocumentManagement: React.FC = () => {
                       <Grid item xs={12} sm={6} md={4} key={doc.id}>
                         <Card 
                           sx={{ 
-                            height: '100%', 
+                            height: '450px', 
+                            display: 'flex',
+                            flexDirection: 'column',
                             border: '1px solid #e0e0e0',
                             '&:hover': { 
                               boxShadow: 6,
@@ -1196,7 +1198,8 @@ const DocumentManagement: React.FC = () => {
                             }
                           }}
                         >
-                          <CardContent>
+                          <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                            {/* Üst Kısım - Etiketler */}
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                               <Chip 
                                 label={docCategory || 'Diğer'} 
@@ -1210,18 +1213,35 @@ const DocumentManagement: React.FC = () => {
                               />
                             </Box>
                             
-                            <Typography variant="h6" gutterBottom sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                            {/* Belge Numarası - Büyük */}
+                            <Typography 
+                              variant="h4" 
+                              sx={{ 
+                                color: 'primary.main', 
+                                fontWeight: 700, 
+                                mb: 1,
+                                textAlign: 'center'
+                              }}
+                            >
+                              {doc.number}
+                            </Typography>
+                            
+                            {/* Belge Adı */}
+                            <Typography 
+                              variant="h6" 
+                              gutterBottom 
+                              sx={{ 
+                                fontSize: '1rem', 
+                                fontWeight: 600,
+                                textAlign: 'center',
+                                mb: 2
+                              }}
+                            >
                               {doc.name}
                             </Typography>
                             
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              {doc.type}
-                            </Typography>
-                            
-                            <Box sx={{ mt: 2, mb: 2 }}>
-                              <Typography variant="caption" display="block" color="text.secondary">
-                                <strong>Belge No:</strong> {doc.number}
-                              </Typography>
+                            {/* Detay Bilgileri */}
+                            <Box sx={{ flexGrow: 1, mb: 2 }}>
                               {doc.welderName && (
                                 <Typography variant="caption" display="block" color="text.secondary">
                                   <strong>Kaynakçı:</strong> {doc.welderName}
@@ -1262,24 +1282,37 @@ const DocumentManagement: React.FC = () => {
                               )}
                             </Box>
                             
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {doc.pdfFile && (
-                                  <Chip 
-                                    label="PDF" 
-                                    size="small" 
-                                    color="success" 
-                                    icon={<DescriptionIcon />}
-                                  />
-                                )}
-                                <IconButton onClick={() => handleEdit(doc, 'document')} size="small" color="primary">
-                                  <EditIcon />
-                                </IconButton>
-                                <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small" color="error">
-                                  <DeleteIcon />
-                                </IconButton>
+                            {/* Alt Kısım - Eylem Butonları */}
+                            <Box sx={{ mt: 'auto' }}>
+                              {/* İlk Satır - PDF ve Düzenleme */}
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  {doc.pdfFile && (
+                                    <Chip 
+                                      label="PDF" 
+                                      size="small" 
+                                      color="success" 
+                                      icon={<DescriptionIcon />}
+                                    />
+                                  )}
+                                </Box>
+                                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                  <IconButton onClick={() => handleEdit(doc, 'document')} size="small" color="primary">
+                                    <EditIcon />
+                                  </IconButton>
+                                  <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small" color="error">
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Box>
                               </Box>
-                              <Box sx={{ display: 'flex', gap: 1 }}>
+                              
+                              {/* İkinci Satır - Eylem Butonları */}
+                              <Box sx={{ 
+                                display: 'flex', 
+                                gap: { xs: 0.5, sm: 1 }, 
+                                justifyContent: 'center',
+                                flexWrap: 'wrap'
+                              }}>
                                 {doc.pdfFile && (
                                   <>
                                     <Button 
@@ -1287,6 +1320,13 @@ const DocumentManagement: React.FC = () => {
                                       startIcon={<ViewIcon />}
                                       onClick={() => handleViewPDF(doc)}
                                       color="info"
+                                      variant="outlined"
+                                      sx={{ 
+                                        fontSize: '0.75rem', 
+                                        minWidth: { xs: '70px', sm: '80px' },
+                                        px: { xs: 1, sm: 1.5 },
+                                        whiteSpace: 'nowrap'
+                                      }}
                                     >
                                       PDF Görüntüle
                                     </Button>
@@ -1295,6 +1335,13 @@ const DocumentManagement: React.FC = () => {
                                       startIcon={<DownloadIcon />}
                                       onClick={() => handleDownloadPDF(doc)}
                                       color="success"
+                                      variant="outlined"
+                                      sx={{ 
+                                        fontSize: '0.75rem', 
+                                        minWidth: { xs: '50px', sm: '60px' },
+                                        px: { xs: 1, sm: 1.5 },
+                                        whiteSpace: 'nowrap'
+                                      }}
                                     >
                                       İndir
                                     </Button>
@@ -1305,6 +1352,12 @@ const DocumentManagement: React.FC = () => {
                                   startIcon={<ViewIcon />}
                                   onClick={() => handleViewDocument(doc)}
                                   variant="outlined"
+                                  sx={{ 
+                                    fontSize: '0.75rem', 
+                                    minWidth: { xs: '50px', sm: '60px' },
+                                    px: { xs: 1, sm: 1.5 },
+                                    whiteSpace: 'nowrap'
+                                  }}
                                 >
                                   Detay
                                 </Button>
