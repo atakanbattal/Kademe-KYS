@@ -27,6 +27,116 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 
+// ✅ GELIŞMIŞ PDF DEPOLAMA SİSTEMİ - IndexedDB ile (Supplier Audits için)
+class SupplierAuditPDFStorage {
+  private dbName = 'SupplierQualityDB';
+  private version = 1;
+  private db: IDBDatabase | null = null;
+
+  async initialize(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.version);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve();
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains('audit-attachments')) {
+          db.createObjectStore('audit-attachments', { keyPath: 'id' });
+        }
+      };
+    });
+  }
+
+  async saveAttachment(attachmentId: string, fileData: string, fileName: string, size: number, fileType: string): Promise<void> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['audit-attachments'], 'readwrite');
+      const store = transaction.objectStore('audit-attachments');
+      
+      const request = store.put({
+        id: attachmentId,
+        fileData,
+        fileName,
+        size,
+        fileType,
+        timestamp: Date.now()
+      });
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getAttachment(attachmentId: string): Promise<any> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['audit-attachments'], 'readonly');
+      const store = transaction.objectStore('audit-attachments');
+      const request = store.get(attachmentId);
+      
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async deleteAttachment(attachmentId: string): Promise<void> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['audit-attachments'], 'readwrite');
+      const store = transaction.objectStore('audit-attachments');
+      const request = store.delete(attachmentId);
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getAllAttachments(): Promise<any[]> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['audit-attachments'], 'readonly');
+      const store = transaction.objectStore('audit-attachments');
+      const request = store.getAll();
+      
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async clearAllAttachments(): Promise<void> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['audit-attachments'], 'readwrite');
+      const store = transaction.objectStore('audit-attachments');
+      const request = store.clear();
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getStorageInfo(): Promise<{ used: number; attachments: number }> {
+    try {
+      const attachments = await this.getAllAttachments();
+      const used = attachments.reduce((total, att) => total + (att.size || 0), 0);
+      return { used, attachments: attachments.length };
+    } catch (error) {
+      console.error('Storage info error:', error);
+      return { used: 0, attachments: 0 };
+    }
+  }
+}
+
 // ============================================
 // KUSURSUZ ARAMA COMPONENT'İ
 // ============================================
@@ -144,6 +254,9 @@ const UltraIsolatedSearchInput = memo<{
 
 // Component displayName
 UltraIsolatedSearchInput.displayName = 'UltraIsolatedSearchInput';
+
+// ✅ GLOBAL PDF STORAGE MANAGER
+const auditPDFStorage = new SupplierAuditPDFStorage();
 
 // ============================================
 // Enhanced interfaces for comprehensive supplier management
@@ -270,7 +383,8 @@ interface Attachment {
   size: number;
   uploadDate: string;
   type: string;
-  url: string;
+  hasFile?: boolean; // IndexedDB'de dosya var mı?
+  url?: string; // Geriye uyumluluk için opsiyonel
 }
 
 // Tedarik türü alt kategorileri
@@ -514,6 +628,13 @@ const SupplierQualityManagement: React.FC = () => {
     
     backupData();
     loadStoredData();
+    
+    // ✅ IndexedDB PDF storage'ı initialize et
+    auditPDFStorage.initialize().then(() => {
+      console.log('✅ Audit PDF Storage başarıyla initialize edildi');
+    }).catch((error) => {
+      console.error('❌ Audit PDF Storage initialize hatası:', error);
+    });
     
     // ❌ generateAutoAuditRecommendations ve syncDataConsistency çağrıları kaldırıldı
     // Bu fonksiyonlar veri çakışması yaratıyordu
@@ -1732,6 +1853,125 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     setSnackbar({ open: true, message, severity });
   };
 
+  // ✅ GELIŞMIŞ VERİ DURUMU KONTROLÜ - IndexedDB Dahil
+  const checkAuditDataStatus = async () => {
+    try {
+      const localStorageData = [
+        'suppliers',
+        'supplier-audits',
+        'supplier-nonconformities',
+        'supplier-defects',
+        'supplier-pairs'
+      ];
+      
+      let localStorageSize = 0;
+      
+      console.log('📊 TEDARİKÇİ MODÜLÜ VERİ DURUMU RAPORU:');
+      console.log('==========================================');
+      
+      localStorageData.forEach(source => {
+        const data = localStorage.getItem(source);
+        if (data) {
+          try {
+            const dataSize = data.length;
+            localStorageSize += dataSize;
+            const parsed = JSON.parse(data);
+            
+            console.log(`✅ ${source}:`);
+            console.log(`   - Boyut: ${formatFileSize(dataSize)}`);
+            console.log(`   - Kayıt: ${Array.isArray(parsed) ? parsed.length : 'N/A'}`);
+          } catch (error) {
+            console.log(`❌ ${source}: Parse hatası`);
+          }
+        } else {
+          console.log(`❌ ${source}: Bulunamadı`);
+        }
+      });
+      
+      // IndexedDB bilgilerini al
+      const indexedDBInfo = await auditPDFStorage.getStorageInfo();
+      
+      console.log('==========================================');
+      console.log(`🔍 DEPOLAMA ÖZETİ:`);
+      console.log(`   - LocalStorage: ${formatFileSize(localStorageSize)}`);
+      console.log(`   - IndexedDB: ${formatFileSize(indexedDBInfo.used)}`);
+      console.log(`   - Toplam Dosya: ${indexedDBInfo.attachments} adet`);
+      console.log(`   - Toplam Boyut: ${formatFileSize(localStorageSize + indexedDBInfo.used)}`);
+      
+      showSnackbar(
+        `Veri durumu F12 konsolunda görüntülendi. LocalStorage: ${formatFileSize(localStorageSize)}, IndexedDB: ${formatFileSize(indexedDBInfo.used)}, Dosya: ${indexedDBInfo.attachments} adet.`, 
+        'info'
+      );
+      
+    } catch (error) {
+      console.error('❌ Veri durumu kontrol hatası:', error);
+      showSnackbar('Veri durumu kontrol hatası!', 'error');
+    }
+  };
+
+  // ✅ AUDIT DOSYALARINI TEMİZLE - IndexedDB'den
+  const clearAllAuditFiles = async () => {
+    if (window.confirm('UYARI: Tüm denetim dosyaları IndexedDB\'den silinecek! Denetim kayıtları korunacak ancak dosya içerikleri kaldırılacak. Devam etmek istiyor musunuz?')) {
+      try {
+        await auditPDFStorage.clearAllAttachments();
+        
+        // Tüm audit kayıtlarındaki attachments'ları temizle
+        const cleanedAudits = audits.map(audit => ({
+          ...audit,
+          attachments: audit.attachments?.map(att => ({
+            ...att,
+            hasFile: false,
+            url: undefined
+          }))
+        }));
+        
+        setAudits(cleanedAudits);
+        
+        console.log('🧹 Tüm denetim dosyaları IndexedDB\'den temizlendi');
+        showSnackbar('Tüm denetim dosyaları temizlendi! Denetim kayıtları korundu, artık yeni dosya yükleyebilirsiniz.', 'success');
+      } catch (error) {
+        console.error('❌ Denetim dosyaları temizleme hatası:', error);
+        showSnackbar('Denetim dosyaları temizleme hatası! Lütfen tekrar deneyin.', 'error');
+      }
+    }
+  };
+
+  // ✅ TÜM TEDARİKÇİ VERİLERİNİ TEMİZLE
+  const clearAllSupplierData = async () => {
+    if (window.confirm('UYARI: Tüm tedarikçi verileri, denetim kayıtları ve dosyalar silinecek! Devam etmek istiyor musunuz?')) {
+      try {
+        const localStorageKeys = [
+          'suppliers',
+          'supplier-audits', 
+          'supplier-nonconformities',
+          'supplier-defects',
+          'supplier-pairs',
+          'suppliers-backup',
+          'supplier-pairs-backup'
+        ];
+        
+        localStorageKeys.forEach(key => {
+          localStorage.removeItem(key);
+        });
+        
+        await auditPDFStorage.clearAllAttachments();
+        
+        setSuppliers([]);
+        setAudits([]);
+        setNonconformities([]);
+        setDefects([]);
+        setSupplierPairs([]);
+        
+        console.log('🧹 Tüm tedarikçi verileri temizlendi');
+        showSnackbar('Tüm tedarikçi verileri temizlendi.', 'success');
+        
+      } catch (error) {
+        console.error('❌ Tedarikçi veri temizleme hatası:', error);
+        showSnackbar('Tedarikçi veri temizleme hatası! Lütfen tekrar deneyin.', 'error');
+      }
+    }
+  };
+
   // 📎 DOSYA YÜKLEME FONKSİYONLARI - MaterialCertificateTracking'den uyarlandı
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -1863,94 +2103,202 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Denetim kayıtları için dosya ekleme fonksiyonları
-  const handleAuditFileUpload = (event: React.ChangeEvent<HTMLInputElement>, auditId: string) => {
+  // ✅ GELIŞMIŞ DENETIM DENETİM DOSYA YÜKLEME - IndexedDB ile
+  const handleAuditFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, auditId: string) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Dosya boyutu kontrolü (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      showSnackbar('Dosya boyutu 10MB\'dan büyük olamaz', 'error');
+    if (!file) {
+      console.log('❌ Dosya seçilmedi');
       return;
     }
 
-    // Dosya türü kontrolü
+    console.log('📄 Denetim dosyası seçildi:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: new Date(file.lastModified)
+    });
+
+    // Dosya tipi doğrulaması
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 
                          'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(file.type)) {
-      showSnackbar('Sadece PDF, JPG, PNG, DOC, DOCX dosyaları yüklenebilir', 'error');
+    const validExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'];
+    const fileName = file.name.toLowerCase();
+    
+    if (!allowedTypes.includes(file.type) && !validExtensions.some(ext => fileName.endsWith(ext))) {
+      showSnackbar(`Geçersiz dosya formatı! Sadece PDF, JPG, PNG, DOC, DOCX dosyaları yüklenebilir. Seçilen dosya: ${file.type}`, 'error');
       return;
     }
 
-    // Dosyayı base64 formatına çevir ve localStorage'a kalıcı olarak kaydet
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64Data = e.target?.result as string;
+    // Dosya boyutu kontrolü - IndexedDB ile daha büyük dosyalar
+    const maxSize = 20 * 1024 * 1024; // 20MB (denetim raporları büyük olabilir)
+    if (file.size > maxSize) {
+      showSnackbar(`Dosya boyutu çok büyük! Maksimum 20MB olabilir. Seçilen dosya: ${formatFileSize(file.size)}`, 'error');
+      return;
+    }
+
+    if (file.size === 0) {
+      showSnackbar('Dosya boş! Lütfen geçerli bir dosya seçin.', 'error');
+      return;
+    }
+
+    try {
+      console.log('📊 Denetim dosyası yükleme başlıyor...');
+      showSnackbar('Dosya yükleniyor...', 'info');
+
+      // FileReader ile dosyayı base64'e çevir
+      const reader = new FileReader();
       
-      const newAttachment: Attachment = {
-        id: Date.now().toString(),
-        name: file.name,
-        size: file.size,
-        uploadDate: new Date().toISOString(),
-        type: file.type,
-        url: base64Data // Base64 data URL olarak kaydet
+      reader.onload = async (e) => {
+        try {
+          const base64Data = e.target?.result as string;
+          
+          // Base64 format kontrol
+          if (!base64Data || !base64Data.includes('base64,')) {
+            throw new Error('Base64 format hatası');
+          }
+
+          console.log('✅ Dosya Base64 dönüşümü başarılı:', base64Data.length, 'karakter');
+          
+          const attachmentId = Date.now().toString();
+          
+          // IndexedDB'ye dosyayı kaydet
+          await auditPDFStorage.saveAttachment(attachmentId, base64Data, file.name, file.size, file.type);
+          
+          // Denetim kaydındaki attachments'ı güncelle - sadece metadata
+          const newAttachment: Attachment = {
+            id: attachmentId,
+            name: file.name,
+            size: file.size,
+            uploadDate: new Date().toISOString(),
+            type: file.type,
+            hasFile: true // IndexedDB'de dosya var
+          };
+
+          setAudits(prevAudits => prevAudits.map(audit => 
+            audit.id === auditId 
+              ? { ...audit, attachments: [...(audit.attachments || []), newAttachment] }
+              : audit
+          ));
+
+          console.log('✅ Denetim dosyası başarıyla IndexedDB\'ye kaydedildi');
+          showSnackbar(`Dosya başarıyla yüklendi! ${file.name} (${formatFileSize(file.size)})`, 'success');
+          
+        } catch (error) {
+          console.error('❌ Denetim dosyası işleme hatası:', error);
+          showSnackbar('Dosya işlenemedi! Lütfen farklı bir dosya deneyin.', 'error');
+        }
       };
 
-      // Denetim kaydını güncelle
+      reader.onerror = (error) => {
+        console.error('❌ FileReader hatası:', error);
+        showSnackbar('Dosya okuma hatası! Lütfen dosyayı kontrol edin ve tekrar deneyin.', 'error');
+      };
+
+      reader.readAsDataURL(file);
+      
+    } catch (error) {
+      console.error('❌ Denetim dosyası yükleme hatası:', error);
+      showSnackbar('Dosya yükleme hatası! Lütfen tekrar deneyin.', 'error');
+    }
+  };
+
+  const handleAuditDeleteAttachment = async (auditId: string, attachmentId: string) => {
+    try {
+      // IndexedDB'den dosyayı sil
+      await auditPDFStorage.deleteAttachment(attachmentId);
+      
+      // State'den attachment'ı kaldır
       setAudits(prevAudits => prevAudits.map(audit => 
         audit.id === auditId 
-          ? { ...audit, attachments: [...(audit.attachments || []), newAttachment] }
+          ? { ...audit, attachments: audit.attachments?.filter(att => att.id !== attachmentId) }
           : audit
       ));
-
-      showSnackbar('Dosya başarıyla yüklendi ve kalıcı olarak kaydedildi', 'success');
-    };
-    
-    reader.onerror = () => {
-      showSnackbar('Dosya yükleme sırasında hata oluştu', 'error');
-    };
-    
-    // Dosyayı base64 formatına çevir
-    reader.readAsDataURL(file);
-  };
-
-  const handleAuditDeleteAttachment = (auditId: string, attachmentId: string) => {
-    setAudits(prevAudits => prevAudits.map(audit => 
-      audit.id === auditId 
-        ? { ...audit, attachments: audit.attachments?.filter(att => att.id !== attachmentId) }
-        : audit
-    ));
-    showSnackbar('Dosya başarıyla silindi', 'success');
-  };
-
-  const handleAuditDownloadAttachment = (attachment: Attachment) => {
-    try {
-      // Base64 data URL'den blob oluştur
-      const link = document.createElement('a');
-      link.href = attachment.url;
-      link.download = attachment.name;
       
-      // Geçici olarak DOM'a ekle ve click'le
+      console.log('✅ Denetim dosyası IndexedDB\'den silindi');
+      showSnackbar('Dosya başarıyla silindi', 'success');
+    } catch (error) {
+      console.error('❌ Denetim dosyası silme hatası:', error);
+      showSnackbar('Dosya silme hatası! Lütfen tekrar deneyin.', 'error');
+    }
+  };
+
+  const handleAuditDownloadAttachment = async (attachment: Attachment) => {
+    try {
+      // Eski format için geriye uyumluluk
+      if (attachment.url && !attachment.hasFile) {
+        const link = document.createElement('a');
+        link.href = attachment.url;
+        link.download = attachment.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showSnackbar('Dosya indiriliyor', 'info');
+        return;
+      }
+
+      // IndexedDB'den dosyayı al
+      const fileData = await auditPDFStorage.getAttachment(attachment.id);
+      
+      if (!fileData || !fileData.fileData) {
+        showSnackbar('Dosya bulunamadı! Dosya IndexedDB\'de mevcut değil.', 'error');
+        return;
+      }
+
+      // Base64'ten blob oluştur
+      const base64Data = fileData.fileData.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: attachment.type });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.name;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      showSnackbar('Dosya indiriliyor', 'info');
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      
+      console.log('✅ Denetim dosyası IndexedDB\'den indirildi');
+      showSnackbar(`Dosya indirildi: ${attachment.name}`, 'success');
+      
     } catch (error) {
-      console.error('Dosya indirme hatası:', error);
-      showSnackbar('Dosya indirme sırasında hata oluştu', 'error');
+      console.error('❌ Denetim dosyası indirme hatası:', error);
+      showSnackbar('Dosya indirme sırasında hata oluştu! Dosya bozuk olabilir.', 'error');
     }
   };
 
-  const handleAuditViewAttachment = (attachment: Attachment) => {
+  const handleAuditViewAttachment = async (attachment: Attachment) => {
     try {
-      console.log('🔍 Dosya görüntüleme başlıyor:', attachment.name, attachment.type);
+      console.log('🔍 Denetim dosyası görüntüleme başlıyor:', attachment.name, attachment.type);
       
-      // Base64 data URL kontrolü
-      if (!attachment.url || !attachment.url.startsWith('data:')) {
-        console.error('❌ Geçersiz dosya URL\'si:', attachment.url);
-        showSnackbar('Dosya URL\'si geçersiz! Dosya yeniden yüklenmeli.', 'error');
-        return;
+      let fileUrl = '';
+      
+      // Eski format için geriye uyumluluk
+      if (attachment.url && !attachment.hasFile) {
+        if (!attachment.url.startsWith('data:')) {
+          console.error('❌ Geçersiz dosya URL\'si:', attachment.url);
+          showSnackbar('Dosya URL\'si geçersiz! Dosya yeniden yüklenmeli.', 'error');
+          return;
+        }
+        fileUrl = attachment.url;
+      } else {
+        // IndexedDB'den dosyayı al
+        const fileData = await auditPDFStorage.getAttachment(attachment.id);
+        
+        if (!fileData || !fileData.fileData) {
+          showSnackbar('Dosya bulunamadı! Dosya IndexedDB\'de mevcut değil.', 'error');
+          return;
+        }
+        
+        fileUrl = fileData.fileData;
       }
 
       // PDF dosyaları için
@@ -1968,14 +2316,14 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 </style>
               </head>
               <body>
-                <iframe src="${attachment.url}" type="application/pdf"></iframe>
+                <iframe src="${fileUrl}" type="application/pdf"></iframe>
               </body>
             </html>
           `);
           newWindow.document.close();
         } else {
           // Popup engellenirse direkt link aç
-          window.open(attachment.url, '_blank');
+          window.open(fileUrl, '_blank');
         }
       } 
       // Resim dosyaları için
@@ -2006,25 +2354,26 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 </style>
               </head>
               <body>
-                <img src="${attachment.url}" alt="${attachment.name}" />
+                <img src="${fileUrl}" alt="${attachment.name}" />
               </body>
             </html>
           `);
           newWindow.document.close();
         } else {
-          window.open(attachment.url, '_blank');
+          window.open(fileUrl, '_blank');
         }
       } 
       // Diğer dosya tipleri için indirme öner
       else {
         console.log('📎 Desteklenmeyen dosya tipi, indirme öneriliyor...');
-        handleAuditDownloadAttachment(attachment);
+        await handleAuditDownloadAttachment(attachment);
         return;
       }
       
+      console.log('✅ Denetim dosyası görüntülendi');
       showSnackbar(`${attachment.name} görüntüleniyor`, 'success');
     } catch (error) {
-      console.error('❌ Dosya görüntüleme hatası:', error);
+      console.error('❌ Denetim dosyası görüntüleme hatası:', error);
       showSnackbar('Dosya görüntüleme sırasında hata oluştu. Lütfen dosyayı yeniden yükleyin.', 'error');
     }
   };
@@ -5077,7 +5426,38 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   // Audit Tracking Component
   const renderAuditTracking = () => (
     <Box>
-      <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        {/* ✅ VERİ KONTROL BUTONLARI */}
+        <Box display="flex" gap={1}>
+          <Button 
+            variant="outlined" 
+            size="small"
+            startIcon={<InfoIcon />} 
+            onClick={checkAuditDataStatus}
+            color="info"
+          >
+            Veri Durumu
+          </Button>
+          <Button 
+            variant="outlined" 
+            size="small"
+            startIcon={<DeleteIcon />} 
+            onClick={clearAllAuditFiles}
+            color="warning"
+          >
+            Dosyaları Temizle
+          </Button>
+          <Button 
+            variant="outlined" 
+            size="small"
+            startIcon={<ErrorIcon />} 
+            onClick={clearAllSupplierData}
+            color="error"
+          >
+            Tüm Verileri Temizle
+          </Button>
+        </Box>
+        
         <Box display="flex" gap={2}>
           <Button 
             variant="outlined" 
