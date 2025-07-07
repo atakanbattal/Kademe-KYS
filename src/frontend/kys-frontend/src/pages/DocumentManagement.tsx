@@ -456,7 +456,7 @@ const DocumentManagement: React.FC = () => {
     }
   };
 
-  // ✅ PDF YÜKLEME VE İŞLEME FONKSİYONLARI - KAPASİTE KONTROLÜ EKLENDİ
+  // 🔒 PDF YÜKLEME VE İŞLEME FONKSİYONLARI - ÇOKLU KORUMA SİSTEMİ V2.0
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, documentId: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -509,20 +509,71 @@ const DocumentManagement: React.FC = () => {
       try {
         const base64 = reader.result as string;
         
-        // ✅ Kaydetme sırasında hata yakalama
-        setDocuments(prev => prev.map(doc => 
-          doc.id === documentId 
-            ? { 
-                ...doc, 
-                pdfFile: base64,
-                pdfFileName: file.name,
-                pdfSize: file.size
-              }
-            : doc
-        ));
+        // 🔒 ÇOKLU KORUMA SİSTEMİ - PDF'lerin kaybolmasını önlemek için
+        let updatedDocuments: Document[] = [];
+        
+        setDocuments(prev => {
+          updatedDocuments = prev.map(doc => 
+            doc.id === documentId 
+              ? { 
+                  ...doc, 
+                  pdfFile: base64,
+                  pdfFileName: file.name,
+                  pdfSize: file.size
+                }
+              : doc
+          );
+          
+          // 🔒 ANINDA KAYDETME SİSTEMİ - useEffect'ten bağımsız
+          try {
+            const documentsData = JSON.stringify(updatedDocuments);
+            localStorage.setItem('dm-documents', documentsData);
+            localStorage.setItem('dm-documents-backup', documentsData);
+            localStorage.setItem('documentManagementData', documentsData);
+            localStorage.setItem('dm-documents-timestamp', Date.now().toString());
+            console.log('🔒 Belge PDF\'i anında localStorage\'a kaydedildi:', file.name);
+          } catch (saveError) {
+            console.error('❌ Belge PDF\'i localStorage kaydetme hatası:', saveError);
+            
+            if ((saveError as any).name === 'QuotaExceededError') {
+              setSnackbar({ 
+                open: true, 
+                message: 'localStorage kapasitesi aşıldı! Dosya kaydedilemedi.', 
+                severity: 'error' 
+              });
+              clearLocalStorageIfNeeded();
+            }
+          }
+          
+          return updatedDocuments;
+        });
 
-        setSnackbar({ open: true, message: 'PDF başarıyla yüklendi!', severity: 'success' });
+        setSnackbar({ open: true, message: '✅ PDF başarıyla yüklendi ve kalıcı olarak kaydedildi!', severity: 'success' });
         setUploadingFile(false);
+        
+        // 🔒 DOĞRULAMA SİSTEMİ - dosyanın gerçekten kaydedildiğini kontrol et
+        setTimeout(() => {
+          try {
+            const savedDocs = localStorage.getItem('dm-documents');
+            if (savedDocs) {
+              const parsedDocs = JSON.parse(savedDocs);
+              const targetDoc = parsedDocs.find((doc: Document) => doc.id === documentId);
+              
+              if (targetDoc && targetDoc.pdfFile && targetDoc.pdfFileName === file.name) {
+                console.log('✅ PDF kaydı doğrulandı:', file.name);
+              } else {
+                console.error('❌ PDF kaydı doğrulanamadı!');
+                setSnackbar({ 
+                  open: true, 
+                  message: '⚠️ PDF kaydı doğrulanamadı, lütfen kontrol edin!', 
+                  severity: 'warning' 
+                });
+              }
+            }
+          } catch (verificationError) {
+            console.error('❌ PDF doğrulama hatası:', verificationError);
+          }
+        }, 1000);
         
       } catch (error: any) {
         console.error('PDF yükleme hatası:', error);
@@ -549,6 +600,9 @@ const DocumentManagement: React.FC = () => {
     };
 
     reader.readAsDataURL(file);
+    
+    // Input'u temizle
+    event.target.value = '';
   };
 
   const handleViewDocument = (doc: Document) => {
@@ -620,6 +674,11 @@ const DocumentManagement: React.FC = () => {
         if (Array.isArray(parsed) && parsed.length > 0) {
           documentsToLoad = parsed;
           console.log('✅ Normal localStorage\'dan belgeler yüklendi:', parsed.length);
+        
+        // PDF'li belge sayısını kontrol et
+        const documentsWithPDF = parsed.filter((doc: Document) => doc.pdfFile && doc.pdfFileName);
+        console.log('📄 PDF\'li belge sayısı:', documentsWithPDF.length);
+        
         } else {
           console.log('⚠️ Normal localStorage belgeler boş veya geçersiz array');
         }
@@ -636,6 +695,10 @@ const DocumentManagement: React.FC = () => {
         if (Array.isArray(parsed) && parsed.length > 0) {
           documentsToLoad = parsed;
           console.log('✅ Backup localStorage\'dan belgeler yüklendi:', parsed.length);
+          
+          // PDF'li belge sayısını kontrol et
+          const documentsWithPDF = parsed.filter((doc: Document) => doc.pdfFile && doc.pdfFileName);
+          console.log('📄 Backup PDF\'li belge sayısı:', documentsWithPDF.length);
           
           // Backup'dan yükledikten sonra normal localStorage'a da kaydet
           localStorage.setItem('dm-documents', backupDocs);
@@ -899,6 +962,22 @@ const DocumentManagement: React.FC = () => {
         const updated = prev.map(doc => doc.id === editingItem.id ? newDoc : doc);
         console.log('✏️ Belge güncellendi. Önceki liste:', prev.length, 'Yeni liste:', updated.length);
         console.log('📄 Güncellenmiş belgeler:', updated.map(d => ({ id: d.id, name: d.name })));
+        
+        // 🔒 ÇOKLU KORUMA SİSTEMİ - Güncelleme için anında localStorage'a kaydet
+        try {
+          const documentsData = JSON.stringify(updated);
+          localStorage.setItem('dm-documents', documentsData);
+          localStorage.setItem('dm-documents-backup', documentsData);
+          localStorage.setItem('documentManagementData', documentsData);
+          localStorage.setItem('dm-documents-timestamp', Date.now().toString());
+          console.log('🔒 Güncellenen belge anında localStorage\'a kaydedildi');
+        } catch (error) {
+          console.error('❌ Güncellenen belge kaydetme hatası:', error);
+          if ((error as any).name === 'QuotaExceededError') {
+            clearLocalStorageIfNeeded();
+          }
+        }
+        
         return updated;
       });
       setSnackbar({ open: true, message: `${newDoc.name} güncellendi!`, severity: 'success' });
@@ -910,13 +989,19 @@ const DocumentManagement: React.FC = () => {
         console.log('➕ Yeni belge eklendi. Güncel liste:', updated.length);
         console.log('📄 Tüm belgeler:', updated.map(d => ({ id: d.id, name: d.name })));
         
-        // Anında localStorage'a da kaydet (backup)
+        // 🔒 ÇOKLU KORUMA SİSTEMİ - Anında localStorage'a kaydet
         try {
-          const backupData = JSON.stringify(updated);
-          localStorage.setItem('dm-documents-backup', backupData);
-          console.log('💾 Backup localStorage\'a kaydedildi');
+          const documentsData = JSON.stringify(updated);
+          localStorage.setItem('dm-documents', documentsData);
+          localStorage.setItem('dm-documents-backup', documentsData);
+          localStorage.setItem('documentManagementData', documentsData);
+          localStorage.setItem('dm-documents-timestamp', Date.now().toString());
+          console.log('🔒 Belge anında localStorage\'a kaydedildi (çoklu koruma)');
         } catch (error) {
-          console.error('❌ Backup kaydetme hatası:', error);
+          console.error('❌ Belge kaydetme hatası:', error);
+          if ((error as any).name === 'QuotaExceededError') {
+            clearLocalStorageIfNeeded();
+          }
         }
         
         return updated;
@@ -1020,15 +1105,66 @@ const DocumentManagement: React.FC = () => {
     setOpenDialog(true);
   };
 
+  // 🔒 GÜVENLİ SİLME FONKSİYONU - ÇOKLU KORUMA SİSTEMİ
   const handleDelete = (id: string, type: 'document' | 'welder' | 'personnel') => {
-    if (type === 'document') {
-      setDocuments(prev => prev.filter(doc => doc.id !== id));
-    } else if (type === 'welder') {
-      setWelders(prev => prev.filter(w => w.id !== id));
-    } else {
-      setPersonnel(prev => prev.filter(p => p.id !== id));
+    try {
+      if (type === 'document') {
+        setDocuments(prev => {
+          const updated = prev.filter(doc => doc.id !== id);
+          
+          // 🔒 ÇOKLU KORUMA SİSTEMİ - Silme işlemi için anında localStorage'a kaydet
+          try {
+            const documentsData = JSON.stringify(updated);
+            localStorage.setItem('dm-documents', documentsData);
+            localStorage.setItem('dm-documents-backup', documentsData);
+            localStorage.setItem('documentManagementData', documentsData);
+            localStorage.setItem('dm-documents-timestamp', Date.now().toString());
+            console.log('🔒 Belge silme işlemi anında localStorage\'a kaydedildi');
+          } catch (saveError) {
+            console.error('❌ Belge silme işlemi localStorage kaydetme hatası:', saveError);
+            if ((saveError as any).name === 'QuotaExceededError') {
+              clearLocalStorageIfNeeded();
+            }
+          }
+          
+          return updated;
+        });
+      } else if (type === 'welder') {
+        setWelders(prev => {
+          const updated = prev.filter(w => w.id !== id);
+          
+          // Anında localStorage'a kaydet
+          try {
+            localStorage.setItem('dm-welders', JSON.stringify(updated));
+            console.log('🔒 Kaynakçı silme işlemi localStorage\'a kaydedildi');
+          } catch (saveError) {
+            console.error('❌ Kaynakçı silme işlemi kaydetme hatası:', saveError);
+          }
+          
+          return updated;
+        });
+      } else {
+        setPersonnel(prev => {
+          const updated = prev.filter(p => p.id !== id);
+          
+          // Anında localStorage'a kaydet
+          try {
+            localStorage.setItem('dm-personnel', JSON.stringify(updated));
+            console.log('🔒 Personel silme işlemi localStorage\'a kaydedildi');
+          } catch (saveError) {
+            console.error('❌ Personel silme işlemi kaydetme hatası:', saveError);
+          }
+          
+          return updated;
+        });
+      }
+      
+      setSnackbar({ open: true, message: '✅ Başarıyla silindi ve kaydedildi!', severity: 'success' });
+      
+    } catch (error) {
+      console.error('❌ Silme işlemi hatası:', error);
+      setSnackbar({ open: true, message: '❌ Silme işlemi sırasında hata oluştu!', severity: 'error' });
     }
-    setSnackbar({ open: true, message: 'Başarıyla silindi!', severity: 'success' });
   };
 
   // ✅ MANUEL LOCALSTORAGE TEMİZLEME FONKSİYONU
