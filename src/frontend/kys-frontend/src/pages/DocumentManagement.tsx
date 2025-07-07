@@ -357,7 +357,10 @@ const DocumentManagement: React.FC = () => {
     customIssuingAuthority: '', // Manuel veren kuruluş girişi için
     effectiveDate: new Date().toISOString().split('T')[0],
     expiryDate: '',
-    description: ''
+    description: '',
+    pdfFile: undefined as string | undefined,
+    pdfFileName: undefined as string | undefined,
+    pdfSize: undefined as number | undefined
   });
   
   const [welderForm, setWelderForm] = useState({
@@ -738,7 +741,10 @@ const DocumentManagement: React.FC = () => {
         customIssuingAuthority: '',
         effectiveDate: new Date().toISOString().split('T')[0],
         expiryDate: '',
-        description: ''
+        description: '',
+        pdfFile: undefined,
+        pdfFileName: undefined,
+        pdfSize: undefined
       });
     } else if (type === 'welder') {
       setWelderForm({
@@ -802,7 +808,10 @@ const DocumentManagement: React.FC = () => {
       expiryDate: documentForm.expiryDate,
       status: 'active',
       uploadDate: now,
-      description: documentForm.description || `${documentForm.name} belgesi`
+      description: documentForm.description || `${documentForm.name} belgesi`,
+      pdfFile: documentForm.pdfFile,
+      pdfFileName: documentForm.pdfFileName,
+      pdfSize: documentForm.pdfSize
     };
 
     console.log('💾 Yeni belge objesi oluşturuldu:', newDoc);
@@ -896,7 +905,10 @@ const DocumentManagement: React.FC = () => {
         customIssuingAuthority: '',
         effectiveDate: item.effectiveDate,
         expiryDate: item.expiryDate || '',
-        description: item.description
+        description: item.description,
+        pdfFile: item.pdfFile || undefined,
+        pdfFileName: item.pdfFileName || undefined,
+        pdfSize: item.pdfSize || undefined
       });
     } else if (type === 'welder') {
       setWelderForm({
@@ -1777,6 +1789,151 @@ const DocumentManagement: React.FC = () => {
                 onChange={(e) => setDocumentForm(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Belge hakkında açıklama..."
               />
+            </Grid>
+            
+            {/* PDF Yükleme Bölümü */}
+            <Grid item xs={12}>
+              <Box sx={{ mt: 2, p: 2, border: '1px dashed #ccc', borderRadius: 1 }}>
+                <Typography variant="h6" gutterBottom>
+                  PDF Dosyası
+                </Typography>
+                
+                {editingItem?.pdfFile ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <DescriptionIcon color="error" />
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="body2" fontWeight={600}>
+                        {editingItem.pdfFileName || 'Mevcut PDF'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {editingItem.pdfSize && formatFileSize(editingItem.pdfSize)}
+                      </Typography>
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<ViewIcon />}
+                      onClick={() => handleViewPDF(editingItem)}
+                      color="info"
+                      sx={{ mr: 1 }}
+                    >
+                      Görüntüle
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => handleDownloadPDF(editingItem)}
+                      color="success"
+                      sx={{ mr: 1 }}
+                    >
+                      İndir
+                    </Button>
+                    <input
+                      accept="application/pdf"
+                      style={{ display: 'none' }}
+                      id={`dialog-upload-button-${editingItem.id}`}
+                      type="file"
+                      onChange={(e) => handleFileUpload(e, editingItem.id)}
+                    />
+                    <label htmlFor={`dialog-upload-button-${editingItem.id}`}>
+                      <Button variant="outlined" size="small" component="span" disabled={uploadingFile}>
+                        {uploadingFile ? 'Yükleniyor...' : 'Değiştir'}
+                      </Button>
+                    </label>
+                  </Box>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Henüz PDF dosyası yüklenmemiş
+                    </Typography>
+                    <input
+                      accept="application/pdf"
+                      style={{ display: 'none' }}
+                      id={`dialog-upload-button-new`}
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        if (file.type !== 'application/pdf') {
+                          setSnackbar({ open: true, message: 'Sadece PDF dosyaları yüklenebilir!', severity: 'error' });
+                          return;
+                        }
+
+                        if (file.size > 2 * 1024 * 1024) {
+                          setSnackbar({ 
+                            open: true, 
+                            message: 'Dosya boyutu 2MB\'dan küçük olmalıdır!', 
+                            severity: 'error' 
+                          });
+                          return;
+                        }
+
+                        setUploadingFile(true);
+                        const reader = new FileReader();
+                        
+                        reader.onload = () => {
+                          const base64 = reader.result as string;
+                          setDocumentForm(prev => ({ 
+                            ...prev, 
+                            pdfFile: base64,
+                            pdfFileName: file.name,
+                            pdfSize: file.size
+                          }));
+                          setSnackbar({ open: true, message: 'PDF başarıyla yüklendi!', severity: 'success' });
+                          setUploadingFile(false);
+                        };
+
+                        reader.onerror = () => {
+                          setSnackbar({ open: true, message: 'Dosya okuma hatası!', severity: 'error' });
+                          setUploadingFile(false);
+                        };
+
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                    <label htmlFor={`dialog-upload-button-new`}>
+                      <Button 
+                        variant="contained" 
+                        component="span" 
+                        startIcon={<AddIcon />}
+                        disabled={uploadingFile}
+                      >
+                        {uploadingFile ? 'Yükleniyor...' : 'PDF Yükle'}
+                      </Button>
+                    </label>
+                    {documentForm.pdfFile && (
+                      <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <DescriptionIcon color="success" />
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography variant="body2" fontWeight={600}>
+                            {documentForm.pdfFileName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {documentForm.pdfSize && formatFileSize(documentForm.pdfSize)}
+                          </Typography>
+                        </Box>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => {
+                            setDocumentForm(prev => ({ 
+                              ...prev, 
+                              pdfFile: undefined,
+                              pdfFileName: undefined,
+                              pdfSize: undefined
+                            }));
+                          }}
+                          color="error"
+                        >
+                          Sil
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>
