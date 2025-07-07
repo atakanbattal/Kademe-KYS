@@ -3906,6 +3906,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
     department: '',
     position: ''
   });
+  const [isEditingPersonnel, setIsEditingPersonnel] = useState(false);
+  const [editingPersonnelId, setEditingPersonnelId] = useState<string | null>(null);
 
   // Yeni eklenen state'ler - Dinamik yönetim için
   const [manufacturersList, setManufacturersList] = useState<string[]>(() => getManufacturers());
@@ -4821,6 +4823,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
     }).format(amount);
   };
 
+  // Personel düzenleme fonksiyonu
+  const handleEditPersonnel = (personnelId: string) => {
+    const personnel = personnelList.find(p => p.id === personnelId);
+    if (personnel) {
+      setNewPersonnelData({
+        sicilNo: personnel.sicilNo,
+        name: personnel.name,
+        department: personnel.department,
+        position: personnel.position || ''
+      });
+      setIsEditingPersonnel(true);
+      setEditingPersonnelId(personnelId);
+      setOpenPersonnelDialog(true);
+    }
+  };
+
   // Yeni personel kaydetme fonksiyonu
   const handleSavePersonnel = () => {
     if (!newPersonnelData.sicilNo || !newPersonnelData.name || !newPersonnelData.department) {
@@ -4828,29 +4846,47 @@ const EquipmentCalibrationManagement: React.FC = () => {
       return;
     }
 
-    // Sicil numarası zaten var mı kontrol et
-    if (personnelList.some(p => p.sicilNo === newPersonnelData.sicilNo)) {
-      alert('Bu sicil numarası zaten kullanılıyor!');
-      return;
+    if (isEditingPersonnel) {
+      // Düzenleme modu
+      const updatedPersonnelList = personnelList.map(p => 
+        p.id === editingPersonnelId ? {
+          ...p,
+          sicilNo: newPersonnelData.sicilNo,
+          name: newPersonnelData.name,
+          department: newPersonnelData.department,
+          position: newPersonnelData.position
+        } : p
+      );
+      setPersonnelList(updatedPersonnelList);
+      localStorage.setItem('personnel_data', JSON.stringify(updatedPersonnelList));
+      
+      // Düzenleme modundan çık
+      setIsEditingPersonnel(false);
+      setEditingPersonnelId(null);
+    } else {
+      // Yeni ekleme modu
+      // Sicil numarası zaten var mı kontrol et
+      if (personnelList.some(p => p.sicilNo === newPersonnelData.sicilNo)) {
+        alert('Bu sicil numarası zaten kullanılıyor!');
+        return;
+      }
+
+      const newPersonnel: Personnel = {
+        id: `PER-${Date.now()}`,
+        sicilNo: newPersonnelData.sicilNo,
+        name: newPersonnelData.name,
+        department: newPersonnelData.department,
+        position: newPersonnelData.position,
+        email: '',
+        phone: '',
+        isActive: true
+      };
+
+      // Personnel listesini güncelle
+      const updatedPersonnelList = [...personnelList, newPersonnel];
+      setPersonnelList(updatedPersonnelList);
+      localStorage.setItem('personnel_data', JSON.stringify(updatedPersonnelList));
     }
-
-    const newPersonnel: Personnel = {
-      id: `PER-${Date.now()}`,
-      sicilNo: newPersonnelData.sicilNo,
-      name: newPersonnelData.name,
-      department: newPersonnelData.department,
-      position: newPersonnelData.position,
-      email: '',
-      phone: '',
-      isActive: true
-    };
-
-    // Personnel listesini güncelle
-    const updatedPersonnelList = [...personnelList, newPersonnel];
-    setPersonnelList(updatedPersonnelList);
-    
-    // LocalStorage'a kaydet
-    localStorage.setItem('personnel_data', JSON.stringify(updatedPersonnelList));
 
     // Formu temizle ve dialog'u kapat
     setNewPersonnelData({
@@ -5628,8 +5664,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
               overflow: 'auto',
               overflowX: 'auto',
               overflowY: 'auto',
-              maxHeight: '60vh',
-              minHeight: '400px',
+              maxHeight: '85vh',
+              minHeight: '600px',
               minWidth: '1200px',
               width: '100%',
               '&::-webkit-scrollbar': {
@@ -8001,8 +8037,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PersonAddIcon color="primary" />
-            Yeni Personel Ekle
+            {isEditingPersonnel ? <EditIcon color="primary" /> : <PersonAddIcon color="primary" />}
+            {isEditingPersonnel ? 'Personel Düzenle' : 'Yeni Personel Ekle'}
             </Box>
         </DialogTitle>
         <DialogContent>
@@ -8051,7 +8087,17 @@ const EquipmentCalibrationManagement: React.FC = () => {
             </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenPersonnelDialog(false)}>
+          <Button onClick={() => {
+            setOpenPersonnelDialog(false);
+            setIsEditingPersonnel(false);
+            setEditingPersonnelId(null);
+            setNewPersonnelData({
+              sicilNo: '',
+              name: '',
+              department: '',
+              position: ''
+            });
+          }}>
             İptal
           </Button>
           <Button 
@@ -8059,7 +8105,7 @@ const EquipmentCalibrationManagement: React.FC = () => {
             onClick={handleSavePersonnel}
             startIcon={<SaveIcon />}
           >
-            Personel Ekle
+            {isEditingPersonnel ? 'Güncelle' : 'Personel Ekle'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -8125,6 +8171,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
                           size="small"
                         />
                         <IconButton
+                          color="primary"
+                          size="small"
+                          onClick={() => handleEditPersonnel(person.id)}
+                          sx={{ ml: 1 }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton
                           color="error"
                           size="small"
                           onClick={() => handleDeletePersonnel(person.sicilNo)}
@@ -8148,6 +8202,14 @@ const EquipmentCalibrationManagement: React.FC = () => {
             variant="contained" 
             onClick={() => {
               setOpenPersonnelManagementDialog(false);
+              setIsEditingPersonnel(false);
+              setEditingPersonnelId(null);
+              setNewPersonnelData({
+                sicilNo: '',
+                name: '',
+                department: '',
+                position: ''
+              });
               setOpenPersonnelDialog(true);
             }}
             startIcon={<PersonAddIcon />}

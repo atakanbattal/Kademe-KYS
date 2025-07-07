@@ -577,7 +577,7 @@ const INSPECTORS_LIST: PersonnelItem[] = [
   { id: '5', name: 'Meryem Koç', employeeId: 'I005' }
 ];
 
-// 🔍 BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
+  // BASİT VE STABİL ARAMA KUTUSU - Focus kaybı sorunu yok
 const UltraStableSearchInput = React.memo<{
   value: string;
   onChange: (value: string) => void;
@@ -653,7 +653,7 @@ const UltraStableSearchInput = React.memo<{
 // KUSURSUZ ARAMA COMPONENT'İ
 // ============================================
 
-// 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
+  // MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
 const UltraIsolatedSearchInput = memo<{
   initialValue?: string;
   onDebouncedChange: (value: string) => void;
@@ -696,7 +696,7 @@ const UltraIsolatedSearchInput = memo<{
   // Input değişiklik handler'ı - PARENT'TAN TAMAMEN BAĞIMSIZ
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
-    console.log('🔍 Local arama değişiyor:', newValue);
+    console.log('Local arama değişiyor:', newValue);
     
     // Local state'i hemen güncelle (UI responsive)
     setLocalValue(newValue);
@@ -716,7 +716,7 @@ const UltraIsolatedSearchInput = memo<{
   // Blur handler - başka yere tıkladığında arama yap
   const handleBlur = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
     const currentValue = event.target.value;
-    console.log('🎯 Odak kaybedildi, hemen arama yapılıyor:', currentValue);
+    console.log('Odak kaybedildi, hemen arama yapılıyor:', currentValue);
     
     // Debounce'u temizle
     if (debounceRef.current) {
@@ -929,19 +929,21 @@ const TankLeakTest: React.FC = () => {
     quarter: ''
   });
 
-  // ✅ CLEAR TRIGGER - Arama kutusunu temizlemek için
+  // CLEAR TRIGGER - Arama kutusunu temizlemek için
   const [clearTrigger, setClearTrigger] = useState(0);
 
-  // ✅ ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
+
+
+  // ULTRA İZOLE EDİLMİŞ ARAMA HANDLER - HİÇBİR RE-RENDER TETİKLEMEZ
   const handleDebouncedSearchChange = useCallback((debouncedSearchTerm: string) => {
-    console.log('🔍 Debounced arama terimi geldi:', debouncedSearchTerm);
+          console.log('Debounced arama terimi geldi:', debouncedSearchTerm);
     setFilters(prev => {
       // Eğer değer değişmemişse state'i güncelleme
       if (prev.searchTerm === debouncedSearchTerm) {
-        console.log('🔍 Arama terimi aynı, state güncellenmeyecek');
+        console.log('Arama terimi aynı, state güncellenmeyecek');
         return prev;
       }
-      console.log('🔍 Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
+              console.log('Arama terimi farklı, state güncelleniyor:', debouncedSearchTerm);
       return {
         ...prev,
         searchTerm: debouncedSearchTerm
@@ -987,9 +989,9 @@ const TankLeakTest: React.FC = () => {
     { value: 'Q4', label: '4. Çeyrek (Ekim-Aralık)' }
   ];
 
-  // ✅ OPTIMIZED: Filtrelenmiş veri döndüren fonksiyon - useCallback ile performance artışı
+  // OPTIMIZED: Filtrelenmiş veri döndüren fonksiyon - useCallback ile performance artışı
   const getFilteredData = React.useCallback(() => {
-    // ✅ SADECE TEST KAYITLARI - Tamir durumu ile birlikte göster
+    // SADECE TEST KAYITLARI - Tamir durumu ile birlikte göster
     // Tamir kayıtlarını ayrı listelemek yerine, test kayıtlarının tamir durumunu zenginleştir
     const enrichedTests = savedTests.map(test => {
       // İlgili tamir kaydını bul
@@ -1056,7 +1058,16 @@ const TankLeakTest: React.FC = () => {
       if (filters.repairStatus) {
         const relatedRepair = repairRecords.find(r => r.testRecordId === test.id);
         if (!relatedRepair && filters.repairStatus !== 'none') return false;
-        if (relatedRepair && relatedRepair.status !== filters.repairStatus) return false;
+        
+        // İngilizce status'u Türkçe filter değerine çevir
+        const statusMapping: { [key: string]: string } = {
+          'planned': 'planlanan',
+          'in_progress': 'devam_ediyor',
+          'completed': 'tamamlandi',
+          'cancelled': 'iptal_edildi'
+        };
+        
+        if (relatedRepair && statusMapping[relatedRepair.status] !== filters.repairStatus) return false;
         if (filters.repairStatus === 'none' && relatedRepair) return false;
       }
 
@@ -1102,7 +1113,7 @@ const TankLeakTest: React.FC = () => {
 
       return true;
     })
-    // 🎯 DOĞRU SIRALAMA ALGORİTMASI - ÖNCE TEST TARİHİ, SONRA OLUŞTURULMA SIRASI
+    // DOĞRU SIRALAMA ALGORİTMASI - ÖNCE TEST TARİHİ, SONRA OLUŞTURULMA SIRASI
     .sort((a, b) => {
       // 1. ÖNCELİK: Test tarihine göre sırala
       const testDateA = a.testParameters?.testDate ? new Date(a.testParameters.testDate) : new Date(0);
@@ -1122,7 +1133,7 @@ const TankLeakTest: React.FC = () => {
       const createdAtComparison = createdAtB.getTime() - createdAtA.getTime(); // Yeniden eskiye
       
       // DEBUG: Detaylı sıralama log'u
-      console.log('🎯 DOĞRU SIRALAMA:', {
+      console.log('DOĞRU SIRALAMA:', {
         aId: a.id,
         bId: b.id,
         aTestDate: a.testParameters?.testDate,
@@ -1137,9 +1148,9 @@ const TankLeakTest: React.FC = () => {
       return createdAtComparison;
     });
 
-    // ✅ Final sıralama doğrulaması
+    // Final sıralama doğrulaması
     if (filteredAndSortedData.length > 0) {
-      console.log('🎯 Final sıralama kontrolü:', {
+      console.log('Final sıralama kontrolü:', {
         toplamKayit: filteredAndSortedData.length,
         ilkKayit: {
           id: filteredAndSortedData[0].id,
@@ -1196,7 +1207,7 @@ const TankLeakTest: React.FC = () => {
     } else {
       // localStorage'da veri yoksa örnek veri oluştur
       const sampleTests = generateSampleTestData();
-      console.log('🚀 Tank test modülü başlatıldı - ilk örnek kayıt:', sampleTests[0]);
+      console.log('Tank test modülü başlatıldı - ilk örnek kayıt:', sampleTests[0]);
       setSavedTests(sampleTests);
       localStorage.setItem('tankLeakTests', JSON.stringify(sampleTests));
       calculateStatistics(sampleTests);
@@ -1207,6 +1218,8 @@ const TankLeakTest: React.FC = () => {
     // Load custom personnel lists
     loadPersonnelLists();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+
 
   // Load repair records from localStorage
   const loadRepairRecords = (testRecords: TestRecord[]) => {
@@ -1460,7 +1473,7 @@ const TankLeakTest: React.FC = () => {
     }
   };
 
-  // ✅ DÖF/8D Integration Functions
+  // DÖF/8D Integration Functions
   const handleCreateDOFForTest = (test: TestRecord) => {
     // DÖF form verilerini localStorage'a kaydet - form otomatik açılsın
     const dofFormData = {
@@ -1485,7 +1498,7 @@ const TankLeakTest: React.FC = () => {
     return checkDOFStatus('tankLeak', test.id);
   };
 
-  // ✅ KRİTİK: TANK TEST SİLME FONKSİYONU - CANLI GÜNCELLEME
+  // KRİTİK: TANK TEST SİLME FONKSİYONU - CANLI GÜNCELLEME
   const handleDeleteTest = (testId: string) => {
     if (!window.confirm('Bu test kaydını silmek istediğinizden emin misiniz?')) {
       return;
@@ -1497,12 +1510,12 @@ const TankLeakTest: React.FC = () => {
       // Test kaydının varlığını kontrol et
       const testToDelete = savedTests.find(test => test.id === testId);
       if (!testToDelete) {
-        console.error('❌ Silinmek istenen test kaydı bulunamadı:', testId);
+        console.error('Silinmek istenen test kaydı bulunamadı:', testId);
         alert('Test kaydı bulunamadı! Sayfa yenilenerek tekrar deneyin.');
         return;
       }
       
-      console.log('🔍 Silinecek test:', {
+              console.log('Silinecek test:', {
         id: testToDelete.id,
         serialNumber: testToDelete.tankInfo?.serialNumber,
         testType: testToDelete.testParameters?.testType,
@@ -1523,9 +1536,9 @@ const TankLeakTest: React.FC = () => {
       // localStorage'a kaydet ve hata durumunda geri al
       try {
         localStorage.setItem('tankLeakTests', JSON.stringify(updatedTests));
-        console.log('✅ Test kaydı localStorage\'dan silindi, yeni test sayısı:', updatedTests.length);
+        console.log('Test kaydı localStorage\'dan silindi, yeni test sayısı:', updatedTests.length);
       } catch (storageError) {
-        console.error('❌ localStorage yazma hatası:', storageError);
+                  console.error('localStorage yazma hatası:', storageError);
         // Geri al
         setSavedTests(savedTests);
         alert('Test kaydı silinirken bir hata oluştu. Lütfen tekrar deneyin.');
@@ -1541,19 +1554,19 @@ const TankLeakTest: React.FC = () => {
       calculateStatistics(updatedTests);
       calculateTankRepairHistory(updatedRepairs);
       
-      console.log('✅ Test kaydı ve ilgili tamir kayıtları başarıyla silindi:', testId);
-      console.log('📊 Güncel test listesi uzunluğu:', updatedTests.length);
+              console.log('Test kaydı ve ilgili tamir kayıtları başarıyla silindi:', testId);
+              console.log('Güncel test listesi uzunluğu:', updatedTests.length);
       
       // Kullanıcıya bilgi ver
       const deletedTestInfo = `${testToDelete.tankInfo.serialNumber} - ${testToDelete.testParameters.testType}`;
       
       // Kullanıcıya göster
       setTimeout(() => {
-        console.log('🎯 Silme işlemi tamamlandı, kullanıcıya bildirim gösteriliyor');
+        console.log('Silme işlemi tamamlandı, kullanıcıya bildirim gösteriliyor');
       }, 100);
       
     } catch (error) {
-      console.error('❌ Test kaydı silinirken kritik hata:', error);
+              console.error('Test kaydı silinirken kritik hata:', error);
       alert('Test kaydı silinirken bir hata oluştu. Lütfen sayfayı yenileme yapın ve tekrar deneyin.');
     }
   };
@@ -1619,7 +1632,7 @@ const TankLeakTest: React.FC = () => {
       test.testResult?.result === 'failed' || test.testResult?.result === 'conditional'
     );
     
-    console.log('🔧 Tamir gerektiren test sayısı:', failedTests.length);
+    console.log('Tamir gerektiren test sayısı:', failedTests.length);
     
     failedTests.forEach((test, index) => {
       const testDate = new Date(test.testParameters.testDate);
@@ -1699,7 +1712,7 @@ const TankLeakTest: React.FC = () => {
       sampleRepairs.push(repairRecord);
     });
     
-    console.log('✅ generateSampleRepairData tamamlandı. Toplam kayıt:', sampleRepairs.length);
+          console.log('generateSampleRepairData tamamlandı. Toplam kayıt:', sampleRepairs.length);
     return sampleRepairs;
   };
 
@@ -1796,8 +1809,8 @@ const TankLeakTest: React.FC = () => {
     }
     
     const sortedTests = sampleTests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    console.log('✅ generateSampleTestData tamamlandı. Toplam kayıt:', sortedTests.length);
-    console.log('🔍 İlk test detayları:', sortedTests[0]);
+    console.log('generateSampleTestData tamamlandı. Toplam kayıt:', sortedTests.length);
+    console.log('İlk test detayları:', sortedTests[0]);
     
     return sortedTests;
   };
@@ -1945,7 +1958,7 @@ const TankLeakTest: React.FC = () => {
     const totalValidTests = validTests.length + repairRecords.length;
     const successRate = totalValidTests > 0 ? (passedTests / totalValidTests) * 100 : 0;
     
-    console.log(`📊 Tank Test İstatistikleri - Toplam: ${totalTests}, Geçerli: ${validTests.length}, Başarılı: ${passedTests}`);
+    console.log(`Tank Test İstatistikleri - Toplam: ${totalTests}, Geçerli: ${validTests.length}, Başarılı: ${passedTests}`);
     
     setTestStatistics({
       totalTests,
@@ -2087,7 +2100,7 @@ const TankLeakTest: React.FC = () => {
           : 'Test başarıyla tamamlandı. Herhangi bir hata tespit edilmedi.'
       };
 
-      // ✅ KRİTİK TARİH DÜZELTMESİ - TUTARLI OLUŞTURMA TARİHİ
+      // KRİTİK TARİH DÜZELTMESİ - TUTARLI OLUŞTURMA TARİHİ
       const currentTimestamp = new Date().toISOString();
       
       // Yeni test kaydı oluştur
@@ -2126,7 +2139,7 @@ const TankLeakTest: React.FC = () => {
       localStorage.setItem('tankLeakTests', JSON.stringify(updatedTests));
       calculateStatistics(updatedTests);
 
-      // 🔧 OTOMATİK TAMİR FORMU OLUŞTURMA
+      // OTOMATİK TAMİR FORMU OLUŞTURMA
       let repairCreated = false;
       if (automaticTestResult.result === 'failed') {
         // Test başarısız ise otomatik olarak tamir formu oluştur
@@ -2418,17 +2431,17 @@ const TankLeakTest: React.FC = () => {
       if (test.testParameters?.testConditions) {
         const testConditions = [
           [convertTurkish('Test Öncesi Kontroller'), ''],
-          ...(test.testParameters.testConditions.preTestChecks || []).map((check) => ['✓', convertTurkish(check)]),
+          ...(test.testParameters.testConditions.preTestChecks || []).map((check) => ['', convertTurkish(check)]),
           [convertTurkish('Güvenlik Gereksinimleri'), ''],
-          ...(test.testParameters.testConditions.safetyRequirements || []).map((requirement) => ['⚠', convertTurkish(requirement)]),
+          ...(test.testParameters.testConditions.safetyRequirements || []).map((requirement) => ['', convertTurkish(requirement)]),
           [convertTurkish('Çevresel Koşullar'), ''],
-          ...(test.testParameters.testConditions.environmentalConditions || []).map((condition) => ['🌡', convertTurkish(condition)]),
+          ...(test.testParameters.testConditions.environmentalConditions || []).map((condition) => ['', convertTurkish(condition)]),
           [convertTurkish('Ekipman Gereksinimleri'), ''],
-          ...(test.testParameters.testConditions.equipmentRequirements || []).map((equipment) => ['🔧', convertTurkish(equipment)]),
+          ...(test.testParameters.testConditions.equipmentRequirements || []).map((equipment) => ['', convertTurkish(equipment)]),
           [convertTurkish('Prosedür Adımları'), ''],
           ...(test.testParameters.testConditions.proceduralSteps || []).map((step, index) => [`${index + 1}.`, convertTurkish(step)]),
           [convertTurkish('Kabul Kriterleri'), ''],
-          ...(test.testParameters.testConditions.acceptanceCriteria || []).map((criteria) => ['✅', convertTurkish(criteria)])
+          ...(test.testParameters.testConditions.acceptanceCriteria || []).map((criteria) => ['', convertTurkish(criteria)])
         ];
         
         (doc as any).autoTable( {
@@ -2563,6 +2576,8 @@ const TankLeakTest: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
+
+
       {/* Professional Navigation Bar */}
       <Box sx={{ 
         display: 'flex', 
@@ -2775,10 +2790,10 @@ const TankLeakTest: React.FC = () => {
                 >
                   <MenuItem value="">Tümü</MenuItem>
                   <MenuItem value="none">Tamir Yok</MenuItem>
-                  <MenuItem value="planned">Planlanan</MenuItem>
-                  <MenuItem value="in_progress">Devam Ediyor</MenuItem>
-                  <MenuItem value="completed">Tamamlandı</MenuItem>
-                  <MenuItem value="cancelled">İptal Edildi</MenuItem>
+                  <MenuItem value="planlanan">Planlanan</MenuItem>
+                  <MenuItem value="devam_ediyor">Devam Ediyor</MenuItem>
+                  <MenuItem value="tamamlandi">Tamamlandı</MenuItem>
+                  <MenuItem value="iptal_edildi">İptal Edildi</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -3838,8 +3853,8 @@ const TankLeakTest: React.FC = () => {
                         <TableCell sx={{ width: '80px' }}>Test</TableCell>
                         <TableCell sx={{ width: '100px' }}>Kaynak</TableCell>
                         <TableCell sx={{ width: '100px' }}>Kontrol</TableCell>
-                        <TableCell sx={{ width: '80px' }}>Tamir</TableCell>
-                        <TableCell sx={{ width: '80px' }}>Sonuç</TableCell>
+                        <TableCell sx={{ width: '100px', backgroundColor: 'warning.main !important', color: 'white !important' }}>Tamir Tarihi</TableCell>
+                        <TableCell sx={{ width: '100px' }}>Sonuç</TableCell>
                         <TableCell sx={{ width: '100px' }} align="center">İşlemler</TableCell>
                       </TableRow>
                     </TableHead>
@@ -3915,32 +3930,91 @@ const TankLeakTest: React.FC = () => {
                               </Typography>
                             </TableCell>
                             <TableCell>
-                              <Typography variant="caption" sx={{ 
-                                color: relatedRepair ? 'primary.main' : 'text.secondary',
-                                fontWeight: relatedRepair ? 'bold' : 'normal'
-                              }}>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                                 {(() => {
                                   if (relatedRepair) {
                                     if (relatedRepair.status === 'completed' && relatedRepair.completedAt) {
-                                      return new Date(relatedRepair.completedAt).toLocaleDateString('tr-TR', {day: '2-digit', month: '2-digit', year: '2-digit'});
+                                      return (
+                                        <>
+                                          <Typography variant="caption" sx={{ 
+                                            color: 'success.main',
+                                            fontWeight: 'bold',
+                                            backgroundColor: 'success.50',
+                                            padding: '2px 4px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.65rem'
+                                          }}>
+                                            TAMİR YAPILDI
+                                          </Typography>
+                                          <Typography variant="caption" sx={{ 
+                                            color: 'success.dark',
+                                            fontWeight: 'medium',
+                                            fontSize: '0.6rem'
+                                          }}>
+                                            {new Date(relatedRepair.completedAt).toLocaleDateString('tr-TR', {
+                                              day: '2-digit', 
+                                              month: '2-digit', 
+                                              year: '2-digit'
+                                            })}
+                                          </Typography>
+                                        </>
+                                      );
                                     } else if (relatedRepair.status === 'in_progress') {
-                                      return 'Devam Ediyor';
+                                      return (
+                                        <Typography variant="caption" sx={{ 
+                                          color: 'warning.main',
+                                          fontWeight: 'bold',
+                                          backgroundColor: 'warning.50',
+                                          padding: '2px 4px',
+                                          borderRadius: '4px',
+                                          fontSize: '0.65rem'
+                                        }}>
+                                          DEVAM EDİYOR
+                                        </Typography>
+                                      );
                                     } else if (relatedRepair.status === 'planned') {
-                                      return 'Planlandı';
+                                      return (
+                                        <Typography variant="caption" sx={{ 
+                                          color: 'info.main',
+                                          fontWeight: 'bold',
+                                          backgroundColor: 'info.50',
+                                          padding: '2px 4px',
+                                          borderRadius: '4px',
+                                          fontSize: '0.65rem'
+                                        }}>
+                                          PLANLANDI
+                                        </Typography>
+                                      );
                                     } else {
-                                      return relatedRepair.status;
+                                      return (
+                                        <Typography variant="caption" sx={{ 
+                                          color: 'text.secondary',
+                                          fontWeight: 'medium',
+                                          fontSize: '0.65rem'
+                                        }}>
+                                          {relatedRepair.status.toUpperCase()}
+                                        </Typography>
+                                      );
                                     }
                                   }
-                                  return '-';
+                                  return (
+                                    <Typography variant="caption" sx={{ 
+                                      color: 'text.disabled',
+                                      fontStyle: 'italic',
+                                      fontSize: '0.6rem'
+                                    }}>
+                                      Tamir Yok
+                                    </Typography>
+                                  );
                                 })()}
-                              </Typography>
+                              </Box>
                             </TableCell>
                             <TableCell>
                               <Chip
                                 label={
-                                  (test as any).calculatedResult === 'repaired_passed' ? 'Tamir Başarılı ✓' :
-                                  (test as any).calculatedResult === 'repaired_failed' ? 'Tamir Başarısız ✗' :
-                                  (test as any).calculatedResult === 'repaired_completed' ? 'Tamir Edildi' :
+                                  (test as any).calculatedResult === 'repaired_passed' ? 'TAMİR BAŞARILI' :
+                                  (test as any).calculatedResult === 'repaired_failed' ? 'TAMİR BAŞARISIZ' :
+                                  (test as any).calculatedResult === 'repaired_completed' ? 'TAMİR EDİLDİ' :
                                   test.testResult?.result === 'passed' ? 'Başarılı' :
                                   test.testResult?.result === 'failed' ? 'Başarısız' : 
                                   test.testResult?.result === 'conditional' ? 'Şartlı' : 'Belirsiz'
@@ -3955,23 +4029,28 @@ const TankLeakTest: React.FC = () => {
                                 }
                                 size="small"
                                 sx={{ 
-                                  height: '20px', 
-                                  fontSize: '0.6rem',
+                                  height: '24px', 
+                                  fontSize: '0.65rem',
+                                  fontWeight: 'bold',
                                   // Tamir durumu için özel stil
                                   ...((test as any).calculatedResult === 'repaired_passed' && {
                                     bgcolor: 'success.main',
                                     color: 'white',
-                                    fontWeight: 'bold'
+                                    fontWeight: 'bold',
+                                    borderRadius: '12px'
                                   }),
                                   ...((test as any).calculatedResult === 'repaired_failed' && {
                                     bgcolor: 'error.main',
                                     color: 'white',
-                                    fontWeight: 'bold'
+                                    fontWeight: 'bold',
+                                    borderRadius: '12px'
                                   }),
                                   ...((test as any).calculatedResult === 'repaired_completed' && {
                                     bgcolor: 'info.main',
                                     color: 'white',
-                                    fontWeight: 'bold'
+                                    fontWeight: 'bold',
+                                    borderRadius: '12px',
+                                    animation: 'pulse 2s infinite'
                                   })
                                 }}
                               />
@@ -4650,7 +4729,7 @@ const TankLeakTest: React.FC = () => {
             variant="contained"
             onClick={() => {
               if (editRepairData) {
-                // Eğer durum 'completed' olarak değiştirilmişse completedAt tarihini otomatik set et
+                // Eğer durum 'tamamlandı' olarak değiştirilmişse completedAt tarihini otomatik set et
                 let updatedRepairData = editRepairData;
                 if (editRepairData.status === 'completed' && !editRepairData.completedAt) {
                   updatedRepairData = {
@@ -4667,6 +4746,16 @@ const TankLeakTest: React.FC = () => {
                 setRepairRecords(updatedRecords);
                 localStorage.setItem('tankRepairRecords', JSON.stringify(updatedRecords));
                 calculateTankRepairHistory(updatedRecords);
+
+                // Tamir tamamlandıysa test istatistiklerini güncelle
+                if (updatedRepairData.status === 'completed') {
+                  calculateStatistics(savedTests);
+                  
+                  // Test Geçmişi & İzleme sayfasına otomatik geç
+                  setTimeout(() => {
+                    setActivePage('history');
+                  }, 500);
+                }
 
                 // Dialog'u kapat
                 setRepairFormOpen(false);

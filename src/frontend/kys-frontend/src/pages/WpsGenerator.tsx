@@ -51,8 +51,7 @@ import {
   Settings as SettingsIcon,
   TrendingUp as TrendingUpIcon,
   GetApp as ExportIcon,
-  Add as AddIcon,
-  PlaylistAddCheck as PlaylistAddCheckIcon,
+
   Info as InfoIcon,
   PictureAsPdf as PdfIcon,
   AutoAwesome as RecommendIcon,
@@ -64,7 +63,7 @@ import {
   Science as ScienceIcon,
   Tune as TuneIcon,
   Clear as ClearIcon,
-  Save as SaveIcon
+
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -153,20 +152,7 @@ interface GrooveType {
   jointTypes: string[];
 }
 
-interface SavedWPS {
-  id: string;
-  wpsNumber: string;
-  createdDate: string;
-  createdBy: string;
-  status: 'draft' | 'approved' | 'active';
-  revision: number;
-  materialType: string;
-  materialGroup: string;
-  thickness: number;
-  jointType: string;
-  process: string;
-  data: WPSData;
-}
+
 
 // Constants
 const JOINT_TYPES: JointType[] = [
@@ -239,6 +225,122 @@ const MATERIAL_TYPES = [
 ];
 
 
+const CONNECTION_TYPES = [
+  {
+    code: 'PIPE_PIPE',
+    name: 'Boru - Boru',
+    icon: '⫽',
+    description: 'İki borunun birleştirilmesi',
+    needsDiameter: true
+  },
+  {
+    code: 'PLATE_PLATE', 
+    name: 'Plaka - Plaka',
+    icon: '▬',
+    description: 'İki plakanın birleştirilmesi',
+    needsDiameter: false
+  },
+  {
+    code: 'PIPE_PLATE',
+    name: 'Boru - Plaka', 
+    icon: '⫽▬',
+    description: 'Boru ile plakanın birleştirilmesi',
+    needsDiameter: true
+  }
+];
+
+const WELDING_POSITIONS = [
+  { code: 'PA', name: 'PA - Düz Pozisyon' },
+  { code: 'PB', name: 'PB - Yatay Pozisyon' },
+  { code: 'PC', name: 'PC - Dikey Yukarı' },
+  { code: 'PD', name: 'PD - Dikey Aşağı' },
+  { code: 'PE', name: 'PE - Tavan Pozisyonu' },
+  { code: 'PF', name: 'PF - Dikey Yukarı (Köşe)' },
+  { code: 'PG', name: 'PG - Dikey Aşağı (Köşe)' }
+];
+
+const GROOVE_TYPES = [
+  {
+    code: 'I',
+    name: 'I Kaynak Ağzı (İnce)',
+    minThickness: 0.5,
+    maxThickness: 6,
+    recommendedAngle: 0,
+    description: 'Düz kesim, ince malzemeler için',
+    jointTypes: ['BUTT']
+  },
+  {
+    code: 'I_HEAVY',
+    name: 'I Kaynak Ağzı (Kalın)',
+    minThickness: 3,
+    maxThickness: 12,
+    recommendedAngle: 0,
+    description: 'Düz kesim, orta kalınlık malzemeler için',
+    jointTypes: ['BUTT']
+  },
+  {
+    code: 'V',
+    name: 'V Ağzı',
+    minThickness: 6,
+    maxThickness: 25,
+    recommendedAngle: 60,
+    description: 'Tek taraflı V ağzı',
+    jointTypes: ['BUTT']
+  },
+  {
+    code: 'U',
+    name: 'U Ağzı',
+    minThickness: 15,
+    maxThickness: 40,
+    recommendedAngle: 20,
+    description: 'U şeklinde hazırlık',
+    jointTypes: ['BUTT']
+  },
+  {
+    code: 'X',
+    name: 'X Ağzı (Çift V Simetrik)',
+    minThickness: 20,
+    maxThickness: 100,
+    recommendedAngle: 60,
+    description: 'Çift taraflı V ağzı',
+    jointTypes: ['BUTT']
+  },
+  {
+    code: 'FILLET',
+    name: 'Köşe Ağzı',
+    minThickness: 1,
+    maxThickness: 50,
+    recommendedAngle: 90,
+    description: 'Köşe kaynak ağzı',
+    jointTypes: ['FILLET']
+  }
+];
+
+const WIRE_SIZES = {
+  'MIG/MAG': [0.8, 1.0, 1.2, 1.6, 2.0, 2.4],
+  'TIG': [1.6, 2.0, 2.4, 3.2, 4.0],
+  'MMA': [2.5, 3.2, 4.0, 5.0, 6.0],
+  '111': [2.5, 3.2, 4.0, 5.0, 6.0]
+};
+
+const GAS_COMPOSITIONS = {
+  'MIG/MAG': [
+    'Ar + 18% CO2 (EN ISO 14175: M21)',
+    'Ar + 8% CO2 (EN ISO 14175: M12)',
+    'Ar + 5% CO2 (EN ISO 14175: M13)',
+    '100% CO2',
+    'Ar + 2% O2 (EN ISO 14175: M11)'
+  ],
+  'TIG': [
+    '100% Ar (EN ISO 14175: I1)',
+    'Ar + 2% H2 (EN ISO 14175: I2)',
+    'Ar + 30% He (EN ISO 14175: I3)',
+    '100% He'
+  ],
+  'MMA': ['Gaz Kullanılmaz'],
+  '111': ['Gaz Kullanılmaz']
+};
+
 const MATERIAL_GROUPS = {
   'Karbon Çelik': [
     'S235 JR - Genel Yapı Çeliği (235 MPa)',
@@ -309,80 +411,7 @@ const MATERIAL_GROUPS = {
   ]
 };
 
-const WELDING_POSITIONS = [
-  { code: 'PA', name: 'PA - Düz (1G)', description: 'Düz pozisyon' },
-  { code: 'PB', name: 'PB - Yatay (2G)', description: 'Yatay köşe' },
-  { code: 'PC', name: 'PC - Dikey Yukarı (3G)', description: 'Dikey yukarı' },
-  { code: 'PD', name: 'PD - Dikey Aşağı', description: 'Dikey aşağı' },
-  { code: 'PE', name: 'PE - Tavan (4G)', description: 'Tavan pozisyonu' },
-  { code: '2G', name: '2G - Yatay', description: 'Yatay kaynak' },
-  { code: '3G', name: '3G - Dikey', description: 'Dikey kaynak' },
-  { code: '4G', name: '4G - Tavan', description: 'Tavan kaynağı' },
-  { code: '6G', name: '6G - 45° Sabit', description: '45° sabit pozisyon' }
-];
 
-const WIRE_SIZES = {
-  'MIG/MAG': [0.6, 0.8, 1.0, 1.2, 1.6, 2.0],
-  'TIG': [1.6, 2.0, 2.4, 3.2, 4.0],
-  'MMA': [2.5, 3.2, 4.0, 5.0, 6.0],
-  '111': [2.5, 3.2, 4.0, 5.0, 6.0]
-};
-
-const GAS_COMPOSITIONS = {
-  'MIG/MAG': [
-    'M21 (Ar + 15-25% CO2)',
-    'M12 (Ar + 2-5% CO2)',
-    'I1 (100% Ar)',
-    'M13 (Ar + 5-15% CO2)',
-    'C1 (100% CO2)'
-  ],
-  'TIG': [
-    'I1 (100% Ar)',
-    'I2 (Ar + He)',
-    'I3 (100% He)'
-  ],
-  'MMA': [],
-  '111': []
-};
-
-const GROOVE_TYPES: GrooveType[] = [
-  { code: 'I', name: 'I Ağzı', minThickness: 0.5, maxThickness: 6, recommendedAngle: 0, description: 'Düz ağız - hazırlıksız', jointTypes: ['BUTT'] },
-  { code: 'I_HEAVY', name: 'Kalın I Ağzı', minThickness: 6, maxThickness: 20, recommendedAngle: 0, description: 'Kalın malzeme I ağzı', jointTypes: ['BUTT'] },
-  { code: 'V', name: 'V Ağzı', minThickness: 4, maxThickness: 30, recommendedAngle: 60, description: 'Tek V ağzı', jointTypes: ['BUTT'] },
-  { code: 'DOUBLE_V', name: 'Çift V Ağzı', minThickness: 12, maxThickness: 60, recommendedAngle: 60, description: 'Çift taraflı V ağzı', jointTypes: ['BUTT'] },
-  { code: 'U', name: 'U Ağzı', minThickness: 8, maxThickness: 40, recommendedAngle: 20, description: 'U şekli ağız', jointTypes: ['BUTT'] },
-  { code: 'DOUBLE_U', name: 'Çift U Ağzı', minThickness: 20, maxThickness: 80, recommendedAngle: 20, description: 'Çift taraflı U ağzı', jointTypes: ['BUTT'] },
-  { code: 'X', name: 'X Ağzı', minThickness: 15, maxThickness: 50, recommendedAngle: 60, description: 'Çift taraflı V (X)', jointTypes: ['BUTT'] },
-  { code: 'K', name: 'K Ağzı', minThickness: 20, maxThickness: 70, recommendedAngle: 50, description: 'Asimetrik çift V', jointTypes: ['BUTT'] },
-  { code: 'Y', name: 'Y Ağzı', minThickness: 10, maxThickness: 40, recommendedAngle: 45, description: 'Tek taraflı pah', jointTypes: ['BUTT'] },
-  { code: 'SQUARE', name: 'Düz Ağız', minThickness: 1, maxThickness: 8, recommendedAngle: 0, description: 'Hazırlıksız düz', jointTypes: ['LAP', 'EDGE'] },
-  { code: 'FILLET', name: 'Köşe Ağzı', minThickness: 2, maxThickness: 50, recommendedAngle: 90, description: 'Köşe birleştirme', jointTypes: ['FILLET'] }
-];
-
-// Yeni: Birleştirme tipleri
-const CONNECTION_TYPES = [
-  {
-    code: 'PIPE_PIPE',
-    name: 'Boru - Boru',
-    description: 'İki borunun birleştirilmesi',
-    needsDiameter: true,
-    icon: '⚪⚪'
-  },
-  {
-    code: 'PLATE_PLATE', 
-    name: 'Plaka - Plaka',
-    description: 'İki plakanın birleştirilmesi',
-    needsDiameter: false,
-    icon: '⬜⬜'
-  },
-  {
-    code: 'PIPE_PLATE',
-    name: 'Boru - Plaka', 
-    description: 'Boru ile plakanın birleştirilmesi',
-    needsDiameter: true,
-    icon: '⚪⬜'
-  }
-];
 
 // Doğru MIG/MAG parametrelerini hesaplayan fonksiyon
 const getMigParameters = (thickness: number, wireSize: number): {
@@ -834,46 +863,64 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
     }
   }
 
-  // 3. Tel/Elektrod Çapı Önerisi (Kalınlık ve yönteme göre)
+  // 3. Tel/Elektrod Çapı Önerisi (Kalınlık ve yönteme göre) - İyileştirilmiş
   if (wpsData.thickness && wpsData.process && !wpsData.wireSize) {
     let suggestedWireSize = 0;
     let reason = '';
 
     if (wpsData.process === 'MIG/MAG') {
-      if (wpsData.thickness <= 3) {
+      if (wpsData.thickness <= 2) {
         suggestedWireSize = 0.8;
-        reason = 'İnce malzeme için - az ısı girdisi, distorsiyon kontrolü';
-      } else if (wpsData.thickness <= 6) {
+        reason = 'Çok ince malzeme için - minimum ısı girdisi, distorsiyon kontrolü';
+      } else if (wpsData.thickness <= 4) {
         suggestedWireSize = 1.0;
-        reason = 'Orta kalınlık için optimum - verimlilik ve kalite dengesi';
-      } else if (wpsData.thickness <= 12) {
-        suggestedWireSize = 1.2;
-        reason = 'Kalın malzeme için - yüksek depolama hızı';
-      } else {
-        suggestedWireSize = 1.6;
-        reason = 'Çok kalın malzeme için - maksimum verimlilik';
-      }
-    } else if (wpsData.process === 'TIG') {
-      if (wpsData.thickness <= 3) {
-        suggestedWireSize = 1.6;
-        reason = 'İnce malzeme TIG kaynağı için ideal çap';
+        reason = 'İnce-orta kalınlık için optimum - iyi kontrolü';
       } else if (wpsData.thickness <= 8) {
+        suggestedWireSize = 1.2;
+        reason = 'Orta kalınlık için - verimlilik ve kalite dengesi';
+      } else if (wpsData.thickness <= 15) {
+        suggestedWireSize = 1.6;
+        reason = 'Kalın malzeme için - yüksek depolama hızı';
+      } else if (wpsData.thickness <= 25) {
         suggestedWireSize = 2.0;
-        reason = 'Orta kalınlık TIG için standart çap';
+        reason = 'Çok kalın malzeme için - maksimum verimlilik';
       } else {
         suggestedWireSize = 2.4;
-        reason = 'Kalın TIG kaynağı için - daha iyi akım taşıma';
+        reason = 'Ultra kalın malzeme için - en yüksek verimlilik';
       }
-    } else if (wpsData.process === 'MMA' || wpsData.process === '111') {
-      if (wpsData.thickness <= 4) {
-        suggestedWireSize = 2.5;
-        reason = 'İnce elektrod kaynağı için minimum çap';
-      } else if (wpsData.thickness <= 8) {
+    } else if (wpsData.process === 'TIG') {
+      if (wpsData.thickness <= 2) {
+        suggestedWireSize = 1.6;
+        reason = 'İnce malzeme TIG kaynağı için ideal çap';
+      } else if (wpsData.thickness <= 6) {
+        suggestedWireSize = 2.0;
+        reason = 'Orta kalınlık TIG için standart çap';
+      } else if (wpsData.thickness <= 12) {
+        suggestedWireSize = 2.4;
+        reason = 'Kalın TIG kaynağı için - daha iyi akım taşıma';
+      } else if (wpsData.thickness <= 20) {
         suggestedWireSize = 3.2;
-        reason = 'Standart elektrod çapı - en yaygın kullanım';
+        reason = 'Çok kalın TIG kaynağı için - yüksek akım kapasitesi';
       } else {
         suggestedWireSize = 4.0;
+        reason = 'Ultra kalın TIG kaynağı için - maksimum akım kapasitesi';
+      }
+    } else if (wpsData.process === 'MMA' || wpsData.process === '111') {
+      if (wpsData.thickness <= 3) {
+        suggestedWireSize = 2.5;
+        reason = 'İnce elektrod kaynağı için minimum çap';
+      } else if (wpsData.thickness <= 6) {
+        suggestedWireSize = 3.2;
+        reason = 'Standart elektrod çapı - en yaygın kullanım';
+      } else if (wpsData.thickness <= 12) {
+        suggestedWireSize = 4.0;
         reason = 'Kalın malzeme için - yüksek akım kapasitesi';
+      } else if (wpsData.thickness <= 20) {
+        suggestedWireSize = 5.0;
+        reason = 'Çok kalın malzeme için - maksimum akım';
+      } else {
+        suggestedWireSize = 6.0;
+        reason = 'Ultra kalın malzeme için - en yüksek akım kapasitesi';
       }
     }
 
@@ -931,37 +978,56 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
     }
   }
 
-  // 5. Gaz Bileşimi Önerisi (Temel malzeme ve yöntem kontrolü)
-  if (wpsData.materialType && wpsData.process && !wpsData.gasComposition) {
+  // 5. Gaz Bileşimi Önerisi (İyileştirilmiş - malzeme ve kalınlığa göre)
+  if (wpsData.materialType && wpsData.process && 
+      (wpsData.process === 'MIG/MAG' || wpsData.process === 'TIG') && 
+      !wpsData.gasComposition) {
     let suggestedGas = '';
     let reason = '';
 
-    if (wpsData.process === 'MIG/MAG') {
-      if (wpsData.materialType.includes('Alüminyum')) {
-        suggestedGas = 'I1 (100% Ar)';
-        reason = 'Alüminyum için - oksitlenme önler, temiz kaynak';
+          if (wpsData.process === 'MIG/MAG') {
+        if (wpsData.materialType.includes('Alüminyum')) {
+          suggestedGas = '100% Ar (EN ISO 14175: I1)';
+          reason = 'Alüminyum için standart - CO2 oksitlenmeye neden olur';
       } else if (wpsData.materialType.includes('Paslanmaz')) {
-        suggestedGas = 'M12 (Ar + 0.5-5% CO2)';
-        reason = 'Paslanmaz çelik için - düşük karbonlu karışım';
-      } else if (wpsData.materialType.includes('Çelik')) {
         if (wpsData.thickness && wpsData.thickness <= 3) {
-          suggestedGas = 'M12 (Ar + 2-5% CO2)';
-          reason = 'İnce çelik için - düşük sıçrama, temiz kaynak';
+          suggestedGas = 'Ar + 8% CO2 (EN ISO 14175: M12)';
+          reason = 'İnce paslanmaz çelik için - düşük karbon transferi';
         } else {
-          suggestedGas = 'M21 (Ar + 15-25% CO2)';
-          reason = 'Çelik için ekonomik - iyi nüfuziyet, yüksek verimlilik';
+          suggestedGas = 'Ar + 5% CO2 (EN ISO 14175: M13)';
+          reason = 'Kalın paslanmaz çelik için - optimum nüfuziyet';
+        }
+      } else if (wpsData.materialType.includes('Çelik')) {
+        if (wpsData.thickness && wpsData.thickness <= 2) {
+          suggestedGas = 'Ar + 8% CO2 (EN ISO 14175: M12)';
+          reason = 'Çok ince çelik için - minimum sıçrama, temiz kaynak';
+        } else if (wpsData.thickness && wpsData.thickness <= 6) {
+          suggestedGas = 'Ar + 18% CO2 (EN ISO 14175: M21)';
+          reason = 'Orta kalınlık çelik için - mükemmel denge';
+        } else {
+          suggestedGas = 'Ar + 18% CO2 (EN ISO 14175: M21)';
+          reason = 'Kalın çelik için - yüksek nüfuziyet, ekonomik';
         }
       }
     } else if (wpsData.process === 'TIG') {
-      suggestedGas = 'I1 (100% Ar)';
-      reason = 'TIG kaynağı için standart - temiz ark, stabil kaynak';
-    } else if (wpsData.process === 'MMA' || wpsData.process === '111') {
-      // MMA/111 için gaz koruması yok, sadece bilgi amaçlı
-      suggestedGas = 'Gaz koruması yok';
-      reason = 'Elektrodlu kaynakta elektrod kaplamalar koruma sağlar';
+      if (wpsData.materialType.includes('Alüminyum')) {
+        suggestedGas = '100% Ar (EN ISO 14175: I1)';
+        reason = 'Alüminyum TIG için standart - temiz ark, mükemmel kaynak';
+      } else if (wpsData.materialType.includes('Paslanmaz')) {
+        if (wpsData.thickness && wpsData.thickness > 6) {
+          suggestedGas = 'Ar + 2% H2 (EN ISO 14175: I2)';
+          reason = 'Kalın paslanmaz TIG için - daha yüksek ısı girdisi';
+        } else {
+          suggestedGas = '100% Ar (EN ISO 14175: I1)';
+          reason = 'Paslanmaz TIG için ideal - temiz, stabil ark';
+        }
+      } else {
+        suggestedGas = '100% Ar (EN ISO 14175: I1)';
+        reason = 'TIG kaynağı için universal - mükemmel ark kararlılığı';
+      }
     }
 
-    if (suggestedGas && suggestedGas !== 'Gaz koruması yok') {
+    if (suggestedGas) {
       recommendations.push({
         parameter: 'gasComposition',
         value: suggestedGas,
@@ -970,6 +1036,59 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
         reason: reason,
         confidence: 'high'
       });
+    }
+  }
+
+  // 6. Ağız Açısı Önerisi (Yeni eklenen)
+  if (wpsData.grooveType && wpsData.thickness && !wpsData.grooveAngle) {
+    let suggestedAngle = 0;
+    let reason = '';
+
+    const selectedGroove = GROOVE_TYPES.find(g => g.code === wpsData.grooveType);
+    if (selectedGroove) {
+      suggestedAngle = selectedGroove.recommendedAngle;
+      
+      // Kalınlığa göre açı optimizasyonu
+      if (wpsData.grooveType === 'V' || wpsData.grooveType === 'DOUBLE_V' || wpsData.grooveType === 'X') {
+        if (wpsData.thickness <= 6) {
+          suggestedAngle = 60;
+          reason = 'İnce-orta malzeme V ağzı için standart açı - optimum erişim';
+        } else if (wpsData.thickness <= 15) {
+          suggestedAngle = 70;
+          reason = 'Kalın malzeme için geniş açı - daha iyi nüfuziyet';
+        } else {
+          suggestedAngle = 80;
+          reason = 'Çok kalın malzeme için maksimum açı - tam nüfuziyet garantisi';
+        }
+      } else if (wpsData.grooveType === 'U' || wpsData.grooveType === 'DOUBLE_U') {
+        if (wpsData.thickness <= 12) {
+          suggestedAngle = 15;
+          reason = 'Orta kalınlık U ağzı için dar açı - ekonomik';
+        } else if (wpsData.thickness <= 25) {
+          suggestedAngle = 20;
+          reason = 'Kalın U ağzı için standart açı - optimal';
+        } else {
+          suggestedAngle = 25;
+          reason = 'Çok kalın U ağzı için geniş açı - kolay erişim';
+        }
+      } else if (wpsData.grooveType === 'I' || wpsData.grooveType === 'I_HEAVY') {
+        suggestedAngle = 0;
+        reason = 'I ağzı için hazırlık gerektirmez - düz kesim';
+      } else if (wpsData.grooveType === 'FILLET') {
+        suggestedAngle = 90;
+        reason = 'Köşe kaynağı için standart dik açı';
+      }
+
+      if (suggestedAngle >= 0) {
+        recommendations.push({
+          parameter: 'grooveAngle',
+          value: suggestedAngle,
+          min: 0,
+          max: 0,
+          reason: reason,
+          confidence: 'high'
+        });
+      }
     }
   }
   
@@ -1174,36 +1293,63 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
 
 
 const SectionCard = ({ title, icon, children, step, completed = false }: any) => (
-  <Card sx={{ 
-    mb: 3, 
-    overflow: 'visible',
-    border: '1px solid',
-    borderColor: completed ? 'success.main' : 'divider',
-    '&:hover': {
-      boxShadow: (theme) => theme.shadows[8]
-    }
-  }}>
-    <CardHeader
-      avatar={
-        <Avatar sx={{ 
-          bgcolor: completed ? 'success.main' : 'primary.main',
-          width: 56,
-          height: 56
-        }}>
-          {completed ? <CheckCircleIcon /> : icon}
-        </Avatar>
+  <Card 
+    elevation={4} 
+    sx={{ 
+      mb: 4, 
+      borderRadius: 3,
+      overflow: 'hidden',
+      border: completed ? '2px solid' : 'none',
+      borderColor: completed ? 'success.main' : 'transparent',
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: 8
       }
-      title={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h6" fontWeight={600}>
-            {step && `${step}. `}{title}
-          </Typography>
-          {completed && <Chip label="Tamamlandı" size="small" color="success" />}
-        </Box>
-      }
-      sx={{ pb: 1 }}
-    />
-    <CardContent sx={{ pt: 0 }}>
+    }}
+  >
+    {/* Modern Section Header */}
+    <Box 
+      sx={{ 
+        background: completed 
+          ? 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)'
+          : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+        color: 'white',
+        p: 3,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2
+      }}
+    >
+      <Avatar sx={{ 
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        color: 'white',
+        width: 48,
+        height: 48
+      }}>
+        {completed ? <CheckCircleIcon fontSize="large" /> : icon}
+      </Avatar>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="h5" fontWeight={700}>
+          {step && `${step}. `}{title}
+        </Typography>
+        {completed && (
+          <Chip 
+            label="✓ Tamamlandı" 
+            size="small"
+            sx={{ 
+              mt: 1,
+              backgroundColor: 'rgba(255,255,255,0.2)', 
+              color: 'white',
+              fontWeight: 600
+            }}
+          />
+        )}
+      </Box>
+    </Box>
+    
+    {/* Content Area */}
+    <CardContent sx={{ p: 4 }}>
       {children}
     </CardContent>
   </Card>
@@ -1217,11 +1363,7 @@ const WpsGenerator: React.FC = () => {
   const [autoApplyRecommendations, setAutoApplyRecommendations] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
-  const [savedWPSList, setSavedWPSList] = useState<SavedWPS[]>([]);
-  const [selectedWPS, setSelectedWPS] = useState<string | null>(null);
-  const [showWPSList, setShowWPSList] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentWPSId, setCurrentWPSId] = useState<string | null>(null);
+
 
   useEffect(() => {
     const recs = calculateRecommendations(wpsData);
@@ -1242,13 +1384,18 @@ const WpsGenerator: React.FC = () => {
           
         recs.forEach(rec => {
             const currentValue = prev[rec.parameter as keyof WPSData];
+            // Kritik parametreler: her zaman güncelle (tel çapı ve ağız açısı)
+            const criticalParams = ['wireSize', 'grooveAngle'];
             // Teknik parametreler için: boş alanları veya 0 değerleri güncelle
             const technicalParams = ['current', 'voltage', 'gasFlow', 'wireSpeed', 'travelSpeed', 'preheatTemp'];
             // Seçim parametreleri için: sadece boş olanları güncelle
-            const selectionParams = ['process', 'position', 'wireSize', 'grooveType', 'gasComposition'];
+            const selectionParams = ['process', 'position', 'grooveType', 'gasComposition'];
             
             let shouldUpdate = false;
-            if (technicalParams.includes(rec.parameter)) {
+            if (criticalParams.includes(rec.parameter)) {
+              // Kritik parametreler: her zaman güncelle
+              shouldUpdate = true;
+            } else if (technicalParams.includes(rec.parameter)) {
               // Teknik parametreler: boş veya 0 ise güncelle
               shouldUpdate = (!currentValue || currentValue === 0 || currentValue === '');
             } else if (selectionParams.includes(rec.parameter)) {
@@ -1271,6 +1418,7 @@ const WpsGenerator: React.FC = () => {
               else if (rec.parameter === 'position') newData.position = rec.value as string;
               else if (rec.parameter === 'wireSize') newData.wireSize = rec.value as number;
               else if (rec.parameter === 'grooveType') newData.grooveType = rec.value as string;
+              else if (rec.parameter === 'grooveAngle') newData.grooveAngle = rec.value as number;
             }
           });
           
@@ -1301,7 +1449,7 @@ const WpsGenerator: React.FC = () => {
       const newData = { ...prev, [field]: value };
       
       // Temel parametreler değiştiğinde teknik parametreleri sıfırla
-      const criticalFields = ['thickness', 'materialType', 'materialGroup', 'process', 'wireSize'];
+      const criticalFields = ['thickness', 'materialType', 'materialGroup', 'process'];
       if (criticalFields.includes(field)) {
         // Kalınlık, malzeme türü, kaynak yöntemi değiştiğinde parametreleri sıfırla
         newData.current = 0;
@@ -1313,11 +1461,43 @@ const WpsGenerator: React.FC = () => {
         console.log(`Temel parametre değişti (${field}), teknik parametreler sıfırlandı`);
       }
       
+      // Kalınlık değiştiğinde tel çapını ve ağız açısını da sıfırla
+      if (field === 'thickness') {
+        newData.wireSize = 0;
+        newData.grooveAngle = 0;
+        console.log('Kalınlık değişti, tel çapı ve ağız açısı sıfırlandı');
+      }
+      
+      // Kaynak yöntemi değiştiğinde tel çapını sıfırla
+      if (field === 'process') {
+        newData.wireSize = 0;
+        console.log('Kaynak yöntemi değişti, tel çapı sıfırlandı');
+      }
+      
       // Kaynak ağzı türü değiştiğinde otomatik olarak önerilen açıyı set et
       if (field === 'grooveType' && value) {
         const selectedGroove = GROOVE_TYPES.find(g => g.code === value);
         if (selectedGroove) {
-          newData.grooveAngle = selectedGroove.recommendedAngle;
+          // Kalınlığa göre optimize edilmiş ağız açısı
+          if (value === 'V' || value === 'DOUBLE_V' || value === 'X') {
+            if (newData.thickness <= 6) {
+              newData.grooveAngle = 60;
+            } else if (newData.thickness <= 15) {
+              newData.grooveAngle = 70;
+            } else {
+              newData.grooveAngle = 80;
+            }
+          } else if (value === 'U' || value === 'DOUBLE_U') {
+            if (newData.thickness <= 12) {
+              newData.grooveAngle = 15;
+            } else if (newData.thickness <= 25) {
+              newData.grooveAngle = 20;
+            } else {
+              newData.grooveAngle = 25;
+            }
+          } else {
+            newData.grooveAngle = selectedGroove.recommendedAngle;
+          }
           
           // Kök açıklığı önerileri
           if (value === 'I' || value === 'SQUARE') {
@@ -1355,6 +1535,7 @@ const WpsGenerator: React.FC = () => {
     else if (rec.parameter === 'position') updateWpsData('position', rec.value as string);
     else if (rec.parameter === 'wireSize') updateWpsData('wireSize', rec.value as number);
     else if (rec.parameter === 'grooveType') updateWpsData('grooveType', rec.value as string);
+    else if (rec.parameter === 'grooveAngle') updateWpsData('grooveAngle', rec.value as number);
   };
 
   const applyAllRecommendations = () => {
@@ -1366,9 +1547,15 @@ const WpsGenerator: React.FC = () => {
 
   const applyEmptyRecommendations = () => {
     recommendations.forEach(rec => {
-      // Sadece henüz doldurulmamış alanları uygula
+      // Kritik alanlar (tel çapı, ağız açısı) için her zaman güncelle
+      const criticalParams = ['wireSize', 'grooveAngle'];
       const currentValue = wpsData[rec.parameter as keyof WPSData];
-      if (!currentValue || currentValue === 0 || currentValue === '') {
+      
+      if (criticalParams.includes(rec.parameter)) {
+        // Kritik parametreler her zaman güncellenir
+        applyRecommendation(rec);
+      } else if (!currentValue || currentValue === 0 || currentValue === '') {
+        // Diğer parametreler sadece boşsa güncellenir
         applyRecommendation(rec);
       }
     });
@@ -1525,109 +1712,15 @@ const WpsGenerator: React.FC = () => {
     doc.save(`${wpsNumber}_Kaynak_Prosedur_Sartnamesi.pdf`);
   };
 
-  // LocalStorage functions
-  const loadSavedWPSList = () => {
-    const saved = localStorage.getItem('wps-generator-saved-wps');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setSavedWPSList(parsed);
-    }
-  };
-
-  const saveWPSToStorage = (wpsToSave: WPSData) => {
-    const wpsNumber = `WPS-${Date.now().toString().slice(-6)}`;
-    const savedWPS: SavedWPS = {
-      id: currentWPSId || `wps-${Date.now()}`,
-      wpsNumber,
-      createdDate: new Date().toISOString(),
-      createdBy: 'Kullanıcı',
-      status: 'draft',
-      revision: 1,
-      materialType: wpsToSave.materialType || '',
-      materialGroup: wpsToSave.materialGroup || '',
-      thickness: wpsToSave.thickness || 0,
-      jointType: wpsToSave.jointType || '',
-      process: wpsToSave.process || '',
-      data: {
-        ...wpsToSave,
-        id: currentWPSId || `wps-${Date.now()}`,
-        wpsNumber,
-        createdDate: new Date().toISOString(),
-        createdBy: 'Kullanıcı',
-        status: 'draft',
-        revision: 1
-      }
-    };
-
-    const currentList = [...savedWPSList];
-    if (isEditing && currentWPSId) {
-      const index = currentList.findIndex(wps => wps.id === currentWPSId);
-      if (index !== -1) {
-        currentList[index] = savedWPS;
-      }
-    } else {
-      currentList.push(savedWPS);
-    }
-
-    setSavedWPSList(currentList);
-    localStorage.setItem('wps-generator-saved-wps', JSON.stringify(currentList));
-    
-    return savedWPS;
-  };
-
-  const loadWPSFromStorage = (wpsId: string) => {
-    const wps = savedWPSList.find(w => w.id === wpsId);
-    if (wps) {
-      setWpsData(wps.data);
-      setCurrentWPSId(wpsId);
-      setIsEditing(true);
-      setShowWPSList(false);
-    }
-  };
-
-  const deleteWPSFromStorage = (wpsId: string) => {
-    const newList = savedWPSList.filter(w => w.id !== wpsId);
-    setSavedWPSList(newList);
-    localStorage.setItem('wps-generator-saved-wps', JSON.stringify(newList));
-    
-    if (currentWPSId === wpsId) {
-      setWpsData({});
-      setCurrentWPSId(null);
-      setIsEditing(false);
-    }
-  };
-
-  const createNewWPS = () => {
-    setWpsData({});
-    setCurrentWPSId(null);
-    setIsEditing(false);
-    setShowWPSList(false);
-  };
-
   const createWPS = () => {
     if (!wpsData.jointType || !wpsData.materialType || !wpsData.process || !wpsData.thickness) {
       alert('Lütfen tüm zorunlu alanları doldurun: Malzeme Türü, Kalınlık, Birleştirme Tipi, Kaynak Yöntemi');
       return;
     }
     
-    // WPS'i kaydet
-    const savedWPS = saveWPSToStorage(wpsData as WPSData);
-    
     // PDF oluştur
     generateEnhancedPDF();
-    
-    alert(`WPS başarıyla kaydedildi: ${savedWPS.wpsNumber}`);
-    
-    // Formu temizle
-    setWpsData({});
-    setCurrentWPSId(null);
-    setIsEditing(false);
   };
-
-  // Load saved WPS list on component mount
-  useEffect(() => {
-    loadSavedWPSList();
-  }, []);
 
   const getFilteredSizes = () => {
     return wpsData.process ? WIRE_SIZES[wpsData.process as keyof typeof WIRE_SIZES] || [] : [];
@@ -1656,88 +1749,94 @@ const WpsGenerator: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Progress and Controls */}
-        <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                {isEditing ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="h6" component="span">
-                      WPS Düzenleme: {savedWPSList.find(w => w.id === currentWPSId)?.wpsNumber}
-                    </Typography>
-                    <Chip label="Düzenleme Modu" color="primary" size="small" />
-                  </Box>
-                ) : (
-                  'Yeni WPS Oluşturma'
-                )}
+        {/* Modern Header */}
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            p: 4, 
+            mb: 4, 
+            borderRadius: 3, 
+            background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
+            color: 'white'
+          }}
+        >
+          <Grid container spacing={3} alignItems="center">
+            {/* Başlık ve Progress */}
+            <Grid item xs={12} md={6}>
+              <Typography variant="h4" fontWeight={700} gutterBottom>
+                WPS Oluşturucu
               </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={getCompletionStatus().percentage}
-                sx={{ height: 8, borderRadius: 4, width: 300 }}
-              />
-              <Typography variant="caption" color="text.secondary">
-                {getCompletionStatus().completed}/{getCompletionStatus().total} adım tamamlandı
+              <Box sx={{ mb: 1 }}>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={getCompletionStatus().percentage}
+                  sx={{ 
+                    height: 10, 
+                    borderRadius: 5,
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    '& .MuiLinearProgress-bar': {
+                      backgroundColor: 'white'
+                    }
+                  }}
+                />
+              </Box>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                İlerleme: {getCompletionStatus().completed}/{getCompletionStatus().total} adım tamamlandı 
+                ({Math.round(getCompletionStatus().percentage)}%)
               </Typography>
-            </Box>
-            
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Button 
-            variant="outlined" 
-            startIcon={<PlaylistAddCheckIcon />} 
-            onClick={() => setShowWPSList(true)}
-            color="info"
-          >
-            Kaydedilen WPS'ler ({savedWPSList.length})
-          </Button>
-          
-          <Button 
-            variant="outlined" 
-            startIcon={<AddIcon />} 
-            onClick={createNewWPS}
-            disabled={!isEditing}
-          >
-            Yeni WPS
-          </Button>
-          
-          <FormControlLabel
-            control={<Switch checked={showRecommendations} onChange={(e) => setShowRecommendations(e.target.checked)} />}
-            label="Akıllı Öneriler"
-          />
-          <FormControlLabel
-                control={<Switch checked={autoApplyRecommendations} onChange={(e) => setAutoApplyRecommendations(e.target.checked)} />}
-                label="Otomatik Uygula"
-                disabled={!showRecommendations}
-          />
-          <Button variant="outlined" startIcon={<ExportIcon />} onClick={() => setPreviewOpen(true)}>
-            Önizleme
-          </Button>
-          
-          <Button 
-            variant="outlined" 
-            startIcon={<SaveIcon />} 
-            onClick={() => {
-              const savedWPS = saveWPSToStorage(wpsData as WPSData);
-              alert(`WPS kaydedildi: ${savedWPS.wpsNumber}`);
-            }}
-            disabled={getCompletionStatus().percentage < 50}
-            color="success"
-          >
-            {isEditing ? 'Güncelle' : 'Kaydet'}
-          </Button>
-          
-              <Button 
-                variant="contained" 
-                startIcon={<PdfIcon />} 
-                size="large"
-                onClick={createWPS}
-                disabled={getCompletionStatus().percentage < 100}
-              >
-            {isEditing ? 'Güncelle & PDF' : 'WPS Oluştur'}
-          </Button>
-        </Box>
-      </Box>
+            </Grid>
+
+            {/* Kontrol Butonları */}
+            <Grid item xs={12} md={6}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Üst Sıra */}
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+
+                </Box>
+
+                {/* Alt Sıra */}
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  <FormControlLabel
+                    control={
+                      <Switch 
+                        checked={showRecommendations} 
+                        onChange={(e) => setShowRecommendations(e.target.checked)}
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: 'white',
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: 'rgba(255,255,255,0.5)',
+                          },
+                        }}
+                      />
+                    }
+                    label="Akıllı Öneriler"
+                    sx={{ color: 'white', mr: 2 }}
+                  />
+                  
+
+                  
+                  <Button 
+                    variant="contained" 
+                    startIcon={<PdfIcon />} 
+                    onClick={createWPS}
+                    disabled={getCompletionStatus().percentage < 100}
+                    sx={{ 
+                      backgroundColor: 'white', 
+                      color: 'primary.main',
+                      fontWeight: 600,
+                      '&:hover': { 
+                        backgroundColor: 'rgba(255,255,255,0.9)' 
+                      }
+                    }}
+                  >
+                    WPS Oluştur
+                  </Button>
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
         </Paper>
 
         <Grid container spacing={4}>
@@ -2084,79 +2183,138 @@ const WpsGenerator: React.FC = () => {
                 </Box>
           </Grid>
 
-        {/* Recommendations Panel */}
+        {/* Modern Recommendations Panel */}
         {showRecommendations && (
             <Grid item xs={12} lg={4}>
-              <Card sx={{ position: 'sticky', top: 24 }}>
-              <CardHeader
-                  avatar={<Avatar sx={{ bgcolor: 'secondary.main' }}><RecommendIcon /></Avatar>}
-                  title="Akıllı Öneriler"
-                  subheader="EN ISO 15609-1 standardına uygun parametreler"
-              />
-              <CardContent>
+                             <Card 
+                 elevation={6} 
+                 sx={{ 
+                   position: 'sticky', 
+                   top: 24,
+                   borderRadius: 3,
+                   overflow: 'hidden',
+                   border: '1px solid',
+                   borderColor: 'primary.light'
+                 }}
+               >
+                                 {/* Header */}
+                 <Box 
+                   sx={{ 
+                     background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                     color: 'white',
+                     p: 3,
+                     display: 'flex',
+                     alignItems: 'center',
+                     gap: 2
+                   }}
+                 >
+                  <Avatar sx={{ 
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    width: 48,
+                    height: 48
+                  }}>
+                    <RecommendIcon fontSize="large" />
+                  </Avatar>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h5" fontWeight={700}>
+                      Akıllı Öneriler
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      EN ISO 15609-1 standartları
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <CardContent sx={{ p: 3 }}>
                   {recommendations.length === 0 ? (
-                    <Alert severity="info">
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>
                       Öneriler için malzeme ve kaynak yöntemi bilgilerini doldurun
                     </Alert>
                   ) : (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={applyAllRecommendations}
-                              startIcon={<PlaylistAddCheckIcon />}
-                          fullWidth
-                            >
-                              Tümünü Uygula
-                            </Button>
-                      </Box>
+                      <Button
+                        variant="contained"
+                        size="large"
+                        onClick={applyAllRecommendations}
+                        startIcon={<CheckCircleIcon />}
+                        fullWidth
+                        sx={{ 
+                          borderRadius: 2,
+                          fontWeight: 600,
+                          py: 1.5,
+                          background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)'
+                        }}
+                      >
+                        Tümünü Uygula ({recommendations.length})
+                      </Button>
                       
                     {recommendations.map((rec, index) => (
-                        <Card key={index} variant="outlined" sx={{ p: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                                  <Typography variant="subtitle2" fontWeight={600}>
-                          {rec.parameter === 'current' && 'Akım (A)'}
-                          {rec.parameter === 'voltage' && 'Voltaj (V)'}
-                          {rec.parameter === 'gasFlow' && 'Gaz Debisi (L/dk)'}
-                          {rec.parameter === 'gasComposition' && 'Gaz Bileşimi'}
-                          {rec.parameter === 'wireSpeed' && 'Tel Hızı (m/dk)'}
-                          {rec.parameter === 'travelSpeed' && 'Kaynak Hızı (mm/dk)'}
-                          {rec.parameter === 'preheatTemp' && 'Ön Isıtma (°C)'}
-                          {rec.parameter === 'process' && 'Kaynak Yöntemi'}
-                          {rec.parameter === 'position' && 'Kaynak Pozisyonu'}
+                        <Card 
+                          key={index} 
+                          variant="outlined" 
+                          sx={{ 
+                            p: 2.5,
+                            borderRadius: 2,
+                            border: '1px solid',
+                            borderColor: 'grey.300',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              backgroundColor: 'primary.50',
+                              transform: 'translateY(-1px)',
+                              boxShadow: 2
+                            }
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                                                         <Typography variant="subtitle2" fontWeight={600} color="primary">
+                              {rec.parameter === 'current' && 'Akım (A)'}
+                              {rec.parameter === 'voltage' && 'Voltaj (V)'}
+                              {rec.parameter === 'gasFlow' && 'Gaz Debisi (L/dk)'}
+                              {rec.parameter === 'gasComposition' && 'Gaz Bileşimi'}
+                              {rec.parameter === 'wireSpeed' && 'Tel Hızı (m/dk)'}
+                              {rec.parameter === 'travelSpeed' && 'Kaynak Hızı (mm/dk)'}
+                              {rec.parameter === 'preheatTemp' && 'Ön Isıtma (°C)'}
+                              {rec.parameter === 'process' && 'Kaynak Yöntemi'}
+                              {rec.parameter === 'position' && 'Kaynak Pozisyonu'}
                               {rec.parameter === 'wireSize' && 'Tel Çapı (mm)'}
-                          {rec.parameter === 'grooveType' && 'Kaynak Ağzı Türü'}
-                        </Typography>
-                          <Chip 
-                              label={rec.confidence === 'high' ? 'Yüksek' : 'Orta'} 
-                            size="small"
-                            color={rec.confidence === 'high' ? 'success' : 'warning'}
-                          />
-                        </Box>
-                        
-                        <Typography variant="h6" color="primary" gutterBottom>
-                          {typeof rec.value === 'number' ? rec.value : rec.value}
-                          {rec.min > 0 && ` (${rec.min}–${rec.max})`}
-                        </Typography>
-                        
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          {rec.reason}
-                        </Typography>
-                        
+                              {rec.parameter === 'grooveType' && 'Kaynak Ağzı Türü'}
+                              {rec.parameter === 'grooveAngle' && 'Ağız Açısı (°)'}
+                            </Typography>
+                            <Chip 
+                              label={rec.confidence === 'high' ? 'Yüksek' : rec.confidence === 'medium' ? 'Orta' : 'Düşük'} 
+                              size="small"
+                              color={rec.confidence === 'high' ? 'success' : rec.confidence === 'medium' ? 'warning' : 'default'}
+                            />
+                          </Box>
+                          
+                          <Typography variant="h6" color="primary" fontWeight={700} sx={{ mb: 1.5 }}>
+                            {typeof rec.value === 'number' ? rec.value : rec.value}
+                            {rec.min > 0 && ` (${rec.min}–${rec.max})`}
+                          </Typography>
+                          
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            {rec.reason}
+                          </Typography>
+                          
                           <Button
                             size="small"
                             variant="outlined"
                             onClick={() => applyRecommendation(rec)}
                             startIcon={<CheckCircleIcon />}
                             fullWidth
+                            sx={{ 
+                              borderRadius: 2,
+                              fontWeight: 600
+                            }}
                           >
                             Uygula
                           </Button>
-                      </Card>
-                    ))}
-                  </Box>
-                )}
+                        </Card>
+                      ))}
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
@@ -2215,111 +2373,7 @@ const WpsGenerator: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Saved WPS List Dialog */}
-      <Dialog open={showWPSList} onClose={() => setShowWPSList(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">Kaydedilen WPS'ler ({savedWPSList.length})</Typography>
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={createNewWPS}>
-              Yeni WPS Oluştur
-            </Button>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {savedWPSList.length === 0 ? (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Henüz kaydedilmiş WPS bulunmamaktadır. Yeni bir WPS oluşturmaya başlayın.
-            </Alert>
-          ) : (
-            <TableContainer component={Paper} sx={{ mt: 2 }}>
-              <Table>
-                <TableBody>
-                  {savedWPSList.map((wps) => (
-                    <TableRow key={wps.id} hover>
-                      <TableCell sx={{ width: '25%' }}>
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          {wps.wpsNumber}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(wps.createdDate).toLocaleDateString('tr-TR')}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ width: '20%' }}>
-                        <Typography variant="body2">
-                          {wps.materialType}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {wps.thickness} mm
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ width: '20%' }}>
-                        <Typography variant="body2">
-                          {JOINT_TYPES.find(j => j.code === wps.jointType)?.name || wps.jointType}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {wps.process}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ width: '15%' }}>
-                        <Chip 
-                          label={wps.status === 'draft' ? 'Taslak' : wps.status === 'approved' ? 'Onaylı' : 'Aktif'}
-                          color={wps.status === 'draft' ? 'warning' : wps.status === 'approved' ? 'success' : 'primary'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell sx={{ width: '20%' }}>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="Düzenle">
-                            <IconButton 
-                              size="small" 
-                              color="primary"
-                              onClick={() => loadWPSFromStorage(wps.id)}
-                            >
-                              <BuildIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="PDF İndir">
-                            <IconButton 
-                              size="small" 
-                              color="secondary"
-                              onClick={() => {
-                                const tempData = wpsData;
-                                setWpsData(wps.data);
-                                setTimeout(() => {
-                                  generateEnhancedPDF();
-                                  setWpsData(tempData);
-                                }, 100);
-                              }}
-                            >
-                              <PdfIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Sil">
-                            <IconButton 
-                              size="small" 
-                              color="error"
-                              onClick={() => {
-                                if (window.confirm(`${wps.wpsNumber} numaralı WPS'i silmek istediğinizden emin misiniz?`)) {
-                                  deleteWPSFromStorage(wps.id);
-                                }
-                              }}
-                            >
-                              <ClearIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowWPSList(false)}>Kapat</Button>
-        </DialogActions>
-      </Dialog>
+
     </Box>
   );
 };
