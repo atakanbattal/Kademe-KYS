@@ -44,6 +44,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   Error as ErrorIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useThemeContext } from '../context/ThemeContext';
 
@@ -63,6 +64,9 @@ interface Document {
   status: 'active' | 'expired' | 'draft';
   uploadDate: string;
   description: string;
+  pdfFile?: string;  // Base64 encoded PDF file
+  pdfFileName?: string;
+  pdfSize?: number;
 }
 
 interface WelderData {
@@ -89,6 +93,7 @@ const DOCUMENT_TYPES = {
     'ISO 45001:2018 İSG Yönetim Sistemi Belgesi',
     'ISO 50001:2018 Enerji Yönetim Sistemi Belgesi',
     'ISO 27001:2013 Bilgi Güvenliği Yönetim Sistemi',
+    'ISO 10002:2018 Müşteri Memnuniyeti Yönetim Sistemi',
     'TS 3834-2 Kaynak Kalite Gereksinimleri',
     'TS EN ISO 15085 Demiryolu Uygulamaları',
     'PED 2014/68/EU Basınçlı Ekipman Direktifi',
@@ -370,6 +375,11 @@ const DocumentManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
 
+  // Modal state
+  const [viewModal, setViewModal] = useState(false);
+  const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+
   // ✅ KALAN GÜN SAYISI HESAPLAMA
   const calculateDaysRemaining = (expiryDate: string): number => {
     if (!expiryDate) return -1;
@@ -387,6 +397,77 @@ const DocumentManagement: React.FC = () => {
     if (daysRemaining <= 7) return { text: `${daysRemaining} gün kaldı`, color: 'warning' as const };
     if (daysRemaining <= 30) return { text: `${daysRemaining} gün kaldı`, color: 'info' as const };
     return { text: `${daysRemaining} gün kaldı`, color: 'success' as const };
+  };
+
+  // ✅ PDF YÜKLEME VE İŞLEME FONKSİYONLARI
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, documentId: string) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      setSnackbar({ open: true, message: 'Sadece PDF dosyaları yüklenebilir!', severity: 'error' });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      setSnackbar({ open: true, message: 'Dosya boyutu 10MB\'dan küçük olmalıdır!', severity: 'error' });
+      return;
+    }
+
+    setUploadingFile(true);
+    const reader = new FileReader();
+    
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      
+      setDocuments(prev => prev.map(doc => 
+        doc.id === documentId 
+          ? { 
+              ...doc, 
+              pdfFile: base64,
+              pdfFileName: file.name,
+              pdfSize: file.size
+            }
+          : doc
+      ));
+
+      setSnackbar({ open: true, message: 'PDF başarıyla yüklendi!', severity: 'success' });
+      setUploadingFile(false);
+    };
+
+    reader.onerror = () => {
+      setSnackbar({ open: true, message: 'Dosya yükleme hatası!', severity: 'error' });
+      setUploadingFile(false);
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleViewDocument = (doc: Document) => {
+    setViewingDocument(doc);
+    setViewModal(true);
+  };
+
+  const handleDownloadPDF = (doc: Document) => {
+    if (!doc.pdfFile) {
+      setSnackbar({ open: true, message: 'PDF dosyası yüklenememiş!', severity: 'error' });
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href = doc.pdfFile;
+    link.download = doc.pdfFileName || `${doc.name}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   // ✅ SADECE GERÇEK VERİ YÜKLEME - Mock veriler tamamen kaldırıldı
@@ -907,7 +988,15 @@ const DocumentManagement: React.FC = () => {
                             </Box>
                             
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {doc.pdfFile && (
+                                  <Chip 
+                                    label="PDF" 
+                                    size="small" 
+                                    color="success" 
+                                    icon={<DescriptionIcon />}
+                                  />
+                                )}
                                 <IconButton onClick={() => handleEdit(doc, 'document')} size="small" color="primary">
                                   <EditIcon />
                                 </IconButton>
@@ -915,7 +1004,11 @@ const DocumentManagement: React.FC = () => {
                                   <DeleteIcon />
                                 </IconButton>
                               </Box>
-                              <Button size="small" startIcon={<ViewIcon />}>
+                              <Button 
+                                size="small" 
+                                startIcon={<ViewIcon />}
+                                onClick={() => handleViewDocument(doc)}
+                              >
                                 Görüntüle
                               </Button>
                             </Box>
@@ -944,6 +1037,7 @@ const DocumentManagement: React.FC = () => {
                         <TableCell>Belge Adı</TableCell>
                         <TableCell>Tip</TableCell>
                         <TableCell>Numara</TableCell>
+                        <TableCell>PDF</TableCell>
                         <TableCell>Durum</TableCell>
                         <TableCell>Tarih</TableCell>
                         <TableCell>İşlemler</TableCell>
@@ -958,6 +1052,22 @@ const DocumentManagement: React.FC = () => {
                           </TableCell>
                           <TableCell>{doc.number}</TableCell>
                           <TableCell>
+                            {doc.pdfFile ? (
+                              <Chip 
+                                label="Yüklendi" 
+                                size="small" 
+                                color="success" 
+                                icon={<CheckCircleIcon />}
+                              />
+                            ) : (
+                              <Chip 
+                                label="Yok" 
+                                size="small" 
+                                color="default"
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <Chip 
                               label={doc.status === 'active' ? 'Aktif' : 'Pasif'} 
                               color={doc.status === 'active' ? 'success' : 'default'} 
@@ -966,6 +1076,9 @@ const DocumentManagement: React.FC = () => {
                           </TableCell>
                           <TableCell>{doc.effectiveDate}</TableCell>
                           <TableCell>
+                            <IconButton onClick={() => handleViewDocument(doc)} size="small" color="info">
+                              <ViewIcon />
+                            </IconButton>
                             <IconButton onClick={() => handleEdit(doc, 'document')} size="small">
                               <EditIcon />
                             </IconButton>
@@ -1424,6 +1537,183 @@ const DocumentManagement: React.FC = () => {
           <Button onClick={() => setOpenDialog(false)}>İptal</Button>
           <Button onClick={handleSavePersonnel} variant="contained">
             {editingItem ? 'Güncelle' : 'Kaydet'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal - Belge Görüntüleme */}
+      <Dialog 
+        open={viewModal} 
+        onClose={() => setViewModal(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">
+            {viewingDocument?.name}
+          </Typography>
+          <IconButton onClick={() => setViewModal(false)} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {viewingDocument && (
+            <Box>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Belge Tipi:</strong> {viewingDocument.type}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Belge Numarası:</strong> {viewingDocument.number}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Birim:</strong> {viewingDocument.unit}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Durum:</strong> {viewingDocument.status === 'active' ? 'Aktif' : 'Pasif'}
+                  </Typography>
+                </Grid>
+                {viewingDocument.welderName && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Kaynakçı:</strong> {viewingDocument.welderName}
+                    </Typography>
+                  </Grid>
+                )}
+                {viewingDocument.personnelName && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Personel:</strong> {viewingDocument.personnelName}
+                    </Typography>
+                  </Grid>
+                )}
+                {viewingDocument.certificateNumber && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Sertifika No:</strong> {viewingDocument.certificateNumber}
+                    </Typography>
+                  </Grid>
+                )}
+                {viewingDocument.issuingAuthority && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Veren Kuruluş:</strong> {viewingDocument.issuingAuthority}
+                    </Typography>
+                  </Grid>
+                )}
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Yürürlük Tarihi:</strong> {viewingDocument.effectiveDate}
+                  </Typography>
+                </Grid>
+                {viewingDocument.expiryDate && (
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Son Geçerlilik:</strong> {viewingDocument.expiryDate}
+                    </Typography>
+                  </Grid>
+                )}
+                {viewingDocument.expiryDate && (
+                  <Grid item xs={12}>
+                    <Box sx={{ mt: 1 }}>
+                      <Chip 
+                        label={getDaysRemainingStatus(calculateDaysRemaining(viewingDocument.expiryDate)).text}
+                        color={getDaysRemainingStatus(calculateDaysRemaining(viewingDocument.expiryDate)).color}
+                        size="small"
+                      />
+                    </Box>
+                  </Grid>
+                )}
+                <Grid item xs={12}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Açıklama:</strong> {viewingDocument.description}
+                  </Typography>
+                </Grid>
+                
+                {/* PDF Yükleme Bölümü */}
+                <Grid item xs={12}>
+                  <Box sx={{ mt: 3, p: 2, border: '1px dashed #ccc', borderRadius: 1 }}>
+                    <Typography variant="h6" gutterBottom>
+                      PDF Dosyası
+                    </Typography>
+                    
+                    {viewingDocument.pdfFile ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <DescriptionIcon color="error" />
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography variant="body2" fontWeight={600}>
+                            {viewingDocument.pdfFileName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {viewingDocument.pdfSize && formatFileSize(viewingDocument.pdfSize)}
+                          </Typography>
+                        </Box>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<DownloadIcon />}
+                          onClick={() => handleDownloadPDF(viewingDocument)}
+                        >
+                          İndir
+                        </Button>
+                        <input
+                          accept="application/pdf"
+                          style={{ display: 'none' }}
+                          id={`upload-button-${viewingDocument.id}`}
+                          type="file"
+                          onChange={(e) => handleFileUpload(e, viewingDocument.id)}
+                        />
+                        <label htmlFor={`upload-button-${viewingDocument.id}`}>
+                          <Button variant="outlined" size="small" component="span" disabled={uploadingFile}>
+                            {uploadingFile ? 'Yükleniyor...' : 'Değiştir'}
+                          </Button>
+                        </label>
+                      </Box>
+                    ) : (
+                      <Box sx={{ textAlign: 'center', py: 2 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Henüz PDF dosyası yüklenmemiş
+                        </Typography>
+                        <input
+                          accept="application/pdf"
+                          style={{ display: 'none' }}
+                          id={`upload-button-${viewingDocument.id}`}
+                          type="file"
+                          onChange={(e) => handleFileUpload(e, viewingDocument.id)}
+                        />
+                        <label htmlFor={`upload-button-${viewingDocument.id}`}>
+                          <Button 
+                            variant="contained" 
+                            component="span" 
+                            startIcon={<AddIcon />}
+                            disabled={uploadingFile}
+                          >
+                            {uploadingFile ? 'Yükleniyor...' : 'PDF Yükle'}
+                          </Button>
+                        </label>
+                      </Box>
+                    )}
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewModal(false)}>Kapat</Button>
+          <Button 
+            onClick={() => handleEdit(viewingDocument, 'document')} 
+            variant="contained"
+            startIcon={<EditIcon />}
+          >
+            Düzenle
           </Button>
         </DialogActions>
       </Dialog>
