@@ -453,7 +453,7 @@ const DocumentManagement: React.FC = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'warning' | 'info' });
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [storageInfo, setStorageInfo] = useState({ used: 0, pdfs: 0 });
+
   
   // ✅ FORM STATES
   const [documentForm, setDocumentForm] = useState(initialDocumentState);
@@ -582,8 +582,7 @@ const DocumentManagement: React.FC = () => {
             console.error('❌ Metadata kaydetme hatası:', error);
           }
           
-          // Storage info güncelle
-          updateStorageInfo();
+
           
           setSnackbar({ 
             open: true, 
@@ -743,8 +742,6 @@ const DocumentManagement: React.FC = () => {
         setDocuments(updatedDocs);
         localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
         
-        updateStorageInfo();
-        
         setSnackbar({ 
           open: true, 
           message: 'PDF başarıyla kaldırıldı!', 
@@ -762,15 +759,7 @@ const DocumentManagement: React.FC = () => {
     }
   };
 
-  // ✅ STORAGE INFO GÜNCELLEME
-  const updateStorageInfo = async () => {
-    try {
-      const info = await pdfStorage.getStorageInfo();
-      setStorageInfo(info);
-    } catch (error) {
-      console.error('Storage info update error:', error);
-    }
-  };
+
 
   // ✅ DATA LOADING - GELİŞMİŞ HATA KONTROLÜ
   useEffect(() => {
@@ -839,9 +828,7 @@ const DocumentManagement: React.FC = () => {
     loadPersonnel();
     
     // PDF storage'ı initialize et
-    pdfStorage.initialize().then(() => {
-      updateStorageInfo();
-    });
+    pdfStorage.initialize();
   }, []);
 
   // ✅ VIEW DOCUMENT
@@ -851,138 +838,7 @@ const DocumentManagement: React.FC = () => {
   };
 
   // ✅ GELIŞMIŞ VERİ DURUMU KONTROLÜ - IndexedDB ile
-  const checkDataStatus = async () => {
-    try {
-      const localStorageData = [
-        'dm-documents',
-        'dm-welders',
-        'dm-personnel'
-      ];
-      
-      let localStorageSize = 0;
-      
-      console.log('📊 DETAYLI VERİ DURUMU RAPORU:');
-      console.log('==========================================');
-      
-      localStorageData.forEach(source => {
-        const data = localStorage.getItem(source);
-        if (data) {
-          try {
-            const dataSize = data.length;
-            localStorageSize += dataSize;
-            const parsed = JSON.parse(data);
-            
-            console.log(`✅ ${source}:`);
-            console.log(`   - Boyut: ${formatFileSize(dataSize)}`);
-            console.log(`   - Kayıt: ${Array.isArray(parsed) ? parsed.length : 'N/A'}`);
-          } catch (error) {
-            console.log(`❌ ${source}: Parse hatası`);
-          }
-        } else {
-          console.log(`❌ ${source}: Bulunamadı`);
-        }
-      });
-      
-      // IndexedDB bilgilerini al
-      const indexedDBInfo = await pdfStorage.getStorageInfo();
-      
-      console.log('==========================================');
-      console.log(`🔍 DEPOLAMA ÖZETİ:`);
-      console.log(`   - LocalStorage: ${formatFileSize(localStorageSize)}`);
-      console.log(`   - IndexedDB: ${formatFileSize(indexedDBInfo.used)}`);
-      console.log(`   - Toplam PDF: ${indexedDBInfo.pdfs} adet`);
-      console.log(`   - Toplam Boyut: ${formatFileSize(localStorageSize + indexedDBInfo.used)}`);
-      
-      setSnackbar({ 
-        open: true, 
-        message: `Veri durumu F12 konsolunda görüntülendi. LocalStorage: ${formatFileSize(localStorageSize)}, IndexedDB: ${formatFileSize(indexedDBInfo.used)}, PDF: ${indexedDBInfo.pdfs} adet.`, 
-        severity: 'info' 
-      });
-      
-    } catch (error) {
-      console.error('❌ Veri durumu kontrol hatası:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'Veri durumu kontrol hatası!', 
-        severity: 'error' 
-      });
-    }
-  };
 
-  // ✅ PDF TEMİZLEME - IndexedDB'den
-  const clearAllPDFs = async () => {
-    if (window.confirm('UYARI: Tüm PDF dosyaları IndexedDB\'den silinecek! Belgeler korunacak ancak PDF içerikleri kaldırılacak. Devam etmek istiyor musunuz?')) {
-      try {
-        await pdfStorage.clearAllPDFs();
-        
-        const cleanedDocs = documents.map(doc => ({
-          ...doc,
-          hasPDF: false,
-          pdfFileName: undefined,
-          pdfSize: undefined
-        }));
-        
-        setDocuments(cleanedDocs);
-        localStorage.setItem('dm-documents', JSON.stringify(cleanedDocs));
-        
-        updateStorageInfo();
-        
-        console.log('🧹 Tüm PDF dosyaları IndexedDB\'den temizlendi');
-        setSnackbar({ 
-          open: true, 
-          message: 'Tüm PDF dosyaları temizlendi! Belgeler korundu, artık yeni PDF yükleyebilirsiniz.', 
-          severity: 'success' 
-        });
-      } catch (error) {
-        console.error('❌ PDF temizleme hatası:', error);
-        setSnackbar({ 
-          open: true, 
-          message: 'PDF temizleme hatası! Lütfen tekrar deneyin.', 
-          severity: 'error' 
-        });
-      }
-    }
-  };
-
-  // ✅ TÜM VERİ TEMİZLEME
-  const clearAllData = async () => {
-    if (window.confirm('UYARI: Tüm belgeler, kaynakçılar, personel bilgileri ve PDF dosyaları silinecek! Devam etmek istiyor musunuz?')) {
-      try {
-        const localStorageKeys = [
-          'dm-documents',
-          'dm-welders',
-          'dm-personnel'
-        ];
-        
-        localStorageKeys.forEach(key => {
-          localStorage.removeItem(key);
-        });
-        
-        await pdfStorage.clearAllPDFs();
-        
-        setDocuments([]);
-        setWelders([]);
-        setPersonnel([]);
-        
-        updateStorageInfo();
-        
-        console.log('🧹 Tüm veriler temizlendi');
-        setSnackbar({ 
-          open: true, 
-          message: 'Tüm veriler temizlendi.', 
-          severity: 'success' 
-        });
-        
-      } catch (error) {
-        console.error('❌ Veri temizleme hatası:', error);
-        setSnackbar({ 
-          open: true, 
-          message: 'Veri temizleme hatası! Lütfen tekrar deneyin.', 
-          severity: 'error' 
-        });
-      }
-    }
-  };
 
   // ✅ DIALOG AÇMA
   const openCreateDialog = (type: 'document' | 'welder' | 'personnel') => {
@@ -1163,7 +1019,6 @@ const DocumentManagement: React.FC = () => {
         if (doc && doc.hasPDF) {
           try {
             await pdfStorage.deletePDF(id);
-            updateStorageInfo();
           } catch (error) {
             console.error('❌ PDF silme hatası:', error);
           }
@@ -1265,30 +1120,6 @@ const DocumentManagement: React.FC = () => {
             onClick={() => openCreateDialog('personnel')}
           >
             Yeni Personel
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={checkDataStatus}
-            sx={{ ml: 1, color: 'text.secondary' }}
-          >
-            Veri Durumu
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={clearAllPDFs}
-            sx={{ ml: 1, color: 'warning.main', borderColor: 'warning.main', '&:hover': { borderColor: 'warning.dark' } }}
-          >
-            PDF'leri Temizle
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={clearAllData}
-            sx={{ ml: 1, color: 'error.main', borderColor: 'error.main', '&:hover': { borderColor: 'error.dark' } }}
-          >
-            Tüm Verileri Temizle
           </Button>
                 </Box>
                 </Box>

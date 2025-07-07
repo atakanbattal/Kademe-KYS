@@ -14,12 +14,13 @@ import {
   Assessment as AssessmentIcon, Warning as WarningIcon, Edit as EditIcon,
   Delete as DeleteIcon, Link as LinkIcon, Schedule as ScheduleIcon,
   BugReport as BugReportIcon, Report as ReportIcon, CheckCircle as CheckCircleIcon,
-  SwapHoriz as SwapHorizIcon, Visibility as ViewIcon, ExpandMore as ExpandMoreIcon,
+  SwapHoriz as SwapHorizIcon, Visibility as VisibilityIcon, ExpandMore as ExpandMoreIcon,
   TrendingUp as TrendingUpIcon, Security as SecurityIcon, Star as StarIcon,
   Search as SearchIcon, Error as ErrorIcon, FileDownload as FileDownloadIcon,
   ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon, Info as InfoIcon,
   AssignmentTurnedIn as AssignmentTurnedInIcon,
-  CloudUpload as UploadIcon, AttachFile as AttachFileIcon, Download as DownloadIcon
+  CloudUpload as UploadIcon, AttachFile as AttachFileIcon, Download as DownloadIcon,
+  AttachMoney as AttachMoneyIcon, ViewList as ViewListIcon
 } from '@mui/icons-material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
@@ -334,7 +335,7 @@ interface NonconformityRecord {
   detectedDate: string;
   status: 'açık' | 'araştırılıyor' | 'düzeltiliyor' | 'kapalı';
   dueDate: string;
-  correctionCost?: number; // Opsiyonel düzeltme maliyeti
+
   dofId?: string;
   recurrence: boolean;
   // Yeni zorunlu alanlar
@@ -353,7 +354,7 @@ interface DefectRecord {
   batchNumber: string;
   severity: 'kritik' | 'major' | 'minor';
   status: 'açık' | 'düzeltildi' | 'kabul';
-  correctionCost: number;
+
   dofId?: string;
 }
 
@@ -503,6 +504,7 @@ class ErrorBoundary extends React.Component<
 const SupplierQualityManagement: React.FC = () => {
   // State Management
   const [currentTab, setCurrentTab] = useState(0);
+  const [qualityIssuesTab, setQualityIssuesTab] = useState(0); // 0: Uygunsuzluklar, 1: Hatalar
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [supplierPairs, setSupplierPairs] = useState<SupplierPair[]>([]);
   const [audits, setAudits] = useState<AuditRecord[]>([]);
@@ -811,19 +813,41 @@ const SupplierQualityManagement: React.FC = () => {
         }
       }
       
-      // Veri yükleme tamamlandı - otomatik mock veri yükleme kaldırıldı
-        setDataLoaded(true);
-        setIsLoading(false);
-        console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı');
+      // Veri yükleme tamamlandı - Eğer hiç veri yoksa mock veri yükle
+      let hasAnyData = false;
+      
+      // LocalStorage'dan yüklenen veriler kontrol et
+      if (storedSuppliers && storedSuppliers !== 'null' && storedSuppliers !== '[]' && JSON.parse(storedSuppliers).length > 0) {
+        hasAnyData = true;
+      }
+      if (storedNonconformities && storedNonconformities !== 'null' && storedNonconformities !== '[]' && JSON.parse(storedNonconformities).length > 0) {
+        hasAnyData = true;
+      }
+      if (storedDefects && storedDefects !== 'null' && storedDefects !== '[]' && JSON.parse(storedDefects).length > 0) {
+        hasAnyData = true;
+      }
+      if (storedPairs && storedPairs !== 'null' && storedPairs !== '[]' && JSON.parse(storedPairs).length > 0) {
+        hasAnyData = true;
+      }
+      if (storedAudits && storedAudits !== 'null' && storedAudits !== '[]' && JSON.parse(storedAudits).length > 0) {
+        hasAnyData = true;
+      }
+      
+      // Eğer hiç veri yoksa mock veri yükle
+      if (!hasAnyData) {
+        console.log('🎯 LocalStorage boş, mock veri yükleniyor...');
+        loadMockData();
+      }
+      
+      setDataLoaded(true);
+      setIsLoading(false);
+      console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı');
       
     } catch (error) {
       console.error('❌ localStorage veri yükleme hatası:', error);
-      // Hata durumunda boş array'ler ile başla - mock veri yükleme kaldırıldı
-      setSuppliers([]);
-      setNonconformities([]);
-      setDefects([]);
-      setSupplierPairs([]);
-      setAudits([]);
+      // Hata durumunda mock veri yükle
+      console.log('🎯 Hata nedeniyle mock veri yükleniyor...');
+      loadMockData();
       setDataLoaded(true);
       setIsLoading(false);
     } finally {
@@ -1425,7 +1449,7 @@ const SupplierQualityManagement: React.FC = () => {
         detectedDate: '2024-11-15',
         status: 'açık',
         dueDate: '2024-12-15',
-        correctionCost: 15000,
+
         recurrence: false,
         partCode: 'CL-001',
         quantityAffected: 25
@@ -1440,7 +1464,7 @@ const SupplierQualityManagement: React.FC = () => {
         detectedDate: '2024-11-20',
         status: 'araştırılıyor',
         dueDate: '2024-12-20',
-        correctionCost: 8000,
+
         recurrence: true,
         partCode: 'PM-002',
         delayDays: 5
@@ -1455,7 +1479,7 @@ const SupplierQualityManagement: React.FC = () => {
         detectedDate: '2024-11-25',
         status: 'açık',
         dueDate: '2024-12-10',
-        correctionCost: 12000,
+
         recurrence: false,
         partCode: 'SR-003'
       }
@@ -1473,7 +1497,7 @@ const SupplierQualityManagement: React.FC = () => {
         batchNumber: 'BT-2024-001',
         severity: 'major',
         status: 'açık',
-        correctionCost: 18000
+
       },
       {
         id: 'DEF-002',
@@ -1485,7 +1509,7 @@ const SupplierQualityManagement: React.FC = () => {
         batchNumber: 'BT-2024-002',
         severity: 'kritik',
         status: 'düzeltildi',
-        correctionCost: 22000
+
       },
       {
         id: 'DEF-003',
@@ -1497,7 +1521,7 @@ const SupplierQualityManagement: React.FC = () => {
         batchNumber: 'BT-2024-003',
         severity: 'minor',
         status: 'açık',
-        correctionCost: 9500
+
       }
     ];
 
@@ -1853,124 +1877,11 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     setSnackbar({ open: true, message, severity });
   };
 
-  // ✅ GELIŞMIŞ VERİ DURUMU KONTROLÜ - IndexedDB Dahil
-  const checkAuditDataStatus = async () => {
-    try {
-      const localStorageData = [
-        'suppliers',
-        'supplier-audits',
-        'supplier-nonconformities',
-        'supplier-defects',
-        'supplier-pairs'
-      ];
-      
-      let localStorageSize = 0;
-      
-      console.log('📊 TEDARİKÇİ MODÜLÜ VERİ DURUMU RAPORU:');
-      console.log('==========================================');
-      
-      localStorageData.forEach(source => {
-        const data = localStorage.getItem(source);
-        if (data) {
-          try {
-            const dataSize = data.length;
-            localStorageSize += dataSize;
-            const parsed = JSON.parse(data);
-            
-            console.log(`✅ ${source}:`);
-            console.log(`   - Boyut: ${formatFileSize(dataSize)}`);
-            console.log(`   - Kayıt: ${Array.isArray(parsed) ? parsed.length : 'N/A'}`);
-          } catch (error) {
-            console.log(`❌ ${source}: Parse hatası`);
-          }
-        } else {
-          console.log(`❌ ${source}: Bulunamadı`);
-        }
-      });
-      
-      // IndexedDB bilgilerini al
-      const indexedDBInfo = await auditPDFStorage.getStorageInfo();
-      
-      console.log('==========================================');
-      console.log(`🔍 DEPOLAMA ÖZETİ:`);
-      console.log(`   - LocalStorage: ${formatFileSize(localStorageSize)}`);
-      console.log(`   - IndexedDB: ${formatFileSize(indexedDBInfo.used)}`);
-      console.log(`   - Toplam Dosya: ${indexedDBInfo.attachments} adet`);
-      console.log(`   - Toplam Boyut: ${formatFileSize(localStorageSize + indexedDBInfo.used)}`);
-      
-      showSnackbar(
-        `Veri durumu F12 konsolunda görüntülendi. LocalStorage: ${formatFileSize(localStorageSize)}, IndexedDB: ${formatFileSize(indexedDBInfo.used)}, Dosya: ${indexedDBInfo.attachments} adet.`, 
-        'info'
-      );
-      
-    } catch (error) {
-      console.error('❌ Veri durumu kontrol hatası:', error);
-      showSnackbar('Veri durumu kontrol hatası!', 'error');
-    }
-  };
 
-  // ✅ AUDIT DOSYALARINI TEMİZLE - IndexedDB'den
-  const clearAllAuditFiles = async () => {
-    if (window.confirm('UYARI: Tüm denetim dosyaları IndexedDB\'den silinecek! Denetim kayıtları korunacak ancak dosya içerikleri kaldırılacak. Devam etmek istiyor musunuz?')) {
-      try {
-        await auditPDFStorage.clearAllAttachments();
-        
-        // Tüm audit kayıtlarındaki attachments'ları temizle
-        const cleanedAudits = audits.map(audit => ({
-          ...audit,
-          attachments: audit.attachments?.map(att => ({
-            ...att,
-            hasFile: false,
-            url: undefined
-          }))
-        }));
-        
-        setAudits(cleanedAudits);
-        
-        console.log('🧹 Tüm denetim dosyaları IndexedDB\'den temizlendi');
-        showSnackbar('Tüm denetim dosyaları temizlendi! Denetim kayıtları korundu, artık yeni dosya yükleyebilirsiniz.', 'success');
-      } catch (error) {
-        console.error('❌ Denetim dosyaları temizleme hatası:', error);
-        showSnackbar('Denetim dosyaları temizleme hatası! Lütfen tekrar deneyin.', 'error');
-      }
-    }
-  };
 
-  // ✅ TÜM TEDARİKÇİ VERİLERİNİ TEMİZLE
-  const clearAllSupplierData = async () => {
-    if (window.confirm('UYARI: Tüm tedarikçi verileri, denetim kayıtları ve dosyalar silinecek! Devam etmek istiyor musunuz?')) {
-      try {
-        const localStorageKeys = [
-          'suppliers',
-          'supplier-audits', 
-          'supplier-nonconformities',
-          'supplier-defects',
-          'supplier-pairs',
-          'suppliers-backup',
-          'supplier-pairs-backup'
-        ];
-        
-        localStorageKeys.forEach(key => {
-          localStorage.removeItem(key);
-        });
-        
-        await auditPDFStorage.clearAllAttachments();
-        
-        setSuppliers([]);
-        setAudits([]);
-        setNonconformities([]);
-        setDefects([]);
-        setSupplierPairs([]);
-        
-        console.log('🧹 Tüm tedarikçi verileri temizlendi');
-        showSnackbar('Tüm tedarikçi verileri temizlendi.', 'success');
-        
-      } catch (error) {
-        console.error('❌ Tedarikçi veri temizleme hatası:', error);
-        showSnackbar('Tedarikçi veri temizleme hatası! Lütfen tekrar deneyin.', 'error');
-      }
-    }
-  };
+
+
+
 
   // 📎 DOSYA YÜKLEME FONKSİYONLARI - MaterialCertificateTracking'den uyarlandı
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2510,8 +2421,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       detectedDate: new Date().toISOString().split('T')[0],
       batchNumber: '',
       severity: 'minor',
-      status: 'açık',
-      correctionCost: 0
+      status: 'açık'
     });
     setDialogOpen(true);
   };
@@ -3412,7 +3322,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       { dimension: 'Kalite', key: 'qualityScore' },
       { dimension: 'Teslimat', key: 'deliveryScore' },
       { dimension: 'Güvenilirlik', key: 'reliabilityScore' },
-      { dimension: 'Maliyet', key: 'costScore' },
       { dimension: 'İnovasyon', key: 'innovationScore' },
       { dimension: 'Sürdürülebilirlik', key: 'sustainabilityScore' }
     ];
@@ -3435,11 +3344,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             const monthsSinceAudit = Math.floor((new Date().getTime() - new Date(supplier.lastAuditDate).getTime()) / (1000 * 60 * 60 * 24 * 30));
             score = Math.max(50, 100 - (monthsSinceAudit * 2) - (supplier.nonconformityCount * 5));
             break;
-          case 'costScore':
-            // Maliyet performansı: Risk seviyesi + hata maliyeti bazlı
-            const riskPenalty = supplier.riskLevel === 'kritik' ? 30 : supplier.riskLevel === 'yüksek' ? 20 : supplier.riskLevel === 'orta' ? 10 : 0;
-            score = Math.max(40, 95 - riskPenalty - (supplier.defectCount * 3));
-            break;
+
           case 'innovationScore':
             // İnovasyon: Tedarikçi kategorisi ve türü bazlı
             const categoryBonus = supplier.category === 'stratejik' ? 20 : supplier.category === 'kritik' ? 15 : 10;
@@ -5355,7 +5260,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           setDialogOpen(true);
                         }}
                       >
-                        <ViewIcon />
+                        <VisibilityIcon />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Düzenle">
@@ -5386,11 +5291,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         category: 'kalite',
                         severity: 'orta',
                         detectedDate: new Date().toISOString().split('T')[0],
-                        status: 'açık',
-                        dueDate: '',
-                        correctionCost: 0,
-                        recurrence: false,
-                        partCode: 'TEMP-001' // Zorunlu alan eklendi
+                                                  status: 'açık',
+                          dueDate: '',
+                          recurrence: false,
+                          partCode: 'TEMP-001' // Zorunlu alan eklendi
                       })}>
                         <ReportIcon />
                       </IconButton>
@@ -5427,37 +5331,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
   const renderAuditTracking = () => (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        {/* ✅ VERİ KONTROL BUTONLARI */}
-        <Box display="flex" gap={1}>
-          <Button 
-            variant="outlined" 
-            size="small"
-            startIcon={<InfoIcon />} 
-            onClick={checkAuditDataStatus}
-            color="info"
-          >
-            Veri Durumu
-          </Button>
-          <Button 
-            variant="outlined" 
-            size="small"
-            startIcon={<DeleteIcon />} 
-            onClick={clearAllAuditFiles}
-            color="warning"
-          >
-            Dosyaları Temizle
-          </Button>
-          <Button 
-            variant="outlined" 
-            size="small"
-            startIcon={<ErrorIcon />} 
-            onClick={clearAllSupplierData}
-            color="error"
-          >
-            Tüm Verileri Temizle
-          </Button>
-        </Box>
-        
         <Box display="flex" gap={2}>
           <Button 
             variant="outlined" 
@@ -6205,7 +6078,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                       }
                                     }}
                                   >
-                                    <ViewIcon sx={{ fontSize: 14 }} />
+                                    <VisibilityIcon sx={{ fontSize: 14 }} />
                                   </IconButton>
                                 </Tooltip>
                                 <Tooltip title="Düzenle" arrow>
@@ -6567,15 +6440,177 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     </Box>
   );
 
+  // Quality Issues Management Component - Ana wrapper
+  const renderQualityIssuesManagement = () => {
+    // Entegre veri hazırlığı
+    const safeNonconformities = nonconformities || [];
+    const safeDefects = defects || [];
+    const safeSuppliers = suppliers || [];
+    
+    // Entegre istatistikler
+    const totalQualityIssues = safeNonconformities.length + safeDefects.length;
+    const openNonconformities = safeNonconformities.filter(nc => nc.status === 'açık').length;
+    const openDefects = safeDefects.filter(d => d.status === 'açık').length;
+    const totalOpenIssues = openNonconformities + openDefects;
+    
+    const criticalNonconformities = safeNonconformities.filter(nc => nc.severity === 'kritik').length;
+    const criticalDefects = safeDefects.filter(d => d.severity === 'kritik').length;
+    const totalCriticalIssues = criticalNonconformities + criticalDefects;
+    
+
+
+    return (
+      <Box>
+        {/* Entegre İstatistik Kartları */}
+        <Grid container spacing={3} mb={3}>
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Avatar sx={{ bgcolor: 'primary.main' }}>
+                    <AssessmentIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" fontWeight="bold">
+                      {totalQualityIssues}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Toplam Kalite Sorunu
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {safeNonconformities.length} Uygunsuzluk + {safeDefects.length} Hata
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Avatar sx={{ bgcolor: 'error.main' }}>
+                    <ErrorIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" fontWeight="bold">
+                      {totalOpenIssues}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Açık Sorunlar
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {openNonconformities} Uygunsuzluk + {openDefects} Hata
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Avatar sx={{ bgcolor: 'warning.main' }}>
+                    <SecurityIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" fontWeight="bold">
+                      {totalCriticalIssues}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Kritik Sorunlar
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {criticalNonconformities} Uygunsuzluk + {criticalDefects} Hata
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+        </Grid>
+
+        {/* Alt Tab'lar */}
+        <Paper sx={{ width: '100%', mb: 3 }}>
+          <Tabs 
+            value={qualityIssuesTab} 
+            onChange={(e, newValue) => setQualityIssuesTab(newValue)}
+            variant="fullWidth"
+            sx={{ borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Tab 
+              icon={<BugReportIcon />} 
+              label={
+                <Box display="flex" alignItems="center" gap={1}>
+                  <span>Uygunsuzluklar</span>
+                  <Chip 
+                    label={safeNonconformities.length} 
+                    size="small" 
+                    color="primary"
+                    sx={{ height: 20, fontSize: '0.7rem' }}
+                  />
+                </Box>
+              } 
+              sx={{ minHeight: 72 }}
+            />
+            <Tab 
+              icon={<WarningIcon />} 
+              label={
+                <Box display="flex" alignItems="center" gap={1}>
+                  <span>Hatalar</span>
+                  <Chip 
+                    label={safeDefects.length} 
+                    size="small" 
+                    color="secondary"
+                    sx={{ height: 20, fontSize: '0.7rem' }}
+                  />
+                </Box>
+              } 
+              sx={{ minHeight: 72 }}
+            />
+            <Tab 
+              icon={<ViewListIcon />} 
+              label={
+                <Box display="flex" alignItems="center" gap={1}>
+                  <span>Birleşik Görünüm</span>
+                  <Chip 
+                    label={totalQualityIssues} 
+                    size="small" 
+                    color="success"
+                    sx={{ height: 20, fontSize: '0.7rem' }}
+                  />
+                </Box>
+              } 
+              sx={{ minHeight: 72 }}
+            />
+          </Tabs>
+        </Paper>
+
+        {/* İçerik */}
+        <Box>
+          {qualityIssuesTab === 0 && renderNonconformityManagement()}
+          {qualityIssuesTab === 1 && renderDefectTracking()}
+          {qualityIssuesTab === 2 && renderIntegratedQualityView()}
+        </Box>
+      </Box>
+    );
+  };
+
   // Nonconformity Management Component
   const renderNonconformityManagement = () => {
     console.log('🔍 renderNonconformityManagement çağrıldı');
-    console.log('Nonconformities data:', nonconformities);
-    console.log('Suppliers data:', suppliers);
-    console.log('dataLoaded:', dataLoaded);
-    console.log('isLoading:', isLoading);
+    console.log('📊 Detaylı veri durumu:', {
+      nonconformities: nonconformities,
+      nonconformitiesLength: nonconformities?.length || 0,
+      suppliers: suppliers,
+      suppliersLength: suppliers?.length || 0,
+      dataLoaded: dataLoaded,
+      isLoading: isLoading
+    });
     
-    if (!dataLoaded) {
+    if (!dataLoaded || isLoading) {
       return (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
           <CircularProgress />
@@ -6585,10 +6620,15 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Box>
       );
     }
+
+    // Güvenlik kontrolü - array'lerin var olduğundan emin ol
+    const safeNonconformities = nonconformities || [];
+    const safeSuppliers = suppliers || [];
     
     return (
     <Box>
-      <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h6">Uygunsuzluk Yönetimi</Typography>
         <Button variant="contained" startIcon={<BugReportIcon />} onClick={handleCreateNonconformity}>
           Uygunsuzluk Kaydet
         </Button>
@@ -6604,7 +6644,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 </Avatar>
                 <Box>
                   <Typography variant="h4" fontWeight="bold">
-                    {nonconformities.filter(nc => nc.status === 'açık').length}
+                    {safeNonconformities.filter(nc => nc && nc.status === 'açık').length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Açık Uygunsuzluk
@@ -6623,7 +6663,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 </Avatar>
                 <Box>
                   <Typography variant="h4" fontWeight="bold">
-                    {nonconformities.filter(nc => nc.severity === 'kritik').length}
+                    {safeNonconformities.filter(nc => nc && nc.severity === 'kritik').length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Kritik Uygunsuzluk
@@ -6642,7 +6682,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 </Avatar>
                 <Box>
                   <Typography variant="h4" fontWeight="bold">
-                    {nonconformities.filter(nc => nc.dofId).length}
+                    {safeNonconformities.filter(nc => nc && nc.dofId).length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     DÖF Oluşturulan
@@ -6661,7 +6701,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 </Avatar>
                 <Box>
                   <Typography variant="h4" fontWeight="bold">
-                    {Math.round((nonconformities.filter(nc => nc.status === 'kapalı').length / nonconformities.length) * 100) || 0}%
+                    {safeNonconformities.length > 0 ? Math.round((safeNonconformities.filter(nc => nc && nc.status === 'kapalı').length / safeNonconformities.length) * 100) : 0}%
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Çözüm Oranı
@@ -6687,7 +6727,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             </TableRow>
           </TableHead>
           <TableBody>
-            {nonconformities.length === 0 ? (
+            {safeNonconformities.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>
                   <Typography color="text.secondary">
@@ -6707,35 +6747,41 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 </TableCell>
               </TableRow>
             ) : (
-              nonconformities.map((nonconformity) => (
+              safeNonconformities.filter(nc => nc && nc.id).map((nonconformity) => (
                 <TableRow key={nonconformity.id}>
                   <TableCell>
                     <Box>
                       <Typography variant="body2" fontWeight="bold">
-                        {nonconformity.title}
+                        {nonconformity.title || 'Başlık Belirtilmemiş'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {nonconformity.description.length > 50 
+                        {nonconformity.description && nonconformity.description.length > 50 
                           ? `${nonconformity.description.substring(0, 50)}...` 
-                          : nonconformity.description}
+                          : (nonconformity.description || 'Açıklama belirtilmemiş')}
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {suppliers.find(s => s.id === nonconformity.supplierId)?.name || 'Bilinmiyor'}
+                      {safeSuppliers.find(s => s.id === nonconformity.supplierId)?.name || 'Bilinmiyor'}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={nonconformity.category.charAt(0).toUpperCase() + nonconformity.category.slice(1)}
+                      label={nonconformity.category ? 
+                        nonconformity.category.charAt(0).toUpperCase() + nonconformity.category.slice(1) : 
+                        'Belirtilmemiş'
+                      }
                       variant="outlined"
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={nonconformity.severity.charAt(0).toUpperCase() + nonconformity.severity.slice(1)}
+                      label={nonconformity.severity ? 
+                        nonconformity.severity.charAt(0).toUpperCase() + nonconformity.severity.slice(1) : 
+                        'Belirtilmemiş'
+                      }
                       color={
                         nonconformity.severity === 'kritik' ? 'error' : 
                         nonconformity.severity === 'yüksek' ? 'warning' : 
@@ -6746,7 +6792,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={nonconformity.status.charAt(0).toUpperCase() + nonconformity.status.slice(1)}
+                      label={nonconformity.status ? 
+                        nonconformity.status.charAt(0).toUpperCase() + nonconformity.status.slice(1) : 
+                        'Belirtilmemiş'
+                      }
                       color={
                         nonconformity.status === 'kapalı' ? 'success' : 
                         nonconformity.status === 'düzeltiliyor' ? 'info' : 
@@ -6757,7 +6806,10 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {new Date(nonconformity.detectedDate).toLocaleDateString('tr-TR')}
+                      {nonconformity.detectedDate ? 
+                        new Date(nonconformity.detectedDate).toLocaleDateString('tr-TR') : 
+                        'Tarih belirtilmemiş'
+                      }
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -6773,7 +6825,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             setDialogOpen(true);
                           }}
                         >
-                          <ViewIcon />
+                          <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Düzenle">
@@ -6832,10 +6884,308 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
     );
   };
 
+  // Integrated Quality View Component
+  const renderIntegratedQualityView = () => {
+    // Veri entegrasyonu
+    const safeNonconformities = nonconformities || [];
+    const safeDefects = defects || [];
+    const safeSuppliers = suppliers || [];
+    
+    // Birleşik liste oluşturma
+    const integratedIssues = [
+      ...safeNonconformities.map(nc => ({
+        id: `nc-${nc.id}`,
+        type: 'nonconformity',
+        originalId: nc.id,
+        title: nc.title,
+        description: nc.description,
+        supplierId: nc.supplierId,
+        supplierName: safeSuppliers.find(s => s.id === nc.supplierId)?.name || 'Bilinmiyor',
+        category: nc.category,
+        severity: nc.severity,
+        status: nc.status,
+        detectedDate: nc.detectedDate,
+
+        dofId: nc.dofId,
+        icon: BugReportIcon,
+        typeLabel: 'Uygunsuzluk',
+        partCode: nc.partCode,
+        additionalInfo: nc.quantityAffected ? `${nc.quantityAffected} adet` : null
+      })),
+      ...safeDefects.map(d => ({
+        id: `def-${d.id}`,
+        type: 'defect',
+        originalId: d.id,
+        title: d.defectType,
+        description: d.description,
+        supplierId: d.supplierId,
+        supplierName: safeSuppliers.find(s => s.id === d.supplierId)?.name || 'Bilinmiyor',
+        category: 'kalite',
+        severity: d.severity,
+        status: d.status,
+        detectedDate: d.detectedDate,
+
+        dofId: d.dofId,
+        icon: WarningIcon,
+        typeLabel: 'Hata',
+        partCode: d.batchNumber,
+        additionalInfo: `${d.quantity} adet`
+      }))
+    ].sort((a, b) => new Date(b.detectedDate).getTime() - new Date(a.detectedDate).getTime());
+
+    return (
+      <Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h6">
+            Birleşik Kalite Sorunları ({integratedIssues.length})
+          </Typography>
+        </Box>
+
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'grey.50' }}>
+                <TableCell sx={{ fontWeight: 'bold' }}>Tür</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Başlık/Açıklama</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Tedarikçi</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Kategori</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Önem</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Durum</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Tarih</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>İşlemler</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {integratedIssues.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography color="text.secondary">
+                      Henüz kalite sorunu kaydı bulunmamaktadır
+                    </Typography>
+                    <Box display="flex" gap={2} justifyContent="center" mt={2}>
+                      <Button 
+                        variant="contained" 
+                        startIcon={<BugReportIcon />}
+                        onClick={() => {
+                          setQualityIssuesTab(0);
+                          setDialogType('nonconformity');
+                          setDialogOpen(true);
+                        }}
+                      >
+                        Uygunsuzluk Kaydet
+                      </Button>
+                      <Button 
+                        variant="contained" 
+                        startIcon={<WarningIcon />}
+                        onClick={() => {
+                          setQualityIssuesTab(1);
+                          setDialogType('defect');
+                          setDialogOpen(true);
+                        }}
+                      >
+                        Hata Kaydet
+                      </Button>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                integratedIssues.map((issue) => (
+                  <TableRow key={issue.id}>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Avatar 
+                          sx={{ 
+                            bgcolor: issue.type === 'nonconformity' ? 'primary.main' : 'secondary.main',
+                            width: 32, 
+                            height: 32 
+                          }}
+                        >
+                          <issue.icon style={{ fontSize: 18 }} />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body2" fontWeight="bold">
+                            {issue.typeLabel}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {issue.partCode}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" fontWeight="bold">
+                          {issue.title || 'Belirtilmemiş'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {issue.description && issue.description.length > 50 
+                            ? `${issue.description.substring(0, 50)}...` 
+                            : issue.description || 'Açıklama yok'}
+                        </Typography>
+                        {issue.additionalInfo && (
+                          <Typography variant="caption" color="primary.main" display="block">
+                            {issue.additionalInfo}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {issue.supplierName}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={issue.category ? 
+                          issue.category.charAt(0).toUpperCase() + issue.category.slice(1) : 
+                          'Belirtilmemiş'}
+                        variant="outlined"
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={issue.severity ? 
+                          issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1) : 
+                          'Belirtilmemiş'}
+                        color={
+                          issue.severity === 'kritik' ? 'error' : 
+                          issue.severity === 'yüksek' || issue.severity === 'major' ? 'warning' : 
+                          issue.severity === 'orta' ? 'info' : 'success'
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={issue.status ? 
+                          issue.status.charAt(0).toUpperCase() + issue.status.slice(1) : 
+                          'Durum belirtilmemiş'}
+                        color={
+                          issue.status === 'düzeltildi' || issue.status === 'kapalı' ? 'success' : 
+                          issue.status === 'araştırılıyor' || issue.status === 'düzeltiliyor' ? 'warning' : 
+                          'error'
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {issue.detectedDate ? 
+                          new Date(issue.detectedDate).toLocaleDateString('tr-TR') : 
+                          'Tarih belirtilmemiş'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" gap={1}>
+                        <Tooltip title="Görüntüle">
+                          <IconButton 
+                            size="small" 
+                            color="primary"
+                            onClick={() => {
+                              if (issue.type === 'nonconformity') {
+                                setQualityIssuesTab(0);
+                                const nonconformity = safeNonconformities.find(nc => nc.id === issue.originalId);
+                                if (nonconformity) {
+                                  setSelectedItem(nonconformity);
+                                  setDialogType('nonconformity');
+                                  setFormData(nonconformity);
+                                  setDialogOpen(true);
+                                }
+                              } else {
+                                setQualityIssuesTab(1);
+                                const defect = safeDefects.find(d => d.id === issue.originalId);
+                                if (defect) {
+                                  setSelectedItem(defect);
+                                  setDialogType('defect');
+                                  setFormData(defect);
+                                  setDialogOpen(true);
+                                }
+                              }
+                            }}
+                          >
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={
+                          !issue.dofId ? "DÖF Oluştur" : 
+                          issue.dofId === 'creating' ? "DÖF Oluşturuluyor..." : 
+                          "DÖF Oluşturuldu"
+                        }>
+                          <IconButton 
+                            size="small" 
+                            color={
+                              !issue.dofId ? "warning" : 
+                              issue.dofId === 'creating' ? "info" : 
+                              "success"
+                            }
+                            onClick={() => {
+                              if (issue.dofId) return;
+                              
+                              if (issue.type === 'nonconformity') {
+                                const nonconformity = safeNonconformities.find(nc => nc.id === issue.originalId);
+                                if (nonconformity) {
+                                  createDOFFromNonconformity(nonconformity);
+                                }
+                              } else {
+                                // Defect için DÖF oluştur
+                                const defect = safeDefects.find(d => d.id === issue.originalId);
+                                if (defect) {
+                                  const mockNonconformity: NonconformityRecord = {
+                                    id: `temp-${Date.now()}`,
+                                    supplierId: defect.supplierId,
+                                    title: `${defect.defectType} Hatası`,
+                                    description: `${defect.description} - Miktar: ${defect.quantity}`,
+                                    category: 'kalite',
+                                    severity: defect.severity === 'kritik' ? 'kritik' : defect.severity === 'major' ? 'yüksek' : 'orta',
+                                    detectedDate: defect.detectedDate,
+                                    status: 'açık',
+                                    dueDate: '',
+                                    recurrence: false,
+                                    partCode: defect.batchNumber || 'UNKNOWN-001'
+                                  };
+                                  createDOFFromNonconformity(mockNonconformity);
+                                }
+                              }
+                            }}
+                            disabled={!!issue.dofId}
+                          >
+                            {!issue.dofId ? <ReportIcon /> : 
+                             issue.dofId === 'creating' ? <CircularProgress size={20} /> : 
+                             <CheckCircleIcon />}
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Sil">
+                          <IconButton 
+                            size="small" 
+                            color="error"
+                            onClick={() => handleDeleteItem(issue.originalId, issue.type)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    );
+  };
+
   // Defect Tracking Component
-  const renderDefectTracking = () => (
+  const renderDefectTracking = () => {
+    // Güvenlik kontrolü - array'lerin var olduğundan emin ol
+    const safeDefects = defects || [];
+    const safeSuppliers = suppliers || [];
+
+    return (
     <Box>
-      <Box display="flex" justifyContent="flex-end" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h6">Hata Takibi</Typography>
         <Button variant="contained" startIcon={<WarningIcon />} onClick={handleCreateDefect}>
           Hata Kaydet
         </Button>
@@ -6921,7 +7271,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             </TableRow>
           </TableHead>
           <TableBody>
-            {defects.length === 0 ? (
+            {safeDefects.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>
                   <Typography color="text.secondary">
@@ -6941,31 +7291,33 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                 </TableCell>
               </TableRow>
             ) : (
-              defects.map((defect) => (
+              safeDefects.filter(d => d && d.id).map((defect) => (
                 <TableRow key={defect.id}>
                   <TableCell>
                     <Box>
                       <Typography variant="body2" fontWeight="bold">
-                        {defect.defectType}
+                        {defect.defectType || 'Belirtilmemiş'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Parti No: {defect.batchNumber}
+                        Parti No: {defect.batchNumber || 'Belirtilmemiş'}
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {suppliers.find(s => s.id === defect.supplierId)?.name || 'Bilinmiyor'}
+                      {safeSuppliers.find(s => s.id === defect.supplierId)?.name || 'Bilinmiyor'}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight="bold">
-                      {defect.quantity} adet
+                      {defect.quantity || 0} adet
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={defect.severity.charAt(0).toUpperCase() + defect.severity.slice(1)}
+                      label={defect.severity ? 
+                        defect.severity.charAt(0).toUpperCase() + defect.severity.slice(1) : 
+                        'Belirtilmemiş'}
                       color={
                         defect.severity === 'kritik' ? 'error' : 
                         defect.severity === 'major' ? 'warning' : 'info'
@@ -6975,12 +7327,16 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {new Date(defect.detectedDate).toLocaleDateString('tr-TR')}
+                      {defect.detectedDate ? 
+                        new Date(defect.detectedDate).toLocaleDateString('tr-TR') : 
+                        'Tarih belirtilmemiş'}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={defect.status.charAt(0).toUpperCase() + defect.status.slice(1)}
+                      label={defect.status ? 
+                        defect.status.charAt(0).toUpperCase() + defect.status.slice(1) : 
+                        'Durum belirtilmemiş'}
                       color={
                         defect.status === 'düzeltildi' ? 'success' : 
                         defect.status === 'kabul' ? 'info' : 'warning'
@@ -7001,7 +7357,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             setDialogOpen(true);
                           }}
                         >
-                          <ViewIcon />
+                          <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Düzenle">
@@ -7044,7 +7400,6 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                               detectedDate: defect.detectedDate,
                               status: 'açık',
                               dueDate: '',
-                              correctionCost: defect.correctionCost,
                               recurrence: false,
                               partCode: defect.batchNumber || 'UNKNOWN-001' // Zorunlu alan eklendi
                             };
@@ -7081,7 +7436,8 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         </Table>
       </TableContainer>
     </Box>
-  );
+    );
+  };
 
   // Performance Analysis Component
   const renderPerformanceAnalysis = () => {
@@ -7383,11 +7739,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         <strong>Güvenilirlik:</strong> Denetim Geçmişi
                       </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                        <strong>Maliyet:</strong> Risk/Hata Maliyeti
-                      </Typography>
-                    </Grid>
+
                     <Grid item xs={12} sm={6}>
                       <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
                         <strong>İnovasyon:</strong> Kategori/Hizmet
@@ -7636,8 +7988,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
             <Tab icon={<LinkIcon />} label="Onaylı/Alternatif Eşleştirme" />
             <Tab icon={<BusinessIcon />} label="Tedarikçi Listesi" />
             <Tab icon={<ScheduleIcon />} label="Denetim Takibi" />
-            <Tab icon={<BugReportIcon />} label="Uygunsuzluk Yönetimi" />
-            <Tab icon={<WarningIcon />} label="Hata Takibi" />
+            <Tab icon={<BugReportIcon />} label="Kalite Sorunları Yönetimi" />
             <Tab icon={<AssessmentIcon />} label="Performans Analizi" />
           </Tabs>
         </Paper>
@@ -7655,11 +8006,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                  case 3:
                    return renderAuditTracking();
                  case 4:
-                   console.log('🎯 Uygunsuzluk Yönetimi tab\'ı render ediliyor...');
-                   return renderNonconformityManagement();
+                   console.log('🎯 Kalite Sorunları Yönetimi tab\'ı render ediliyor...');
+                   return renderQualityIssuesManagement();
                  case 5:
-                   return renderDefectTracking();
-                 case 6:
                    return renderPerformanceAnalysis();
                  default:
                    return renderDashboard();
@@ -8053,7 +8402,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                 onClick={() => handleViewAttachment(attachment)} 
                                 title="Görüntüle"
                               >
-                                <ViewIcon />
+                                <VisibilityIcon />
                               </IconButton>
                               <IconButton 
                                 size="small" 
@@ -8302,17 +8651,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      fullWidth
-                      label="Düzeltme Maliyeti (₺)"
-                      type="number"
-                      value={formData.correctionCost || 0}
-                      onChange={(e) => setFormData({ ...formData, correctionCost: Number(e.target.value) })}
-                      inputProps={{ min: 0, step: 0.01 }}
-                      helperText="Tahmini maliyet"
-                    />
-                  </Grid>
+
                 </Grid>
               </Box>
             )}
@@ -9265,7 +9604,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         >
           <DialogTitle>
             <Box display="flex" alignItems="center" gap={1}>
-              <ViewIcon color="info" />
+                                      <VisibilityIcon color="info" />
               Denetim Detayları
             </Box>
           </DialogTitle>
@@ -9605,7 +9944,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                 color="info"
                                 onClick={() => handleAuditViewAttachment(attachment)}
                               >
-                                <ViewIcon />
+                                <VisibilityIcon />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="İndir" arrow>
