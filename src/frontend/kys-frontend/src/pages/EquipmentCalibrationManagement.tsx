@@ -6241,17 +6241,254 @@ const EquipmentCalibrationManagement: React.FC = () => {
                 </Box>
               </Paper>
 
+              {/* Detaylı Kalibrasyon Listesi */}
+              <Paper sx={{ p: 3, mb: 3, bgcolor: '#ffffff', borderRadius: 2 }}>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary', mb: 2 }}>
+                  <ScienceIcon color="primary" />
+                  Kalibrasyon Listesi - Kalan Gün Takibi
+                </Typography>
+                
+                <TableContainer 
+                  component={Paper}
+                  sx={{ 
+                    borderRadius: 2,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                    maxHeight: '70vh',
+                    overflowY: 'auto'
+                  }}
+                >
+                  <Table size="small" stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell 
+                          sx={{ 
+                            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          Ekipman
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          Kod
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          Son Kalibrasyon
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          Sonraki Kalibrasyon
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            minWidth: '140px'
+                          }}
+                        >
+                          Kalan Gün
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          Durum
+                        </TableCell>
+                        <TableCell 
+                          sx={{ 
+                            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                            color: 'white',
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          İşlemler
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {metrics.filteredEquipment
+                        .sort((a, b) => {
+                          const daysA = a.nextCalibrationDate ? getDaysUntilDue(a.nextCalibrationDate) : 999;
+                          const daysB = b.nextCalibrationDate ? getDaysUntilDue(b.nextCalibrationDate) : 999;
+                          return daysA - daysB;
+                        })
+                        .map((equipment) => {
+                          const nextCalDate = equipment.nextCalibrationDate || 
+                            (equipment.lastCalibrationDate && equipment.calibrationFrequency
+                              ? calculateNextCalibrationDate(equipment.lastCalibrationDate, equipment.calibrationFrequency)
+                              : null);
+                          const daysUntilDue = nextCalDate ? getDaysUntilDue(nextCalDate) : null;
+                          
+                          return (
+                            <TableRow key={equipment.id} hover>
+                              <TableCell>
+                                <Box>
+                                  <Typography variant="body2" fontWeight={600}>
+                                    {equipment.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {equipment.category}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {equipment.equipmentCode}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2">
+                                  {equipment.lastCalibrationDate 
+                                    ? formatDate(equipment.lastCalibrationDate)
+                                    : '-'
+                                  }
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2">
+                                  {nextCalDate 
+                                    ? formatDate(nextCalDate)
+                                    : '-'
+                                  }
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                {daysUntilDue !== null ? (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Chip
+                                      label={
+                                        daysUntilDue < 0 
+                                          ? `${Math.abs(daysUntilDue)} gün geçmiş`
+                                          : daysUntilDue === 0
+                                          ? 'Bugün'
+                                          : `${daysUntilDue} gün kaldı`
+                                      }
+                                      color={
+                                        daysUntilDue < 0 
+                                          ? 'error'
+                                          : daysUntilDue <= 7
+                                          ? 'error'
+                                          : daysUntilDue <= 30
+                                          ? 'warning'
+                                          : 'success'
+                                      }
+                                      size="small"
+                                      variant="filled"
+                                      sx={{ 
+                                        fontWeight: 600,
+                                        minWidth: '100px',
+                                        '& .MuiChip-label': {
+                                          fontSize: '0.75rem'
+                                        }
+                                      }}
+                                    />
+                                    {daysUntilDue <= 7 && (
+                                      <UrgentIcon 
+                                        color="error" 
+                                        fontSize="small" 
+                                        sx={{ ml: 0.5 }}
+                                      />
+                                    )}
+                                  </Box>
+                                ) : (
+                                  <Typography variant="body2" color="text.secondary">
+                                    Hesaplanamadı
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={
+                                    equipment.calibrationStatus === 'valid' ? 'Geçerli' :
+                                    equipment.calibrationStatus === 'due' ? 'Vadesi Yakın' :
+                                    equipment.calibrationStatus === 'overdue' ? 'Vadesi Geçmiş' :
+                                    'Belirsiz'
+                                  }
+                                  color={
+                                    equipment.calibrationStatus === 'valid' ? 'success' :
+                                    equipment.calibrationStatus === 'due' ? 'warning' :
+                                    equipment.calibrationStatus === 'overdue' ? 'error' :
+                                    'default'
+                                  }
+                                  size="small"
+                                  variant="outlined"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<ScienceIcon />}
+                                    onClick={() => handleCalibration(equipment)}
+                                    color={equipment.calibrationStatus === 'overdue' ? 'error' : 'primary'}
+                                    disabled={equipment.calibrationStatus === 'valid' && daysUntilDue && daysUntilDue > 30}
+                                  >
+                                    {equipment.calibrationStatus === 'overdue' ? 'Acil' : 'Planla'}
+                                  </Button>
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<ViewIcon />}
+                                    onClick={() => {
+                                      setSelectedEquipment(equipment);
+                                      setDialogMode('view');
+                                      setOpenDialog(true);
+                                    }}
+                                    color="info"
+                                  >
+                                    Detay
+                                  </Button>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
             {/* Yaklaşan Kalibrasyonlar */}
             <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
               <Paper sx={{ p: 3, bgcolor: '#ffffff', borderRadius: 2 }}>
                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary' }}>
                   <WarningIcon color="warning" />
-                  Yaklaşan Kalibrasyonlar
+                  Yaklaşan Kalibrasyonlar ({metrics.filteredEquipment.filter(eq => eq.calibrationStatus === 'due').length})
                 </Typography>
                 <List>
                   {metrics.filteredEquipment
                     .filter(eq => eq.calibrationStatus === 'due')
+                    .slice(0, 5)
                     .map((equipment) => (
                     <ListItem key={equipment.id} sx={{ px: 0, bgcolor: '#ffffff' }}>
                       <ListItemIcon>
@@ -6297,11 +6534,12 @@ const EquipmentCalibrationManagement: React.FC = () => {
               <Paper sx={{ p: 3, bgcolor: '#ffffff', borderRadius: 2 }}>
                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary' }}>
                   <ErrorIcon color="error" />
-                  Vadesi Geçen Kalibrasyonlar
+                  Vadesi Geçen Kalibrasyonlar ({metrics.filteredEquipment.filter(eq => eq.calibrationStatus === 'overdue').length})
                 </Typography>
                 <List>
                   {metrics.filteredEquipment
                     .filter(eq => eq.calibrationStatus === 'overdue')
+                    .slice(0, 5)
                     .map((equipment) => (
                     <ListItem key={equipment.id} sx={{ px: 0, bgcolor: '#ffffff' }}>
                       <ListItemIcon>
