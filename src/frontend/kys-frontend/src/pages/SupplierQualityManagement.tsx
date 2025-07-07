@@ -595,7 +595,7 @@ const SupplierQualityManagement: React.FC = () => {
 
   // 🔥 ACİL KORUMA SİSTEMİ - Audits değiştiğinde ANINDA kaydet
   useEffect(() => {
-    if (audits.length > 0) {
+    if (dataLoaded && audits.length > 0) {
       try {
         const auditsData = JSON.stringify(audits);
         localStorage.setItem('supplier-audits', auditsData);
@@ -612,7 +612,7 @@ const SupplierQualityManagement: React.FC = () => {
         console.error('❌ ANINDA KORUMA - Audits localStorage kaydetme hatası:', error);
       }
     }
-  }, [audits]); // dataLoaded dependency'si kaldırıldı
+  }, [audits, dataLoaded]); // dataLoaded dependency'si geri eklendi
 
   // MANUEL KAYDETME FONKSİYONLARI - Acil durum için
   const saveToLocalStorage = () => {

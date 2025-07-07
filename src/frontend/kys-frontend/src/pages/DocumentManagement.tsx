@@ -650,7 +650,7 @@ const DocumentManagement: React.FC = () => {
   };
 
   // ✅ SADECE GERÇEK VERİ YÜKLEME - Mock veriler tamamen kaldırıldı
-  React.useEffect(() => {
+  useEffect(() => {
     console.log('🔄 DocumentManagement verileri yükleniyor...');
     console.log('📊 localStorage boyutu:', Object.keys(localStorage).length);
     
@@ -750,7 +750,7 @@ const DocumentManagement: React.FC = () => {
   }, []);
 
   // ✅ OTOMATIK KAYDETME - HATA YAKALAMA İLE GÜÇLENDİRİLDİ
-  React.useEffect(() => {
+  useEffect(() => {
     // İlk yükleme tamamlanmadıysa kaydetme
     if (!dataLoaded) {
       console.log('⏳ Veri yüklenmedi, localStorage kaydetme bekleniyor...');
@@ -834,7 +834,7 @@ const DocumentManagement: React.FC = () => {
     }
   }, [documents, dataLoaded]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!dataLoaded) return;
     
     try {
@@ -848,7 +848,7 @@ const DocumentManagement: React.FC = () => {
     }
   }, [welders, dataLoaded]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!dataLoaded) return;
     
     try {
