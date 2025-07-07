@@ -78,6 +78,10 @@ import {
   Security as SecurityIcon,
   PersonAdd as PersonAddIcon,
   Error as ErrorIcon,
+  CloudUpload as CloudUploadIcon,
+  Download as DownloadIcon,
+  Storage as StorageIcon,
+  CleaningServices as CleaningServicesIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -107,6 +111,381 @@ import {
   ResponsiveContainer, 
   Legend
 } from 'recharts';
+
+// ============================================
+// EQUIPMENT CALIBRATION PDF STORAGE MANAGER
+// ============================================
+
+class EquipmentCalibrationPDFStorage {
+  private dbName = 'EquipmentCalibrationDB';
+  private dbVersion = 1;
+  private storeNames = {
+    certificates: 'calibration-certificates',
+    images: 'equipment-images'
+  };
+  
+  private db: IDBDatabase | null = null;
+
+  async initialize(): Promise<void> {
+    if (this.db) return;
+
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.dbVersion);
+      
+      request.onerror = () => {
+        console.error('❌ EquipmentCalibrationPDFStorage: IndexedDB açılamadı');
+        reject(new Error('IndexedDB açılamadı'));
+      };
+
+      request.onsuccess = (event) => {
+        this.db = (event.target as IDBOpenDBRequest).result;
+        console.log('✅ EquipmentCalibrationPDFStorage: IndexedDB başarıyla açıldı');
+        resolve();
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        
+        // Kalibrasyon sertifikaları store'u
+        if (!db.objectStoreNames.contains(this.storeNames.certificates)) {
+          const certificateStore = db.createObjectStore(this.storeNames.certificates, { keyPath: 'id' });
+          certificateStore.createIndex('equipmentId', 'equipmentId', { unique: false });
+          certificateStore.createIndex('certificateNumber', 'certificateNumber', { unique: false });
+          console.log('✅ Kalibrasyon sertifikaları store oluşturuldu');
+        }
+        
+        // Ekipman görselleri store'u
+        if (!db.objectStoreNames.contains(this.storeNames.images)) {
+          const imageStore = db.createObjectStore(this.storeNames.images, { keyPath: 'id' });
+          imageStore.createIndex('equipmentId', 'equipmentId', { unique: false });
+          console.log('✅ Ekipman görselleri store oluşturuldu');
+        }
+      };
+    });
+  }
+
+  async saveCertificate(certificateData: any): Promise<string> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    const certificateId = `cert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const certificate = {
+      id: certificateId,
+      equipmentId: certificateData.equipmentId,
+      certificateNumber: certificateData.certificateNumber,
+      fileName: certificateData.fileName,
+      fileType: certificateData.fileType,
+      fileSize: certificateData.fileSize,
+      fileData: certificateData.fileData,
+      uploadDate: new Date().toISOString(),
+      calibrationDate: certificateData.calibrationDate,
+      nextDueDate: certificateData.nextDueDate,
+      calibratorName: certificateData.calibratorName,
+      calibratorCompany: certificateData.calibratorCompany,
+      accreditationNumber: certificateData.accreditationNumber,
+      notes: certificateData.notes || ''
+    };
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.certificates], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.certificates);
+      const request = store.add(certificate);
+
+      request.onsuccess = () => {
+        console.log('✅ Kalibrasyon sertifikası IndexedDB\'ye kaydedildi:', certificateId);
+        resolve(certificateId);
+      };
+
+      request.onerror = () => {
+        console.error('❌ Kalibrasyon sertifikası kaydedilemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async saveImage(imageData: any): Promise<string> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    const imageId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const image = {
+      id: imageId,
+      equipmentId: imageData.equipmentId,
+      fileName: imageData.fileName,
+      fileType: imageData.fileType,
+      fileSize: imageData.fileSize,
+      fileData: imageData.fileData,
+      uploadDate: new Date().toISOString(),
+      description: imageData.description || ''
+    };
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.images], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.images);
+      const request = store.add(image);
+
+      request.onsuccess = () => {
+        console.log('✅ Ekipman görseli IndexedDB\'ye kaydedildi:', imageId);
+        resolve(imageId);
+      };
+
+      request.onerror = () => {
+        console.error('❌ Ekipman görseli kaydedilemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async getCertificate(certificateId: string): Promise<any> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.certificates], 'readonly');
+      const store = transaction.objectStore(this.storeNames.certificates);
+      const request = store.get(certificateId);
+
+      request.onsuccess = () => {
+        if (request.result) {
+          console.log('✅ Kalibrasyon sertifikası IndexedDB\'den alındı:', certificateId);
+          resolve(request.result);
+        } else {
+          console.log('⚠️ Kalibrasyon sertifikası bulunamadı:', certificateId);
+          resolve(null);
+        }
+      };
+
+      request.onerror = () => {
+        console.error('❌ Kalibrasyon sertifikası alınamadı:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async getImage(imageId: string): Promise<any> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.images], 'readonly');
+      const store = transaction.objectStore(this.storeNames.images);
+      const request = store.get(imageId);
+
+      request.onsuccess = () => {
+        if (request.result) {
+          console.log('✅ Ekipman görseli IndexedDB\'den alındı:', imageId);
+          resolve(request.result);
+        } else {
+          console.log('⚠️ Ekipman görseli bulunamadı:', imageId);
+          resolve(null);
+        }
+      };
+
+      request.onerror = () => {
+        console.error('❌ Ekipman görseli alınamadı:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async getCertificatesByEquipment(equipmentId: string): Promise<any[]> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.certificates], 'readonly');
+      const store = transaction.objectStore(this.storeNames.certificates);
+      const index = store.index('equipmentId');
+      const request = index.getAll(equipmentId);
+
+      request.onsuccess = () => {
+        console.log(`✅ Ekipman sertifikaları alındı (${equipmentId}):`, request.result.length);
+        resolve(request.result);
+      };
+
+      request.onerror = () => {
+        console.error('❌ Ekipman sertifikaları alınamadı:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async getImagesByEquipment(equipmentId: string): Promise<any[]> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.images], 'readonly');
+      const store = transaction.objectStore(this.storeNames.images);
+      const index = store.index('equipmentId');
+      const request = index.getAll(equipmentId);
+
+      request.onsuccess = () => {
+        console.log(`✅ Ekipman görselleri alındı (${equipmentId}):`, request.result.length);
+        resolve(request.result);
+      };
+
+      request.onerror = () => {
+        console.error('❌ Ekipman görselleri alınamadı:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async deleteCertificate(certificateId: string): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.certificates], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.certificates);
+      const request = store.delete(certificateId);
+
+      request.onsuccess = () => {
+        console.log('✅ Kalibrasyon sertifikası silindi:', certificateId);
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error('❌ Kalibrasyon sertifikası silinemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async deleteImage(imageId: string): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.images], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.images);
+      const request = store.delete(imageId);
+
+      request.onsuccess = () => {
+        console.log('✅ Ekipman görseli silindi:', imageId);
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error('❌ Ekipman görseli silinemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async clearAllCertificates(): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.certificates], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.certificates);
+      const request = store.clear();
+
+      request.onsuccess = () => {
+        console.log('✅ Tüm kalibrasyon sertifikaları temizlendi');
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error('❌ Sertifikalar temizlenemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async clearAllImages(): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.images], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.images);
+      const request = store.clear();
+
+      request.onsuccess = () => {
+        console.log('✅ Tüm ekipman görselleri temizlendi');
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error('❌ Görseller temizlenemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async getStorageInfo(): Promise<{
+    certificateCount: number;
+    imageCount: number;
+    totalSize: number;
+    storageEstimate?: any;
+  }> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    const [certificates, images] = await Promise.all([
+      this.getAllCertificates(),
+      this.getAllImages()
+    ]);
+
+    let totalSize = 0;
+    certificates.forEach(cert => {
+      if (cert.fileData) {
+        totalSize += cert.fileData.length;
+      }
+    });
+    images.forEach(img => {
+      if (img.fileData) {
+        totalSize += img.fileData.length;
+      }
+    });
+
+    let storageEstimate = null;
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
+      try {
+        storageEstimate = await navigator.storage.estimate();
+      } catch (error) {
+        console.warn('Storage estimate alınamadı:', error);
+      }
+    }
+
+    return {
+      certificateCount: certificates.length,
+      imageCount: images.length,
+      totalSize,
+      storageEstimate
+    };
+  }
+
+  private async getAllCertificates(): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.certificates], 'readonly');
+      const store = transaction.objectStore(this.storeNames.certificates);
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async getAllImages(): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.images], 'readonly');
+      const store = transaction.objectStore(this.storeNames.images);
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+}
+
+// Global instance
+const equipmentPDFStorage = new EquipmentCalibrationPDFStorage();
 
 // ============================================
 // KUSURSUZ ARAMA COMPONENT'İ
@@ -252,8 +631,9 @@ interface Equipment {
   operatingManual: string;
   notes: string;
   qrCode?: string;
-  images: string[];
-  certificates: CalibrationCertificate[];
+  // PDF depolama sistemi için güncellenmiş alanlar
+  imageIds: string[]; // IndexedDB'deki görsel ID'leri
+  certificateIds: string[]; // IndexedDB'deki sertifika ID'leri
   // Yeni eklenen alanlar
   measurementRange?: string; // Hangi değerler arasında ölçüm yaptığı
   measurementUncertainty?: string; // Ölçüm belirsizliği ±
@@ -280,7 +660,11 @@ interface CalibrationCertificate {
   temperature: number;
   humidity: number;
   status: 'valid' | 'expired' | 'invalid';
-  certificateFile: string;
+  // PDF depolama sistemi için güncellenmiş alanlar
+  hasCertificateFile: boolean; // Sertifika dosyası var mı?
+  certificateFileName?: string; // Dosya adı
+  certificateFileSize?: number; // Dosya boyutu
+  certificateFileType?: string; // Dosya tipi
   notes: string;
   traceability: string;
   environmentalConditions: string;
@@ -3308,13 +3692,28 @@ const EquipmentCalibrationManagement: React.FC = () => {
     specifications: '',
     notes: '',
     measurementRange: '',
-    measurementUncertainty: ''
+    measurementUncertainty: '',
+    imageIds: [],
+    certificateIds: []
   });
 
-  // Equipment data - localStorage'dan yüklenir
+  // Equipment data - localStorage'dan yüklenir ve PDF depolama sistemine uyumlu hale getirilir
   const [equipmentList, setEquipmentList] = useState<Equipment[]>(() => {
     const stored = localStorage.getItem('equipment_calibration_data');
-    return stored ? JSON.parse(stored) : [];
+    if (stored) {
+      const equipmentData = JSON.parse(stored);
+      // Eski verileri yeni formata dönüştür
+      return equipmentData.map((equipment: any) => ({
+        ...equipment,
+        // Eski images ve certificates verilerini yeni formata dönüştür
+        imageIds: equipment.imageIds || (equipment.images || []).map(() => `legacy_image_${Date.now()}_${Math.random()}`),
+        certificateIds: equipment.certificateIds || (equipment.certificates || []).map(() => `legacy_cert_${Date.now()}_${Math.random()}`),
+        // Eski alanları kaldır
+        images: undefined,
+        certificates: undefined
+      }));
+    }
+    return [];
   });
 
   // Personnel data
@@ -3510,7 +3909,408 @@ const EquipmentCalibrationManagement: React.FC = () => {
   const [newEquipmentName, setNewEquipmentName] = useState('');
   const [newCalibrationCompany, setNewCalibrationCompany] = useState('');
   const [newMeasurementRange, setNewMeasurementRange] = useState('');
+  
+  // PDF depolama sistemi için state'ler
+  const [storageInfo, setStorageInfo] = useState<{
+    certificateCount: number;
+    imageCount: number;
+    totalSize: number;
+    storageEstimate?: any;
+  }>({
+    certificateCount: 0,
+    imageCount: 0,
+    totalSize: 0
+  });
+  
+  // Dosya yükleme state'leri
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [fileUploadError, setFileUploadError] = useState<string | null>(null);
+  const [fileUploadSuccess, setFileUploadSuccess] = useState<string | null>(null);
   const [newMeasurementUncertainty, setNewMeasurementUncertainty] = useState('');
+  
+  // PDF Storage fonksiyonları
+  const handleCertificateUpload = async (event: React.ChangeEvent<HTMLInputElement>, equipmentId: string) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Dosya tipi kontrolü
+    if (!file.type.includes('pdf') && !file.type.includes('image')) {
+      setFileUploadError('Sadece PDF ve resim dosyaları yüklenebilir.');
+      return;
+    }
+
+    // Dosya boyutu kontrolü (20MB)
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    if (file.size > maxSize) {
+      setFileUploadError('Dosya boyutu 20MB\'dan büyük olamaz.');
+      return;
+    }
+
+    setUploadingFile(true);
+    setFileUploadError(null);
+    setFileUploadSuccess(null);
+
+    try {
+      // Dosyayı base64'e çevir
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64Data = e.target?.result as string;
+        
+        try {
+          // IndexedDB'ye kaydet
+          const certificateId = await equipmentPDFStorage.saveCertificate({
+            equipmentId,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            fileData: base64Data,
+            certificateNumber: `CERT-${Date.now()}`,
+            calibrationDate: new Date().toISOString().split('T')[0],
+            nextDueDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            calibratorName: 'Kalibratör',
+            calibratorCompany: 'Kalibrasyon Firması',
+            accreditationNumber: 'ACC-001',
+            notes: 'Yüklenen sertifika'
+          });
+
+          // Equipment'ın certificateIds listesini güncelle
+          const updatedEquipmentList = equipmentList.map(eq => 
+            eq.id === equipmentId 
+              ? { ...eq, certificateIds: [...(eq.certificateIds || []), certificateId] }
+              : eq
+          );
+          
+          setEquipmentList(updatedEquipmentList);
+          localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedEquipmentList));
+          
+          setFileUploadSuccess('Sertifika başarıyla yüklendi.');
+          console.log('✅ Sertifika yüklendi:', certificateId);
+          
+        } catch (error) {
+          console.error('❌ Sertifika yükleme hatası:', error);
+          setFileUploadError('Sertifika yüklenirken bir hata oluştu.');
+        } finally {
+          setUploadingFile(false);
+        }
+      };
+
+      reader.onerror = () => {
+        setFileUploadError('Dosya okuma hatası.');
+        setUploadingFile(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('❌ Dosya yükleme hatası:', error);
+      setFileUploadError('Dosya yükleme hatası.');
+      setUploadingFile(false);
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, equipmentId: string) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Dosya tipi kontrolü
+    if (!file.type.includes('image')) {
+      setFileUploadError('Sadece resim dosyaları yüklenebilir.');
+      return;
+    }
+
+    // Dosya boyutu kontrolü (10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      setFileUploadError('Dosya boyutu 10MB\'dan büyük olamaz.');
+      return;
+    }
+
+    setUploadingFile(true);
+    setFileUploadError(null);
+    setFileUploadSuccess(null);
+
+    try {
+      // Dosyayı base64'e çevir
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64Data = e.target?.result as string;
+        
+        try {
+          // IndexedDB'ye kaydet
+          const imageId = await equipmentPDFStorage.saveImage({
+            equipmentId,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            fileData: base64Data,
+            description: 'Ekipman görseli'
+          });
+
+          // Equipment'ın imageIds listesini güncelle
+          const updatedEquipmentList = equipmentList.map(eq => 
+            eq.id === equipmentId 
+              ? { ...eq, imageIds: [...(eq.imageIds || []), imageId] }
+              : eq
+          );
+          
+          setEquipmentList(updatedEquipmentList);
+          localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedEquipmentList));
+          
+          setFileUploadSuccess('Görsel başarıyla yüklendi.');
+          console.log('✅ Görsel yüklendi:', imageId);
+          
+        } catch (error) {
+          console.error('❌ Görsel yükleme hatası:', error);
+          setFileUploadError('Görsel yüklenirken bir hata oluştu.');
+        } finally {
+          setUploadingFile(false);
+        }
+      };
+
+      reader.onerror = () => {
+        setFileUploadError('Dosya okuma hatası.');
+        setUploadingFile(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('❌ Dosya yükleme hatası:', error);
+      setFileUploadError('Dosya yükleme hatası.');
+      setUploadingFile(false);
+    }
+  };
+
+  const handleViewCertificate = async (certificateId: string) => {
+    try {
+      const certificate = await equipmentPDFStorage.getCertificate(certificateId);
+      if (certificate && certificate.fileData) {
+        // PDF'yi yeni sekmede aç
+        const byteCharacters = atob(certificate.fileData.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: certificate.fileType });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      }
+    } catch (error) {
+      console.error('❌ Sertifika görüntüleme hatası:', error);
+      setFileUploadError('Sertifika görüntülenirken bir hata oluştu.');
+    }
+  };
+
+  const handleViewImage = async (imageId: string) => {
+    try {
+      const image = await equipmentPDFStorage.getImage(imageId);
+      if (image && image.fileData) {
+        // Resmi yeni sekmede aç
+        const byteCharacters = atob(image.fileData.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: image.fileType });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      }
+    } catch (error) {
+      console.error('❌ Görsel görüntüleme hatası:', error);
+      setFileUploadError('Görsel görüntülenirken bir hata oluştu.');
+    }
+  };
+
+  const handleDownloadCertificate = async (certificateId: string) => {
+    try {
+      const certificate = await equipmentPDFStorage.getCertificate(certificateId);
+      if (certificate && certificate.fileData) {
+        // PDF'yi indir
+        const byteCharacters = atob(certificate.fileData.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: certificate.fileType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = certificate.fileName || 'sertifika.pdf';
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('❌ Sertifika indirme hatası:', error);
+      setFileUploadError('Sertifika indirilirken bir hata oluştu.');
+    }
+  };
+
+  const handleDownloadImage = async (imageId: string) => {
+    try {
+      const image = await equipmentPDFStorage.getImage(imageId);
+      if (image && image.fileData) {
+        // Resmi indir
+        const byteCharacters = atob(image.fileData.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: image.fileType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = image.fileName || 'gorsel.jpg';
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('❌ Görsel indirme hatası:', error);
+      setFileUploadError('Görsel indirilirken bir hata oluştu.');
+    }
+  };
+
+  const handleDeleteCertificate = async (certificateId: string, equipmentId: string) => {
+    if (!window.confirm('Bu sertifikayı silmek istediğinize emin misiniz?')) {
+      return;
+    }
+
+    try {
+      await equipmentPDFStorage.deleteCertificate(certificateId);
+      
+      // Equipment'ın certificateIds listesinden çıkar
+      const updatedEquipmentList = equipmentList.map(eq => 
+        eq.id === equipmentId 
+          ? { ...eq, certificateIds: (eq.certificateIds || []).filter(id => id !== certificateId) }
+          : eq
+      );
+      
+      setEquipmentList(updatedEquipmentList);
+      localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedEquipmentList));
+      
+      setFileUploadSuccess('Sertifika başarıyla silindi.');
+      console.log('✅ Sertifika silindi:', certificateId);
+      
+    } catch (error) {
+      console.error('❌ Sertifika silme hatası:', error);
+      setFileUploadError('Sertifika silinirken bir hata oluştu.');
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string, equipmentId: string) => {
+    if (!window.confirm('Bu görseli silmek istediğinize emin misiniz?')) {
+      return;
+    }
+
+    try {
+      await equipmentPDFStorage.deleteImage(imageId);
+      
+      // Equipment'ın imageIds listesinden çıkar
+      const updatedEquipmentList = equipmentList.map(eq => 
+        eq.id === equipmentId 
+          ? { ...eq, imageIds: (eq.imageIds || []).filter(id => id !== imageId) }
+          : eq
+      );
+      
+      setEquipmentList(updatedEquipmentList);
+      localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedEquipmentList));
+      
+      setFileUploadSuccess('Görsel başarıyla silindi.');
+      console.log('✅ Görsel silindi:', imageId);
+      
+    } catch (error) {
+      console.error('❌ Görsel silme hatası:', error);
+      setFileUploadError('Görsel silinirken bir hata oluştu.');
+    }
+  };
+
+  // Storage durumu güncelleme
+  const updateStorageInfo = async () => {
+    try {
+      const info = await equipmentPDFStorage.getStorageInfo();
+      setStorageInfo(info);
+    } catch (error) {
+      console.error('❌ Storage info alınamadı:', error);
+    }
+  };
+
+  // Storage temizleme fonksiyonları
+  const handleClearAllCertificates = async () => {
+    if (!window.confirm('Tüm sertifikaları silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+      return;
+    }
+
+    try {
+      await equipmentPDFStorage.clearAllCertificates();
+      
+      // Tüm equipmentların certificateIds listesini temizle
+      const updatedEquipmentList = equipmentList.map(eq => ({
+        ...eq,
+        certificateIds: []
+      }));
+      
+      setEquipmentList(updatedEquipmentList);
+      localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedEquipmentList));
+      
+      setFileUploadSuccess('Tüm sertifikalar temizlendi.');
+      await updateStorageInfo();
+      
+    } catch (error) {
+      console.error('❌ Sertifika temizleme hatası:', error);
+      setFileUploadError('Sertifikalar temizlenirken bir hata oluştu.');
+    }
+  };
+
+  const handleClearAllImages = async () => {
+    if (!window.confirm('Tüm görselleri silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
+      return;
+    }
+
+    try {
+      await equipmentPDFStorage.clearAllImages();
+      
+      // Tüm equipmentların imageIds listesini temizle
+      const updatedEquipmentList = equipmentList.map(eq => ({
+        ...eq,
+        imageIds: []
+      }));
+      
+      setEquipmentList(updatedEquipmentList);
+      localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedEquipmentList));
+      
+      setFileUploadSuccess('Tüm görseller temizlendi.');
+      await updateStorageInfo();
+      
+    } catch (error) {
+      console.error('❌ Görsel temizleme hatası:', error);
+      setFileUploadError('Görseller temizlenirken bir hata oluştu.');
+    }
+  };
+
+  // Sayfa yüklendiğinde storage durumunu güncelle
+  useEffect(() => {
+    updateStorageInfo();
+  }, []);
+
+  // Dosya yükleme mesajlarını otomatik temizleme
+  useEffect(() => {
+    if (fileUploadSuccess) {
+      const timer = setTimeout(() => {
+        setFileUploadSuccess(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [fileUploadSuccess]);
+
+  useEffect(() => {
+    if (fileUploadError) {
+      const timer = setTimeout(() => {
+        setFileUploadError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [fileUploadError]);
 
   const handleAccordionChange = (panel: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
     setExpanded(isExpanded ? panel : false);
@@ -3585,9 +4385,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
           equipment.calibrationCompany,
           equipment.specifications,
           equipment.notes,
-          // Sertifikalar array'inde arama
-          ...(equipment.certificates || []).map(cert => cert.certificateNumber),
-          ...(equipment.certificates || []).map(cert => cert.calibratorCompany),
+          // Sertifikalar array'inde arama - artık certificateIds kullanıyoruz
+          ...(equipment.certificateIds || []).map(certId => certId),
           // Sorumlu personel bilgileri
           equipment.responsiblePersonName,
           equipment.responsiblePersonSicilNo
@@ -3846,8 +4645,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
       operatingManual: equipment.operatingManual,
       notes: equipment.notes,
       qrCode: equipment.qrCode,
-      images: equipment.images || [],
-      certificates: equipment.certificates || [],
+      imageIds: equipment.imageIds || [],
+      certificateIds: equipment.certificateIds || [],
       measurementRange: equipment.measurementRange || '',
       measurementUncertainty: equipment.measurementUncertainty || '',
       customMeasurementRange: equipment.customMeasurementRange || '',
@@ -4199,8 +4998,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
       specifications: formData.specifications || '',
       operatingManual: '',
       notes: formData.notes || '',
-      images: [],
-      certificates: [],
+      imageIds: [],
+      certificateIds: [],
       // Yeni alanlar
       measurementRange: formData.measurementRange === 'Diğer' ? formData.customMeasurementRange : formData.measurementRange,
       measurementUncertainty: formData.measurementUncertainty === 'Diğer' ? formData.customMeasurementUncertainty : formData.measurementUncertainty,
@@ -5585,6 +6384,64 @@ const EquipmentCalibrationManagement: React.FC = () => {
                   </List>
                 </Paper>
                 </Box>
+                
+                {/* PDF Depolama Durumu Kartı */}
+                <Box sx={{ flex: '1 1 400px', minWidth: '400px' }}>
+                  <Paper sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <StorageIcon color="info" />
+                      PDF Depolama Durumu
+                    </Typography>
+                    <List>
+                      <ListItem>
+                        <ListItemText
+                          primary="Toplam Sertifika"
+                          secondary={`${storageInfo.certificateCount} adet sertifika`}
+                        />
+                      </ListItem>
+                      <ListItem>
+                        <ListItemText
+                          primary="Toplam Görsel"
+                          secondary={`${storageInfo.imageCount} adet görsel`}
+                        />
+                      </ListItem>
+                      <ListItem>
+                        <ListItemText
+                          primary="Kullanılan Depolama"
+                          secondary={`${(storageInfo.totalSize / (1024 * 1024)).toFixed(2)} MB`}
+                        />
+                      </ListItem>
+                      {storageInfo.storageEstimate && (
+                        <ListItem>
+                          <ListItemText
+                            primary="Tarayıcı Depolama Kotası"
+                            secondary={`${((storageInfo.storageEstimate.usage || 0) / (1024 * 1024 * 1024)).toFixed(2)} GB / ${((storageInfo.storageEstimate.quota || 0) / (1024 * 1024 * 1024)).toFixed(2)} GB kullanıldı`}
+                          />
+                        </ListItem>
+                      )}
+                    </List>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<CleaningServicesIcon />}
+                        onClick={handleClearAllCertificates}
+                        color="warning"
+                      >
+                        Sertifikaları Temizle
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<CleaningServicesIcon />}
+                        onClick={handleClearAllImages}
+                        color="warning"
+                      >
+                        Görselleri Temizle
+                      </Button>
+                    </Box>
+                  </Paper>
+                </Box>
               </Box>
           </Box>
         </Box>
@@ -6587,8 +7444,26 @@ const EquipmentCalibrationManagement: React.FC = () => {
                     <Tab label="Genel Bilgiler" />
                     <Tab label="Kalibrasyon Bilgileri" />
                     <Tab label="Sertifikalar" />
+                    <Tab label="Görseller" />
                     <Tab label="Sorumlu Personel" />
                   </Tabs>
+                  
+                  {/* Dosya yükleme durumu ve hata mesajları */}
+                  {fileUploadError && (
+                    <Alert severity="error" sx={{ mt: 2 }} onClose={() => setFileUploadError(null)}>
+                      {fileUploadError}
+                    </Alert>
+                  )}
+                  {fileUploadSuccess && (
+                    <Alert severity="success" sx={{ mt: 2 }} onClose={() => setFileUploadSuccess(null)}>
+                      {fileUploadSuccess}
+                    </Alert>
+                  )}
+                  {uploadingFile && (
+                    <Alert severity="info" sx={{ mt: 2 }}>
+                      Dosya yükleniyor, lütfen bekleyin...
+                    </Alert>
+                  )}
 
                   {/* Tab 0: Genel Bilgiler */}
                   {viewModalTab === 0 && (
@@ -6774,81 +7649,220 @@ const EquipmentCalibrationManagement: React.FC = () => {
                         Sertifikalar
                       </Typography>
                       
-                      {selectedEquipment.certificates && selectedEquipment.certificates.length > 0 ? (
+                      {selectedEquipment.certificateIds && selectedEquipment.certificateIds.length > 0 ? (
                         <Paper sx={{ p: 3, borderLeft: '4px solid', borderColor: 'secondary.main' }}>
-                          <Typography variant="subtitle1" fontWeight="bold" gutterBottom color="secondary.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CertificateIcon />
-                            Kalibrasyon Sertifikaları ({selectedEquipment.certificates.length})
-                          </Typography>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="bold" color="secondary.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CertificateIcon />
+                              Kalibrasyon Sertifikaları ({selectedEquipment.certificateIds.length})
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <input
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                style={{ display: 'none' }}
+                                id="certificate-upload-button"
+                                type="file"
+                                onChange={(e) => handleCertificateUpload(e, selectedEquipment.id)}
+                              />
+                              <label htmlFor="certificate-upload-button">
+                                <Button
+                                  variant="contained"
+                                  component="span"
+                                  size="small"
+                                  startIcon={<CloudUploadIcon />}
+                                  disabled={uploadingFile}
+                                >
+                                  Sertifika Yükle
+                                </Button>
+                              </label>
+                            </Box>
+                          </Box>
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {selectedEquipment.certificates.map((cert, index) => (
-                              <Paper key={cert.id} sx={{ p: 2, bgcolor: '#ffffff', border: '1px solid', borderColor: 'grey.200' }}>
-                                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
-                                  <Box>
-                                    <Typography variant="caption" color="text.secondary">Sertifika No</Typography>
-                                    <Typography variant="body2" fontWeight="bold">{cert.certificateNumber}</Typography>
+                            {selectedEquipment.certificateIds.map((certId, index) => (
+                              <Paper key={certId} sx={{ p: 2, bgcolor: '#ffffff', border: '1px solid', borderColor: 'grey.200' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <CertificateIcon color="primary" />
+                                    <Box>
+                                      <Typography variant="body2" fontWeight="bold">Sertifika #{index + 1}</Typography>
+                                      <Typography variant="caption" color="text.secondary">
+                                        ID: {certId}
+                                      </Typography>
+                                    </Box>
                                   </Box>
-                                  <Box>
-                                    <Typography variant="caption" color="text.secondary">Kalibrasyon Tarihi</Typography>
-                                    <Typography variant="body2" fontWeight="bold">{formatDate(cert.calibrationDate)}</Typography>
-                                  </Box>
-                                  <Box>
-                                    <Typography variant="caption" color="text.secondary">Geçerlilik</Typography>
-                                    <Typography variant="body2" fontWeight="bold">{formatDate(cert.nextDueDate)}</Typography>
-                                  </Box>
-                                  <Box>
-                                    <Typography variant="caption" color="text.secondary">Kalibratör</Typography>
-                                    <Typography variant="body2" fontWeight="bold">{cert.calibratorCompany}</Typography>
-                                  </Box>
-                                  <Box>
-                                    <Typography variant="caption" color="text.secondary">Durum</Typography>
-                                    <Chip 
-                                      label={cert.status === 'valid' ? 'Geçerli' : cert.status === 'expired' ? 'Süresi Dolmuş' : 'Geçersiz'}
-                                      color={cert.status === 'valid' ? 'success' : 'error'}
+                                  <Box sx={{ display: 'flex', gap: 1 }}>
+                                    <Button
                                       size="small"
-                                    />
-                                  </Box>
-                                  <Box>
-                                    <Typography variant="caption" color="text.secondary">Uygunluk</Typography>
-                                    <Chip 
-                                      label={cert.conformityAssessment === 'pass' ? 'Uygun' : 
-                                             cert.conformityAssessment === 'fail' ? 'Uygun Değil' : 'Şartlı'}
-                                      color={cert.conformityAssessment === 'pass' ? 'success' : 
-                                             cert.conformityAssessment === 'fail' ? 'error' : 'warning'}
+                                      variant="outlined"
+                                      startIcon={<ViewIcon />}
+                                      onClick={() => handleViewCertificate(certId)}
+                                    >
+                                      Görüntüle
+                                    </Button>
+                                    <Button
                                       size="small"
-                                    />
+                                      variant="outlined"
+                                      startIcon={<DownloadIcon />}
+                                      onClick={() => handleDownloadCertificate(certId)}
+                                    >
+                                      İndir
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color="error"
+                                      startIcon={<DeleteIcon />}
+                                      onClick={() => handleDeleteCertificate(certId, selectedEquipment.id)}
+                                    >
+                                      Sil
+                                    </Button>
                                   </Box>
                                 </Box>
-                                {cert.notes && (
-                                  <Box sx={{ mt: 2 }}>
-                                    <Typography variant="caption" color="text.secondary" gutterBottom>Notlar</Typography>
-                                    <Typography variant="body2" sx={{ 
-                                      bgcolor: 'white', 
-                                      p: 1, 
-                                      borderRadius: 1, 
-                                      border: '1px solid', 
-                                      borderColor: 'grey.300' 
-                                    }}>
-                                      {cert.notes}
-                                    </Typography>
-                                  </Box>
-                                )}
                               </Paper>
                             ))}
                           </Box>
                         </Paper>
                       ) : (
                         <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
-                          <Typography variant="body1" color="text.secondary">
+                          <Typography variant="body1" color="text.secondary" gutterBottom>
                             Bu ekipman için henüz sertifika kaydı bulunmamaktadır.
                           </Typography>
+                          <Box sx={{ mt: 2 }}>
+                            <input
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              style={{ display: 'none' }}
+                              id="certificate-upload-empty-button"
+                              type="file"
+                              onChange={(e) => handleCertificateUpload(e, selectedEquipment.id)}
+                            />
+                            <label htmlFor="certificate-upload-empty-button">
+                              <Button
+                                variant="contained"
+                                component="span"
+                                startIcon={<CloudUploadIcon />}
+                                disabled={uploadingFile}
+                              >
+                                İlk Sertifikayı Yükle
+                              </Button>
+                            </label>
+                          </Box>
                         </Paper>
                       )}
                     </Box>
                   )}
 
-                  {/* Tab 3: Sorumlu Personel */}
+                  {/* Tab 3: Görseller */}
                   {viewModalTab === 3 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <ViewIcon color="info" />
+                        Ekipman Görselleri
+                      </Typography>
+                      
+                      {selectedEquipment.imageIds && selectedEquipment.imageIds.length > 0 ? (
+                        <Paper sx={{ p: 3, borderLeft: '4px solid', borderColor: 'info.main' }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight="bold" color="info.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <ViewIcon />
+                              Ekipman Görselleri ({selectedEquipment.imageIds.length})
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <input
+                                accept=".jpg,.jpeg,.png,.gif,.bmp,.webp"
+                                style={{ display: 'none' }}
+                                id="image-upload-button"
+                                type="file"
+                                onChange={(e) => handleImageUpload(e, selectedEquipment.id)}
+                              />
+                              <label htmlFor="image-upload-button">
+                                <Button
+                                  variant="contained"
+                                  component="span"
+                                  size="small"
+                                  startIcon={<CloudUploadIcon />}
+                                  disabled={uploadingFile}
+                                >
+                                  Görsel Yükle
+                                </Button>
+                              </label>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {selectedEquipment.imageIds.map((imageId, index) => (
+                              <Paper key={imageId} sx={{ p: 2, bgcolor: '#ffffff', border: '1px solid', borderColor: 'grey.200' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <ViewIcon color="primary" />
+                                    <Box>
+                                      <Typography variant="body2" fontWeight="bold">Görsel #{index + 1}</Typography>
+                                      <Typography variant="caption" color="text.secondary">
+                                        ID: {imageId}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                  <Box sx={{ display: 'flex', gap: 1 }}>
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      startIcon={<ViewIcon />}
+                                      onClick={() => handleViewImage(imageId)}
+                                    >
+                                      Görüntüle
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      startIcon={<DownloadIcon />}
+                                      onClick={() => handleDownloadImage(imageId)}
+                                    >
+                                      İndir
+                                    </Button>
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color="error"
+                                      startIcon={<DeleteIcon />}
+                                      onClick={() => handleDeleteImage(imageId, selectedEquipment.id)}
+                                    >
+                                      Sil
+                                    </Button>
+                                  </Box>
+                                </Box>
+                              </Paper>
+                            ))}
+                          </Box>
+                        </Paper>
+                      ) : (
+                        <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50' }}>
+                          <Typography variant="body1" color="text.secondary" gutterBottom>
+                            Bu ekipman için henüz görsel kaydı bulunmamaktadır.
+                          </Typography>
+                          <Box sx={{ mt: 2 }}>
+                            <input
+                              accept=".jpg,.jpeg,.png,.gif,.bmp,.webp"
+                              style={{ display: 'none' }}
+                              id="image-upload-empty-button"
+                              type="file"
+                              onChange={(e) => handleImageUpload(e, selectedEquipment.id)}
+                            />
+                            <label htmlFor="image-upload-empty-button">
+                              <Button
+                                variant="contained"
+                                component="span"
+                                startIcon={<CloudUploadIcon />}
+                                disabled={uploadingFile}
+                              >
+                                İlk Görseli Yükle
+                              </Button>
+                            </label>
+                          </Box>
+                        </Paper>
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Tab 4: Sorumlu Personel */}
+                  {viewModalTab === 4 && (
                     <Box sx={{ mb: 3 }}>
                       <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <PersonAddIcon color="success" />
@@ -7789,6 +8803,6 @@ const EquipmentCalibrationManagement: React.FC = () => {
       </Dialog>
     </Box>
   );
-};
-
+  };
+  
 export default EquipmentCalibrationManagement; 
