@@ -376,7 +376,7 @@ const DocumentManagement: React.FC = () => {
   
   // Search
   const [searchTerm, setSearchTerm] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' | 'warning' });
 
   // Modal state
   const [viewModal, setViewModal] = useState(false);
@@ -432,12 +432,12 @@ const DocumentManagement: React.FC = () => {
       return;
     }
 
-    // Dosya boyutu kontrolü - daha esnek
-    const maxSize = 5 * 1024 * 1024; // 5MB (localStorage için daha güvenli)
+    // Dosya boyutu kontrolü - online mod için daha katı
+    const maxSize = 2 * 1024 * 1024; // 2MB (online localStorage için güvenli)
     if (file.size > maxSize) {
       setSnackbar({ 
         open: true, 
-        message: `Dosya boyutu çok büyük! Maksimum 5MB olabilir. Seçilen dosya: ${formatFileSize(file.size)}`, 
+        message: `Dosya boyutu çok büyük! Online modda maksimum 2MB olabilir. Seçilen dosya: ${formatFileSize(file.size)}`, 
         severity: 'error' 
       });
       return;
@@ -452,15 +452,22 @@ const DocumentManagement: React.FC = () => {
       return;
     }
 
-    // localStorage kontrol
+    // localStorage kontrol - online mod için daha katı
     const currentDataSize = JSON.stringify(documents).length;
     const estimatedNewSize = currentDataSize + (file.size * 1.4); // Base64 yaklaşık 1.4x büyük
-    const localStorageLimit = 5 * 1024 * 1024; // 5MB localStorage limit
+    const localStorageLimit = 3 * 1024 * 1024; // 3MB localStorage limit (online için güvenli)
+
+    console.log('📊 localStorage boyut analizi:', {
+      currentDataSize: formatFileSize(currentDataSize),
+      estimatedNewSize: formatFileSize(estimatedNewSize),
+      limit: formatFileSize(localStorageLimit),
+      availableSpace: formatFileSize(localStorageLimit - currentDataSize)
+    });
 
     if (estimatedNewSize > localStorageLimit) {
       setSnackbar({ 
         open: true, 
-        message: 'Veri depolama alanı dolu! Lütfen bazı PDF dosyalarını silin.', 
+        message: `Veri depolama alanı yetersiz! Mevcut: ${formatFileSize(currentDataSize)}, Gerekli: ${formatFileSize(estimatedNewSize)}, Limit: ${formatFileSize(localStorageLimit)}`, 
         severity: 'error' 
       });
       return;
@@ -499,29 +506,47 @@ const DocumentManagement: React.FC = () => {
         
         setDocuments(updatedDocs);
         
-        // PDF yükleme sonrası anında kaydetme
+        // PDF yükleme sonrası anında kaydetme - gelişmiş hata kontrolü
         try {
-          localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
-          localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
-          localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
-          console.log('✅ PDF yükleme sonrası veriler kaydedildi');
+          const updatedDocsString = JSON.stringify(updatedDocs);
+          const finalSize = updatedDocsString.length;
+          
+          console.log('💾 Kaydetme işlemi başlıyor:', {
+            finalDataSize: formatFileSize(finalSize),
+            documentCount: updatedDocs.length
+          });
+          
+          localStorage.setItem('dm-documents', updatedDocsString);
+          localStorage.setItem('dm-documents-backup', updatedDocsString);
+          localStorage.setItem('documentManagementData', updatedDocsString);
+          
+          console.log('✅ PDF yükleme sonrası veriler başarıyla kaydedildi');
           
           setSnackbar({ 
             open: true, 
-            message: `PDF başarıyla yüklendi! Dosya: ${file.name} (${formatFileSize(file.size)})`, 
+            message: `PDF başarıyla yüklendi ve kaydedildi! Dosya: ${file.name} (${formatFileSize(file.size)})`, 
             severity: 'success' 
           });
-        } catch (storageError) {
+        } catch (storageError: any) {
           console.error('❌ PDF yükleme sonrası kaydetme hatası:', storageError);
           
           // Kaydetme hatası durumunda geri al
           setDocuments(documents);
           
-          setSnackbar({ 
-            open: true, 
-            message: 'PDF yüklendi ancak kaydetme hatası oluştu! Lütfen tekrar deneyin.', 
-            severity: 'error' 
-          });
+          // localStorage quota exceeded hatası kontrolü
+          if (storageError.name === 'QuotaExceededError' || storageError.code === 22) {
+            setSnackbar({ 
+              open: true, 
+              message: `Depolama alanı dolu! Toplam veri boyutu sınırını aştı. Lütfen bazı PDF dosyalarını silin ve tekrar deneyin.`, 
+              severity: 'error' 
+            });
+          } else {
+            setSnackbar({ 
+              open: true, 
+              message: `PDF yüklendi ancak kaydetme hatası oluştu! Hata: ${storageError.message || 'Bilinmeyen hata'}. Lütfen sayfa yenileyin ve tekrar deneyin.`, 
+              severity: 'error' 
+            });
+          }
         }
       } catch (error) {
         console.error('❌ PDF işleme hatası:', error);
@@ -783,23 +808,54 @@ const DocumentManagement: React.FC = () => {
   // ✅ GÜÇLENDİRİLMİŞ OTOMATIK KAYDETME - VERİ KALICILIĞI GARANTİSİ
   React.useEffect(() => {
     try {
+      const documentsString = JSON.stringify(documents);
+      const dataSize = documentsString.length;
+      const limit = 3 * 1024 * 1024; // 3MB
+      const warningThreshold = limit * 0.8; // %80 dolduğunda uyar
+      
       // Ana kaydetme
-      localStorage.setItem('dm-documents', JSON.stringify(documents));
+      localStorage.setItem('dm-documents', documentsString);
       
       // Yedek kaydetme (güvenlik için)
-      localStorage.setItem('dm-documents-backup', JSON.stringify(documents));
+      localStorage.setItem('dm-documents-backup', documentsString);
       
       // Timestamp kaydetme
       localStorage.setItem('dm-documents-timestamp', new Date().toISOString());
       
       // Başka key'lere de kaydetme (çapraz uyumluluk için)
-      localStorage.setItem('documentManagementData', JSON.stringify(documents));
+      localStorage.setItem('documentManagementData', documentsString);
       
-      console.log('✅ Belgeler başarıyla kaydedildi:', documents.length);
-    } catch (error) {
+      console.log('✅ Belgeler başarıyla kaydedildi:', documents.length, 'Boyut:', formatFileSize(dataSize));
+      
+      // Boyut uyarısı
+      if (dataSize > warningThreshold && documents.length > 0) {
+        const percentage = ((dataSize / limit) * 100).toFixed(1);
+        console.warn(`⚠️ localStorage ${percentage}% dolu! Boyut: ${formatFileSize(dataSize)}/${formatFileSize(limit)}`);
+        
+        if (dataSize > limit * 0.9) { // %90 dolduğunda critical uyarı
+          setSnackbar({ 
+            open: true, 
+            message: `UYARI: Depolama alanı %${percentage} dolu! PDF yükleme sorunu yaşayabilirsiniz. "PDF'leri Temizle" butonunu kullanın.`, 
+            severity: 'warning' 
+          });
+        }
+      }
+    } catch (error: any) {
       console.error('❌ Belge kaydetme hatası:', error);
-      // Hata durumunda snackbar göster
-      setSnackbar({ open: true, message: 'Veriler kaydedilirken hata oluştu!', severity: 'error' });
+      
+      if (error.name === 'QuotaExceededError' || error.code === 22) {
+        setSnackbar({ 
+          open: true, 
+          message: 'Depolama alanı dolu! Lütfen "PDF\'leri Temizle" butonunu kullanarak alan açın.', 
+          severity: 'error' 
+        });
+      } else {
+        setSnackbar({ 
+          open: true, 
+          message: 'Veriler kaydedilirken hata oluştu!', 
+          severity: 'error' 
+        });
+      }
     }
   }, [documents]);
 
@@ -1080,13 +1136,30 @@ const DocumentManagement: React.FC = () => {
       'dm-personnel'
     ];
     
-    console.log('📊 VERİ DURUMU RAPORU:');
+    let totalSize = 0;
+    let pdfCount = 0;
+    
+    console.log('📊 DETAYLI VERİ DURUMU RAPORU:');
+    console.log('==========================================');
+    
     sources.forEach(source => {
       const data = localStorage.getItem(source);
       if (data) {
         try {
+          const dataSize = data.length;
+          totalSize += dataSize;
           const parsed = JSON.parse(data);
-          console.log(`✅ ${source}: ${Array.isArray(parsed) ? parsed.length : 'N/A'} kayıt`);
+          
+          // PDF sayısını hesapla
+          if (Array.isArray(parsed)) {
+            const pdfs = parsed.filter((item: any) => item.pdfFile);
+            pdfCount += pdfs.length;
+          }
+          
+          console.log(`✅ ${source}:`);
+          console.log(`   - Boyut: ${formatFileSize(dataSize)}`);
+          console.log(`   - Kayıt: ${Array.isArray(parsed) ? parsed.length : 'N/A'}`);
+          console.log(`   - PDF: ${Array.isArray(parsed) ? parsed.filter((item: any) => item.pdfFile).length : 0}`);
         } catch (error) {
           console.log(`❌ ${source}: Parse hatası`);
         }
@@ -1095,11 +1168,55 @@ const DocumentManagement: React.FC = () => {
       }
     });
     
+    console.log('==========================================');
+    console.log(`🔍 TOPLAM ÖZET:`);
+    console.log(`   - Toplam Veri Boyutu: ${formatFileSize(totalSize)}`);
+    console.log(`   - Toplam PDF Sayısı: ${pdfCount}`);
+    console.log(`   - Tahmini Limit: ${formatFileSize(3 * 1024 * 1024)} (3MB)`);
+    console.log(`   - Kalan Alan: ${formatFileSize((3 * 1024 * 1024) - totalSize)}`);
+    console.log(`   - Doluluk Oranı: ${((totalSize / (3 * 1024 * 1024)) * 100).toFixed(1)}%`);
+    
     setSnackbar({ 
       open: true, 
-      message: 'Veri durumu konsola yazıldı. F12 ile Developer Console\'u açın', 
+      message: `Veri durumu konsola yazıldı. Toplam: ${formatFileSize(totalSize)}, PDF: ${pdfCount} adet. F12 ile detayları görün.`, 
       severity: 'info' 
     });
+  };
+
+  // ✅ PDF TEMİZLEME FONKSİYONU (ALAN AÇMA)
+  const clearAllPDFs = () => {
+    if (window.confirm('UYARI: Tüm PDF dosyaları silinecek! Belgeler korunacak ancak PDF içerikleri kaldırılacak. Devam etmek istiyor musunuz?')) {
+      try {
+        const cleanedDocs = documents.map(doc => ({
+          ...doc,
+          pdfFile: undefined,
+          pdfFileName: undefined,
+          pdfSize: undefined
+        }));
+        
+        setDocuments(cleanedDocs);
+        
+        // Anında kaydetme
+        const cleanedDocsString = JSON.stringify(cleanedDocs);
+        localStorage.setItem('dm-documents', cleanedDocsString);
+        localStorage.setItem('dm-documents-backup', cleanedDocsString);
+        localStorage.setItem('documentManagementData', cleanedDocsString);
+        
+        console.log('🧹 Tüm PDF dosyaları temizlendi, belgeler korundu');
+        setSnackbar({ 
+          open: true, 
+          message: 'Tüm PDF dosyaları temizlendi! Belgeler korundu, artık yeni PDF yükleyebilirsiniz.', 
+          severity: 'success' 
+        });
+      } catch (error) {
+        console.error('❌ PDF temizleme hatası:', error);
+        setSnackbar({ 
+          open: true, 
+          message: 'PDF temizleme hatası! Lütfen tekrar deneyin.', 
+          severity: 'error' 
+        });
+      }
+    }
   };
 
   // ✅ VERİ TEMİZLEME FONKSİYONU (ACİL DURUM)
@@ -1212,10 +1329,18 @@ const DocumentManagement: React.FC = () => {
           <Button
             variant="outlined"
             size="small"
+            onClick={clearAllPDFs}
+            sx={{ ml: 1, color: 'warning.main', borderColor: 'warning.main', '&:hover': { borderColor: 'warning.dark' } }}
+          >
+            PDF'leri Temizle
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
             onClick={clearAllData}
             sx={{ ml: 1, color: 'error.main', borderColor: 'error.main', '&:hover': { borderColor: 'error.dark' } }}
           >
-            Verileri Temizle
+            Tüm Verileri Temizle
           </Button>
                 </Box>
                 </Box>
