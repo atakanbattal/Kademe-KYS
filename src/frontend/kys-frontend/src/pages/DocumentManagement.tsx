@@ -30,6 +30,7 @@ import {
   InputAdornment,
   Grid,
   Autocomplete,
+  LinearProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -381,6 +382,7 @@ const DocumentManagement: React.FC = () => {
   const [viewModal, setViewModal] = useState(false);
   const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // ✅ KALAN GÜN SAYISI HESAPLAMA
   const calculateDaysRemaining = (expiryDate: string): number => {
@@ -401,57 +403,156 @@ const DocumentManagement: React.FC = () => {
     return { text: `${daysRemaining} gün kaldı`, color: 'success' as const };
   };
 
-  // ✅ PDF YÜKLEME VE İŞLEME FONKSİYONLARI
+  // ✅ GELİŞMİŞ PDF YÜKLEME VE İŞLEME FONKSİYONLARI
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, documentId: string) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      setSnackbar({ open: true, message: 'Sadece PDF dosyaları yüklenebilir!', severity: 'error' });
+    if (!file) {
+      console.log('❌ Dosya seçilmedi');
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      setSnackbar({ open: true, message: 'Dosya boyutu 10MB\'dan küçük olmalıdır!', severity: 'error' });
+    console.log('📄 Dosya seçildi:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: new Date(file.lastModified)
+    });
+
+    // Dosya tipi doğrulaması - daha kapsamlı
+    const validTypes = ['application/pdf'];
+    const validExtensions = ['.pdf'];
+    const fileName = file.name.toLowerCase();
+    
+    if (!validTypes.includes(file.type) && !validExtensions.some(ext => fileName.endsWith(ext))) {
+      setSnackbar({ 
+        open: true, 
+        message: `Geçersiz dosya formatı! Sadece PDF dosyaları (.pdf) yüklenebilir. Seçilen dosya: ${file.type}`, 
+        severity: 'error' 
+      });
+      return;
+    }
+
+    // Dosya boyutu kontrolü - daha esnek
+    const maxSize = 5 * 1024 * 1024; // 5MB (localStorage için daha güvenli)
+    if (file.size > maxSize) {
+      setSnackbar({ 
+        open: true, 
+        message: `Dosya boyutu çok büyük! Maksimum 5MB olabilir. Seçilen dosya: ${formatFileSize(file.size)}`, 
+        severity: 'error' 
+      });
+      return;
+    }
+
+    if (file.size === 0) {
+      setSnackbar({ 
+        open: true, 
+        message: 'Dosya boş! Lütfen geçerli bir PDF dosyası seçin.', 
+        severity: 'error' 
+      });
+      return;
+    }
+
+    // localStorage kontrol
+    const currentDataSize = JSON.stringify(documents).length;
+    const estimatedNewSize = currentDataSize + (file.size * 1.4); // Base64 yaklaşık 1.4x büyük
+    const localStorageLimit = 5 * 1024 * 1024; // 5MB localStorage limit
+
+    if (estimatedNewSize > localStorageLimit) {
+      setSnackbar({ 
+        open: true, 
+        message: 'Veri depolama alanı dolu! Lütfen bazı PDF dosyalarını silin.', 
+        severity: 'error' 
+      });
       return;
     }
 
     setUploadingFile(true);
+    setSnackbar({ 
+      open: true, 
+      message: 'PDF dosyası yükleniyor...', 
+      severity: 'info' 
+    });
+
     const reader = new FileReader();
     
     reader.onload = () => {
-      const base64 = reader.result as string;
-      
-      const updatedDocs = documents.map(doc => 
-        doc.id === documentId 
-          ? { 
-              ...doc, 
-              pdfFile: base64,
-              pdfFileName: file.name,
-              pdfSize: file.size
-            }
-          : doc
-      );
-      
-      setDocuments(updatedDocs);
-      
-      // PDF yükleme sonrası anında kaydetme
       try {
-        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
-        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
-        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
-        console.log('✅ PDF yükleme sonrası veriler kaydedildi');
-      } catch (error) {
-        console.error('❌ PDF yükleme sonrası kaydetme hatası:', error);
-      }
+        const base64 = reader.result as string;
+        
+        // Base64 format kontrol
+        if (!base64 || !base64.startsWith('data:application/pdf;base64,')) {
+          throw new Error('Base64 format hatası');
+        }
 
-      setSnackbar({ open: true, message: 'PDF başarıyla yüklendi!', severity: 'success' });
+        console.log('✅ PDF Base64 dönüşümü başarılı:', base64.length, 'karakter');
+        
+        const updatedDocs = documents.map(doc => 
+          doc.id === documentId 
+            ? { 
+                ...doc, 
+                pdfFile: base64,
+                pdfFileName: file.name,
+                pdfSize: file.size
+              }
+            : doc
+        );
+        
+        setDocuments(updatedDocs);
+        
+        // PDF yükleme sonrası anında kaydetme
+        try {
+          localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+          localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
+          localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
+          console.log('✅ PDF yükleme sonrası veriler kaydedildi');
+          
+          setSnackbar({ 
+            open: true, 
+            message: `PDF başarıyla yüklendi! Dosya: ${file.name} (${formatFileSize(file.size)})`, 
+            severity: 'success' 
+          });
+        } catch (storageError) {
+          console.error('❌ PDF yükleme sonrası kaydetme hatası:', storageError);
+          
+          // Kaydetme hatası durumunda geri al
+          setDocuments(documents);
+          
+          setSnackbar({ 
+            open: true, 
+            message: 'PDF yüklendi ancak kaydetme hatası oluştu! Lütfen tekrar deneyin.', 
+            severity: 'error' 
+          });
+        }
+      } catch (error) {
+        console.error('❌ PDF işleme hatası:', error);
+        setSnackbar({ 
+          open: true, 
+          message: 'PDF dosyası işlenemedi! Lütfen farklı bir dosya deneyin.', 
+          severity: 'error' 
+        });
+      }
+      
       setUploadingFile(false);
+      setUploadProgress(0);
     };
 
-    reader.onerror = () => {
-      setSnackbar({ open: true, message: 'Dosya yükleme hatası!', severity: 'error' });
+    reader.onerror = (error) => {
+      console.error('❌ FileReader hatası:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Dosya okuma hatası! Lütfen dosyayı kontrol edin ve tekrar deneyin.', 
+        severity: 'error' 
+      });
       setUploadingFile(false);
+      setUploadProgress(0);
+    };
+
+    reader.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percentComplete);
+        console.log(`📊 PDF yükleme ilerlemesi: ${percentComplete}%`);
+      }
     };
 
     reader.readAsDataURL(file);
@@ -468,12 +569,91 @@ const DocumentManagement: React.FC = () => {
       return;
     }
 
-    const link = document.createElement('a');
-    link.href = doc.pdfFile;
-    link.download = doc.pdfFileName || `${doc.name}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      // Base64 formatını kontrol et
+      if (!doc.pdfFile.startsWith('data:application/pdf;base64,')) {
+        setSnackbar({ open: true, message: 'PDF dosyası bozuk! Lütfen tekrar yükleyin.', severity: 'error' });
+        return;
+      }
+
+      const link = document.createElement('a');
+      link.href = doc.pdfFile;
+      link.download = doc.pdfFileName || `${doc.name}.pdf`;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('✅ PDF indirme başarılı:', doc.pdfFileName);
+      setSnackbar({ 
+        open: true, 
+        message: `PDF başarıyla indirildi: ${doc.pdfFileName}`, 
+        severity: 'success' 
+      });
+    } catch (error) {
+      console.error('❌ PDF indirme hatası:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'PDF indirme hatası! Lütfen tekrar deneyin.', 
+        severity: 'error' 
+      });
+    }
+  };
+
+  const handleViewPDF = (doc: Document) => {
+    if (!doc.pdfFile) {
+      setSnackbar({ open: true, message: 'PDF dosyası yüklenememiş!', severity: 'error' });
+      return;
+    }
+
+    try {
+      // Base64 formatını kontrol et
+      if (!doc.pdfFile.startsWith('data:application/pdf;base64,')) {
+        setSnackbar({ open: true, message: 'PDF dosyası bozuk! Lütfen tekrar yükleyin.', severity: 'error' });
+        return;
+      }
+
+      // Yeni sekme açarak PDF'i görüntüle
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${doc.name} - PDF Görüntüleyici</title>
+              <style>
+                body { margin: 0; padding: 0; background-color: #f0f0f0; }
+                embed { width: 100%; height: 100vh; }
+              </style>
+            </head>
+            <body>
+              <embed src="${doc.pdfFile}" type="application/pdf" />
+            </body>
+          </html>
+        `);
+        newWindow.document.close();
+        
+        console.log('✅ PDF görüntüleme başarılı:', doc.pdfFileName);
+      } else {
+        // Popup bloke edilmişse alternatif yöntem
+        const link = document.createElement('a');
+        link.href = doc.pdfFile;
+        link.target = '_blank';
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('❌ PDF görüntüleme hatası:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'PDF görüntüleme hatası! Lütfen indirme seçeneğini kullanın.', 
+        severity: 'error' 
+      });
+    }
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -482,6 +662,44 @@ const DocumentManagement: React.FC = () => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const handleRemovePDF = (doc: Document) => {
+    if (window.confirm(`${doc.name} belgesinin PDF dosyasını silmek istediğinizden emin misiniz?`)) {
+      try {
+        const updatedDocs = documents.map(document => 
+          document.id === doc.id 
+            ? { 
+                ...document, 
+                pdfFile: undefined,
+                pdfFileName: undefined,
+                pdfSize: undefined
+              }
+            : document
+        );
+        
+        setDocuments(updatedDocs);
+        
+        // Anında kaydetme
+        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
+        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
+        
+        console.log('✅ PDF silme başarılı:', doc.pdfFileName);
+        setSnackbar({ 
+          open: true, 
+          message: `PDF dosyası silindi: ${doc.pdfFileName}`, 
+          severity: 'success' 
+        });
+      } catch (error) {
+        console.error('❌ PDF silme hatası:', error);
+        setSnackbar({ 
+          open: true, 
+          message: 'PDF silme hatası! Lütfen tekrar deneyin.', 
+          severity: 'error' 
+        });
+      }
+    }
   };
 
   // ✅ GÜÇLENDİRİLMİŞ VERİ YÜKLEME - YEDEK KAYNAKLARDAN KURTARMA
@@ -1208,12 +1426,22 @@ const DocumentManagement: React.FC = () => {
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                 {doc.pdfFile && (
-                                  <Chip 
-                                    label="PDF" 
-                            size="small"
-                                    color="success" 
-                                    icon={<DescriptionIcon />}
-                                  />
+                                  <>
+                                    <Chip 
+                                      label="PDF" 
+                              size="small"
+                                      color="success" 
+                                      icon={<DescriptionIcon />}
+                                    />
+                                    <IconButton 
+                                      onClick={() => handleViewPDF(doc)} 
+                                      size="small" 
+                                      color="info"
+                                      title="PDF Görüntüle"
+                                    >
+                                      <ViewIcon />
+                                    </IconButton>
+                                  </>
                                 )}
                                 <IconButton onClick={() => handleEdit(doc, 'document')} size="small" color="primary">
                                   <EditIcon />
@@ -1294,13 +1522,23 @@ const DocumentManagement: React.FC = () => {
                                 </TableCell>
                           <TableCell>{doc.effectiveDate}</TableCell>
                           <TableCell>
-                            <IconButton onClick={() => handleViewDocument(doc)} size="small" color="info">
-                              <ViewIcon />
+                            {doc.pdfFile && (
+                              <IconButton 
+                                onClick={() => handleViewPDF(doc)} 
+                                size="small" 
+                                color="info"
+                                title="PDF Görüntüle"
+                              >
+                                <ViewIcon />
+                              </IconButton>
+                            )}
+                            <IconButton onClick={() => handleViewDocument(doc)} size="small" color="secondary" title="Belge Detayları">
+                              <DescriptionIcon />
                                       </IconButton>
-                            <IconButton onClick={() => handleEdit(doc, 'document')} size="small">
+                            <IconButton onClick={() => handleEdit(doc, 'document')} size="small" title="Düzenle">
                               <EditIcon />
                                       </IconButton>
-                            <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small">
+                            <IconButton onClick={() => handleDelete(doc.id, 'document')} size="small" color="error" title="Sil">
                               <DeleteIcon />
                                       </IconButton>
                                 </TableCell>
@@ -1876,10 +2114,27 @@ const DocumentManagement: React.FC = () => {
                 <Button 
                           variant="outlined"
                           size="small"
+                  startIcon={<ViewIcon />} 
+                          onClick={() => handleViewPDF(viewingDocument)}
+                >
+                  Görüntüle
+                </Button>
+                <Button 
+                          variant="outlined"
+                          size="small"
                   startIcon={<DownloadIcon />} 
                           onClick={() => handleDownloadPDF(viewingDocument)}
                 >
                   İndir
+                </Button>
+                <Button 
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                  startIcon={<DeleteIcon />} 
+                          onClick={() => handleRemovePDF(viewingDocument)}
+                >
+                  PDF Sil
                 </Button>
                         <input
                           accept="application/pdf"
@@ -1890,9 +2145,14 @@ const DocumentManagement: React.FC = () => {
                         />
                         <label htmlFor={`upload-button-${viewingDocument.id}`}>
                           <Button variant="outlined" size="small" component="span" disabled={uploadingFile}>
-                            {uploadingFile ? 'Yükleniyor...' : 'Değiştir'}
+                            {uploadingFile ? `Yükleniyor ${uploadProgress}%` : 'Değiştir'}
                           </Button>
                         </label>
+                        {uploadingFile && (
+                          <Box sx={{ width: '100%', mt: 1 }}>
+                            <LinearProgress variant="determinate" value={uploadProgress} />
+                          </Box>
+                        )}
                 </Box>
                     ) : (
                       <Box sx={{ textAlign: 'center', py: 2 }}>
@@ -1913,9 +2173,14 @@ const DocumentManagement: React.FC = () => {
               startIcon={<AddIcon />}
                             disabled={uploadingFile}
             >
-                            {uploadingFile ? 'Yükleniyor...' : 'PDF Yükle'}
+                            {uploadingFile ? `PDF Yükleniyor ${uploadProgress}%` : 'PDF Yükle'}
             </Button>
                         </label>
+                        {uploadingFile && (
+                          <Box sx={{ width: '100%', mt: 2 }}>
+                            <LinearProgress variant="determinate" value={uploadProgress} />
+                          </Box>
+                        )}
           </Box>
                     )}
           </Box>
