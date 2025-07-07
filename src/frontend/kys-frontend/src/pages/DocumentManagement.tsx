@@ -49,7 +49,116 @@ import {
 } from '@mui/icons-material';
 import { useThemeContext } from '../context/ThemeContext';
 
-// ✅ SADECE GEREKLİ INTERFACES - Karmaşıklık kaldırıldı
+// ✅ GELIŞMIŞ PDF DEPOLAMA SİSTEMİ - IndexedDB ile
+class PDFStorageManager {
+  private dbName = 'DocumentManagementDB';
+  private version = 1;
+  private db: IDBDatabase | null = null;
+
+  async initialize(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.version);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve();
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains('pdfs')) {
+          db.createObjectStore('pdfs', { keyPath: 'id' });
+        }
+      };
+    });
+  }
+
+  async savePDF(documentId: string, pdfData: string, fileName: string, size: number): Promise<void> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['pdfs'], 'readwrite');
+      const store = transaction.objectStore('pdfs');
+      
+      const request = store.put({
+        id: documentId,
+        pdfData,
+        fileName,
+        size,
+        timestamp: Date.now()
+      });
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getPDF(documentId: string): Promise<any> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['pdfs'], 'readonly');
+      const store = transaction.objectStore('pdfs');
+      const request = store.get(documentId);
+      
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async deletePDF(documentId: string): Promise<void> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['pdfs'], 'readwrite');
+      const store = transaction.objectStore('pdfs');
+      const request = store.delete(documentId);
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getAllPDFs(): Promise<any[]> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['pdfs'], 'readonly');
+      const store = transaction.objectStore('pdfs');
+      const request = store.getAll();
+      
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async clearAllPDFs(): Promise<void> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['pdfs'], 'readwrite');
+      const store = transaction.objectStore('pdfs');
+      const request = store.clear();
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getStorageInfo(): Promise<{ used: number; pdfs: number }> {
+    try {
+      const pdfs = await this.getAllPDFs();
+      const used = pdfs.reduce((total, pdf) => total + (pdf.size || 0), 0);
+      return { used, pdfs: pdfs.length };
+    } catch (error) {
+      console.error('Storage info error:', error);
+      return { used: 0, pdfs: 0 };
+    }
+  }
+}
+
+// ✅ SADECE GEREKLİ INTERFACES - PDF bilgileri kaldırıldı
 interface Document {
   id: string;
   type: string;
@@ -65,9 +174,10 @@ interface Document {
   status: 'active' | 'expired' | 'draft';
   uploadDate: string;
   description: string;
-  pdfFile?: string;  // Base64 encoded PDF file
-  pdfFileName?: string;
-  pdfSize?: number;
+  // PDF bilgileri artık burada yok - IndexedDB'de saklanıyor
+  hasPDF?: boolean;  // Sadece PDF olup olmadığını belirtir
+  pdfFileName?: string;  // Sadece dosya adı
+  pdfSize?: number;  // Sadece boyut bilgisi
 }
 
 interface WelderData {
@@ -177,7 +287,7 @@ const DOCUMENT_TYPES = {
     'NDT Muayene Raporu',
     'Basınç Testi Raporu',
     'Kalibrmasyon Sertifikası',
-  'Test Prosedürü',
+    'Test Prosedürü',
     'Kontrol Planı',
     'FMEA (Failure Mode and Effects Analysis)',
     'SPC (Statistical Process Control) Çalışması'
@@ -186,7 +296,7 @@ const DOCUMENT_TYPES = {
     'Kalite Prosedürü',
     'İş Talimatı',
     'Kontrol Listesi',
-  'Kalite Planı',
+    'Kalite Planı',
     'Muayene ve Test Planı',
     'Ürün Spesifikasyonu',
     'Malzeme Spesifikasyonu',
@@ -198,213 +308,186 @@ const DOCUMENT_TYPES = {
     'İç Denetim Prosedürü',
     'Yönetim Gözden Geçirme Prosedürü'
   ],
-  'Eğitim ve Gelişim Belgeleri': [
-    'Mesleki Gelişim Eğitimi Sertifikası',
-    'Teknik Eğitim Sertifikası',
-    'Liderlik Eğitimi Sertifikası',
-    'Proje Yönetimi Eğitimi (PMP)',
-    'Lean Six Sigma Eğitimi',
-    'Kaizen Eğitimi Sertifikası',
-    '5S Eğitimi Sertifikası',
-    'İstatistiksel Proses Kontrol Eğitimi',
-    'Müşteri Memnuniyeti Eğitimi',
-    'Tedarikçi Geliştirme Eğitimi',
-    'Bilgisayar Destekli Tasarım (CAD) Eğitimi',
-    'Bilgisayar Destekli İmalat (CAM) Eğitimi'
-  ],
-  'Diğer Belgeler': [
-    'Müşteri Onay Belgesi',
-    'Tedarikçi Onay Belgesi',
-    'Ürün Onay Belgesi',
-    'Prototip Onay Belgesi',
-    'Değişiklik Onay Belgesi',
-    'Sapma Onay Belgesi',
-    'Özel Durum Onay Belgesi',
-    'Konfidansiyel Belge',
-    'Gizlilik Sözleşmesi',
-    'Kalite Sözleşmesi'
-  ]
 };
 
-// ✅ DETAYLANDIRILMIŞ DEPARTMANLAR
-const DEPARTMENTS = [
-  'Kaynak Atölyesi', 
+// ✅ BELGE TİPLERİNİ DROPDOWN İÇİN HAZIRLA
+const ALL_DOCUMENT_TYPES = Object.entries(DOCUMENT_TYPES).flatMap(([category, types]) =>
+  types.map(type => ({ type, category }))
+);
+
+// ✅ KALİTE SERTİFİKASI KATEGORİLERİ
+const QUALITY_CERTIFICATE_CATEGORIES = [
+  'Kalite Sistem Belgeleri',
+  'Kaynakçı Belgeleri',
+  'NDT Personel Belgeleri',
+  'İSG ve Güvenlik Belgeleri',
+  'Mesleki Yeterlilik Belgeleri'
+];
+
+// ✅ UNITS (BİRİMLER) - FABRİKADAKİ GERÇEK BİRİMLER
+const UNITS = [
+  'Genel Müdürlük',
   'Kalite Kontrol',
-  'Kalite Güvence',
   'Üretim',
-  'Montaj',
+  'Kaynak Bölümü',
   'Makine İmalat',
-  'Sac İşleri',
+  'Montaj',
   'Boyahane',
-  'Paketleme',
-  'Sevkiyat',
+  'Depo',
   'Satın Alma',
-  'Teknik Büro',
+  'Proje',
   'Ar-Ge',
-  'Proje Yönetimi',
   'İnsan Kaynakları',
-  'İSG',
-  'Çevre',
-  'Bilgi İşlem',
   'Muhasebe',
-  'Genel Müdürlük'
+  'Bilgi İşlem',
+  'Güvenlik',
+  'Temizlik',
+  'Yemekhane',
+  'Laboratuvar',
+  'Kalibrasyon',
+  'NDT Muayene',
+  'İSG'
 ];
 
-// ✅ DETAYLANDIRILMIŞ SERTİFİKA TİPLERİ
-const CERTIFICATE_TYPES = [
-    'EN ISO 9606-1 (Çelik Kaynak)',
-    'EN ISO 9606-2 (Alüminyum Kaynak)',
-  'EN ISO 9606-3 (Bakır Kaynak)',
-  'EN ISO 9606-4 (Nikel Kaynak)',
-  'EN ISO 14732 (Personel Kaynak)',
-  'ASME IX (Kaynakçı Nitelik)',
-  'AWS D1.1 (Yapısal Kaynak)',
-  'EN 287-1 (Kaynak Operatörü)',
-  'API 1104 (Boru Hattı Kaynak)',
-  'DNV GL (Offshore Kaynak)',
-  'EN ISO 9712 Level 1 (NDT)',
-  'EN ISO 9712 Level 2 (NDT)',
-  'EN ISO 9712 Level 3 (NDT)',
-  'ASNT SNT-TC-1A (NDT)',
-  'PCN (Personnel Certification)',
-  'MYB Seviye 4 (Mesleki Yeterlilik)',
-  'MYB Seviye 5 (Mesleki Yeterlilik)',
-  'MYB Seviye 6 (Mesleki Yeterlilik)'
-];
+// ✅ FORM STATES VE INITIAL VALUES
+const initialDocumentState = {
+  type: '',
+  name: '',
+  number: '',
+  unit: '',
+  welderName: '',
+  personnelName: '',
+  certificateNumber: '',
+  issuingAuthority: '',
+  customIssuingAuthority: '',
+  effectiveDate: '',
+  expiryDate: '',
+  status: 'active' as const,
+  description: ''
+};
 
-// ✅ DETAYLANDIRILMIŞ VEREN KURULUŞLAR
+const initialWelderState = {
+  name: '',
+  registrationNo: '',
+  department: '',
+  position: ''
+};
+
+const initialPersonnelState = {
+  name: '',
+  registrationNo: '',
+  department: '',
+  position: ''
+};
+
+// ✅ VEREN KURULUŞLAR
 const ISSUING_AUTHORITIES = [
-  'TSE (Türk Standartları Enstitüsü)',
-  'TÜV NORD Türkiye',
-  'TÜV SÜD Türkiye',
-  'TÜV AUSTRIA Türkiye',
-  'TÜV RHEINLAND Türkiye',
-  'Bureau Veritas Türkiye',
-  'SGS Türkiye',
-  'DEKRA Türkiye',
-  'RINA Türkiye',
-  'DNV GL Türkiye',
-  'Lloyd\'s Register Türkiye',
-  'Intertek Türkiye',
-  'Çalışma ve Sosyal Güvenlik Bakanlığı',
-  'Aile ve Sosyal Hizmetler Bakanlığı',
-  'Mesleki Yeterlilik Kurumu (MYK)',
-  'Türkiye İnsan Kaynakları Geliştirme Vakfı',
-  'MESS (Türkiye Metal Sanayicileri Sendikası)',
-  'İSKİ (İstanbul Su ve Kanalizasyon İdaresi)',
-  'Kızılay Eğitim Merkezi',
-  'AFAD (Afet ve Acil Durum Yönetimi)',
-  'İMO (İnşaat Mühendisleri Odası)',
-  'MMO (Makine Mühendisleri Odası)',
-  'TMMOB (Türk Mühendis ve Mimar Odaları Birliği)',
-  'KGM (Karayolları Genel Müdürlüğü)',
-  'TCDD (Türkiye Cumhuriyeti Devlet Demiryolları)',
+  'TSE (Türk Standardları Enstitüsü)',
+  'TÜRKAK (Türk Akreditasyon Kurumu)',
+  'Bureau Veritas',
+  'Lloyd\'s Register',
+  'DNV GL',
+  'TÜV SÜD',
+  'TÜV NORD',
+  'SGS',
+  'DEKRA',
+  'Intertek',
+  'BSI Group',
+  'ASME',
+  'AWS (American Welding Society)',
+  'API (American Petroleum Institute)',
+  'ISO (International Organization for Standardization)',
+  'CEN (European Committee for Standardization)',
+  'NORSOK',
+  'ÇALIŞMA VE SOSYAL GÜVENLİK BAKANLIĞI',
+  'MEB (Milli Eğitim Bakanlığı)',
+  'MTSK (Mesleki Yeterlilik Kurumu)',
+  'UYUM',
+  'KALDER',
   'Diğer Kuruluş'
 ];
 
-// ✅ BİRİM SEÇENEKLERİ
-const UNIT_OPTIONS = [
-  'Kalite Güvence',
+// ✅ DEPARTMANLAR
+const DEPARTMENTS = [
+  'Genel Müdürlük',
   'Kalite Kontrol',
   'Üretim',
-  'Ar-Ge',
-  'İSG',
+  'Kaynak Bölümü',
+  'Makine İmalat',
+  'Montaj',
+  'Boyahane',
+  'Depo',
   'Satın Alma',
-  'Proje Yönetimi',
-  'Bakım',
-  'Planlama',
+  'Proje',
+  'Ar-Ge',
   'İnsan Kaynakları',
   'Muhasebe',
-  'Genel Müdürlük',
-  'Diğer'
+  'Bilgi İşlem',
+  'Güvenlik',
+  'Temizlik',
+  'Yemekhane',
+  'Laboratuvar',
+  'Kalibrasyon',
+  'NDT Muayene',
+  'İSG'
 ];
 
-// ✅ AUTOCOMPLETE İÇİN DÜZLEŞTIRILMIŞ BELGE TİPLERİ
-const ALL_DOCUMENT_TYPES = Object.entries(DOCUMENT_TYPES).reduce((acc, [category, types]) => {
-  types.forEach(type => {
-    acc.push({
-      category,
-      type,
-      label: type,
-      group: category
-    });
-  });
-  return acc;
-}, [] as Array<{category: string, type: string, label: string, group: string}>);
+// ✅ GLOBAL PDF STORAGE MANAGER
+const pdfStorage = new PDFStorageManager();
 
+// ✅ MAIN COMPONENT
 const DocumentManagement: React.FC = () => {
-  // ✅ BASİT STATE YÖNETİMİ - Karmaşıklık kaldırıldı
-  const [activeTab, setActiveTab] = useState(0);
+  const { } = useThemeContext();
+  
+  // ✅ STATES
   const [documents, setDocuments] = useState<Document[]>([]);
   const [welders, setWelders] = useState<WelderData[]>([]);
   const [personnel, setPersonnel] = useState<PersonnelData[]>([]);
-  
-  // Form states
-  const [openDialog, setOpenDialog] = useState(false);
-  const [dialogType, setDialogType] = useState<'document' | 'welder' | 'personnel'>('document');
-  const [editingItem, setEditingItem] = useState<any>(null);
-  
-  // Form data
-  const [documentForm, setDocumentForm] = useState({
-    type: '',
-    name: '',
-    number: '',
-    unit: '',
-    welderName: '',
-    personnelName: '',
-    certificateNumber: '',
-    issuingAuthority: '',
-    customIssuingAuthority: '', // Manuel veren kuruluş girişi için
-    effectiveDate: new Date().toISOString().split('T')[0],
-    expiryDate: '',
-    description: ''
-  });
-  
-  const [welderForm, setWelderForm] = useState({
-    name: '',
-    registrationNo: '',
-    department: '',
-    position: ''
-  });
-  
-  const [personnelForm, setPersonnelForm] = useState({
-    name: '',
-    registrationNo: '',
-    department: '',
-    position: '',
-  });
-  
-  // Search
+  const [tabIndex, setTabIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' | 'warning' });
-
-  // Modal state
+  const [createDialog, setCreateDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
   const [viewModal, setViewModal] = useState(false);
+  const [currentType, setCurrentType] = useState<'document' | 'welder' | 'personnel'>('document');
   const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'warning' | 'info' });
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [storageInfo, setStorageInfo] = useState({ used: 0, pdfs: 0 });
+  
+  // ✅ FORM STATES
+  const [documentForm, setDocumentForm] = useState(initialDocumentState);
+  const [welderForm, setWelderForm] = useState(initialWelderState);
+  const [personnelForm, setPersonnelForm] = useState(initialPersonnelState);
+  const [editingItem, setEditingItem] = useState<any>(null);
 
-  // ✅ KALAN GÜN SAYISI HESAPLAMA
+  // ✅ UTILITY FUNCTIONS
   const calculateDaysRemaining = (expiryDate: string): number => {
-    if (!expiryDate) return -1;
+    if (!expiryDate) return 999;
     const today = new Date();
     const expiry = new Date(expiryDate);
     const diffTime = expiry.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // ✅ KALAN GÜN DURUMU VE RENK
   const getDaysRemainingStatus = (daysRemaining: number) => {
-    if (daysRemaining < 0) return { text: 'Süresi Doldu', color: 'error' as const };
+    if (daysRemaining < 0) return { text: 'Süresi Dolmuş', color: 'error' as const };
     if (daysRemaining === 0) return { text: 'Bugün Sona Eriyor', color: 'warning' as const };
     if (daysRemaining <= 7) return { text: `${daysRemaining} gün kaldı`, color: 'warning' as const };
     if (daysRemaining <= 30) return { text: `${daysRemaining} gün kaldı`, color: 'info' as const };
     return { text: `${daysRemaining} gün kaldı`, color: 'success' as const };
   };
 
-  // ✅ GELİŞMİŞ PDF YÜKLEME VE İŞLEME FONKSİYONLARI
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, documentId: string) => {
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // ✅ GELIŞMIŞ PDF YÜKLEME - IndexedDB ile
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, documentId: string) => {
     const file = event.target.files?.[0];
     if (!file) {
       console.log('❌ Dosya seçilmedi');
@@ -418,7 +501,7 @@ const DocumentManagement: React.FC = () => {
       lastModified: new Date(file.lastModified)
     });
 
-    // Dosya tipi doğrulaması - daha kapsamlı
+    // Dosya tipi doğrulaması
     const validTypes = ['application/pdf'];
     const validExtensions = ['.pdf'];
     const fileName = file.name.toLowerCase();
@@ -432,12 +515,12 @@ const DocumentManagement: React.FC = () => {
       return;
     }
 
-    // Dosya boyutu kontrolü - online mod için daha katı
-    const maxSize = 2 * 1024 * 1024; // 2MB (online localStorage için güvenli)
+    // Dosya boyutu kontrolü - IndexedDB ile daha büyük dosyalar
+    const maxSize = 10 * 1024 * 1024; // 10MB (IndexedDB ile rahat)
     if (file.size > maxSize) {
       setSnackbar({ 
         open: true, 
-        message: `Dosya boyutu çok büyük! Online modda maksimum 2MB olabilir. Seçilen dosya: ${formatFileSize(file.size)}`, 
+        message: `Dosya boyutu çok büyük! Maksimum 10MB olabilir. Seçilen dosya: ${formatFileSize(file.size)}`, 
         severity: 'error' 
       });
       return;
@@ -452,757 +535,399 @@ const DocumentManagement: React.FC = () => {
       return;
     }
 
-    // localStorage kontrol - online mod için daha katı
-    const currentDataSize = JSON.stringify(documents).length;
-    const estimatedNewSize = currentDataSize + (file.size * 1.4); // Base64 yaklaşık 1.4x büyük
-    const localStorageLimit = 3 * 1024 * 1024; // 3MB localStorage limit (online için güvenli)
-
-    console.log('📊 localStorage boyut analizi:', {
-      currentDataSize: formatFileSize(currentDataSize),
-      estimatedNewSize: formatFileSize(estimatedNewSize),
-      limit: formatFileSize(localStorageLimit),
-      availableSpace: formatFileSize(localStorageLimit - currentDataSize)
-    });
-
-    if (estimatedNewSize > localStorageLimit) {
-      setSnackbar({ 
-        open: true, 
-        message: `Veri depolama alanı yetersiz! Mevcut: ${formatFileSize(currentDataSize)}, Gerekli: ${formatFileSize(estimatedNewSize)}, Limit: ${formatFileSize(localStorageLimit)}`, 
-        severity: 'error' 
-      });
-      return;
-    }
-
     setUploadingFile(true);
+    setUploadProgress(0);
     setSnackbar({ 
       open: true, 
       message: 'PDF dosyası yükleniyor...', 
       severity: 'info' 
     });
 
-    const reader = new FileReader();
-    
-    reader.onload = () => {
-      try {
-        const base64 = reader.result as string;
-        
-        // Base64 format kontrol
-        if (!base64 || !base64.startsWith('data:application/pdf;base64,')) {
-          throw new Error('Base64 format hatası');
-        }
-
-        console.log('✅ PDF Base64 dönüşümü başarılı:', base64.length, 'karakter');
-        
-        const updatedDocs = documents.map(doc => 
-          doc.id === documentId 
-            ? { 
-                ...doc, 
-                pdfFile: base64,
-                pdfFileName: file.name,
-                pdfSize: file.size
-              }
-            : doc
-        );
-        
-        setDocuments(updatedDocs);
-        
-        // PDF yükleme sonrası anında kaydetme - gelişmiş hata kontrolü
+    try {
+      const reader = new FileReader();
+      
+      reader.onload = async () => {
         try {
-          const updatedDocsString = JSON.stringify(updatedDocs);
-          const finalSize = updatedDocsString.length;
+          const base64 = reader.result as string;
           
-          console.log('💾 Kaydetme işlemi başlıyor:', {
-            finalDataSize: formatFileSize(finalSize),
-            documentCount: updatedDocs.length
-          });
+          // Base64 format kontrol
+          if (!base64 || !base64.startsWith('data:application/pdf;base64,')) {
+            throw new Error('Base64 format hatası');
+          }
+
+          console.log('✅ PDF Base64 dönüşümü başarılı:', base64.length, 'karakter');
           
-          localStorage.setItem('dm-documents', updatedDocsString);
-          localStorage.setItem('dm-documents-backup', updatedDocsString);
-          localStorage.setItem('documentManagementData', updatedDocsString);
+          // IndexedDB'ye PDF kaydet
+          await pdfStorage.savePDF(documentId, base64, file.name, file.size);
           
-          console.log('✅ PDF yükleme sonrası veriler başarıyla kaydedildi');
+          // Belge bilgilerini güncelle - sadece metadata
+          const updatedDocs = documents.map(doc => 
+            doc.id === documentId 
+              ? { 
+                  ...doc, 
+                  hasPDF: true,
+                  pdfFileName: file.name,
+                  pdfSize: file.size
+                }
+              : doc
+          );
+          
+          setDocuments(updatedDocs);
+          
+          // Sadece metadata'yı localStorage'a kaydet
+          try {
+            localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+            console.log('✅ Belge metadata başarıyla kaydedildi');
+          } catch (error) {
+            console.error('❌ Metadata kaydetme hatası:', error);
+          }
+          
+          // Storage info güncelle
+          updateStorageInfo();
           
           setSnackbar({ 
             open: true, 
-            message: `PDF başarıyla yüklendi ve kaydedildi! Dosya: ${file.name} (${formatFileSize(file.size)})`, 
+            message: `PDF başarıyla yüklendi! Dosya: ${file.name} (${formatFileSize(file.size)})`, 
             severity: 'success' 
           });
-        } catch (storageError: any) {
-          console.error('❌ PDF yükleme sonrası kaydetme hatası:', storageError);
           
-          // Kaydetme hatası durumunda geri al
-          setDocuments(documents);
-          
-          // localStorage quota exceeded hatası kontrolü
-          if (storageError.name === 'QuotaExceededError' || storageError.code === 22) {
-            setSnackbar({ 
-              open: true, 
-              message: `Depolama alanı dolu! Toplam veri boyutu sınırını aştı. Lütfen bazı PDF dosyalarını silin ve tekrar deneyin.`, 
-              severity: 'error' 
-            });
-          } else {
-            setSnackbar({ 
-              open: true, 
-              message: `PDF yüklendi ancak kaydetme hatası oluştu! Hata: ${storageError.message || 'Bilinmeyen hata'}. Lütfen sayfa yenileyin ve tekrar deneyin.`, 
-              severity: 'error' 
-            });
-          }
+        } catch (error) {
+          console.error('❌ PDF işleme hatası:', error);
+          setSnackbar({ 
+            open: true, 
+            message: 'PDF dosyası işlenemedi! Lütfen farklı bir dosya deneyin.', 
+            severity: 'error' 
+          });
         }
-      } catch (error) {
-        console.error('❌ PDF işleme hatası:', error);
+        
+        setUploadingFile(false);
+        setUploadProgress(0);
+      };
+
+      reader.onerror = (error) => {
+        console.error('❌ FileReader hatası:', error);
         setSnackbar({ 
           open: true, 
-          message: 'PDF dosyası işlenemedi! Lütfen farklı bir dosya deneyin.', 
+          message: 'Dosya okuma hatası! Lütfen dosyayı kontrol edin ve tekrar deneyin.', 
           severity: 'error' 
         });
-      }
-      
-      setUploadingFile(false);
-      setUploadProgress(0);
-    };
+        setUploadingFile(false);
+        setUploadProgress(0);
+      };
 
-    reader.onerror = (error) => {
-      console.error('❌ FileReader hatası:', error);
+      reader.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percentComplete);
+          console.log(`📊 PDF yükleme ilerlemesi: ${percentComplete}%`);
+        }
+      };
+
+      reader.readAsDataURL(file);
+      
+    } catch (error) {
+      console.error('❌ PDF yükleme hatası:', error);
       setSnackbar({ 
         open: true, 
-        message: 'Dosya okuma hatası! Lütfen dosyayı kontrol edin ve tekrar deneyin.', 
+        message: 'PDF yükleme hatası! Lütfen tekrar deneyin.', 
         severity: 'error' 
       });
       setUploadingFile(false);
       setUploadProgress(0);
-    };
+    }
+  };
 
-    reader.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const percentComplete = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(percentComplete);
-        console.log(`📊 PDF yükleme ilerlemesi: ${percentComplete}%`);
+  // ✅ PDF GÖRÜNTÜLEME - IndexedDB'den
+  const handleViewPDF = async (doc: Document) => {
+    if (!doc.hasPDF) {
+      setSnackbar({ open: true, message: 'Bu belgeye PDF yüklenmemiş!', severity: 'error' });
+      return;
+    }
+
+    try {
+      const pdfData = await pdfStorage.getPDF(doc.id);
+      
+      if (!pdfData || !pdfData.pdfData) {
+        setSnackbar({ open: true, message: 'PDF bulunamadı! Lütfen tekrar yükleyin.', severity: 'error' });
+        return;
+      }
+
+      const blob = new Blob([Uint8Array.from(atob(pdfData.pdfData.split(',')[1]), c => c.charCodeAt(0))], {
+        type: 'application/pdf'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      
+    } catch (error) {
+      console.error('❌ PDF görüntüleme hatası:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'PDF görüntüleme hatası! Dosya bozuk olabilir.', 
+        severity: 'error' 
+      });
+    }
+  };
+
+  // ✅ PDF İNDİRME - IndexedDB'den
+  const handleDownloadPDF = async (doc: Document) => {
+    if (!doc.hasPDF) {
+      setSnackbar({ open: true, message: 'Bu belgeye PDF yüklenmemiş!', severity: 'error' });
+      return;
+    }
+
+    try {
+      const pdfData = await pdfStorage.getPDF(doc.id);
+      
+      if (!pdfData || !pdfData.pdfData) {
+        setSnackbar({ open: true, message: 'PDF bulunamadı! Lütfen tekrar yükleyin.', severity: 'error' });
+        return;
+      }
+
+      const base64Data = pdfData.pdfData.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = pdfData.fileName || `${doc.name}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      
+      setSnackbar({ 
+        open: true, 
+        message: `PDF indirildi: ${pdfData.fileName}`, 
+        severity: 'success' 
+      });
+      
+    } catch (error) {
+      console.error('❌ PDF indirme hatası:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'PDF indirme hatası! Dosya bozuk olabilir.', 
+        severity: 'error' 
+      });
+    }
+  };
+
+  // ✅ PDF KALDIRMA - IndexedDB'den
+  const handleRemovePDF = async (doc: Document) => {
+    if (!doc.hasPDF) {
+      setSnackbar({ open: true, message: 'Bu belgeye PDF yüklenmemiş!', severity: 'error' });
+      return;
+    }
+
+    if (window.confirm(`${doc.name} belgesinin PDF dosyasını kaldırmak istiyor musunuz? Belge bilgileri korunacak.`)) {
+      try {
+        await pdfStorage.deletePDF(doc.id);
+        
+        const updatedDocs = documents.map(d => 
+          d.id === doc.id 
+            ? { ...d, hasPDF: false, pdfFileName: undefined, pdfSize: undefined }
+            : d
+        );
+        
+        setDocuments(updatedDocs);
+        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+        
+        updateStorageInfo();
+        
+        setSnackbar({ 
+          open: true, 
+          message: 'PDF başarıyla kaldırıldı!', 
+          severity: 'success' 
+        });
+        
+      } catch (error) {
+        console.error('❌ PDF kaldırma hatası:', error);
+        setSnackbar({ 
+          open: true, 
+          message: 'PDF kaldırma hatası! Lütfen tekrar deneyin.', 
+          severity: 'error' 
+        });
+      }
+    }
+  };
+
+  // ✅ STORAGE INFO GÜNCELLEME
+  const updateStorageInfo = async () => {
+    try {
+      const info = await pdfStorage.getStorageInfo();
+      setStorageInfo(info);
+    } catch (error) {
+      console.error('Storage info update error:', error);
+    }
+  };
+
+  // ✅ DATA LOADING - GELİŞMİŞ HATA KONTROLÜ
+  useEffect(() => {
+    const loadDocuments = () => {
+      try {
+        const sources = ['dm-documents', 'documentManagementData'];
+        
+        for (const source of sources) {
+          const data = localStorage.getItem(source);
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                console.log(`✅ Belgeler yüklendi (${source}):`, parsed.length);
+                setDocuments(parsed);
+                return;
+              }
+            } catch (parseError) {
+              console.error(`❌ Parse hatası (${source}):`, parseError);
+            }
+          }
+        }
+        
+        console.log('📝 Hiç belge bulunamadı, boş liste başlatılıyor');
+        setDocuments([]);
+      } catch (error) {
+        console.error('❌ Belge yükleme hatası:', error);
+        setDocuments([]);
       }
     };
 
-    reader.readAsDataURL(file);
-  };
+    const loadWelders = () => {
+      try {
+        const data = localStorage.getItem('dm-welders');
+        if (data) {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) {
+            setWelders(parsed);
+            console.log('✅ Kaynakçılar yüklendi:', parsed.length);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Kaynakçı yükleme hatası:', error);
+        setWelders([]);
+      }
+    };
 
+    const loadPersonnel = () => {
+      try {
+        const data = localStorage.getItem('dm-personnel');
+        if (data) {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) {
+            setPersonnel(parsed);
+            console.log('✅ Personel yüklendi:', parsed.length);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Personel yükleme hatası:', error);
+        setPersonnel([]);
+      }
+    };
+
+    loadDocuments();
+    loadWelders();
+    loadPersonnel();
+    
+    // PDF storage'ı initialize et
+    pdfStorage.initialize().then(() => {
+      updateStorageInfo();
+    });
+  }, []);
+
+  // ✅ VIEW DOCUMENT
   const handleViewDocument = (doc: Document) => {
     setViewingDocument(doc);
     setViewModal(true);
   };
 
-  const handleDownloadPDF = (doc: Document) => {
-    if (!doc.pdfFile) {
-      setSnackbar({ open: true, message: 'PDF dosyası yüklenememiş!', severity: 'error' });
-      return;
-    }
-
+  // ✅ GELIŞMIŞ VERİ DURUMU KONTROLÜ - IndexedDB ile
+  const checkDataStatus = async () => {
     try {
-      // Base64 formatını kontrol et
-      if (!doc.pdfFile.startsWith('data:application/pdf;base64,')) {
-        setSnackbar({ open: true, message: 'PDF dosyası bozuk! Lütfen tekrar yükleyin.', severity: 'error' });
-        return;
-      }
-
-      const link = document.createElement('a');
-      link.href = doc.pdfFile;
-      link.download = doc.pdfFileName || `${doc.name}.pdf`;
-      link.style.display = 'none';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      console.log('✅ PDF indirme başarılı:', doc.pdfFileName);
-      setSnackbar({ 
-        open: true, 
-        message: `PDF başarıyla indirildi: ${doc.pdfFileName}`, 
-        severity: 'success' 
-      });
-    } catch (error) {
-      console.error('❌ PDF indirme hatası:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'PDF indirme hatası! Lütfen tekrar deneyin.', 
-        severity: 'error' 
-      });
-    }
-  };
-
-  const handleViewPDF = (doc: Document) => {
-    if (!doc.pdfFile) {
-      setSnackbar({ open: true, message: 'PDF dosyası yüklenememiş!', severity: 'error' });
-      return;
-    }
-
-    try {
-      // Base64 formatını kontrol et
-      if (!doc.pdfFile.startsWith('data:application/pdf;base64,')) {
-        setSnackbar({ open: true, message: 'PDF dosyası bozuk! Lütfen tekrar yükleyin.', severity: 'error' });
-        return;
-      }
-
-      // Yeni sekme açarak PDF'i görüntüle
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>${doc.name} - PDF Görüntüleyici</title>
-              <style>
-                body { margin: 0; padding: 0; background-color: #f0f0f0; }
-                embed { width: 100%; height: 100vh; }
-              </style>
-            </head>
-            <body>
-              <embed src="${doc.pdfFile}" type="application/pdf" />
-            </body>
-          </html>
-        `);
-        newWindow.document.close();
-        
-        console.log('✅ PDF görüntüleme başarılı:', doc.pdfFileName);
-      } else {
-        // Popup bloke edilmişse alternatif yöntem
-        const link = document.createElement('a');
-        link.href = doc.pdfFile;
-        link.target = '_blank';
-        link.style.display = 'none';
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    } catch (error) {
-      console.error('❌ PDF görüntüleme hatası:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'PDF görüntüleme hatası! Lütfen indirme seçeneğini kullanın.', 
-        severity: 'error' 
-      });
-    }
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const handleRemovePDF = (doc: Document) => {
-    if (window.confirm(`${doc.name} belgesinin PDF dosyasını silmek istediğinizden emin misiniz?`)) {
-      try {
-        const updatedDocs = documents.map(document => 
-          document.id === doc.id 
-            ? { 
-                ...document, 
-                pdfFile: undefined,
-                pdfFileName: undefined,
-                pdfSize: undefined
-              }
-            : document
-        );
-        
-        setDocuments(updatedDocs);
-        
-        // Anında kaydetme
-        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
-        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
-        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
-        
-        console.log('✅ PDF silme başarılı:', doc.pdfFileName);
-        setSnackbar({ 
-          open: true, 
-          message: `PDF dosyası silindi: ${doc.pdfFileName}`, 
-          severity: 'success' 
-        });
-      } catch (error) {
-        console.error('❌ PDF silme hatası:', error);
-        setSnackbar({ 
-          open: true, 
-          message: 'PDF silme hatası! Lütfen tekrar deneyin.', 
-          severity: 'error' 
-        });
-      }
-    }
-  };
-
-  // ✅ GÜÇLENDİRİLMİŞ VERİ YÜKLEME - YEDEK KAYNAKLARDAN KURTARMA
-  React.useEffect(() => {
-    // Documents yükle - Çoklu kaynak kontrolü
-    const loadDocuments = () => {
-      const sources = [
+      const localStorageData = [
         'dm-documents',
-        'dm-documents-backup', 
-        'documentManagementData'
+        'dm-welders',
+        'dm-personnel'
       ];
       
-      for (const source of sources) {
-        try {
-          const savedDocs = localStorage.getItem(source);
-          if (savedDocs) {
-            const parsed = JSON.parse(savedDocs);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setDocuments(parsed);
-              console.log(`✅ Belgeler ${source} kaynağından yüklendi:`, parsed.length);
-              return;
-            }
+      let localStorageSize = 0;
+      
+      console.log('📊 DETAYLI VERİ DURUMU RAPORU:');
+      console.log('==========================================');
+      
+      localStorageData.forEach(source => {
+        const data = localStorage.getItem(source);
+        if (data) {
+          try {
+            const dataSize = data.length;
+            localStorageSize += dataSize;
+            const parsed = JSON.parse(data);
+            
+            console.log(`✅ ${source}:`);
+            console.log(`   - Boyut: ${formatFileSize(dataSize)}`);
+            console.log(`   - Kayıt: ${Array.isArray(parsed) ? parsed.length : 'N/A'}`);
+          } catch (error) {
+            console.log(`❌ ${source}: Parse hatası`);
           }
-        } catch (error) {
-          console.log(`❌ ${source} yükleme hatası:`, error);
+        } else {
+          console.log(`❌ ${source}: Bulunamadı`);
         }
-      }
-      console.log('📄 Belge bulunamadı, boş liste başlatılıyor');
-    };
+      });
+      
+      // IndexedDB bilgilerini al
+      const indexedDBInfo = await pdfStorage.getStorageInfo();
+      
+      console.log('==========================================');
+      console.log(`🔍 DEPOLAMA ÖZETİ:`);
+      console.log(`   - LocalStorage: ${formatFileSize(localStorageSize)}`);
+      console.log(`   - IndexedDB: ${formatFileSize(indexedDBInfo.used)}`);
+      console.log(`   - Toplam PDF: ${indexedDBInfo.pdfs} adet`);
+      console.log(`   - Toplam Boyut: ${formatFileSize(localStorageSize + indexedDBInfo.used)}`);
+      
+      setSnackbar({ 
+        open: true, 
+        message: `Veri durumu F12 konsolunda görüntülendi. LocalStorage: ${formatFileSize(localStorageSize)}, IndexedDB: ${formatFileSize(indexedDBInfo.used)}, PDF: ${indexedDBInfo.pdfs} adet.`, 
+        severity: 'info' 
+      });
+      
+    } catch (error) {
+      console.error('❌ Veri durumu kontrol hatası:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Veri durumu kontrol hatası!', 
+        severity: 'error' 
+      });
+    }
+  };
 
-    // Welders yükle - Çoklu kaynak kontrolü
-    const loadWelders = () => {
-      const sources = ['dm-welders', 'dm-welders-backup'];
-      
-      for (const source of sources) {
-        try {
-          const savedWelders = localStorage.getItem(source);
-          if (savedWelders) {
-            const parsed = JSON.parse(savedWelders);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setWelders(parsed);
-              console.log(`✅ Kaynakçılar ${source} kaynağından yüklendi:`, parsed.length);
-              return;
-            }
-          }
-        } catch (error) {
-          console.log(`❌ ${source} yükleme hatası:`, error);
-        }
-      }
-      console.log('🔧 Kaynakçı bulunamadı, boş liste başlatılıyor');
-    };
-
-    // Personnel yükle - Çoklu kaynak kontrolü
-    const loadPersonnel = () => {
-      const sources = ['dm-personnel', 'dm-personnel-backup'];
-      
-      for (const source of sources) {
-        try {
-          const savedPersonnel = localStorage.getItem(source);
-          if (savedPersonnel) {
-            const parsed = JSON.parse(savedPersonnel);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setPersonnel(parsed);
-              console.log(`✅ Personeller ${source} kaynağından yüklendi:`, parsed.length);
-              return;
-            }
-          }
-        } catch (error) {
-          console.log(`❌ ${source} yükleme hatası:`, error);
-        }
-      }
-      console.log('👥 Personel bulunamadı, boş liste başlatılıyor');
-    };
-
-    // Tüm veri yükleme işlemlerini gerçekleştir
-    loadDocuments();
-    loadWelders();
-    loadPersonnel();
-  }, []);
-
-  // ✅ GÜÇLENDİRİLMİŞ OTOMATIK KAYDETME - VERİ KALICILIĞI GARANTİSİ
-  React.useEffect(() => {
-    try {
-      const documentsString = JSON.stringify(documents);
-      const dataSize = documentsString.length;
-      const limit = 3 * 1024 * 1024; // 3MB
-      const warningThreshold = limit * 0.8; // %80 dolduğunda uyar
-      
-      // Ana kaydetme
-      localStorage.setItem('dm-documents', documentsString);
-      
-      // Yedek kaydetme (güvenlik için)
-      localStorage.setItem('dm-documents-backup', documentsString);
-      
-      // Timestamp kaydetme
-      localStorage.setItem('dm-documents-timestamp', new Date().toISOString());
-      
-      // Başka key'lere de kaydetme (çapraz uyumluluk için)
-      localStorage.setItem('documentManagementData', documentsString);
-      
-      console.log('✅ Belgeler başarıyla kaydedildi:', documents.length, 'Boyut:', formatFileSize(dataSize));
-      
-      // Boyut uyarısı
-      if (dataSize > warningThreshold && documents.length > 0) {
-        const percentage = ((dataSize / limit) * 100).toFixed(1);
-        console.warn(`⚠️ localStorage ${percentage}% dolu! Boyut: ${formatFileSize(dataSize)}/${formatFileSize(limit)}`);
+  // ✅ PDF TEMİZLEME - IndexedDB'den
+  const clearAllPDFs = async () => {
+    if (window.confirm('UYARI: Tüm PDF dosyaları IndexedDB\'den silinecek! Belgeler korunacak ancak PDF içerikleri kaldırılacak. Devam etmek istiyor musunuz?')) {
+      try {
+        await pdfStorage.clearAllPDFs();
         
-        if (dataSize > limit * 0.9) { // %90 dolduğunda critical uyarı
-          setSnackbar({ 
-            open: true, 
-            message: `UYARI: Depolama alanı %${percentage} dolu! PDF yükleme sorunu yaşayabilirsiniz. "PDF'leri Temizle" butonunu kullanın.`, 
-            severity: 'warning' 
-          });
-        }
-      }
-    } catch (error: any) {
-      console.error('❌ Belge kaydetme hatası:', error);
-      
-      if (error.name === 'QuotaExceededError' || error.code === 22) {
-        setSnackbar({ 
-          open: true, 
-          message: 'Depolama alanı dolu! Lütfen "PDF\'leri Temizle" butonunu kullanarak alan açın.', 
-          severity: 'error' 
-        });
-      } else {
-        setSnackbar({ 
-          open: true, 
-          message: 'Veriler kaydedilirken hata oluştu!', 
-          severity: 'error' 
-        });
-      }
-    }
-  }, [documents]);
-
-  React.useEffect(() => {
-    try {
-      localStorage.setItem('dm-welders', JSON.stringify(welders));
-      localStorage.setItem('dm-welders-backup', JSON.stringify(welders));
-      localStorage.setItem('dm-welders-timestamp', new Date().toISOString());
-      console.log('✅ Kaynakçılar başarıyla kaydedildi:', welders.length);
-    } catch (error) {
-      console.error('❌ Kaynakçı kaydetme hatası:', error);
-      setSnackbar({ open: true, message: 'Kaynakçı veriler kaydedilirken hata oluştu!', severity: 'error' });
-    }
-  }, [welders]);
-
-  React.useEffect(() => {
-    try {
-      localStorage.setItem('dm-personnel', JSON.stringify(personnel));
-      localStorage.setItem('dm-personnel-backup', JSON.stringify(personnel));
-      localStorage.setItem('dm-personnel-timestamp', new Date().toISOString());
-      console.log('✅ Personeller başarıyla kaydedildi:', personnel.length);
-    } catch (error) {
-      console.error('❌ Personel kaydetme hatası:', error);
-      setSnackbar({ open: true, message: 'Personel veriler kaydedilirken hata oluştu!', severity: 'error' });
-    }
-  }, [personnel]);
-
-  // ✅ BASİT FORMLAR AÇMA
-  const openCreateDialog = (type: 'document' | 'welder' | 'personnel') => {
-    setDialogType(type);
-    setEditingItem(null);
-    
-    // Form temizle
-    if (type === 'document') {
-    setDocumentForm({
-        type: '',
-      name: '',
-      number: '',
-      unit: '',
-        welderName: '',
-        personnelName: '',
-        certificateNumber: '',
-        issuingAuthority: '',
-        customIssuingAuthority: '',
-      effectiveDate: new Date().toISOString().split('T')[0],
-        expiryDate: '',
-        description: ''
-      });
-    } else if (type === 'welder') {
-      setWelderForm({
-        name: '',
-        registrationNo: '',
-        department: '',
-        position: ''
-      });
-    } else {
-      setPersonnelForm({
-        name: '',
-        registrationNo: '',
-        department: '',
-        position: '',
-      });
-    }
-    
-      setOpenDialog(true);
-  };
-
-  // ✅ BASİT KAYDETME FONKSİYONLARI
-  const handleSaveDocument = () => {
-    if (!documentForm.name || !documentForm.type) {
-      setSnackbar({ open: true, message: 'Lütfen belge adı ve tipi doldurun!', severity: 'error' });
-      return;
-    }
-
-    const now = new Date().toISOString().split('T')[0];
-    
-    // Veren kuruluş bilgisini doğru şekilde al
-    const finalIssuingAuthority = documentForm.issuingAuthority === 'Diğer Kuruluş' 
-      ? documentForm.customIssuingAuthority 
-      : documentForm.issuingAuthority;
-    
-    const newDoc: Document = {
-      id: editingItem?.id || `DOC-${Date.now()}`,
-      type: documentForm.type,
-      name: documentForm.name,
-      number: documentForm.number || `${documentForm.type.slice(0,3).toUpperCase()}-${Date.now().toString().slice(-6)}`,
-      unit: documentForm.unit || 'Kalite Güvence',
-      welderName: documentForm.welderName,
-      personnelName: documentForm.personnelName,
-      certificateNumber: documentForm.certificateNumber,
-      issuingAuthority: finalIssuingAuthority,
-      effectiveDate: documentForm.effectiveDate,
-      expiryDate: documentForm.expiryDate,
-      status: 'active',
-      uploadDate: now,
-      description: documentForm.description || `${documentForm.name} belgesi`
-    };
-
-    if (editingItem) {
-      const updatedDocs = documents.map(doc => doc.id === editingItem.id ? newDoc : doc);
-      setDocuments(updatedDocs);
-      
-      // Anında kaydetme
-      try {
-        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
-        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
-        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
-      } catch (error) {
-        console.error('❌ Belge güncelleme kaydetme hatası:', error);
-      }
-      
-      setSnackbar({ open: true, message: `${newDoc.name} güncellendi!`, severity: 'success' });
-    } else {
-      const updatedDocs = [...documents, newDoc];
-      setDocuments(updatedDocs);
-      
-      // Anında kaydetme
-      try {
-        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
-        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
-        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
-      } catch (error) {
-        console.error('❌ Belge ekleme kaydetme hatası:', error);
-      }
-      
-      setSnackbar({ open: true, message: `${newDoc.name} eklendi!`, severity: 'success' });
-    }
-
-    setOpenDialog(false);
-  };
-
-  const handleSaveWelder = () => {
-    if (!welderForm.name || !welderForm.registrationNo) {
-      setSnackbar({ open: true, message: 'Lütfen ad ve sicil numarası doldurun!', severity: 'error' });
-      return;
-    }
-
-    const newWelder: WelderData = {
-      id: editingItem?.id || `W-${Date.now()}`,
-      name: welderForm.name,
-      registrationNo: welderForm.registrationNo,
-      department: welderForm.department,
-      position: welderForm.position
-    };
-
-    if (editingItem) {
-      setWelders(prev => prev.map(w => w.id === editingItem.id ? newWelder : w));
-      setSnackbar({ open: true, message: `${newWelder.name} güncellendi!`, severity: 'success' });
-    } else {
-      setWelders(prev => [...prev, newWelder]);
-      setSnackbar({ open: true, message: `${newWelder.name} eklendi!`, severity: 'success' });
-    }
-
-    setOpenDialog(false);
-  };
-
-  const handleSavePersonnel = () => {
-    if (!personnelForm.name || !personnelForm.registrationNo) {
-      setSnackbar({ open: true, message: 'Lütfen ad ve sicil numarası doldurun!', severity: 'error' });
-      return;
-    }
-
-    const newPersonnel: PersonnelData = {
-      id: editingItem?.id || `P-${Date.now()}`,
-      name: personnelForm.name,
-      registrationNo: personnelForm.registrationNo,
-      department: personnelForm.department,
-      position: personnelForm.position,
-    };
-
-    if (editingItem) {
-      setPersonnel(prev => prev.map(p => p.id === editingItem.id ? newPersonnel : p));
-      setSnackbar({ open: true, message: `${newPersonnel.name} güncellendi!`, severity: 'success' });
-    } else {
-      setPersonnel(prev => [...prev, newPersonnel]);
-      setSnackbar({ open: true, message: `${newPersonnel.name} eklendi!`, severity: 'success' });
-    }
-
-    setOpenDialog(false);
-  };
-
-  // ✅ BASİT DÜZENLEME VE SİLME
-  const handleEdit = (item: any, type: 'document' | 'welder' | 'personnel') => {
-    setEditingItem(item);
-    setDialogType(type);
-    
-    if (type === 'document') {
-      setDocumentForm({
-        type: item.type,
-        name: item.name,
-        number: item.number,
-        unit: item.unit,
-        welderName: item.welderName || '',
-        personnelName: item.personnelName || '',
-        certificateNumber: item.certificateNumber || '',
-        issuingAuthority: item.issuingAuthority || '',
-        customIssuingAuthority: '',
-        effectiveDate: item.effectiveDate,
-        expiryDate: item.expiryDate || '',
-        description: item.description
-      });
-    } else if (type === 'welder') {
-      setWelderForm({
-        name: item.name,
-        registrationNo: item.registrationNo,
-        department: item.department,
-        position: item.position
-      });
-    } else {
-      setPersonnelForm({
-        name: item.name,
-        registrationNo: item.registrationNo,
-        department: item.department,
-        position: item.position,
-      });
-    }
-    
-    setOpenDialog(true);
-  };
-
-  const handleDelete = (id: string, type: 'document' | 'welder' | 'personnel') => {
-    if (type === 'document') {
-      const updatedDocs = documents.filter(doc => doc.id !== id);
-      setDocuments(updatedDocs);
-      
-      // Anında kaydetme
-      try {
-        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
-        localStorage.setItem('dm-documents-backup', JSON.stringify(updatedDocs));
-        localStorage.setItem('documentManagementData', JSON.stringify(updatedDocs));
-      } catch (error) {
-        console.error('❌ Belge silme kaydetme hatası:', error);
-      }
-      
-    } else if (type === 'welder') {
-      const updatedWelders = welders.filter(w => w.id !== id);
-      setWelders(updatedWelders);
-      
-      // Anında kaydetme
-      try {
-        localStorage.setItem('dm-welders', JSON.stringify(updatedWelders));
-        localStorage.setItem('dm-welders-backup', JSON.stringify(updatedWelders));
-      } catch (error) {
-        console.error('❌ Kaynakçı silme kaydetme hatası:', error);
-      }
-      
-    } else {
-      const updatedPersonnel = personnel.filter(p => p.id !== id);
-      setPersonnel(updatedPersonnel);
-      
-      // Anında kaydetme
-      try {
-        localStorage.setItem('dm-personnel', JSON.stringify(updatedPersonnel));
-        localStorage.setItem('dm-personnel-backup', JSON.stringify(updatedPersonnel));
-      } catch (error) {
-        console.error('❌ Personel silme kaydetme hatası:', error);
-      }
-    }
-    setSnackbar({ open: true, message: 'Başarıyla silindi!', severity: 'success' });
-  };
-
-  // ✅ KALİTE BELGELERİ AYIRMA
-  const QUALITY_CERTIFICATE_CATEGORIES = [
-    'Kalite Sistem Belgeleri',
-    'Kaynakçı Belgeleri', 
-    'NDT Personel Belgeleri',
-    'İSG ve Güvenlik Belgeleri',
-    'Mesleki Yeterlilik Belgeleri'
-  ];
-
-  // ✅ VERİ DURUMU KONTROL FONKSİYONU (DEBUG AMAÇLI)
-  const checkDataStatus = () => {
-    const sources = [
-      'dm-documents',
-      'dm-documents-backup',
-      'documentManagementData',
-      'dm-welders',
-      'dm-personnel'
-    ];
-    
-    let totalSize = 0;
-    let pdfCount = 0;
-    
-    console.log('📊 DETAYLI VERİ DURUMU RAPORU:');
-    console.log('==========================================');
-    
-    sources.forEach(source => {
-      const data = localStorage.getItem(source);
-      if (data) {
-        try {
-          const dataSize = data.length;
-          totalSize += dataSize;
-          const parsed = JSON.parse(data);
-          
-          // PDF sayısını hesapla
-          if (Array.isArray(parsed)) {
-            const pdfs = parsed.filter((item: any) => item.pdfFile);
-            pdfCount += pdfs.length;
-          }
-          
-          console.log(`✅ ${source}:`);
-          console.log(`   - Boyut: ${formatFileSize(dataSize)}`);
-          console.log(`   - Kayıt: ${Array.isArray(parsed) ? parsed.length : 'N/A'}`);
-          console.log(`   - PDF: ${Array.isArray(parsed) ? parsed.filter((item: any) => item.pdfFile).length : 0}`);
-        } catch (error) {
-          console.log(`❌ ${source}: Parse hatası`);
-        }
-      } else {
-        console.log(`❌ ${source}: Bulunamadı`);
-      }
-    });
-    
-    console.log('==========================================');
-    console.log(`🔍 TOPLAM ÖZET:`);
-    console.log(`   - Toplam Veri Boyutu: ${formatFileSize(totalSize)}`);
-    console.log(`   - Toplam PDF Sayısı: ${pdfCount}`);
-    console.log(`   - Tahmini Limit: ${formatFileSize(3 * 1024 * 1024)} (3MB)`);
-    console.log(`   - Kalan Alan: ${formatFileSize((3 * 1024 * 1024) - totalSize)}`);
-    console.log(`   - Doluluk Oranı: ${((totalSize / (3 * 1024 * 1024)) * 100).toFixed(1)}%`);
-    
-    setSnackbar({ 
-      open: true, 
-      message: `Veri durumu konsola yazıldı. Toplam: ${formatFileSize(totalSize)}, PDF: ${pdfCount} adet. F12 ile detayları görün.`, 
-      severity: 'info' 
-    });
-  };
-
-  // ✅ PDF TEMİZLEME FONKSİYONU (ALAN AÇMA)
-  const clearAllPDFs = () => {
-    if (window.confirm('UYARI: Tüm PDF dosyaları silinecek! Belgeler korunacak ancak PDF içerikleri kaldırılacak. Devam etmek istiyor musunuz?')) {
-      try {
         const cleanedDocs = documents.map(doc => ({
           ...doc,
-          pdfFile: undefined,
+          hasPDF: false,
           pdfFileName: undefined,
           pdfSize: undefined
         }));
         
         setDocuments(cleanedDocs);
+        localStorage.setItem('dm-documents', JSON.stringify(cleanedDocs));
         
-        // Anında kaydetme
-        const cleanedDocsString = JSON.stringify(cleanedDocs);
-        localStorage.setItem('dm-documents', cleanedDocsString);
-        localStorage.setItem('dm-documents-backup', cleanedDocsString);
-        localStorage.setItem('documentManagementData', cleanedDocsString);
+        updateStorageInfo();
         
-        console.log('🧹 Tüm PDF dosyaları temizlendi, belgeler korundu');
+        console.log('🧹 Tüm PDF dosyaları IndexedDB\'den temizlendi');
         setSnackbar({ 
           open: true, 
           message: 'Tüm PDF dosyaları temizlendi! Belgeler korundu, artık yeni PDF yükleyebilirsiniz.', 
@@ -1219,41 +944,265 @@ const DocumentManagement: React.FC = () => {
     }
   };
 
-  // ✅ VERİ TEMİZLEME FONKSİYONU (ACİL DURUM)
-  const clearAllData = () => {
-    if (window.confirm('UYARI: Tüm belgeler, kaynakçılar ve personel bilgileri silinecek! Devam etmek istiyor musunuz?')) {
-      const sources = [
-        'dm-documents',
-        'dm-documents-backup',
-        'documentManagementData',
-        'dm-welders',
-        'dm-welders-backup',
-        'dm-personnel',
-        'dm-personnel-backup'
-      ];
-      
-      sources.forEach(source => {
-        localStorage.removeItem(source);
-      });
-      
-      // State'leri temizle
-      setDocuments([]);
-      setWelders([]);
-      setPersonnel([]);
-      
-      console.log('🧹 Tüm veriler temizlendi');
-      setSnackbar({ 
-        open: true, 
-        message: 'Tüm veriler temizlendi. Sayfa yenilendi.', 
-        severity: 'success' 
-      });
-      
-      // Sayfayı yenile
-      setTimeout(() => window.location.reload(), 1000);
+  // ✅ TÜM VERİ TEMİZLEME
+  const clearAllData = async () => {
+    if (window.confirm('UYARI: Tüm belgeler, kaynakçılar, personel bilgileri ve PDF dosyaları silinecek! Devam etmek istiyor musunuz?')) {
+      try {
+        const localStorageKeys = [
+          'dm-documents',
+          'dm-welders',
+          'dm-personnel'
+        ];
+        
+        localStorageKeys.forEach(key => {
+          localStorage.removeItem(key);
+        });
+        
+        await pdfStorage.clearAllPDFs();
+        
+        setDocuments([]);
+        setWelders([]);
+        setPersonnel([]);
+        
+        updateStorageInfo();
+        
+        console.log('🧹 Tüm veriler temizlendi');
+        setSnackbar({ 
+          open: true, 
+          message: 'Tüm veriler temizlendi.', 
+          severity: 'success' 
+        });
+        
+      } catch (error) {
+        console.error('❌ Veri temizleme hatası:', error);
+        setSnackbar({ 
+          open: true, 
+          message: 'Veri temizleme hatası! Lütfen tekrar deneyin.', 
+          severity: 'error' 
+        });
+      }
     }
   };
 
-  // ✅ FİLTRELEME VE AYIRMA
+  // ✅ DIALOG AÇMA
+  const openCreateDialog = (type: 'document' | 'welder' | 'personnel') => {
+    setCurrentType(type);
+    setEditingItem(null);
+    setDocumentForm(initialDocumentState);
+    setWelderForm(initialWelderState);
+    setPersonnelForm(initialPersonnelState);
+    setCreateDialog(true);
+  };
+
+  // ✅ BELGE KAYDETME
+  const handleSaveDocument = () => {
+    if (!documentForm.name || !documentForm.type || !documentForm.number || !documentForm.unit) {
+      setSnackbar({ open: true, message: 'Lütfen tüm zorunlu alanları doldurun!', severity: 'error' });
+      return;
+    }
+
+    const newDocument: Document = {
+      id: Date.now().toString(),
+      ...documentForm,
+      uploadDate: new Date().toISOString().split('T')[0],
+      hasPDF: false
+    };
+
+    const updatedDocs = [...documents, newDocument];
+    setDocuments(updatedDocs);
+    
+    try {
+      localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+      setSnackbar({ open: true, message: 'Belge başarıyla kaydedildi!', severity: 'success' });
+      setCreateDialog(false);
+    } catch (error) {
+      console.error('❌ Belge kaydetme hatası:', error);
+      setSnackbar({ open: true, message: 'Belge kaydetme hatası!', severity: 'error' });
+    }
+  };
+
+  // ✅ KAYNAKÇI KAYDETME
+  const handleSaveWelder = () => {
+    if (!welderForm.name || !welderForm.registrationNo) {
+      setSnackbar({ open: true, message: 'Lütfen tüm zorunlu alanları doldurun!', severity: 'error' });
+      return;
+    }
+
+    const newWelder: WelderData = {
+      id: Date.now().toString(),
+      ...welderForm
+    };
+
+    const updatedWelders = [...welders, newWelder];
+    setWelders(updatedWelders);
+    
+    try {
+      localStorage.setItem('dm-welders', JSON.stringify(updatedWelders));
+      setSnackbar({ open: true, message: 'Kaynakçı başarıyla kaydedildi!', severity: 'success' });
+      setCreateDialog(false);
+    } catch (error) {
+      console.error('❌ Kaynakçı kaydetme hatası:', error);
+      setSnackbar({ open: true, message: 'Kaynakçı kaydetme hatası!', severity: 'error' });
+    }
+  };
+
+  // ✅ PERSONEL KAYDETME
+  const handleSavePersonnel = () => {
+    if (!personnelForm.name || !personnelForm.registrationNo) {
+      setSnackbar({ open: true, message: 'Lütfen tüm zorunlu alanları doldurun!', severity: 'error' });
+      return;
+    }
+
+    const newPersonnel: PersonnelData = {
+      id: Date.now().toString(),
+      ...personnelForm
+    };
+
+    const updatedPersonnel = [...personnel, newPersonnel];
+    setPersonnel(updatedPersonnel);
+    
+    try {
+      localStorage.setItem('dm-personnel', JSON.stringify(updatedPersonnel));
+      setSnackbar({ open: true, message: 'Personel başarıyla kaydedildi!', severity: 'success' });
+      setCreateDialog(false);
+    } catch (error) {
+      console.error('❌ Personel kaydetme hatası:', error);
+      setSnackbar({ open: true, message: 'Personel kaydetme hatası!', severity: 'error' });
+    }
+  };
+
+  // ✅ DÜZENLEME
+  const handleEdit = (item: any, type: 'document' | 'welder' | 'personnel') => {
+    setCurrentType(type);
+    setEditingItem(item);
+    
+    if (type === 'document') {
+      setDocumentForm(item);
+    } else if (type === 'welder') {
+      setWelderForm(item);
+    } else {
+      setPersonnelForm(item);
+    }
+    
+    setEditDialog(true);
+  };
+
+  // ✅ GÜNCELLEME
+  const handleUpdate = async () => {
+    if (currentType === 'document') {
+      if (!documentForm.name || !documentForm.type || !documentForm.number || !documentForm.unit) {
+        setSnackbar({ open: true, message: 'Lütfen tüm zorunlu alanları doldurun!', severity: 'error' });
+        return;
+      }
+
+      const updatedDocs = documents.map(doc => 
+        doc.id === editingItem.id 
+          ? { ...doc, ...documentForm }
+          : doc
+      );
+      setDocuments(updatedDocs);
+      
+      try {
+        localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+        setSnackbar({ open: true, message: 'Belge başarıyla güncellendi!', severity: 'success' });
+        setEditDialog(false);
+      } catch (error) {
+        console.error('❌ Belge güncelleme hatası:', error);
+        setSnackbar({ open: true, message: 'Belge güncelleme hatası!', severity: 'error' });
+      }
+    } else if (currentType === 'welder') {
+      if (!welderForm.name || !welderForm.registrationNo) {
+        setSnackbar({ open: true, message: 'Lütfen tüm zorunlu alanları doldurun!', severity: 'error' });
+        return;
+      }
+
+      const updatedWelders = welders.map(welder => 
+        welder.id === editingItem.id 
+          ? { ...welder, ...welderForm }
+          : welder
+      );
+      setWelders(updatedWelders);
+      
+      try {
+        localStorage.setItem('dm-welders', JSON.stringify(updatedWelders));
+        setSnackbar({ open: true, message: 'Kaynakçı başarıyla güncellendi!', severity: 'success' });
+        setEditDialog(false);
+      } catch (error) {
+        console.error('❌ Kaynakçı güncelleme hatası:', error);
+        setSnackbar({ open: true, message: 'Kaynakçı güncelleme hatası!', severity: 'error' });
+      }
+    } else {
+      if (!personnelForm.name || !personnelForm.registrationNo) {
+        setSnackbar({ open: true, message: 'Lütfen tüm zorunlu alanları doldurun!', severity: 'error' });
+        return;
+      }
+
+      const updatedPersonnel = personnel.map(p => 
+        p.id === editingItem.id 
+          ? { ...p, ...personnelForm }
+          : p
+      );
+      setPersonnel(updatedPersonnel);
+      
+      try {
+        localStorage.setItem('dm-personnel', JSON.stringify(updatedPersonnel));
+        setSnackbar({ open: true, message: 'Personel başarıyla güncellendi!', severity: 'success' });
+        setEditDialog(false);
+      } catch (error) {
+        console.error('❌ Personel güncelleme hatası:', error);
+        setSnackbar({ open: true, message: 'Personel güncelleme hatası!', severity: 'error' });
+      }
+    }
+  };
+
+  // ✅ SİLME
+  const handleDelete = async (id: string, type: 'document' | 'welder' | 'personnel') => {
+    if (window.confirm('Bu kaydı silmek istiyor musunuz?')) {
+      if (type === 'document') {
+        const doc = documents.find(d => d.id === id);
+        if (doc && doc.hasPDF) {
+          try {
+            await pdfStorage.deletePDF(id);
+            updateStorageInfo();
+          } catch (error) {
+            console.error('❌ PDF silme hatası:', error);
+          }
+        }
+        
+        const updatedDocs = documents.filter(d => d.id !== id);
+        setDocuments(updatedDocs);
+        
+        try {
+          localStorage.setItem('dm-documents', JSON.stringify(updatedDocs));
+          setSnackbar({ open: true, message: 'Belge başarıyla silindi!', severity: 'success' });
+        } catch (error) {
+          console.error('❌ Belge silme hatası:', error);
+        }
+      } else if (type === 'welder') {
+        const updatedWelders = welders.filter(w => w.id !== id);
+        setWelders(updatedWelders);
+        
+        try {
+          localStorage.setItem('dm-welders', JSON.stringify(updatedWelders));
+          setSnackbar({ open: true, message: 'Kaynakçı başarıyla silindi!', severity: 'success' });
+        } catch (error) {
+          console.error('❌ Kaynakçı silme hatası:', error);
+        }
+      } else {
+        const updatedPersonnel = personnel.filter(p => p.id !== id);
+        setPersonnel(updatedPersonnel);
+        
+        try {
+          localStorage.setItem('dm-personnel', JSON.stringify(updatedPersonnel));
+          setSnackbar({ open: true, message: 'Personel başarıyla silindi!', severity: 'success' });
+        } catch (error) {
+          console.error('❌ Personel silme hatası:', error);
+        }
+      }
+    }
+  };
+
+  // ✅ FİLTRELEME
   const filteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1265,7 +1214,6 @@ const DocumentManagement: React.FC = () => {
     doc.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Kalite sertifikalarını ve diğer belgeleri ayır
   const qualityCertificates = filteredDocuments.filter(doc => {
     const docCategory = ALL_DOCUMENT_TYPES.find(dt => dt.type === doc.type)?.category;
     return docCategory && QUALITY_CERTIFICATE_CATEGORIES.includes(docCategory);
@@ -1289,7 +1237,7 @@ const DocumentManagement: React.FC = () => {
   );
 
   return (
-      <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3 }}>
       {/* Başlık ve Ana Buttonlar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" fontWeight={600} color="primary">
@@ -1438,14 +1386,14 @@ const DocumentManagement: React.FC = () => {
       </Card>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
+      <Tabs value={tabIndex} onChange={(e, newValue) => setTabIndex(newValue)} sx={{ mb: 3 }}>
         <Tab label="Belgeler" icon={<DescriptionIcon />} iconPosition="start" />
         <Tab label="Kaynakçılar" icon={<PersonIcon />} iconPosition="start" />
         <Tab label="Personel" icon={<VerifiedUserIcon />} iconPosition="start" />
       </Tabs>
 
       {/* Belgeler Tabı */}
-      {activeTab === 0 && (
+      {tabIndex === 0 && (
         <Box>
           {/* Kalite Sertifikaları - Kart Görünümü */}
           {qualityCertificates.length > 0 && (
@@ -1550,7 +1498,7 @@ const DocumentManagement: React.FC = () => {
                             
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {doc.pdfFile && (
+                                {doc.hasPDF && (
                                   <>
                                     <Chip 
                                       label="PDF" 
@@ -1623,7 +1571,7 @@ const DocumentManagement: React.FC = () => {
                                 </TableCell>
                           <TableCell>{doc.number}</TableCell>
                                 <TableCell>
-                            {doc.pdfFile ? (
+                            {doc.hasPDF ? (
                               <Chip 
                                 label="Yüklendi" 
                                 size="small" 
@@ -1647,7 +1595,7 @@ const DocumentManagement: React.FC = () => {
                                 </TableCell>
                           <TableCell>{doc.effectiveDate}</TableCell>
                           <TableCell>
-                            {doc.pdfFile && (
+                            {doc.hasPDF && (
                               <IconButton 
                                 onClick={() => handleViewPDF(doc)} 
                                 size="small" 
@@ -1690,7 +1638,7 @@ const DocumentManagement: React.FC = () => {
       )}
 
       {/* Kaynakçılar Tabı */}
-      {activeTab === 1 && (
+      {tabIndex === 1 && (
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -1738,7 +1686,7 @@ const DocumentManagement: React.FC = () => {
       )}
 
       {/* Personel Tabı */}
-      {activeTab === 2 && (
+      {tabIndex === 2 && (
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -1786,7 +1734,7 @@ const DocumentManagement: React.FC = () => {
       )}
 
       {/* Dialog - Belge Formu */}
-      <Dialog open={openDialog && dialogType === 'document'} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={createDialog && currentType === 'document'} onClose={() => setCreateDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>
           {editingItem ? 'Belge Düzenle' : 'Yeni Belge Ekle'}
         </DialogTitle>
@@ -1796,8 +1744,8 @@ const DocumentManagement: React.FC = () => {
               <Autocomplete
           fullWidth
                 options={ALL_DOCUMENT_TYPES}
-                groupBy={(option) => option.group}
-                getOptionLabel={(option) => option.label}
+                groupBy={(option) => option.category}
+                getOptionLabel={(option) => option.type}
                 value={ALL_DOCUMENT_TYPES.find(item => item.type === documentForm.type) || null}
                 onChange={(event, newValue) => {
                   setDocumentForm(prev => ({ ...prev, type: newValue?.type || '' }));
@@ -1855,7 +1803,7 @@ const DocumentManagement: React.FC = () => {
                       onChange={(e) => setDocumentForm(prev => ({ ...prev, unit: e.target.value }))}
                   label="Birim"
                     >
-                  {UNIT_OPTIONS.map((unit) => (
+                  {UNITS.map((unit) => (
                         <MenuItem key={unit} value={unit}>{unit}</MenuItem>
                       ))}
                     </Select>
@@ -1999,7 +1947,7 @@ const DocumentManagement: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>İptal</Button>
+          <Button onClick={() => setCreateDialog(false)}>İptal</Button>
           <Button onClick={handleSaveDocument} variant="contained">
             {editingItem ? 'Güncelle' : 'Kaydet'}
           </Button>
@@ -2007,7 +1955,7 @@ const DocumentManagement: React.FC = () => {
       </Dialog>
 
       {/* Dialog - Kaynakçı Formu */}
-      <Dialog open={openDialog && dialogType === 'welder'} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={createDialog && currentType === 'welder'} onClose={() => setCreateDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           {editingItem ? 'Kaynakçı Düzenle' : 'Yeni Kaynakçı Ekle'}
         </DialogTitle>
@@ -2057,7 +2005,7 @@ const DocumentManagement: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>İptal</Button>
+          <Button onClick={() => setCreateDialog(false)}>İptal</Button>
           <Button onClick={handleSaveWelder} variant="contained">
             {editingItem ? 'Güncelle' : 'Kaydet'}
           </Button>
@@ -2065,7 +2013,7 @@ const DocumentManagement: React.FC = () => {
       </Dialog>
 
       {/* Dialog - Personel Formu */}
-      <Dialog open={openDialog && dialogType === 'personnel'} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={createDialog && currentType === 'personnel'} onClose={() => setCreateDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           {editingItem ? 'Personel Düzenle' : 'Yeni Personel Ekle'}
         </DialogTitle>
@@ -2115,7 +2063,7 @@ const DocumentManagement: React.FC = () => {
           </Grid>
           </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>İptal</Button>
+          <Button onClick={() => setCreateDialog(false)}>İptal</Button>
           <Button onClick={handleSavePersonnel} variant="contained">
             {editingItem ? 'Güncelle' : 'Kaydet'}
             </Button>
@@ -2225,7 +2173,7 @@ const DocumentManagement: React.FC = () => {
                       PDF Dosyası
                     </Typography>
                     
-                    {viewingDocument.pdfFile ? (
+                    {viewingDocument.hasPDF ? (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <DescriptionIcon color="error" />
                         <Box sx={{ flexGrow: 1 }}>
