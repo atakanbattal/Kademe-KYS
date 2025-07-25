@@ -1,24 +1,20 @@
-# DEPLOYMENT TRIGGER - UPDATED
+# Netlify Deployment Trigger
 
-**Deployment Time:** 2025-01-10 15:15:00 UTC  
-**Commit Hash:** 4bcb1a0  
-**Status:** MODERN EKSİKLİK EKLEME SİSTEMİ - PRODUCTION READY
+**Deployment Date**: 2024-12-21 23:45:00 GMT+3
+**Commit Hash**: 002c095
+**Status**: ✅ Hedef Tarih Takibi ve DÖF Entegrasyonu Eklendi
 
-## Critical Fixes Applied:
-- ✅ Araç listesine doğrudan eksiklik ekleme butonu eklendi
-- ✅ Modern ve kullanıcı dostu eksiklik modal tasarımı
-- ✅ Araç bilgileri modal'da otomatik görüntüleniyor
-- ✅ Kategori ve alt kategori seçimi geliştirildi
-- ✅ Form alanları profesyonel tasarım aldı
-- ✅ Gradient renkler ve modern iconlar eklendi
+## Latest Changes
+- 🎯 Hedef müşteri sevk tarihi ve DMO muayene tarihi takibi
+- ⚠️ Gelişmiş 3 türlü uyarı sistemi (production return, target shipment, DMO inspection)
+- 🔗 DÖF oluştur butonları eksikliklerin yanında eklendi
+- 🎨 Edit modal'ında UI/UX iyileştirmeleri
+- 📱 Responsive layout düzeltmeleri
 
-## Production Verification:
-- ✅ Site Status: LIVE (HTTP 200)
-- ✅ Git Push: SUCCESS (origin/main)
-- ✅ Build Trigger: INITIATED
-- ✅ Defect System: MODERN & FUNCTIONAL
+## Features Added
+1. **Hedef Tarih Yönetimi**: Müşteri sevk ve DMO muayene tarihlerinin takibi
+2. **Proaktif Uyarı Sistemi**: Yaklaşan tarihler için otomatik uyarılar
+3. **DÖF Entegrasyonu**: Eksikliklerden direkt DÖF oluşturma
+4. **UI Optimizasyonları**: Durum ve Süreç Yönetimi modal düzeltildi
 
-**Next Action:** Verify https://kademe-qdms.netlify.app deployment completion
-
----
-*Auto-generated trigger for Netlify deployment* 
+**Auto-deployment triggered for Netlify** 
