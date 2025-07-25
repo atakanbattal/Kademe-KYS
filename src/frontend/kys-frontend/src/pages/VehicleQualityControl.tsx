@@ -379,7 +379,13 @@ const VehicleQualityControl: React.FC = () => {
       setWarningSettings(settings);
       setRecentActivities(activities);
       
-      console.log('Dashboard veriler yüklendi:', { stats, warningsList, settings, activities });
+      console.log('Dashboard veriler yüklendi:', { 
+        stats, 
+        warningsList: warningsList.length, 
+        settings: settings.length, 
+        activities: activities.length,
+        warningSettingTypes: settings.map(s => s.type)
+      });
     } catch (err) {
       setError('Dashboard verileri yüklenirken hata oluştu');
       console.error('Dashboard yükleme hatası:', err);
@@ -423,6 +429,86 @@ const VehicleQualityControl: React.FC = () => {
 
     loadDashboardData();
     loadVehicles();
+    
+    // Uyarı ayarlarını direkt yükle ve eksik olanları ekle
+    vehicleQualityControlService.getWarningSettings().then(settings => {
+      // Eğer ayarlar eksikse, default ayarları yükle
+      if (settings.length < 5) {
+        console.log('Eksik uyarı ayarları tespit edildi, varsayılan ayarlar yükleniyor...');
+        // Varsayılan ayarları localStorage'a kaydet
+        const defaultSettings = [
+          {
+            id: '1',
+            name: 'Üretim Geri Dönüş Uyarısı',
+            type: 'production_return' as const,
+            threshold: 2,
+            unit: 'days' as const,
+            level: 'warning' as const,
+            isActive: true,
+            description: 'Üretime geri gönderilip kaliteye dönmeyen araçlar için uyarı'
+          },
+          {
+            id: '2', 
+            name: 'Kritik Gecikme Uyarısı',
+            type: 'production_return' as const,
+            threshold: 5,
+            unit: 'days' as const,
+            level: 'critical' as const,
+            isActive: true,
+            description: 'Uzun süreli üretime takılı kalan araçlar için kritik uyarı'
+          },
+          {
+            id: '3',
+            name: 'Hedef Sevk Tarihi Yaklaşıyor',
+            type: 'target_shipment' as const,
+            threshold: 3,
+            unit: 'days' as const,
+            level: 'warning' as const,
+            isActive: true,
+            description: 'Müşteri hedef sevk tarihi yaklaşan araçlar için uyarı'
+          },
+          {
+            id: '4',
+            name: 'DMO Muayene Tarihi Yaklaşıyor',
+            type: 'dmo_inspection' as const,
+            threshold: 7,
+            unit: 'days' as const,
+            level: 'warning' as const,
+            isActive: true,
+            description: 'DMO muayene tarihi yaklaşan araçlar için uyarı'
+          },
+          {
+            id: '5',
+            name: 'DMO Muayene Tarihi Geçti',
+            type: 'dmo_inspection' as const,
+            threshold: 0,
+            unit: 'days' as const,
+            level: 'critical' as const,
+            isActive: true,
+            description: 'DMO muayene tarihi geçen araçlar için kritik uyarı'
+          },
+          {
+            id: '6',
+            name: 'Hedef Sevk Tarihi Geçti',
+            type: 'target_shipment' as const,
+            threshold: 0,
+            unit: 'days' as const,
+            level: 'critical' as const,
+            isActive: true,
+            description: 'Müşteri hedef sevk tarihi geçen araçlar için kritik uyarı'
+          }
+        ];
+        
+        localStorage.setItem(STORAGE_KEYS.WARNING_SETTINGS, JSON.stringify(defaultSettings));
+        setWarningSettings(defaultSettings);
+        console.log('Varsayılan uyarı ayarları yüklendi:', defaultSettings.map(s => `${s.name} (${s.type})`));
+      } else {
+        setWarningSettings(settings);
+        console.log('Uyarı ayarları yüklendi:', settings.map(s => `${s.name} (${s.type})`));
+      }
+    }).catch(error => {
+      console.error('Uyarı ayarları hatası:', error);
+    });
   }, [loadDashboardData, loadVehicles]);
 
   // Filtre değişikliklerinde yeniden yükle
@@ -2368,107 +2454,126 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Grid>
           
           {editingVehicle && (
-            <>
-              <Grid item xs={12}>
-                <Divider sx={{ my: 2 }}>
-                  <Chip 
-                    label="Durum Yönetimi" 
-                    color="primary" 
-                    sx={{ 
-                      fontSize: '0.85rem',
-                      height: '28px',
-                      '& .MuiChip-label': {
-                        px: 1.5
-                      }
-                    }}
-                  />
-                </Divider>
-              </Grid>
-              <Grid item xs={12}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Mevcut Proses Adımı</InputLabel>
-                      <Select
-                        value={editingVehicle.currentStatus}
-                        label="Mevcut Proses Adımı"
+            <Grid item xs={12}>
+              <Accordion 
+                sx={{ 
+                  borderRadius: '12px',
+                  border: '1px solid #e3f2fd',
+                  '&:before': { display: 'none' },
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              >
+                <AccordionSummary 
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{ 
+                    borderRadius: '12px',
+                    bgcolor: '#f8f9fa',
+                    minHeight: '48px',
+                    '& .MuiAccordionSummary-content': {
+                      margin: '8px 0'
+                    }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <SettingsIcon color="primary" sx={{ fontSize: 20 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
+                      Durum Yönetimi
+                    </Typography>
+                    <Chip 
+                      label="Gelişmiş" 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined"
+                    />
+                  </Box>
+                </AccordionSummary>
+                <AccordionDetails sx={{ p: 2 }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Mevcut Proses Adımı</InputLabel>
+                        <Select
+                          value={editingVehicle.currentStatus}
+                          label="Mevcut Proses Adımı"
+                          onChange={(e) => {
+                            if (editingVehicle) {
+                              setEditingVehicle({ 
+                                ...editingVehicle, 
+                                currentStatus: e.target.value as VehicleStatus 
+                              });
+                            }
+                          }}
+                        >
+                          {Object.values(VehicleStatus).map((status) => (
+                            <MenuItem key={status} value={status}>
+                              {getVehicleStatusLabel(status)}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Proses Başlangıç Tarihi"
+                        type="datetime-local"
+                        size="small"
+                        value={(() => {
+                          const currentStatusHistory = editingVehicle.statusHistory.find(h => h.status === editingVehicle.currentStatus);
+                          if (currentStatusHistory && currentStatusHistory.date) {
+                            try {
+                              return format(new Date(currentStatusHistory.date), "yyyy-MM-dd'T'HH:mm");
+                            } catch (error) {
+                              console.error('Date formatting error:', error);
+                              return '';
+                            }
+                          }
+                          return '';
+                        })()}
                         onChange={(e) => {
-                          if (editingVehicle) {
+                          if (editingVehicle && e.target.value) {
+                            const newDate = new Date(e.target.value);
+                            const updatedHistory = editingVehicle.statusHistory.map(h =>
+                              h.status === editingVehicle.currentStatus 
+                                ? { ...h, date: newDate } 
+                                : h
+                            );
+                            
+                            // Eğer bu durum için geçmiş yoksa yeni bir kayıt ekle
+                            if (!updatedHistory.find(h => h.status === editingVehicle.currentStatus)) {
+                              updatedHistory.push({
+                                id: Date.now().toString(),
+                                status: editingVehicle.currentStatus,
+                                date: newDate,
+                                performedBy: 'Manuel Düzenleme',
+                                performedById: 'manual-edit',
+                                notes: 'Manuel tarih düzenlemesi'
+                              });
+                            }
+                            
                             setEditingVehicle({ 
                               ...editingVehicle, 
-                              currentStatus: e.target.value as VehicleStatus 
+                              statusHistory: updatedHistory,
+                              updatedAt: new Date()
                             });
                           }
                         }}
-                      >
-                        {Object.values(VehicleStatus).map((status) => (
-                          <MenuItem key={status} value={status}>
-                            {getVehicleStatusLabel(status)}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                        InputLabelProps={{ shrink: true }}
+                        helperText="Mevcut durumdaki başlangıç tarihini düzenleyin"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Alert severity="info" sx={{ borderRadius: '8px' }}>
+                        <Typography variant="body2">
+                          <strong>Bilgi:</strong> Durum ve tarih değişiklikleri uyarı sistemini ve raporları etkileyecektir. 
+                          Değişiklikleri yapmadan önce mevcut süreçleri kontrol edin.
+                        </Typography>
+                      </Alert>
+                    </Grid>
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Proses Başlangıç Tarihi"
-                      type="datetime-local"
-                      value={(() => {
-                        const currentStatusHistory = editingVehicle.statusHistory.find(h => h.status === editingVehicle.currentStatus);
-                        if (currentStatusHistory && currentStatusHistory.date) {
-                          try {
-                            return format(new Date(currentStatusHistory.date), "yyyy-MM-dd'T'HH:mm");
-                          } catch (error) {
-                            console.error('Date formatting error:', error);
-                            return '';
-                          }
-                        }
-                        return '';
-                      })()}
-                      onChange={(e) => {
-                        if (editingVehicle && e.target.value) {
-                          const newDate = new Date(e.target.value);
-                          const updatedHistory = editingVehicle.statusHistory.map(h =>
-                            h.status === editingVehicle.currentStatus 
-                              ? { ...h, date: newDate } 
-                              : h
-                          );
-                          
-                          // Eğer bu durum için geçmiş yoksa yeni bir kayıt ekle
-                          if (!updatedHistory.find(h => h.status === editingVehicle.currentStatus)) {
-                            updatedHistory.push({
-                              id: Date.now().toString(),
-                              status: editingVehicle.currentStatus,
-                              date: newDate,
-                              performedBy: 'Manuel Düzenleme',
-                              performedById: 'manual-edit',
-                              notes: 'Manuel tarih düzenlemesi'
-                            });
-                          }
-                          
-                          setEditingVehicle({ 
-                            ...editingVehicle, 
-                            statusHistory: updatedHistory,
-                            updatedAt: new Date()
-                          });
-                        }
-                      }}
-                      InputLabelProps={{ shrink: true }}
-                      helperText="Aracın mevcut durumda bulunduğu sürenin başlangıç tarihini düzenleyebilirsiniz"
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-              <Grid item xs={12}>
-                <Alert severity="warning" sx={{ mt: 1 }}>
-                  <Typography variant="body2">
-                    <strong>Uyarı:</strong> Durum ve tarih değişiklikleri uyarı sistemini ve raporları etkileyecektir. 
-                    Değişiklikleri yapmadan önce mevcut süreçleri kontrol edin.
-                  </Typography>
-                </Alert>
-              </Grid>
-            </>
+                </AccordionDetails>
+              </Accordion>
+            </Grid>
           )}
         </Grid>
       </DialogContent>
@@ -2779,12 +2884,48 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                     Uyarı Sistemi Bilgileri
                   </Typography>
                 </Box>
-                <Typography variant="body2" color="textSecondary">
-                  • Uyarılar sistem tarafından otomatik olarak oluşturulur ve modül ekranında görüntülenir<br/>
-                  • Her uyarı türü için farklı eşik değerleri ve birimler belirleyebilirsiniz<br/>
-                  • Kritik uyarılar kırmızı, normal uyarılar sarı renkte gösterilir<br/>
-                  • Uyarılar çözüldüğünde manuel olarak kapatılabilir
-                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={4}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <FactoryIcon color="warning" />
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        Üretim Süreci Uyarıları
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="textSecondary">
+                      Kaliteden üretime gönderilen araçların belirlenen süre içinde geri dönmemesi durumunda uyarı verir.
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <ShippingIcon color="error" />
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        Sevk Tarihi Uyarıları
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="textSecondary">
+                      Müşteriye taahhüt edilen hedef sevk tarihi yaklaştığında veya geçtiğinde uyarı verir.
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <AssignmentIcon color="info" />
+                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                        DMO Muayene Uyarıları
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="textSecondary">
+                      DMO muayene randevu tarihi yaklaştığında veya geçtiğinde uyarı verir.
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center' }}>
+                      <strong>Önemli:</strong> Kritik uyarılar kırmızı, normal uyarılar sarı renkte gösterilir. 
+                      Uyarılar manuel olarak kapatılabilir veya ilgili süreç tamamlandığında otomatik olarak çözülür.
+                    </Typography>
+                  </Grid>
+                </Grid>
               </CardContent>
             </Card>
           </Grid>
@@ -2792,8 +2933,14 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           {/* Uyarı Türleri */}
           <Grid item xs={12}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-              Uyarı Türleri ve Ayarları
+              Uyarı Türleri ve Ayarları ({warningSettings.length} adet)
             </Typography>
+            
+            {warningSettings.length === 0 && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                Uyarı ayarları yüklenemiyor. Lütfen sayfayı yenileyin.
+              </Alert>
+            )}
             
             {warningSettings.map((setting, index) => (
               <Accordion 
@@ -2815,11 +2962,34 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <WarningIcon color={setting.isActive ? 'warning' : 'disabled'} />
+                      {setting.type === 'production_return' && <FactoryIcon color={setting.isActive ? 'warning' : 'disabled'} />}
+                      {setting.type === 'target_shipment' && <ShippingIcon color={setting.isActive ? 'error' : 'disabled'} />}
+                      {setting.type === 'dmo_inspection' && <AssignmentIcon color={setting.isActive ? 'info' : 'disabled'} />}
+                      {!['production_return', 'target_shipment', 'dmo_inspection'].includes(setting.type) && 
+                        <WarningIcon color={setting.isActive ? 'warning' : 'disabled'} />}
                       <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                          {setting.name}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                            {setting.name}
+                          </Typography>
+                          <Chip 
+                            label={
+                              setting.type === 'production_return' ? 'Üretim Süreci' :
+                              setting.type === 'target_shipment' ? 'Sevk Tarihi' :
+                              setting.type === 'dmo_inspection' ? 'DMO Muayene' : 
+                              'Genel'
+                            }
+                            size="small"
+                            color={
+                              setting.type === 'production_return' ? 'warning' :
+                              setting.type === 'target_shipment' ? 'error' :
+                              setting.type === 'dmo_inspection' ? 'info' : 
+                              'default'
+                            }
+                            variant="outlined"
+                            sx={{ fontSize: '0.75rem', height: '20px' }}
+                          />
+                        </Box>
                         <Typography variant="caption" color="textSecondary">
                           {setting.isActive ? 
                             `Aktif - ${setting.threshold} ${setting.unit === 'hours' ? 'saat' : 'gün'} eşiği` : 
@@ -2835,7 +3005,12 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                         newSettings[index] = { ...newSettings[index], isActive: e.target.checked };
                         setWarningSettings(newSettings);
                       }}
-                      color="warning"
+                      color={
+                        setting.type === 'production_return' ? 'warning' :
+                        setting.type === 'target_shipment' ? 'error' :
+                        setting.type === 'dmo_inspection' ? 'info' : 
+                        'warning'
+                      }
                     />
                   </Box>
                 </AccordionSummary>
@@ -2908,8 +3083,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                           newSettings[index] = { ...newSettings[index], description: e.target.value };
                           setWarningSettings(newSettings);
                         }}
-                        placeholder="Bu uyarının ne zaman ve neden oluşturulduğunu açıklayın..."
-                        helperText="Kullanıcılara gösterilecek uyarı açıklaması"
+                        placeholder={
+                          setting.type === 'production_return' ? 
+                            'Örnek: Araç kaliteden üretime gönderildikten sonra belirlenen süre içinde kaliteye dönmezse uyarı verir' :
+                          setting.type === 'target_shipment' ?
+                            'Örnek: Müşteriye taahhüt edilen sevk tarihi yaklaştığında veya geçtiğinde uyarı verir' :
+                          setting.type === 'dmo_inspection' ?
+                            'Örnek: DMO muayene randevu tarihi yaklaştığında veya geçtiğinde uyarı verir' :
+                            'Bu uyarının ne zaman ve neden oluşturulduğunu açıklayın...'
+                        }
+                        helperText={`${
+                          setting.type === 'production_return' ? 'Üretim Geri Dönüş' :
+                          setting.type === 'target_shipment' ? 'Hedef Sevk Tarihi' :
+                          setting.type === 'dmo_inspection' ? 'DMO Muayene Tarihi' : 
+                          'Genel'
+                        } uyarısı için açıklama`}
                       />
                     </Grid>
                   </Grid>
