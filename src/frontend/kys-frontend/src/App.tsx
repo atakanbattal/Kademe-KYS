@@ -39,6 +39,7 @@ import CustomerFeedbackManagement from './pages/CustomerFeedbackManagement';
 import TrainingManagement from './pages/TrainingManagement';
 import ProductionQualityTracking from './pages/ProductionQualityTracking';
 import QuarantineManagement from './pages/QuarantineManagement';
+import VehicleQualityControl from './pages/VehicleQualityControl';
 
 // Main app content
 const AppContent = () => {
@@ -121,6 +122,11 @@ const AppContent = () => {
           <Route path="/quality-management" element={
             <Layout>
               <QualityManagement />
+            </Layout>
+          } />
+          <Route path="/vehicle-quality-control" element={
+            <Layout>
+              <VehicleQualityControl />
             </Layout>
           } />
           <Route path="/document-management" element={

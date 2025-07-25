@@ -4,12 +4,14 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
 import config from './config/default';
+import { connectDB } from './utils/db';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
 import materialQualityControlRoutes from './routes/materialQualityControlRoutes';
 import tankLeakTestRoutes from './routes/tankLeakTestRoutes';
 import qualityControlReportRoutes from './routes/qualityControlReportRoutes';
+import vehicleQualityControlRoutes from './routes/vehicleQualityControlRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +41,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/material-quality', materialQualityControlRoutes);
 app.use('/api/tank-leak-test', tankLeakTestRoutes);
 app.use('/api/quality-control-reports', qualityControlReportRoutes);
+app.use('/api/vehicle-quality-control', vehicleQualityControlRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -61,18 +64,32 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// Start server with better error handling
-const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-}).on('error', (err: any) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Please use a different port or stop the existing process.`);
-    console.log(`You can kill the process using: lsof -ti:${PORT} | xargs kill -9`);
-    process.exit(1);
-  } else {
-    console.error('Server error:', err);
+// Connect to database and start server
+const startServer = async () => {
+  try {
+    // Connect to database first
+    await connectDB();
+    
+    // Start server with better error handling
+    const server = app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    }).on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Please use a different port or stop the existing process.`);
+        console.log(`You can kill the process using: lsof -ti:${PORT} | xargs kill -9`);
+        process.exit(1);
+      } else {
+        console.error('Server error:', err);
+        process.exit(1);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
-});
+};
+
+// Start the server
+startServer();
 
 export default app; 
