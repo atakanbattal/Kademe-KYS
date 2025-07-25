@@ -86,7 +86,8 @@ import {
   PlayArrow as PlayArrowIcon,
   Stop as StopIcon,
   AccessTime as AccessTimeIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  ReportProblem as ReportProblemIcon
 } from '@mui/icons-material';
 import { format, formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -1161,13 +1162,26 @@ const VehicleQualityControl: React.FC = () => {
                         <VisibilityIcon fontSize="small" color="primary" />
                       </IconButton>
                     </Tooltip>
+                    <Tooltip title="Eksiklik Ekle">
+                      <IconButton
+                        onClick={() => {
+                          setSelectedVehicleForDefect(vehicle);
+                          resetDefectForm();
+                          setDefectDialogOpen(true);
+                        }}
+                        size="small"
+                        sx={{ backgroundColor: '#fff3e0', '&:hover': { backgroundColor: '#ffe0b2' } }}
+                      >
+                        <ReportProblemIcon fontSize="small" color="warning" />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Düzenle">
                       <IconButton
                         onClick={() => handleVehicleEdit(vehicle)}
                         size="small"
-                        sx={{ backgroundColor: '#fff3e0', '&:hover': { backgroundColor: '#ffe0b2' } }}
+                        sx={{ backgroundColor: '#e8f5e8', '&:hover': { backgroundColor: '#c8e6c9' } }}
                       >
-                        <EditIcon fontSize="small" color="warning" />
+                        <EditIcon fontSize="small" color="success" />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Sil">
@@ -2359,57 +2373,106 @@ const VehicleQualityControl: React.FC = () => {
       }}
       maxWidth="sm"
       fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: '16px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+        }
+      }}
     >
-      <DialogTitle>Eksiklik Raporla</DialogTitle>
+      <DialogTitle sx={{ 
+        background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+        color: 'white',
+        textAlign: 'center',
+        fontSize: '1.2rem',
+        fontWeight: 'bold',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1
+      }}>
+        <ReportProblemIcon />
+        Eksiklik Raporla
+        {selectedVehicleForDefect && (
+          <Typography variant="subtitle2" sx={{ ml: 1, opacity: 0.9 }}>
+            - {selectedVehicleForDefect.vehicleName}
+          </Typography>
+        )}
+      </DialogTitle>
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel>Araç Seçimi</InputLabel>
-              <Select
-                value={selectedVehicleForDefect?._id || ''}
-                label="Araç Seçimi"
-                onChange={(e) => {
-                  const vehicleId = e.target.value as string;
-                  const vehicle = vehicles.find(v => v._id === vehicleId) || null;
-                  setSelectedVehicleForDefect(vehicle);
-                }}
-              >
-                {vehicles.map((vehicle) => (
-                  <MenuItem key={vehicle._id} value={vehicle._id}>
-                    {vehicle.vehicleName} - {vehicle.serialNumber}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
+          {selectedVehicleForDefect && (
+            <Grid item xs={12}>
+              <Card sx={{ 
+                background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                border: '1px solid #1976d2',
+                borderRadius: '8px'
+              }}>
+                <CardContent sx={{ pb: '16px !important' }}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <DirectionsCarIcon sx={{ color: '#1976d2' }} />
+                    <Typography variant="h6" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                      {selectedVehicleForDefect.vehicleName}
+                    </Typography>
+                    <Chip
+                      label={selectedVehicleForDefect.serialNumber}
+                      size="small"
+                      sx={{ backgroundColor: '#1976d2', color: 'white' }}
+                    />
+                  </Box>
+                  <Typography variant="body2" sx={{ color: '#555', mt: 1 }}>
+                    Müşteri: {selectedVehicleForDefect.customerName} | Model: {selectedVehicleForDefect.vehicleModel}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+          <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <InputLabel>Kategori</InputLabel>
               <Select
                 value={defectForm.category}
                 label="Kategori"
-                onChange={(e) => setDefectForm({ ...defectForm, category: e.target.value as string })}
+                onChange={(e) => setDefectForm({ ...defectForm, category: e.target.value as string, subcategory: '' })}
+                sx={{
+                  borderRadius: '8px',
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px'
+                  }
+                }}
               >
                 {Object.keys(DEFECT_CATEGORIES).map((key) => (
                   <MenuItem key={key} value={key}>
-                    {key}
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <ErrorIcon fontSize="small" color="warning" />
+                      {key}
+                    </Box>
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12}>
+          <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <InputLabel>Alt Kategori</InputLabel>
               <Select
                 value={defectForm.subcategory}
                 label="Alt Kategori"
                 onChange={(e) => setDefectForm({ ...defectForm, subcategory: e.target.value as string })}
+                disabled={!defectForm.category}
+                sx={{
+                  borderRadius: '8px',
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px'
+                  }
+                }}
               >
                 {DEFECT_CATEGORIES[defectForm.category]?.map((sub) => (
                   <MenuItem key={sub} value={sub}>
-                    {sub}
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <BuildIcon fontSize="small" color="info" />
+                      {sub}
+                    </Box>
                   </MenuItem>
                 ))}
               </Select>
@@ -2420,34 +2483,54 @@ const VehicleQualityControl: React.FC = () => {
               fullWidth
               label="Eksiklik Açıklaması"
               multiline
-              rows={3}
+              rows={4}
               value={defectForm.description}
               onChange={(e) => setDefectForm({ ...defectForm, description: e.target.value })}
               required
+              placeholder="Eksikliğin detaylı açıklamasını yazınız..."
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px'
+                }
+              }}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <InputLabel>Departman</InputLabel>
               <Select
                 value={defectForm.department}
                 label="Departman"
                 onChange={(e) => setDefectForm({ ...defectForm, department: e.target.value as string })}
+                sx={{
+                  borderRadius: '8px',
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px'
+                  }
+                }}
               >
                 {DEPARTMENTS.map((dep) => (
                   <MenuItem key={dep} value={dep}>
-                    {dep}
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <FactoryIcon fontSize="small" color="primary" />
+                      {dep}
+                    </Box>
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12}>
+          <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="Soruşturan"
+              label="Rapor Eden"
               value={defectForm.reportedBy}
               onChange={(e) => setDefectForm({ ...defectForm, reportedBy: e.target.value })}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px'
+                }
+              }}
             />
           </Grid>
           <Grid item xs={12}>
@@ -2460,22 +2543,55 @@ const VehicleQualityControl: React.FC = () => {
               InputLabelProps={{
                 shrink: true,
               }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px'
+                }
+              }}
+              helperText="Eksikliğin ne zaman giderileceği tahmini"
             />
           </Grid>
         </Grid>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={() => {
-          setDefectDialogOpen(false);
-          setSelectedVehicleForDefect(null);
-          resetDefectForm();
-        }}>
+      <DialogActions sx={{ p: 3, gap: 2, backgroundColor: '#f8f9fa' }}>
+        <Button 
+          onClick={() => {
+            setDefectDialogOpen(false);
+            setSelectedVehicleForDefect(null);
+            resetDefectForm();
+          }}
+          variant="outlined"
+          color="error"
+          startIcon={<CancelIcon />}
+          sx={{ 
+            borderRadius: '8px',
+            minWidth: '120px',
+            textTransform: 'none',
+            fontSize: '0.95rem'
+          }}
+        >
           İptal
         </Button>
         <Button
           onClick={handleAddDefect}
           variant="contained"
           disabled={!selectedVehicleForDefect || !defectForm.category || !defectForm.subcategory || !defectForm.description || !defectForm.department}
+          startIcon={<ReportProblemIcon />}
+          sx={{ 
+            background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+            borderRadius: '8px',
+            minWidth: '160px',
+            textTransform: 'none',
+            fontSize: '0.95rem',
+            fontWeight: 'bold',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #f57c00 0%, #ef6c00 100%)',
+            },
+            '&:disabled': {
+              background: '#cccccc',
+              color: '#888888'
+            }
+          }}
         >
           Eksiklik Raporla
         </Button>
