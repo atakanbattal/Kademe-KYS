@@ -464,29 +464,53 @@ const VehicleQualityControl: React.FC = () => {
   // DÖF oluşturma fonksiyonu
   const handleCreateDOF = (defect: any, vehicle: Vehicle | null) => {
     try {
-      // DÖF modülü için gerekli bilgileri hazırla
-      const dofData = {
-        problemDescription: `${defect.category} - ${defect.subcategory}: ${defect.description}`,
-        vehicleInfo: {
-          vehicleName: vehicle?.vehicleName || 'Bilinmeyen',
-          serialNumber: vehicle?.serialNumber || 'Bilinmeyen',
-          customerName: vehicle?.customerName || 'Bilinmeyen'
+      // DÖF modülü için uygun format hazırla
+      const prefillData = {
+        sourceModule: 'vehicleQualityControl',
+        sourceRecordId: vehicle?._id || `defect_${Date.now()}`,
+        prefillData: {
+          title: `Araç Kalite Uygunsuzluğu - ${vehicle?.vehicleName || 'Bilinmeyen'} (${defect.category})`,
+          description: `Araç Kalite Kontrol sürecinde uygunsuzluk tespit edildi.
+
+Araç Bilgileri:
+- Araç Adı: ${vehicle?.vehicleName || 'Bilinmeyen'}
+- Model: ${vehicle?.vehicleModel || 'Bilinmeyen'}
+- Seri No: ${vehicle?.serialNumber || 'Bilinmeyen'}
+- Müşteri: ${vehicle?.customerName || 'Bilinmeyen'}
+- Durum: ${vehicle ? getStatusText(vehicle.currentStatus) : 'Bilinmeyen'}
+
+Eksiklik Detayları:
+- Kategori: ${defect.category}
+- Alt Kategori: ${defect.subcategory}
+- Açıklama: ${defect.description}
+- Öncelik: ${getDefectPriorityLabel(defect.priority)}
+- Rapor Tarihi: ${defect.reportedDate ? format(new Date(defect.reportedDate), 'dd.MM.yyyy HH:mm') : 'Bilinmeyen'}
+- Rapor Eden: ${defect.responsiblePerson || 'Bilinmeyen'}
+- Departman: ${defect.department || 'Bilinmeyen'}
+
+Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir.`,
+          department: defect.department || 'Kalite Kontrol',
+          priority: defect.priority === 'critical' ? 'critical' : 
+                   defect.priority === 'high' ? 'high' : 
+                   defect.priority === 'medium' ? 'medium' : 'low',
+          type: 'corrective',
+          responsible: defect.responsiblePerson || 'Kalite Sorumlusu',
+          rootCause: 'Araştırılacak - Araç kalite kontrol uygunsuzluğu',
+          issueDescription: `${defect.category} - ${defect.subcategory}: ${defect.description}`,
+          suggestedType: 'corrective'
         },
-        defectDetails: {
-          category: defect.category,
-          subcategory: defect.subcategory,
-          priority: defect.priority,
-          reportedDate: defect.reportedDate,
-          department: defect.department,
-          responsiblePerson: defect.responsiblePerson
+        recordData: {
+          vehicle: vehicle,
+          defect: defect
         }
       };
 
-      // DÖF verilerini localStorage'a geçici olarak kaydet
-      localStorage.setItem('dofPreFillData', JSON.stringify(dofData));
+      // Prefill verisini localStorage'a kaydet
+      localStorage.setItem('dof-form-prefill', JSON.stringify(prefillData));
       
-      // DÖF modülüne yönlendir
-      window.location.href = '/dof8d-management';
+      // DÖF8DManagement sayfasına yönlendir ve form açılmasını tetikle
+      localStorage.setItem('dof-auto-open-form', 'true');
+      window.location.href = '/dof-8d-management';
       
       setSuccess('DÖF modülüne yönlendiriliyorsunuz...');
     } catch (error) {
@@ -2347,7 +2371,17 @@ const VehicleQualityControl: React.FC = () => {
             <>
               <Grid item xs={12}>
                 <Divider sx={{ my: 2 }}>
-                  <Chip label="Durum ve Süreç Yönetimi" color="primary" />
+                  <Chip 
+                    label="Durum Yönetimi" 
+                    color="primary" 
+                    sx={{ 
+                      fontSize: '0.85rem',
+                      height: '28px',
+                      '& .MuiChip-label': {
+                        px: 1.5
+                      }
+                    }}
+                  />
                 </Divider>
               </Grid>
               <Grid item xs={12}>
@@ -3108,6 +3142,24 @@ const VehicleQualityControl: React.FC = () => {
                         const shippedDate = selectedVehicle ? getShippedDate(selectedVehicle) : null;
                         return shippedDate ? format(shippedDate, 'dd.MM.yyyy HH:mm') : 'Henüz sevk edilmedi';
                       })()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="textSecondary">Hedef Sevk Tarihi:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                      {selectedVehicle?.targetShipmentDate ? 
+                        format(new Date(selectedVehicle.targetShipmentDate), 'dd.MM.yyyy') : 
+                        'Belirtilmemiş'
+                      }
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="textSecondary">DMO Muayene Tarihi:</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                      {selectedVehicle?.dmoDate ? 
+                        format(new Date(selectedVehicle.dmoDate), 'dd.MM.yyyy') : 
+                        'Belirtilmemiş'
+                      }
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
