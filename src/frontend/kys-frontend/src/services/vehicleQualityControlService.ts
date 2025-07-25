@@ -45,6 +45,8 @@ export interface Vehicle {
   qualityStartDate?: Date;
   shipmentDate?: Date;
   shipmentNotes?: string;
+  targetShipmentDate?: Date; // Hedef müşteri sevk tarihi
+  dmoDate?: Date; // DMO muayene tarihi
   qualityControlDuration?: number; // Kalitede geçirilen süre (gün)
   productionDuration?: number; // Üretimde geçirilen süre (gün)
   totalProcessDuration?: number; // Toplam süreç süresi (gün)
@@ -123,6 +125,7 @@ interface RecentActivity {
 export interface WarningSettings {
   id: string;
   name: string;
+  type: 'production_return' | 'target_shipment' | 'dmo_inspection';
   threshold: number;
   unit: 'hours' | 'days';
   level: 'warning' | 'critical';
@@ -146,6 +149,8 @@ export interface CreateVehicleData {
   customerName: string;
   spsNumber?: string;
   productionDate: Date;
+  targetShipmentDate?: Date;
+  dmoDate?: Date;
   description?: string;
   priority?: 'low' | 'medium' | 'high' | 'critical';
 }
@@ -279,18 +284,52 @@ export const DEFAULT_WARNING_SETTINGS: WarningSettings[] = [
   {
     id: '1',
     name: 'Üretim Geri Dönüş Uyarısı',
+    type: 'production_return',
     threshold: 2,
     unit: 'days',
     level: 'warning',
-    isActive: true
+    isActive: true,
+    description: 'Üretime geri gönderilip kaliteye dönmeyen araçlar için uyarı'
   },
   {
     id: '2', 
     name: 'Kritik Gecikme Uyarısı',
+    type: 'production_return',
     threshold: 5,
     unit: 'days',
     level: 'critical',
-    isActive: true
+    isActive: true,
+    description: 'Uzun süreli üretime takılı kalan araçlar için kritik uyarı'
+  },
+  {
+    id: '3',
+    name: 'Hedef Sevk Tarihi Yaklaşıyor',
+    type: 'target_shipment',
+    threshold: 3,
+    unit: 'days',
+    level: 'warning',
+    isActive: true,
+    description: 'Müşteri hedef sevk tarihi yaklaşan araçlar için uyarı'
+  },
+  {
+    id: '4',
+    name: 'DMO Muayene Tarihi Yaklaşıyor',
+    type: 'dmo_inspection',
+    threshold: 7,
+    unit: 'days',
+    level: 'warning',
+    isActive: true,
+    description: 'DMO muayene tarihi yaklaşan araçlar için uyarı'
+  },
+  {
+    id: '5',
+    name: 'DMO Muayene Tarihi Geçti',
+    type: 'dmo_inspection',
+    threshold: 0,
+    unit: 'days',
+    level: 'critical',
+    isActive: true,
+    description: 'DMO muayene tarihi geçen araçlar için kritik uyarı'
   }
 ];
 
@@ -706,6 +745,21 @@ class VehicleQualityControlService {
 
   // Helper methods for warning calculations
   private checkOverdueStatus(vehicle: Vehicle, warningSettings: WarningSettings[]): boolean {
+    const activeSettings = warningSettings.filter(w => w.isActive);
+    
+    // 1. Üretim geri dönüş kontrolü
+    const productionReturnWarnings = this.checkProductionReturnWarnings(vehicle, activeSettings);
+    
+    // 2. Hedef sevk tarihi kontrolü
+    const targetShipmentWarnings = this.checkTargetShipmentWarnings(vehicle, activeSettings);
+    
+    // 3. DMO muayene tarihi kontrolü
+    const dmoWarnings = this.checkDmoWarnings(vehicle, activeSettings);
+    
+    return productionReturnWarnings || targetShipmentWarnings || dmoWarnings;
+  }
+
+  private checkProductionReturnWarnings(vehicle: Vehicle, activeSettings: WarningSettings[]): boolean {
     const productionReturnHistory = vehicle.statusHistory.filter(h => h.status === VehicleStatus.RETURNED_TO_PRODUCTION);
     if (productionReturnHistory.length === 0) return false;
 
@@ -716,18 +770,18 @@ class VehicleQualityControlService {
       if (!subsequentQuality) {
         const timeSinceReturn = new Date().getTime() - new Date(returned.date).getTime();
         
-        // Aktif uyarı ayarlarını kontrol et
-        const activeSettings = warningSettings.filter(w => w.isActive);
+        // Aktif production_return uyarı ayarlarını kontrol et
+        const productionSettings = activeSettings.filter(w => w.type === 'production_return');
         
-        for (const setting of activeSettings) {
+        for (const setting of productionSettings) {
           let thresholdInMs = 0;
           
           if (setting.unit === 'hours') {
-            thresholdInMs = setting.threshold * 60 * 60 * 1000; // Saat to millisecond
+            thresholdInMs = setting.threshold * 60 * 60 * 1000;
           } else if (setting.unit === 'days') {
-            thresholdInMs = setting.threshold * 24 * 60 * 60 * 1000; // Gün to millisecond
+            thresholdInMs = setting.threshold * 24 * 60 * 60 * 1000;
           } else if (setting.unit === 'minutes') {
-            thresholdInMs = setting.threshold * 60 * 1000; // Dakika to millisecond
+            thresholdInMs = setting.threshold * 60 * 1000;
           }
           
           if (timeSinceReturn > thresholdInMs) {
@@ -735,8 +789,8 @@ class VehicleQualityControlService {
           }
         }
         
-        // Hiç aktif ayar yoksa default 2 gün
-        if (activeSettings.length === 0) {
+        // Hiç aktif production ayar yoksa default 2 gün
+        if (productionSettings.length === 0) {
           const defaultThreshold = 2 * 24 * 60 * 60 * 1000; // 2 gün
           return timeSinceReturn > defaultThreshold;
         }
@@ -745,12 +799,84 @@ class VehicleQualityControlService {
     });
   }
 
+  private checkTargetShipmentWarnings(vehicle: Vehicle, activeSettings: WarningSettings[]): boolean {
+    if (!vehicle.targetShipmentDate) return false;
+    
+    const targetDate = new Date(vehicle.targetShipmentDate);
+    const now = new Date();
+    const timeUntilTarget = targetDate.getTime() - now.getTime();
+    
+    // Hedef tarih geçmişse veya yaklaşıyorsa uyarı ver
+    const targetSettings = activeSettings.filter(w => w.type === 'target_shipment');
+    
+    for (const setting of targetSettings) {
+      let thresholdInMs = 0;
+      
+      if (setting.unit === 'hours') {
+        thresholdInMs = setting.threshold * 60 * 60 * 1000;
+      } else if (setting.unit === 'days') {
+        thresholdInMs = setting.threshold * 24 * 60 * 60 * 1000;
+      }
+      
+      // Eğer kalan süre threshold'dan azsa uyarı ver
+      if (timeUntilTarget <= thresholdInMs) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  private checkDmoWarnings(vehicle: Vehicle, activeSettings: WarningSettings[]): boolean {
+    if (!vehicle.dmoDate) return false;
+    
+    const dmoDate = new Date(vehicle.dmoDate);
+    const now = new Date();
+    const timeUntilDmo = dmoDate.getTime() - now.getTime();
+    
+    // DMO tarihi geçmişse veya yaklaşıyorsa uyarı ver
+    const dmoSettings = activeSettings.filter(w => w.type === 'dmo_inspection');
+    
+    for (const setting of dmoSettings) {
+      let thresholdInMs = 0;
+      
+      if (setting.unit === 'hours') {
+        thresholdInMs = setting.threshold * 60 * 60 * 1000;
+      } else if (setting.unit === 'days') {
+        thresholdInMs = setting.threshold * 24 * 60 * 60 * 1000;
+      }
+      
+      // Eğer kalan süre threshold'dan azsa veya geçmişse uyarı ver
+      if (timeUntilDmo <= thresholdInMs) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   private calculateWarningLevel(vehicle: Vehicle, warningSettings: WarningSettings[]): 'none' | 'warning' | 'critical' {
+    const activeSettings = warningSettings.filter(w => w.isActive);
+    
+    // Tüm uyarı türlerinden en yüksek seviyeyi belirle
+    const warningLevels: ('none' | 'warning' | 'critical')[] = [
+      this.calculateProductionWarningLevel(vehicle, activeSettings),
+      this.calculateTargetShipmentWarningLevel(vehicle, activeSettings),
+      this.calculateDmoWarningLevel(vehicle, activeSettings)
+    ];
+    
+    // Kritik varsa kritik, yoksa warning varsa warning, yoksa none döndür
+    if (warningLevels.includes('critical')) return 'critical';
+    if (warningLevels.includes('warning')) return 'warning';
+    return 'none';
+  }
+
+  private calculateProductionWarningLevel(vehicle: Vehicle, activeSettings: WarningSettings[]): 'none' | 'warning' | 'critical' {
     const productionReturnHistory = vehicle.statusHistory.filter(h => h.status === VehicleStatus.RETURNED_TO_PRODUCTION);
     if (productionReturnHistory.length === 0) return 'none';
 
     const qualityControlHistory = vehicle.statusHistory.filter(h => h.status === VehicleStatus.QUALITY_CONTROL);
-    const activeSettings = warningSettings.filter(w => w.isActive);
+    const productionSettings = activeSettings.filter(w => w.type === 'production_return');
     
     let maxOverdueHours = 0;
     productionReturnHistory.forEach(returned => {
@@ -762,8 +888,8 @@ class VehicleQualityControlService {
         // En küçük threshold'u bul
         let minThresholdHours = 48; // Default 2 gün = 48 saat
         
-        if (activeSettings.length > 0) {
-          minThresholdHours = Math.min(...activeSettings.map(setting => {
+        if (productionSettings.length > 0) {
+          minThresholdHours = Math.min(...productionSettings.map(setting => {
             if (setting.unit === 'hours') return setting.threshold;
             if (setting.unit === 'days') return setting.threshold * 24;
             if (setting.unit === 'minutes') return setting.threshold / 60;
@@ -781,6 +907,73 @@ class VehicleQualityControlService {
     if (maxOverdueHours <= 0) return 'none';
     if (maxOverdueHours <= 24) return 'warning'; // 24 saat içinde warning
     return 'critical'; // 24 saatten fazla critical
+  }
+
+  private calculateTargetShipmentWarningLevel(vehicle: Vehicle, activeSettings: WarningSettings[]): 'none' | 'warning' | 'critical' {
+    if (!vehicle.targetShipmentDate) return 'none';
+    
+    const targetDate = new Date(vehicle.targetShipmentDate);
+    const now = new Date();
+    const timeUntilTarget = targetDate.getTime() - now.getTime();
+    const hoursUntilTarget = timeUntilTarget / (1000 * 60 * 60);
+    
+    const targetSettings = activeSettings.filter(w => w.type === 'target_shipment');
+    if (targetSettings.length === 0) return 'none';
+    
+    // En kısa uyarı süresini bul
+    const minWarningHours = Math.min(...targetSettings.map(setting => {
+      if (setting.unit === 'hours') return setting.threshold;
+      if (setting.unit === 'days') return setting.threshold * 24;
+      return 72; // Default 3 gün
+    }));
+    
+    // Hedef tarih geçtiyse kritik
+    if (hoursUntilTarget < 0) return 'critical';
+    
+    // Uyarı süresinden azsa warning
+    if (hoursUntilTarget <= minWarningHours) return 'warning';
+    
+    return 'none';
+  }
+
+  private calculateDmoWarningLevel(vehicle: Vehicle, activeSettings: WarningSettings[]): 'none' | 'warning' | 'critical' {
+    if (!vehicle.dmoDate) return 'none';
+    
+    const dmoDate = new Date(vehicle.dmoDate);
+    const now = new Date();
+    const timeUntilDmo = dmoDate.getTime() - now.getTime();
+    const hoursUntilDmo = timeUntilDmo / (1000 * 60 * 60);
+    
+    const dmoSettings = activeSettings.filter(w => w.type === 'dmo_inspection');
+    if (dmoSettings.length === 0) return 'none';
+    
+    // Kritik ve warning threshold'larını ayır
+    const criticalSettings = dmoSettings.filter(s => s.level === 'critical');
+    const warningSettings = dmoSettings.filter(s => s.level === 'warning');
+    
+    // DMO tarihi geçtiyse veya kritik threshold'a ulaştıysa kritik
+    if (criticalSettings.length > 0) {
+      const criticalHours = Math.max(...criticalSettings.map(setting => {
+        if (setting.unit === 'hours') return setting.threshold;
+        if (setting.unit === 'days') return setting.threshold * 24;
+        return 0;
+      }));
+      
+      if (hoursUntilDmo <= criticalHours) return 'critical';
+    }
+    
+    // Warning threshold'a ulaştıysa warning
+    if (warningSettings.length > 0) {
+      const warningHours = Math.max(...warningSettings.map(setting => {
+        if (setting.unit === 'hours') return setting.threshold;
+        if (setting.unit === 'days') return setting.threshold * 24;
+        return 168; // Default 7 gün
+      }));
+      
+      if (hoursUntilDmo <= warningHours) return 'warning';
+    }
+    
+    return 'none';
   }
 
   async deleteVehicle(id: string): Promise<void> {

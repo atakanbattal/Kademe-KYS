@@ -174,6 +174,8 @@ const VehicleQualityControl: React.FC = () => {
     customerName: '',
     spsNumber: '',
     productionDate: new Date(),
+    targetShipmentDate: undefined,
+    dmoDate: undefined,
     description: '',
     priority: 'medium'
   });
@@ -340,6 +342,8 @@ const VehicleQualityControl: React.FC = () => {
       customerName: '',
       spsNumber: '',
       productionDate: new Date(),
+      targetShipmentDate: undefined,
+      dmoDate: undefined,
       description: '',
       priority: 'medium'
     });
@@ -454,6 +458,40 @@ const VehicleQualityControl: React.FC = () => {
       setError('Araç kaydedilirken hata oluştu: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // DÖF oluşturma fonksiyonu
+  const handleCreateDOF = (defect: any, vehicle: Vehicle | null) => {
+    try {
+      // DÖF modülü için gerekli bilgileri hazırla
+      const dofData = {
+        problemDescription: `${defect.category} - ${defect.subcategory}: ${defect.description}`,
+        vehicleInfo: {
+          vehicleName: vehicle?.vehicleName || 'Bilinmeyen',
+          serialNumber: vehicle?.serialNumber || 'Bilinmeyen',
+          customerName: vehicle?.customerName || 'Bilinmeyen'
+        },
+        defectDetails: {
+          category: defect.category,
+          subcategory: defect.subcategory,
+          priority: defect.priority,
+          reportedDate: defect.reportedDate,
+          department: defect.department,
+          responsiblePerson: defect.responsiblePerson
+        }
+      };
+
+      // DÖF verilerini localStorage'a geçici olarak kaydet
+      localStorage.setItem('dofPreFillData', JSON.stringify(dofData));
+      
+      // DÖF modülüne yönlendir
+      window.location.href = '/dof8d-management';
+      
+      setSuccess('DÖF modülüne yönlendiriliyorsunuz...');
+    } catch (error) {
+      setError('DÖF oluşturulurken hata oluştu');
+      console.error('DÖF creation error:', error);
     }
   };
 
@@ -2068,6 +2106,36 @@ const VehicleQualityControl: React.FC = () => {
             />
           </Grid>
 
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Hedef Müşteri Sevk Tarihi"
+              type="date"
+              value={vehicleForm.targetShipmentDate ? format(new Date(vehicleForm.targetShipmentDate), 'yyyy-MM-dd') : ''}
+              onChange={(e) => setVehicleForm({ 
+                ...vehicleForm, 
+                targetShipmentDate: e.target.value ? new Date(e.target.value) : undefined 
+              })}
+              InputLabelProps={{ shrink: true }}
+              helperText="Müşteriye sevk edilmesi hedeflenen tarih"
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="DMO Muayene Tarihi"
+              type="date"
+              value={vehicleForm.dmoDate ? format(new Date(vehicleForm.dmoDate), 'yyyy-MM-dd') : ''}
+              onChange={(e) => setVehicleForm({ 
+                ...vehicleForm, 
+                dmoDate: e.target.value ? new Date(e.target.value) : undefined 
+              })}
+              InputLabelProps={{ shrink: true }}
+              helperText="DMO muayene randevu tarihi"
+            />
+          </Grid>
+
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -2234,6 +2302,36 @@ const VehicleQualityControl: React.FC = () => {
               </Select>
             </FormControl>
           </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Hedef Müşteri Sevk Tarihi"
+              type="date"
+              value={vehicleForm.targetShipmentDate ? format(new Date(vehicleForm.targetShipmentDate), 'yyyy-MM-dd') : ''}
+              onChange={(e) => setVehicleForm({ 
+                ...vehicleForm, 
+                targetShipmentDate: e.target.value ? new Date(e.target.value) : undefined 
+              })}
+              InputLabelProps={{ shrink: true }}
+              helperText="Müşteriye sevk edilmesi hedeflenen tarih"
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="DMO Muayene Tarihi"
+              type="date"
+              value={vehicleForm.dmoDate ? format(new Date(vehicleForm.dmoDate), 'yyyy-MM-dd') : ''}
+              onChange={(e) => setVehicleForm({ 
+                ...vehicleForm, 
+                dmoDate: e.target.value ? new Date(e.target.value) : undefined 
+              })}
+              InputLabelProps={{ shrink: true }}
+              helperText="DMO muayene randevu tarihi"
+            />
+          </Grid>
+
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -2252,77 +2350,81 @@ const VehicleQualityControl: React.FC = () => {
                   <Chip label="Durum ve Süreç Yönetimi" color="primary" />
                 </Divider>
               </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Mevcut Proses Adımı</InputLabel>
-                  <Select
-                    value={editingVehicle.currentStatus}
-                    label="Mevcut Proses Adımı"
-                    onChange={(e) => {
-                      if (editingVehicle) {
-                        setEditingVehicle({ 
-                          ...editingVehicle, 
-                          currentStatus: e.target.value as VehicleStatus 
-                        });
-                      }
-                    }}
-                  >
-                    {Object.values(VehicleStatus).map((status) => (
-                      <MenuItem key={status} value={status}>
-                        {getVehicleStatusLabel(status)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Proses Başlangıç Tarihi"
-                  type="datetime-local"
-                  value={(() => {
-                    const currentStatusHistory = editingVehicle.statusHistory.find(h => h.status === editingVehicle.currentStatus);
-                    if (currentStatusHistory && currentStatusHistory.date) {
-                      try {
-                        return format(new Date(currentStatusHistory.date), "yyyy-MM-dd'T'HH:mm");
-                      } catch (error) {
-                        console.error('Date formatting error:', error);
+              <Grid item xs={12}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Mevcut Proses Adımı</InputLabel>
+                      <Select
+                        value={editingVehicle.currentStatus}
+                        label="Mevcut Proses Adımı"
+                        onChange={(e) => {
+                          if (editingVehicle) {
+                            setEditingVehicle({ 
+                              ...editingVehicle, 
+                              currentStatus: e.target.value as VehicleStatus 
+                            });
+                          }
+                        }}
+                      >
+                        {Object.values(VehicleStatus).map((status) => (
+                          <MenuItem key={status} value={status}>
+                            {getVehicleStatusLabel(status)}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Proses Başlangıç Tarihi"
+                      type="datetime-local"
+                      value={(() => {
+                        const currentStatusHistory = editingVehicle.statusHistory.find(h => h.status === editingVehicle.currentStatus);
+                        if (currentStatusHistory && currentStatusHistory.date) {
+                          try {
+                            return format(new Date(currentStatusHistory.date), "yyyy-MM-dd'T'HH:mm");
+                          } catch (error) {
+                            console.error('Date formatting error:', error);
+                            return '';
+                          }
+                        }
                         return '';
-                      }
-                    }
-                    return '';
-                  })()}
-                  onChange={(e) => {
-                    if (editingVehicle && e.target.value) {
-                      const newDate = new Date(e.target.value);
-                      const updatedHistory = editingVehicle.statusHistory.map(h =>
-                        h.status === editingVehicle.currentStatus 
-                          ? { ...h, date: newDate } 
-                          : h
-                      );
-                      
-                      // Eğer bu durum için geçmiş yoksa yeni bir kayıt ekle
-                      if (!updatedHistory.find(h => h.status === editingVehicle.currentStatus)) {
-                        updatedHistory.push({
-                          id: Date.now().toString(),
-                          status: editingVehicle.currentStatus,
-                          date: newDate,
-                          performedBy: 'Manuel Düzenleme',
-                          performedById: 'manual-edit',
-                          notes: 'Manuel tarih düzenlemesi'
-                        });
-                      }
-                      
-                      setEditingVehicle({ 
-                        ...editingVehicle, 
-                        statusHistory: updatedHistory,
-                        updatedAt: new Date()
-                      });
-                    }
-                  }}
-                  InputLabelProps={{ shrink: true }}
-                  helperText="Aracın mevcut durumda bulunduğu sürenin başlangıç tarihini düzenleyebilirsiniz"
-                />
+                      })()}
+                      onChange={(e) => {
+                        if (editingVehicle && e.target.value) {
+                          const newDate = new Date(e.target.value);
+                          const updatedHistory = editingVehicle.statusHistory.map(h =>
+                            h.status === editingVehicle.currentStatus 
+                              ? { ...h, date: newDate } 
+                              : h
+                          );
+                          
+                          // Eğer bu durum için geçmiş yoksa yeni bir kayıt ekle
+                          if (!updatedHistory.find(h => h.status === editingVehicle.currentStatus)) {
+                            updatedHistory.push({
+                              id: Date.now().toString(),
+                              status: editingVehicle.currentStatus,
+                              date: newDate,
+                              performedBy: 'Manuel Düzenleme',
+                              performedById: 'manual-edit',
+                              notes: 'Manuel tarih düzenlemesi'
+                            });
+                          }
+                          
+                          setEditingVehicle({ 
+                            ...editingVehicle, 
+                            statusHistory: updatedHistory,
+                            updatedAt: new Date()
+                          });
+                        }
+                      }}
+                      InputLabelProps={{ shrink: true }}
+                      helperText="Aracın mevcut durumda bulunduğu sürenin başlangıç tarihini düzenleyebilirsiniz"
+                    />
+                  </Grid>
+                </Grid>
               </Grid>
               <Grid item xs={12}>
                 <Alert severity="warning" sx={{ mt: 1 }}>
@@ -3104,7 +3206,9 @@ const VehicleQualityControl: React.FC = () => {
                           border: '1px solid #f0f0f0',
                           borderRadius: '8px',
                           mb: 1,
-                          bgcolor: 'grey.50'
+                          bgcolor: 'grey.50',
+                          flexDirection: 'column',
+                          alignItems: 'stretch'
                         }}>
                           <ListItemText
                             primary={
@@ -3135,6 +3239,31 @@ const VehicleQualityControl: React.FC = () => {
                               </Box>
                             }
                           />
+                          <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'flex-end', 
+                            mt: 1, 
+                            pt: 1, 
+                            borderTop: '1px solid #e0e0e0' 
+                          }}>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="warning"
+                              startIcon={<AssignmentIcon />}
+                              onClick={() => handleCreateDOF(defect, selectedVehicle)}
+                              sx={{
+                                borderRadius: '6px',
+                                textTransform: 'none',
+                                fontSize: '0.75rem',
+                                minWidth: 'auto',
+                                px: 1.5,
+                                py: 0.5
+                              }}
+                            >
+                              DÖF Oluştur
+                            </Button>
+                          </Box>
                         </ListItem>
                       ))}
                     </List>
@@ -3185,6 +3314,8 @@ const VehicleQualityControl: React.FC = () => {
       customerName: vehicle.customerName,
       spsNumber: vehicle.spsNumber || '',
       productionDate: vehicle.productionDate,
+      targetShipmentDate: vehicle.targetShipmentDate,
+      dmoDate: vehicle.dmoDate,
       description: vehicle.description || '',
       priority: vehicle.priority
     });
