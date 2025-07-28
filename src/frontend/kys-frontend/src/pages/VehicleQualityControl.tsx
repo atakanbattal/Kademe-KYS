@@ -2722,14 +2722,28 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                             }}>
                                               {index + 1}
                                             </Box>
-                                            <Box>
-                                              <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1a1a1a', mb: 0.5 }}>
-                                                {index + 1}. İşlem: {getVehicleStatusLabel(history.status)}
-                                              </Typography>
-                                              <Typography variant="caption" color="textSecondary">
-                                                İşlem eden: {history.performedBy || 'Bilinmiyor'}
-                                              </Typography>
-                                            </Box>
+                                                                                         <Box>
+                                               <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1a1a1a', mb: 0.5 }}>
+                                                 {index + 1}. Aşama: {getVehicleStatusLabel(history.status)}
+                                               </Typography>
+                                               <Typography variant="caption" color="textSecondary">
+                                                 {(() => {
+                                                   const startDate = history.date;
+                                                   let endDate;
+                                                   
+                                                   if (history.status === editingVehicle.currentStatus) {
+                                                     return `${startDate ? format(new Date(startDate), 'dd.MM.yyyy HH:mm') : ''} → Devam ediyor`;
+                                                   } else {
+                                                     const sortedHistory = editingVehicle.statusHistory
+                                                       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                                                     const nextHistory = sortedHistory[index + 1];
+                                                     endDate = nextHistory ? new Date(nextHistory.date) : null;
+                                                     
+                                                     return `${startDate ? format(new Date(startDate), 'dd.MM.yyyy HH:mm') : 'Bilinmiyor'} → ${endDate ? format(endDate, 'dd.MM.yyyy HH:mm') : 'Belirtilmedi'}`;
+                                                   }
+                                                 })()}
+                                               </Typography>
+                                             </Box>
                                           </Box>
                                           <Box sx={{ display: 'flex', gap: 1 }}>
                                             <Chip 
@@ -2759,12 +2773,12 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                           </Box>
                                         </Box>
 
-                                        {/* İşlem Detayları */}
+                                        {/* Giriş-Çıkış Tarihleri */}
                                         <Grid container spacing={2}>
                                           <Grid item xs={12} md={6}>
                                             <TextField
                                               fullWidth
-                                              label="İşlem Tarihi ve Saati"
+                                              label={`${getVehicleStatusLabel(history.status)} - GİRİŞ Tarihi`}
                                               type="datetime-local"
                                               size="small"
                                               value={history.date ? format(new Date(history.date), "yyyy-MM-dd'T'HH:mm") : ''}
@@ -2794,7 +2808,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                               sx={{
                                                 '& .MuiOutlinedInput-root': {
                                                   borderRadius: '8px',
-                                                  backgroundColor: '#ffffff'
+                                                  backgroundColor: '#e8f5e8'
                                                 }
                                               }}
                                             />
@@ -2802,9 +2816,48 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                           <Grid item xs={12} md={6}>
                                             <TextField
                                               fullWidth
-                                              label="İşlem ile İlgili Notlar"
+                                              label={`${getVehicleStatusLabel(history.status)} - ÇIKIŞ Tarihi`}
+                                              type="datetime-local"
+                                              size="small"
+                                              value={(() => {
+                                                // Bir sonraki işlemin giriş tarihi bu işlemin çıkış tarihi
+                                                const sortedHistory = editingVehicle.statusHistory
+                                                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                                                const nextHistory = sortedHistory[index + 1];
+                                                
+                                                if (nextHistory && nextHistory.date) {
+                                                  return format(new Date(nextHistory.date), "yyyy-MM-dd'T'HH:mm");
+                                                }
+                                                
+                                                // Eğer mevcut durum ise çıkış tarihi yok
+                                                if (history.status === editingVehicle.currentStatus) {
+                                                  return '';
+                                                }
+                                                
+                                                // Çıkış tarihi belirlenmemişse boş
+                                                return '';
+                                              })()}
+                                                                                            onChange={(e) => {
+                                                // Çıkış tarihi sadece görüntüleme amaçlı, düzenleme yapılmıyor
+                                                console.log('Çıkış tarihi düzenleme henüz desteklenmiyor');
+                                              }}
+                                              InputLabelProps={{ shrink: true }}
+                                              disabled={history.status === editingVehicle.currentStatus}
+                                              placeholder={history.status === editingVehicle.currentStatus ? 'Devam ediyor...' : 'Çıkış tarihi girin'}
+                                              sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                  borderRadius: '8px',
+                                                  backgroundColor: history.status === editingVehicle.currentStatus ? '#f5f5f5' : '#ffe8e8'
+                                                }
+                                              }}
+                                            />
+                                          </Grid>
+                                          <Grid item xs={12}>
+                                            <TextField
+                                              fullWidth
+                                              label="İşlem Notları"
                                               multiline
-                                              rows={3}
+                                              rows={2}
                                               size="small"
                                               value={history.notes || ''}
                                               onChange={(e) => {
@@ -2820,7 +2873,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                                   updatedAt: new Date()
                                                 });
                                               }}
-                                              placeholder={`${getVehicleStatusLabel(history.status)} işlemi ile ilgili not ekleyin...`}
+                                              placeholder={`${getVehicleStatusLabel(history.status)} aşaması ile ilgili notlar...`}
                                               sx={{ 
                                                 '& .MuiOutlinedInput-root': {
                                                   borderRadius: '8px',
@@ -2831,34 +2884,82 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                           </Grid>
                                         </Grid>
 
-                                        {/* Süre Bilgisi */}
-                                        {index > 0 && (
-                                          <Box sx={{ mt: 2, p: 1.5, backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                                            <Typography variant="caption" color="textSecondary">
-                                              <strong>Bir önceki işlemden bu yana geçen süre:</strong> {' '}
-                                              {(() => {
-                                                const sortedHistory = editingVehicle.statusHistory
-                                                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                                                const prevHistory = sortedHistory[index - 1];
-                                                if (prevHistory && history.date) {
-                                                  const diffMs = new Date(history.date).getTime() - new Date(prevHistory.date).getTime();
-                                                  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                                                  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                                                  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                        {/* Süre ve Durum Bilgisi */}
+                                        <Box sx={{ mt: 2, p: 2, backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                                          <Grid container spacing={2}>
+                                            <Grid item xs={12} md={6}>
+                                              <Typography variant="caption" color="textSecondary">
+                                                <strong>Bu aşamada geçirilen süre:</strong><br/>
+                                                {(() => {
+                                                  const startDate = history.date;
+                                                  let endDate;
                                                   
-                                                  if (diffDays > 0) {
-                                                    return `${diffDays} gün, ${diffHours} saat, ${diffMinutes} dakika`;
-                                                  } else if (diffHours > 0) {
-                                                    return `${diffHours} saat, ${diffMinutes} dakika`;
+                                                  // Çıkış tarihi belirleme
+                                                  if (history.status === editingVehicle.currentStatus) {
+                                                    endDate = new Date(); // Mevcut durum için şu anki zaman
                                                   } else {
-                                                    return `${diffMinutes} dakika`;
+                                                    const sortedHistory = editingVehicle.statusHistory
+                                                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                                                    const nextHistory = sortedHistory[index + 1];
+                                                    endDate = nextHistory ? new Date(nextHistory.date) : (history.exitDate ? new Date(history.exitDate) : new Date());
                                                   }
-                                                }
-                                                return 'Hesaplanamıyor';
-                                              })()}
-                                            </Typography>
-                                          </Box>
-                                        )}
+                                                  
+                                                  if (startDate && endDate) {
+                                                    const diffMs = endDate.getTime() - new Date(startDate).getTime();
+                                                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                                    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                                    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                                    
+                                                    if (diffDays > 0) {
+                                                      return `${diffDays} gün, ${diffHours} saat, ${diffMinutes} dakika`;
+                                                    } else if (diffHours > 0) {
+                                                      return `${diffHours} saat, ${diffMinutes} dakika`;
+                                                    } else {
+                                                      return `${diffMinutes} dakika`;
+                                                    }
+                                                  }
+                                                  return 'Hesaplanamıyor';
+                                                })()}
+                                                {history.status === editingVehicle.currentStatus && ' (devam ediyor)'}
+                                              </Typography>
+                                            </Grid>
+                                            <Grid item xs={12} md={6}>
+                                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Box sx={{
+                                                  width: 12,
+                                                  height: 12,
+                                                  borderRadius: '50%',
+                                                  backgroundColor: '#4caf50'
+                                                }} />
+                                                <Typography variant="caption" color="textSecondary">
+                                                  <strong>Giriş:</strong> {history.date ? format(new Date(history.date), 'dd.MM.yyyy HH:mm') : 'Bilinmiyor'}
+                                                </Typography>
+                                              </Box>
+                                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                                                <Box sx={{
+                                                  width: 12,
+                                                  height: 12,
+                                                  borderRadius: '50%',
+                                                  backgroundColor: history.status === editingVehicle.currentStatus ? '#ff9800' : '#f44336'
+                                                }} />
+                                                <Typography variant="caption" color="textSecondary">
+                                                  <strong>Çıkış:</strong> {(() => {
+                                                    if (history.status === editingVehicle.currentStatus) {
+                                                      return 'Devam ediyor...';
+                                                    }
+                                                    const sortedHistory = editingVehicle.statusHistory
+                                                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                                                    const nextHistory = sortedHistory[index + 1];
+                                                    if (nextHistory && nextHistory.date) {
+                                                      return format(new Date(nextHistory.date), 'dd.MM.yyyy HH:mm');
+                                                    }
+                                                    return history.exitDate ? format(new Date(history.exitDate), 'dd.MM.yyyy HH:mm') : 'Belirtilmedi';
+                                                  })()}
+                                                </Typography>
+                                              </Box>
+                                            </Grid>
+                                          </Grid>
+                                        </Box>
                                       </CardContent>
                                     </Card>
                                   </ListItem>
