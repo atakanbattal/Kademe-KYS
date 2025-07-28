@@ -2901,7 +2901,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                                     const sortedHistory = editingVehicle.statusHistory
                                                       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
                                                     const nextHistory = sortedHistory[index + 1];
-                                                    endDate = nextHistory ? new Date(nextHistory.date) : (history.exitDate ? new Date(history.exitDate) : new Date());
+                                                    endDate = nextHistory ? new Date(nextHistory.date) : new Date();
                                                   }
                                                   
                                                   if (startDate && endDate) {
@@ -2953,7 +2953,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                                     if (nextHistory && nextHistory.date) {
                                                       return format(new Date(nextHistory.date), 'dd.MM.yyyy HH:mm');
                                                     }
-                                                    return history.exitDate ? format(new Date(history.exitDate), 'dd.MM.yyyy HH:mm') : 'Belirtilmedi';
+                                                    return 'Belirtilmedi';
                                                   })()}
                                                 </Typography>
                                               </Box>
