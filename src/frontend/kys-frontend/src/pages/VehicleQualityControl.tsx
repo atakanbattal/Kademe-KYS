@@ -2653,119 +2653,219 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                     <Grid item xs={12}>
                       <Divider sx={{ my: 2 }} />
                       <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
-                        Tüm İşlem Tarihleri ({editingVehicle.statusHistory.length} adet işlem)
+                        Kronolojik İşlem Geçmişi ({editingVehicle.statusHistory.length} adet işlem)
                       </Typography>
                       <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                        Aracın geçmiş tüm durum değişikliklerinin tarihlerini burada düzenleyebilirsiniz.
+                        Aracın tüm durum değişikliklerinin kronolojik sırası. En eskiden en yeniye doğru sıralanmıştır.
                       </Typography>
                       
                       {editingVehicle.statusHistory.length > 0 ? (
-                        <Grid container spacing={2}>
-                          {editingVehicle.statusHistory
-                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                            .map((history, index) => (
-                            <Grid item xs={12} sm={6} md={4} key={`${history.status}-${index}`}>
-                              <Card sx={{ 
-                                border: '1px solid #e0e0e0', 
-                                borderRadius: '8px',
-                                bgcolor: history.status === editingVehicle.currentStatus ? '#e3f2fd' : '#f9f9f9'
-                              }}>
-                                <CardContent sx={{ p: 2 }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                    <Chip 
-                                      size="small"
-                                      label={getVehicleStatusLabel(history.status)}
-                                      sx={{ 
-                                        backgroundColor: getVehicleStatusColor(history.status),
-                                        color: 'white',
-                                        fontWeight: 'medium',
-                                        fontSize: '0.75rem'
-                                      }}
-                                    />
-                                    {history.status === editingVehicle.currentStatus && (
-                                      <Chip 
-                                        size="small" 
-                                        label="Mevcut" 
-                                        color="primary" 
-                                        variant="outlined"
-                                        sx={{ fontSize: '0.7rem' }}
-                                      />
-                                    )}
-                                  </Box>
-                                  
-                                  <TextField
-                                    fullWidth
-                                    label="İşlem Tarihi"
-                                    type="datetime-local"
-                                    size="small"
-                                    value={history.date ? format(new Date(history.date), "yyyy-MM-dd'T'HH:mm") : ''}
-                                    onChange={(e) => {
-                                      if (e.target.value) {
-                                        try {
-                                          const newDate = new Date(e.target.value);
-                                          if (!isNaN(newDate.getTime())) {
-                                            const updatedHistory = [...editingVehicle.statusHistory];
-                                            updatedHistory[index] = {
-                                              ...updatedHistory[index],
-                                              date: newDate
-                                            };
-                                            
-                                            setEditingVehicle({
-                                              ...editingVehicle,
-                                              statusHistory: updatedHistory,
-                                              updatedAt: new Date()
-                                            });
-                                          }
-                                        } catch (error) {
-                                          console.warn('Geçersiz tarih formatı:', e.target.value);
-                                        }
-                                      }
-                                    }}
-                                    InputLabelProps={{ shrink: true }}
-                                    sx={{
-                                      '& .MuiOutlinedInput-root': {
-                                        borderRadius: '6px'
-                                      }
-                                    }}
-                                  />
-                                  
-                                  <TextField
-                                    fullWidth
-                                    label="İşlem Notu"
-                                    multiline
-                                    rows={2}
-                                    size="small"
-                                    value={history.notes || ''}
-                                    onChange={(e) => {
-                                      const updatedHistory = [...editingVehicle.statusHistory];
-                                      updatedHistory[index] = {
-                                        ...updatedHistory[index],
-                                        notes: e.target.value
-                                      };
-                                      
-                                      setEditingVehicle({
-                                        ...editingVehicle,
-                                        statusHistory: updatedHistory,
-                                        updatedAt: new Date()
-                                      });
-                                    }}
-                                    placeholder="İşlem ile ilgili not ekleyin..."
+                        <Box sx={{ 
+                          maxHeight: '500px', 
+                          overflowY: 'auto', 
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '12px',
+                          bgcolor: '#fafafa'
+                        }}>
+                          <List sx={{ p: 2 }}>
+                            {editingVehicle.statusHistory
+                              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                              .map((history, index) => {
+                                const originalIndex = editingVehicle.statusHistory.findIndex(h => 
+                                  h.status === history.status && 
+                                  h.date === history.date &&
+                                  h.performedBy === history.performedBy
+                                );
+                                
+                                return (
+                                  <ListItem 
+                                    key={`${history.status}-${originalIndex}-${index}`}
                                     sx={{ 
-                                      mt: 1,
-                                      '& .MuiOutlinedInput-root': {
-                                        borderRadius: '6px'
-                                      }
+                                      mb: 2,
+                                      p: 0,
+                                      display: 'block'
                                     }}
-                                  />
-                                  
-                                  <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-                                    İşlem eden: {history.performedBy || 'Bilinmiyor'}
-                                  </Typography>
-                                </CardContent>
-                              </Card>
-                            </Grid>
-                          ))}
-                        </Grid>
+                                  >
+                                    <Card sx={{ 
+                                      border: history.status === editingVehicle.currentStatus ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                                      borderRadius: '12px',
+                                      bgcolor: history.status === editingVehicle.currentStatus ? '#e3f2fd' : '#ffffff',
+                                      boxShadow: history.status === editingVehicle.currentStatus ? '0 4px 12px rgba(25,118,210,0.15)' : '0 2px 8px rgba(0,0,0,0.1)',
+                                      position: 'relative',
+                                      '&:before': {
+                                        content: '""',
+                                        position: 'absolute',
+                                        left: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: '4px',
+                                        backgroundColor: getVehicleStatusColor(history.status),
+                                        borderTopLeftRadius: '12px',
+                                        borderBottomLeftRadius: '12px'
+                                      }
+                                    }}>
+                                      <CardContent sx={{ p: 3 }}>
+                                        {/* İşlem Başlığı */}
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Box sx={{
+                                              width: 32,
+                                              height: 32,
+                                              borderRadius: '50%',
+                                              backgroundColor: '#1976d2',
+                                              color: 'white',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              fontSize: '0.875rem',
+                                              fontWeight: 'bold'
+                                            }}>
+                                              {index + 1}
+                                            </Box>
+                                            <Box>
+                                              <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1a1a1a', mb: 0.5 }}>
+                                                {index + 1}. İşlem: {getVehicleStatusLabel(history.status)}
+                                              </Typography>
+                                              <Typography variant="caption" color="textSecondary">
+                                                İşlem eden: {history.performedBy || 'Bilinmiyor'}
+                                              </Typography>
+                                            </Box>
+                                          </Box>
+                                          <Box sx={{ display: 'flex', gap: 1 }}>
+                                            <Chip 
+                                              size="small"
+                                              label={getVehicleStatusLabel(history.status)}
+                                              sx={{ 
+                                                backgroundColor: getVehicleStatusColor(history.status),
+                                                color: 'white',
+                                                fontWeight: 'medium',
+                                                fontSize: '0.75rem'
+                                              }}
+                                            />
+                                            {history.status === editingVehicle.currentStatus && (
+                                              <Chip 
+                                                size="small" 
+                                                label="MEVCUT DURUM" 
+                                                color="primary" 
+                                                variant="filled"
+                                                sx={{ 
+                                                  fontSize: '0.7rem',
+                                                  fontWeight: 'bold',
+                                                  backgroundColor: '#1976d2',
+                                                  color: 'white'
+                                                }}
+                                              />
+                                            )}
+                                          </Box>
+                                        </Box>
+
+                                        {/* İşlem Detayları */}
+                                        <Grid container spacing={2}>
+                                          <Grid item xs={12} md={6}>
+                                            <TextField
+                                              fullWidth
+                                              label="İşlem Tarihi ve Saati"
+                                              type="datetime-local"
+                                              size="small"
+                                              value={history.date ? format(new Date(history.date), "yyyy-MM-dd'T'HH:mm") : ''}
+                                              onChange={(e) => {
+                                                if (e.target.value) {
+                                                  try {
+                                                    const newDate = new Date(e.target.value);
+                                                    if (!isNaN(newDate.getTime())) {
+                                                      const updatedHistory = [...editingVehicle.statusHistory];
+                                                      updatedHistory[originalIndex] = {
+                                                        ...updatedHistory[originalIndex],
+                                                        date: newDate
+                                                      };
+                                                      
+                                                      setEditingVehicle({
+                                                        ...editingVehicle,
+                                                        statusHistory: updatedHistory,
+                                                        updatedAt: new Date()
+                                                      });
+                                                    }
+                                                  } catch (error) {
+                                                    console.warn('Geçersiz tarih formatı:', e.target.value);
+                                                  }
+                                                }
+                                              }}
+                                              InputLabelProps={{ shrink: true }}
+                                              sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                  borderRadius: '8px',
+                                                  backgroundColor: '#ffffff'
+                                                }
+                                              }}
+                                            />
+                                          </Grid>
+                                          <Grid item xs={12} md={6}>
+                                            <TextField
+                                              fullWidth
+                                              label="İşlem ile İlgili Notlar"
+                                              multiline
+                                              rows={3}
+                                              size="small"
+                                              value={history.notes || ''}
+                                              onChange={(e) => {
+                                                const updatedHistory = [...editingVehicle.statusHistory];
+                                                updatedHistory[originalIndex] = {
+                                                  ...updatedHistory[originalIndex],
+                                                  notes: e.target.value
+                                                };
+                                                
+                                                setEditingVehicle({
+                                                  ...editingVehicle,
+                                                  statusHistory: updatedHistory,
+                                                  updatedAt: new Date()
+                                                });
+                                              }}
+                                              placeholder={`${getVehicleStatusLabel(history.status)} işlemi ile ilgili not ekleyin...`}
+                                              sx={{ 
+                                                '& .MuiOutlinedInput-root': {
+                                                  borderRadius: '8px',
+                                                  backgroundColor: '#ffffff'
+                                                }
+                                              }}
+                                            />
+                                          </Grid>
+                                        </Grid>
+
+                                        {/* Süre Bilgisi */}
+                                        {index > 0 && (
+                                          <Box sx={{ mt: 2, p: 1.5, backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                                            <Typography variant="caption" color="textSecondary">
+                                              <strong>Bir önceki işlemden bu yana geçen süre:</strong> {' '}
+                                              {(() => {
+                                                const sortedHistory = editingVehicle.statusHistory
+                                                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                                                const prevHistory = sortedHistory[index - 1];
+                                                if (prevHistory && history.date) {
+                                                  const diffMs = new Date(history.date).getTime() - new Date(prevHistory.date).getTime();
+                                                  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                                  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                                  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                                  
+                                                  if (diffDays > 0) {
+                                                    return `${diffDays} gün, ${diffHours} saat, ${diffMinutes} dakika`;
+                                                  } else if (diffHours > 0) {
+                                                    return `${diffHours} saat, ${diffMinutes} dakika`;
+                                                  } else {
+                                                    return `${diffMinutes} dakika`;
+                                                  }
+                                                }
+                                                return 'Hesaplanamıyor';
+                                              })()}
+                                            </Typography>
+                                          </Box>
+                                        )}
+                                      </CardContent>
+                                    </Card>
+                                  </ListItem>
+                                );
+                              })}
+                          </List>
+                        </Box>
                       ) : (
                         <Alert severity="info" sx={{ borderRadius: '8px' }}>
                           <Typography variant="body2">
