@@ -2209,9 +2209,25 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
               label="Üretim Tarihi"
               type="date"
               value={vehicleForm.productionDate ? format(new Date(vehicleForm.productionDate), 'yyyy-MM-dd') : ''}
-              onChange={(e) => setVehicleForm({ ...vehicleForm, productionDate: new Date(e.target.value) })}
+              onChange={(e) => {
+                try {
+                  if (e.target.value && e.target.value.length >= 8) {
+                    const newDate = new Date(e.target.value);
+                    if (!isNaN(newDate.getTime())) {
+                      setVehicleForm({ ...vehicleForm, productionDate: newDate });
+                    }
+                  } else if (!e.target.value) {
+                    setVehicleForm({ ...vehicleForm, productionDate: undefined });
+                  }
+                } catch (error) {
+                  console.warn('Geçersiz tarih formatı:', e.target.value);
+                }
+              }}
               InputLabelProps={{
                 shrink: true,
+              }}
+              inputProps={{
+                max: format(new Date(), 'yyyy-MM-dd') // Gelecek tarih girişini engelle
               }}
             />
           </Grid>
@@ -2222,10 +2238,20 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
               label="Hedef Müşteri Sevk Tarihi"
               type="date"
               value={vehicleForm.targetShipmentDate ? format(new Date(vehicleForm.targetShipmentDate), 'yyyy-MM-dd') : ''}
-              onChange={(e) => setVehicleForm({ 
-                ...vehicleForm, 
-                targetShipmentDate: e.target.value ? new Date(e.target.value) : undefined 
-              })}
+              onChange={(e) => {
+                try {
+                  if (e.target.value && e.target.value.length >= 8) {
+                    const newDate = new Date(e.target.value);
+                    if (!isNaN(newDate.getTime())) {
+                      setVehicleForm({ ...vehicleForm, targetShipmentDate: newDate });
+                    }
+                  } else if (!e.target.value) {
+                    setVehicleForm({ ...vehicleForm, targetShipmentDate: undefined });
+                  }
+                } catch (error) {
+                  console.warn('Geçersiz tarih formatı:', e.target.value);
+                }
+              }}
               InputLabelProps={{ shrink: true }}
               helperText="Müşteriye sevk edilmesi hedeflenen tarih"
             />
@@ -2237,10 +2263,20 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
               label="DMO Muayene Tarihi"
               type="date"
               value={vehicleForm.dmoDate ? format(new Date(vehicleForm.dmoDate), 'yyyy-MM-dd') : ''}
-              onChange={(e) => setVehicleForm({ 
-                ...vehicleForm, 
-                dmoDate: e.target.value ? new Date(e.target.value) : undefined 
-              })}
+              onChange={(e) => {
+                try {
+                  if (e.target.value && e.target.value.length >= 8) {
+                    const newDate = new Date(e.target.value);
+                    if (!isNaN(newDate.getTime())) {
+                      setVehicleForm({ ...vehicleForm, dmoDate: newDate });
+                    }
+                  } else if (!e.target.value) {
+                    setVehicleForm({ ...vehicleForm, dmoDate: undefined });
+                  }
+                } catch (error) {
+                  console.warn('Geçersiz tarih formatı:', e.target.value);
+                }
+              }}
               InputLabelProps={{ shrink: true }}
               helperText="DMO muayene randevu tarihi"
             />
@@ -2392,8 +2428,24 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
               label="Üretim Tarihi"
               type="date"
               value={vehicleForm.productionDate ? format(new Date(vehicleForm.productionDate), 'yyyy-MM-dd') : ''}
-              onChange={(e) => setVehicleForm({ ...vehicleForm, productionDate: new Date(e.target.value) })}
+              onChange={(e) => {
+                try {
+                  if (e.target.value && e.target.value.length >= 8) {
+                    const newDate = new Date(e.target.value);
+                    if (!isNaN(newDate.getTime())) {
+                      setVehicleForm({ ...vehicleForm, productionDate: newDate });
+                    }
+                  } else if (!e.target.value) {
+                    setVehicleForm({ ...vehicleForm, productionDate: undefined });
+                  }
+                } catch (error) {
+                  console.warn('Geçersiz tarih formatı:', e.target.value);
+                }
+              }}
               InputLabelProps={{ shrink: true }}
+              inputProps={{
+                max: format(new Date(), 'yyyy-MM-dd') // Gelecek tarih girişini engelle
+              }}
               required
             />
           </Grid>
@@ -2418,10 +2470,20 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
               label="Hedef Müşteri Sevk Tarihi"
               type="date"
               value={vehicleForm.targetShipmentDate ? format(new Date(vehicleForm.targetShipmentDate), 'yyyy-MM-dd') : ''}
-              onChange={(e) => setVehicleForm({ 
-                ...vehicleForm, 
-                targetShipmentDate: e.target.value ? new Date(e.target.value) : undefined 
-              })}
+              onChange={(e) => {
+                try {
+                  if (e.target.value && e.target.value.length >= 8) {
+                    const newDate = new Date(e.target.value);
+                    if (!isNaN(newDate.getTime())) {
+                      setVehicleForm({ ...vehicleForm, targetShipmentDate: newDate });
+                    }
+                  } else if (!e.target.value) {
+                    setVehicleForm({ ...vehicleForm, targetShipmentDate: undefined });
+                  }
+                } catch (error) {
+                  console.warn('Geçersiz tarih formatı:', e.target.value);
+                }
+              }}
               InputLabelProps={{ shrink: true }}
               helperText="Müşteriye sevk edilmesi hedeflenen tarih"
             />
@@ -2433,10 +2495,20 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
               label="DMO Muayene Tarihi"
               type="date"
               value={vehicleForm.dmoDate ? format(new Date(vehicleForm.dmoDate), 'yyyy-MM-dd') : ''}
-              onChange={(e) => setVehicleForm({ 
-                ...vehicleForm, 
-                dmoDate: e.target.value ? new Date(e.target.value) : undefined 
-              })}
+              onChange={(e) => {
+                try {
+                  if (e.target.value && e.target.value.length >= 8) {
+                    const newDate = new Date(e.target.value);
+                    if (!isNaN(newDate.getTime())) {
+                      setVehicleForm({ ...vehicleForm, dmoDate: newDate });
+                    }
+                  } else if (!e.target.value) {
+                    setVehicleForm({ ...vehicleForm, dmoDate: undefined });
+                  }
+                } catch (error) {
+                  console.warn('Geçersiz tarih formatı:', e.target.value);
+                }
+              }}
               InputLabelProps={{ shrink: true }}
               helperText="DMO muayene randevu tarihi"
             />
@@ -2477,7 +2549,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <SettingsIcon color="primary" sx={{ fontSize: 20 }} />
                     <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
-                      Durum Yönetimi
+                      Durum Yönetimi ve Tarih Düzenleme
                     </Typography>
                     <Chip 
                       label="Gelişmiş" 
@@ -2487,86 +2559,235 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                     />
                   </Box>
                 </AccordionSummary>
-                <AccordionDetails sx={{ p: 2 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Mevcut Proses Adımı</InputLabel>
-                        <Select
-                          value={editingVehicle.currentStatus}
-                          label="Mevcut Proses Adımı"
-                          onChange={(e) => {
-                            if (editingVehicle) {
-                              setEditingVehicle({ 
-                                ...editingVehicle, 
-                                currentStatus: e.target.value as VehicleStatus 
-                              });
-                            }
-                          }}
-                        >
-                          {Object.values(VehicleStatus).map((status) => (
-                            <MenuItem key={status} value={status}>
-                              {getVehicleStatusLabel(status)}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Proses Başlangıç Tarihi"
-                        type="datetime-local"
-                        size="small"
-                        value={(() => {
-                          const currentStatusHistory = editingVehicle.statusHistory.find(h => h.status === editingVehicle.currentStatus);
-                          if (currentStatusHistory && currentStatusHistory.date) {
-                            try {
-                              return format(new Date(currentStatusHistory.date), "yyyy-MM-dd'T'HH:mm");
-                            } catch (error) {
-                              console.error('Date formatting error:', error);
-                              return '';
-                            }
-                          }
-                          return '';
-                        })()}
-                        onChange={(e) => {
-                          if (editingVehicle && e.target.value) {
-                            const newDate = new Date(e.target.value);
-                            const updatedHistory = editingVehicle.statusHistory.map(h =>
-                              h.status === editingVehicle.currentStatus 
-                                ? { ...h, date: newDate } 
-                                : h
-                            );
-                            
-                            // Eğer bu durum için geçmiş yoksa yeni bir kayıt ekle
-                            if (!updatedHistory.find(h => h.status === editingVehicle.currentStatus)) {
-                              updatedHistory.push({
-                                id: Date.now().toString(),
-                                status: editingVehicle.currentStatus,
-                                date: newDate,
-                                performedBy: 'Manuel Düzenleme',
-                                performedById: 'manual-edit',
-                                notes: 'Manuel tarih düzenlemesi'
-                              });
-                            }
-                            
-                            setEditingVehicle({ 
-                              ...editingVehicle, 
-                              statusHistory: updatedHistory,
-                              updatedAt: new Date()
-                            });
-                          }
-                        }}
-                        InputLabelProps={{ shrink: true }}
-                        helperText="Mevcut durumdaki başlangıç tarihini düzenleyin"
-                      />
-                    </Grid>
+                <AccordionDetails sx={{ p: 3 }}>
+                  <Grid container spacing={3}>
+                    {/* Mevcut Durum Yönetimi */}
                     <Grid item xs={12}>
-                      <Alert severity="info" sx={{ borderRadius: '8px' }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
+                        Mevcut Durum Bilgileri
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Mevcut Proses Adımı</InputLabel>
+                            <Select
+                              value={editingVehicle.currentStatus}
+                              label="Mevcut Proses Adımı"
+                              onChange={(e) => {
+                                if (editingVehicle) {
+                                  setEditingVehicle({ 
+                                    ...editingVehicle, 
+                                    currentStatus: e.target.value as VehicleStatus 
+                                  });
+                                }
+                              }}
+                            >
+                              {Object.values(VehicleStatus).map((status) => (
+                                <MenuItem key={status} value={status}>
+                                  {getVehicleStatusLabel(status)}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            label="Mevcut Durum Başlangıç Tarihi"
+                            type="datetime-local"
+                            size="small"
+                            value={(() => {
+                              const currentStatusHistory = editingVehicle.statusHistory.find(h => h.status === editingVehicle.currentStatus);
+                              if (currentStatusHistory && currentStatusHistory.date) {
+                                try {
+                                  return format(new Date(currentStatusHistory.date), "yyyy-MM-dd'T'HH:mm");
+                                } catch (error) {
+                                  console.error('Date formatting error:', error);
+                                  return '';
+                                }
+                              }
+                              return '';
+                            })()}
+                            onChange={(e) => {
+                              if (editingVehicle && e.target.value) {
+                                try {
+                                  const newDate = new Date(e.target.value);
+                                  if (!isNaN(newDate.getTime())) {
+                                    const updatedHistory = editingVehicle.statusHistory.map(h =>
+                                      h.status === editingVehicle.currentStatus 
+                                        ? { ...h, date: newDate } 
+                                        : h
+                                    );
+                                    
+                                    // Eğer bu durum için geçmiş yoksa yeni bir kayıt ekle
+                                    if (!updatedHistory.find(h => h.status === editingVehicle.currentStatus)) {
+                                      updatedHistory.push({
+                                        id: Date.now().toString(),
+                                        status: editingVehicle.currentStatus,
+                                        date: newDate,
+                                        performedBy: 'Manuel Düzenleme',
+                                        performedById: 'manual-edit',
+                                        notes: 'Manuel tarih düzenlemesi'
+                                      });
+                                    }
+                                    
+                                    setEditingVehicle({ 
+                                      ...editingVehicle, 
+                                      statusHistory: updatedHistory,
+                                      updatedAt: new Date()
+                                    });
+                                  }
+                                } catch (error) {
+                                  console.warn('Geçersiz tarih formatı:', e.target.value);
+                                }
+                              }
+                            }}
+                            InputLabelProps={{ shrink: true }}
+                            helperText="Mevcut durumdaki başlangıç tarihini düzenleyin"
+                          />
+                        </Grid>
+                      </Grid>
+                    </Grid>
+
+                    {/* Tüm İşlem Tarihleri */}
+                    <Grid item xs={12}>
+                      <Divider sx={{ my: 2 }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: '#1976d2' }}>
+                        Tüm İşlem Tarihleri ({editingVehicle.statusHistory.length} adet işlem)
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+                        Aracın geçmiş tüm durum değişikliklerinin tarihlerini burada düzenleyebilirsiniz.
+                      </Typography>
+                      
+                      {editingVehicle.statusHistory.length > 0 ? (
+                        <Grid container spacing={2}>
+                          {editingVehicle.statusHistory
+                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                            .map((history, index) => (
+                            <Grid item xs={12} sm={6} md={4} key={`${history.status}-${index}`}>
+                              <Card sx={{ 
+                                border: '1px solid #e0e0e0', 
+                                borderRadius: '8px',
+                                bgcolor: history.status === editingVehicle.currentStatus ? '#e3f2fd' : '#f9f9f9'
+                              }}>
+                                <CardContent sx={{ p: 2 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                    <Chip 
+                                      size="small"
+                                      label={getVehicleStatusLabel(history.status)}
+                                      sx={{ 
+                                        backgroundColor: getVehicleStatusColor(history.status),
+                                        color: 'white',
+                                        fontWeight: 'medium',
+                                        fontSize: '0.75rem'
+                                      }}
+                                    />
+                                    {history.status === editingVehicle.currentStatus && (
+                                      <Chip 
+                                        size="small" 
+                                        label="Mevcut" 
+                                        color="primary" 
+                                        variant="outlined"
+                                        sx={{ fontSize: '0.7rem' }}
+                                      />
+                                    )}
+                                  </Box>
+                                  
+                                  <TextField
+                                    fullWidth
+                                    label="İşlem Tarihi"
+                                    type="datetime-local"
+                                    size="small"
+                                    value={history.date ? format(new Date(history.date), "yyyy-MM-dd'T'HH:mm") : ''}
+                                    onChange={(e) => {
+                                      if (e.target.value) {
+                                        try {
+                                          const newDate = new Date(e.target.value);
+                                          if (!isNaN(newDate.getTime())) {
+                                            const updatedHistory = [...editingVehicle.statusHistory];
+                                            updatedHistory[index] = {
+                                              ...updatedHistory[index],
+                                              date: newDate
+                                            };
+                                            
+                                            setEditingVehicle({
+                                              ...editingVehicle,
+                                              statusHistory: updatedHistory,
+                                              updatedAt: new Date()
+                                            });
+                                          }
+                                        } catch (error) {
+                                          console.warn('Geçersiz tarih formatı:', e.target.value);
+                                        }
+                                      }
+                                    }}
+                                    InputLabelProps={{ shrink: true }}
+                                    sx={{
+                                      '& .MuiOutlinedInput-root': {
+                                        borderRadius: '6px'
+                                      }
+                                    }}
+                                  />
+                                  
+                                  <TextField
+                                    fullWidth
+                                    label="İşlem Notu"
+                                    multiline
+                                    rows={2}
+                                    size="small"
+                                    value={history.notes || ''}
+                                    onChange={(e) => {
+                                      const updatedHistory = [...editingVehicle.statusHistory];
+                                      updatedHistory[index] = {
+                                        ...updatedHistory[index],
+                                        notes: e.target.value
+                                      };
+                                      
+                                      setEditingVehicle({
+                                        ...editingVehicle,
+                                        statusHistory: updatedHistory,
+                                        updatedAt: new Date()
+                                      });
+                                    }}
+                                    placeholder="İşlem ile ilgili not ekleyin..."
+                                    sx={{ 
+                                      mt: 1,
+                                      '& .MuiOutlinedInput-root': {
+                                        borderRadius: '6px'
+                                      }
+                                    }}
+                                  />
+                                  
+                                  <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
+                                    İşlem eden: {history.performedBy || 'Bilinmiyor'}
+                                  </Typography>
+                                </CardContent>
+                              </Card>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      ) : (
+                        <Alert severity="info" sx={{ borderRadius: '8px' }}>
+                          <Typography variant="body2">
+                            Henüz işlem geçmişi bulunmuyor. Araç ilk kez kaydedildikten sonra durum değişiklikleri burada görünecektir.
+                          </Typography>
+                        </Alert>
+                      )}
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Alert severity="warning" sx={{ borderRadius: '8px' }}>
                         <Typography variant="body2">
-                          <strong>Bilgi:</strong> Durum ve tarih değişiklikleri uyarı sistemini ve raporları etkileyecektir. 
-                          Değişiklikleri yapmadan önce mevcut süreçleri kontrol edin.
+                          <strong>Önemli Uyarı:</strong> Tarih değişiklikleri şunları etkileyecektir:
+                        </Typography>
+                        <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                          <li>Uyarı sistemi hesaplamaları</li>
+                          <li>Performans raporları ve istatistikler</li>
+                          <li>Süreç takip metrikleri</li>
+                          <li>DÖF ve uygunsuzluk kayıtları</li>
+                        </ul>
+                        <Typography variant="body2">
+                          Lütfen değişiklikleri yapmadan önce bu etkileri göz önünde bulundurun.
                         </Typography>
                       </Alert>
                     </Grid>
@@ -2780,9 +3001,25 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
               label="Tahmini Çözüm Tarihi"
               type="date"
               value={defectForm.estimatedResolutionDate ? format(new Date(defectForm.estimatedResolutionDate), 'yyyy-MM-dd') : ''}
-              onChange={(e) => setDefectForm({ ...defectForm, estimatedResolutionDate: e.target.value ? new Date(e.target.value) : undefined })}
+              onChange={(e) => {
+                try {
+                  if (e.target.value && e.target.value.length >= 8) {
+                    const newDate = new Date(e.target.value);
+                    if (!isNaN(newDate.getTime())) {
+                      setDefectForm({ ...defectForm, estimatedResolutionDate: newDate });
+                    }
+                  } else if (!e.target.value) {
+                    setDefectForm({ ...defectForm, estimatedResolutionDate: undefined });
+                  }
+                } catch (error) {
+                  console.warn('Geçersiz tarih formatı:', e.target.value);
+                }
+              }}
               InputLabelProps={{
                 shrink: true,
+              }}
+              inputProps={{
+                min: format(new Date(), 'yyyy-MM-dd') // Geçmiş tarih girişini engelle
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
