@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Typography,
   Box,
@@ -545,6 +545,72 @@ const Settings: React.FC = () => {
     enableTLS: true,
     senderName: 'Kademe A.Ş. KYS'
   });
+
+  // Load data from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedUsers = localStorage.getItem('settings_users');
+      const savedDepartments = localStorage.getItem('settings_departments');
+      const savedNotifications = localStorage.getItem('settings_notifications');
+      const savedStandards = localStorage.getItem('settings_standards');
+      const savedSystemSettings = localStorage.getItem('settings_systemSettings');
+      const savedIntegrationSettings = localStorage.getItem('settings_integrationSettings');
+      const savedEmailSettings = localStorage.getItem('settings_emailSettings');
+
+      if (savedUsers) {
+        setUsers(JSON.parse(savedUsers));
+      }
+      if (savedDepartments) {
+        setDepartments(JSON.parse(savedDepartments));
+      }
+      if (savedNotifications) {
+        setNotifications(JSON.parse(savedNotifications));
+      }
+      if (savedStandards) {
+        setStandards(JSON.parse(savedStandards));
+      }
+      if (savedSystemSettings) {
+        setSystemSettings(JSON.parse(savedSystemSettings));
+      }
+      if (savedIntegrationSettings) {
+        setIntegrationSettings(JSON.parse(savedIntegrationSettings));
+      }
+      if (savedEmailSettings) {
+        setEmailSettings(JSON.parse(savedEmailSettings));
+      }
+    } catch (error) {
+      console.error('Settings verilerini yükleme hatası:', error);
+    }
+  }, []);
+
+  // Save data to localStorage whenever state changes
+  useEffect(() => {
+    localStorage.setItem('settings_users', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
+    localStorage.setItem('settings_departments', JSON.stringify(departments));
+  }, [departments]);
+
+  useEffect(() => {
+    localStorage.setItem('settings_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    localStorage.setItem('settings_standards', JSON.stringify(standards));
+  }, [standards]);
+
+  useEffect(() => {
+    localStorage.setItem('settings_systemSettings', JSON.stringify(systemSettings));
+  }, [systemSettings]);
+
+  useEffect(() => {
+    localStorage.setItem('settings_integrationSettings', JSON.stringify(integrationSettings));
+  }, [integrationSettings]);
+
+  useEffect(() => {
+    localStorage.setItem('settings_emailSettings', JSON.stringify(emailSettings));
+  }, [emailSettings]);
 
   // Tab change handler
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {

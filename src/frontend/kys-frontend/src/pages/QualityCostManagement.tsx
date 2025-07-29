@@ -112,6 +112,7 @@ import {
   TableView as TableViewIcon,
   ViewModule as ViewModuleIcon,
   HelpOutline as HelpOutlineIcon,
+  Engineering as EngineeringIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -353,6 +354,8 @@ type MaterialType =
   | 'Al 1050' | 'Al 3003' | 'Al 5754' | 'Al 6061'
   // Galvaniz ve Kaplama
   | 'DX51D+Z' | 'DX52D+Z' | 'DX53D+Z'
+  // Döküm Malzemeler
+  | 'Pik Döküm' | 'Sfero Döküm'
   // Diğer
   | 'Diğer';
 
@@ -365,6 +368,7 @@ const MATERIAL_TYPE_CATEGORIES = {
   'Özel Alaşımlar': ['Cor-Ten A', 'Cor-Ten B', 'Weathering Steel'] as MaterialType[],
   'Alüminyum Alaşımlar': ['Al 1050', 'Al 3003', 'Al 5754', 'Al 6061'] as MaterialType[],
   'Galvaniz ve Kaplama': ['DX51D+Z', 'DX52D+Z', 'DX53D+Z'] as MaterialType[],
+  'Döküm Malzemeler': ['Pik Döküm', 'Sfero Döküm'] as MaterialType[],
   'Diğer': ['Diğer'] as MaterialType[]
 };
 
@@ -864,7 +868,10 @@ export default function QualityCostManagement() {
     includeLabor: false,
     
     // ✅ YENİ: Yeniden işlem maliyeti için etkilenen diğer birimler
-    ekBirimMaliyetleri: []
+    ekBirimMaliyetleri: [],
+    
+    // ✅ YENİ: Dış işlem maliyetleri
+    disIslemMaliyetleri: []
   });
 
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -10200,7 +10207,10 @@ const ProfessionalDataTable: React.FC<{
     includeLabor: false,
     
     // ✅ YENİ: Yeniden işlem maliyeti için etkilenen diğer birimler
-    ekBirimMaliyetleri: []
+    ekBirimMaliyetleri: [],
+    
+    // ✅ YENİ: Dış işlem maliyetleri
+    disIslemMaliyetleri: []
   });
 
   // ✅ Context7: filters now comes from global props (no local filter state needed)
@@ -10229,6 +10239,7 @@ const ProfessionalDataTable: React.FC<{
     { value: 'elektrikhane', label: 'Elektrikhane' },
     { value: 'idari_isler', label: 'İdari İşler' },
     { value: 'kalite_kontrol', label: 'Kalite Kontrol' },
+    { value: 'kabin_hatti', label: 'Kabin Hattı' },
     { value: 'kaynakhane', label: 'Kaynakhane' },
     { value: 'kesim', label: 'Kesim' },
     { value: 'mekanik_montaj', label: 'Mekanik Montaj' },
@@ -10264,7 +10275,9 @@ const ProfessionalDataTable: React.FC<{
     { value: 'kdm80', label: 'KDM 80' },
     { value: 'rusya_motor_odasi', label: 'Rusya Motor Odası' },
     { value: 'ural', label: 'Ural' },
-    { value: 'hsck', label: 'HSCK' }
+    { value: 'hsck', label: 'HSCK' },
+    { value: 'traktor_kabin', label: 'Traktör Kabin' },
+    { value: 'genel_hurda', label: 'Genel Hurda' }
   ], []);
 
   // ✅ DEBUG: Filtrelenmiş veri debug'u
@@ -10533,7 +10546,10 @@ const ProfessionalDataTable: React.FC<{
       includeLabor: false,
     
     // ✅ YENİ: Yeniden işlem maliyeti için etkilenen diğer birimler
-    ekBirimMaliyetleri: []
+    ekBirimMaliyetleri: [],
+    
+    // ✅ YENİ: Dış işlem maliyetleri
+    disIslemMaliyetleri: []
   });
 
     setDialogOpen(true);
@@ -10835,6 +10851,13 @@ const ProfessionalDataTable: React.FC<{
     return formData.maliyet;
   }, [formData, getSelectedMaliyetTuruInfo, materialPricings, estimatePartCostFromMaterial]);
 
+  // ✅ YENİ: Dış işlem maliyetleri dahil toplam maliyet hesaplama
+  const calculateTotalCostWithExternalProcessing = useCallback(() => {
+    const baseCost = calculateDynamicCost();
+    const externalProcessingCost = (formData.disIslemMaliyetleri || []).reduce((sum: number, islem: any) => sum + (islem.maliyet || 0), 0);
+    return baseCost + externalProcessingCost;
+  }, [calculateDynamicCost, formData.disIslemMaliyetleri]);
+
   const getMaliyetTuruColor = (maliyetTuru: string) => {
     const colorMap: Record<string, 'error' | 'warning' | 'info' | 'success'> = {
       hurda: 'error',
@@ -10887,7 +10910,11 @@ const ProfessionalDataTable: React.FC<{
       includeLabor: entry.includeLabor || false,
       
       // ✅ YENİ: Etkilenen diğer birimler
-      ekBirimMaliyetleri: entry.ekBirimMaliyetleri || [],    });
+      ekBirimMaliyetleri: entry.ekBirimMaliyetleri || [],
+      
+      // ✅ YENİ: Dış işlem maliyetleri
+      disIslemMaliyetleri: entry.disIslemMaliyetleri || []
+    });
     setDialogOpen(true);
   }, []);
 
@@ -12345,6 +12372,194 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         }}
                       />
                     </Grid>
+
+                    {/* ✅ YENİ: Dış İşlem Maliyetleri Bölümü */}
+                    <Grid item xs={12}>
+                      <Accordion sx={{ 
+                        mt: 2,
+                        border: '1px solid',
+                        borderColor: 'warning.200',
+                        borderRadius: 2,
+                        '&:before': { display: 'none' }
+                      }}>
+                        <AccordionSummary 
+                          expandIcon={<ExpandMoreIcon />}
+                          sx={{ 
+                            bgcolor: 'warning.50',
+                            borderRadius: '8px 8px 0 0',
+                            '&.Mui-expanded': {
+                              borderRadius: '8px 8px 0 0'
+                            }
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <EngineeringIcon sx={{ color: 'warning.main' }} />
+                            <Typography variant="subtitle1" fontWeight="600" color="warning.main">
+                              Dış İşlem Maliyetleri
+                            </Typography>
+                            {(formData.disIslemMaliyetleri?.length > 0) && (
+                              <Chip 
+                                size="small" 
+                                label={`${formData.disIslemMaliyetleri.length} işlem`}
+                                color="warning"
+                                variant="outlined"
+                              />
+                            )}
+                          </Box>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ bgcolor: 'grey.50' }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            Parça hurdaya ayrılmadan önce yapılan dış işlemler (döküm, işleme, boyama vb.)
+                          </Typography>
+                          
+                          {/* Dış İşlem Listesi */}
+                          {(formData.disIslemMaliyetleri || []).map((islem: any, index: number) => (
+                            <Box key={index} sx={{ 
+                              mb: 2, 
+                              p: 2, 
+                              border: '1px solid',
+                              borderColor: 'grey.300',
+                              borderRadius: 1,
+                              bgcolor: 'white'
+                            }}>
+                              <Grid container spacing={2} alignItems="center">
+                                <Grid item xs={12} sm={4}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="İşlem Türü"
+                                    value={islem.islemTuru || ''}
+                                    onChange={(e) => {
+                                      const updatedIslemler = [...(formData.disIslemMaliyetleri || [])];
+                                      updatedIslemler[index] = { ...islem, islemTuru: e.target.value };
+                                      setFormData({...formData, disIslemMaliyetleri: updatedIslemler});
+                                    }}
+                                    placeholder="Döküm, İşleme, Boyama..."
+                                  />
+                                </Grid>
+                                <Grid item xs={12} sm={3}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Maliyet"
+                                    type="number"
+                                    value={islem.maliyet || ''}
+                                    onChange={(e) => {
+                                      const updatedIslemler = [...(formData.disIslemMaliyetleri || [])];
+                                      updatedIslemler[index] = { ...islem, maliyet: parseFloat(e.target.value) || 0 };
+                                      setFormData({...formData, disIslemMaliyetleri: updatedIslemler});
+                                    }}
+                                    InputProps={{
+                                      startAdornment: <InputAdornment position="start">₺</InputAdornment>
+                                    }}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Açıklama"
+                                    value={islem.aciklama || ''}
+                                    onChange={(e) => {
+                                      const updatedIslemler = [...(formData.disIslemMaliyetleri || [])];
+                                      updatedIslemler[index] = { ...islem, aciklama: e.target.value };
+                                      setFormData({...formData, disIslemMaliyetleri: updatedIslemler});
+                                    }}
+                                    placeholder="Opsiyonel açıklama..."
+                                  />
+                                </Grid>
+                                <Grid item xs={12} sm={1}>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => {
+                                      const updatedIslemler = [...(formData.disIslemMaliyetleri || [])];
+                                      updatedIslemler.splice(index, 1);
+                                      setFormData({...formData, disIslemMaliyetleri: updatedIslemler});
+                                    }}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Grid>
+                              </Grid>
+                            </Box>
+                          ))}
+                          
+                          {/* Yeni İşlem Ekleme Butonu */}
+                          <Button
+                            startIcon={<AddIcon />}
+                            variant="outlined"
+                            size="small"
+                            color="warning"
+                            onClick={() => {
+                              const yeniIslem = {
+                                id: Date.now().toString(),
+                                islemTuru: '',
+                                maliyet: 0,
+                                aciklama: ''
+                              };
+                              setFormData({
+                                ...formData, 
+                                disIslemMaliyetleri: [...(formData.disIslemMaliyetleri || []), yeniIslem]
+                              });
+                            }}
+                          >
+                            Dış İşlem Ekle
+                          </Button>
+                          
+                          {/* Toplam Dış İşlem Maliyeti */}
+                          {(formData.disIslemMaliyetleri?.length > 0) && (
+                            <Box sx={{ 
+                              mt: 2, 
+                              p: 2, 
+                              bgcolor: 'warning.50', 
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: 'warning.200'
+                            }}>
+                              <Typography variant="subtitle2" color="warning.dark" fontWeight="600">
+                                Toplam Dış İşlem Maliyeti: ₺{(formData.disIslemMaliyetleri || []).reduce((sum: number, islem: any) => sum + (islem.maliyet || 0), 0).toLocaleString('tr-TR')}
+                              </Typography>
+                            </Box>
+                          )}
+                                                 </AccordionDetails>
+                       </Accordion>
+                     </Grid>
+
+                     {/* ✅ YENİ: Toplam Hurda Maliyeti (Dış İşlem Dahil) */}
+                     {((formData.disIslemMaliyetleri?.length > 0) || calculateDynamicCost() > 0) && (
+                       <Grid item xs={12}>
+                         <Card sx={{ 
+                           bgcolor: 'error.50', 
+                           borderLeft: '4px solid',
+                           borderLeftColor: 'error.main',
+                           boxShadow: '0 2px 8px rgba(244, 67, 54, 0.15)'
+                         }}>
+                           <CardContent sx={{ py: 2 }}>
+                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                               <Box>
+                                 <Typography variant="h6" color="error.main" fontWeight="600">
+                                   Toplam Hurda Maliyeti
+                                 </Typography>
+                                 <Typography variant="body2" color="text.secondary">
+                                   Net hurda zararı + Dış işlem maliyetleri
+                                 </Typography>
+                               </Box>
+                               <Box sx={{ textAlign: 'right' }}>
+                                 <Typography variant="h5" color="error.main" fontWeight="700">
+                                   ₺{calculateTotalCostWithExternalProcessing().toLocaleString('tr-TR')}
+                                 </Typography>
+                                 {(formData.disIslemMaliyetleri?.length > 0) && (
+                                   <Typography variant="caption" color="text.secondary">
+                                     (₺{calculateDynamicCost().toLocaleString('tr-TR')} + ₺{(formData.disIslemMaliyetleri || []).reduce((sum: number, islem: any) => sum + (islem.maliyet || 0), 0).toLocaleString('tr-TR')})
+                                   </Typography>
+                                 )}
+                               </Box>
+                             </Box>
+                           </CardContent>
+                         </Card>
+                       </Grid>
+                     )}
                   </>
                 ) : (
                   <>

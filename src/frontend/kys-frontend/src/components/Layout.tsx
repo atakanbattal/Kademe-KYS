@@ -232,8 +232,8 @@ const getModuleTitle = (pathname) => {
     if (pathname.startsWith('/quality-management')) return 'KPI Takip ve Yönetim';
     if (pathname.startsWith('/kpi-management')) return 'KPI Takip ve Yönetim';
     if (pathname.startsWith('/vehicle-quality-control')) return 'Araç Kalite Kontrol Takip Sistemi';
-    if (pathname.startsWith('/quality-cost-management')) return 'Kalite ve Araç Performans Yönetimi';
-    if (pathname.startsWith('/quality-cost')) return 'Kalite ve Araç Performans Yönetimi';
+    if (pathname.startsWith('/quality-cost-management')) return 'Kalitesizlik Maliyeti ve Araç Performans Yönetimi';
+    if (pathname.startsWith('/quality-cost')) return 'Kalitesizlik Maliyeti ve Araç Performans Yönetimi';
     if (pathname.startsWith('/dof-8d-management')) return 'DÖF ve 8D Yönetimi';
     if (pathname.startsWith('/dof-8d')) return 'DÖF ve 8D Yönetimi';
     if (pathname.startsWith('/risk-management')) return 'Risk Yönetimi';
@@ -324,7 +324,7 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
   const qualityModules = [
     { text: 'KPI Takip ve Yönetim', icon: <SpeedIcon />, path: '/quality-management', color: '#2196f3' },
     { text: 'Araç Kalite Kontrol Takip', icon: <FactoryIcon />, path: '/vehicle-quality-control', color: '#1976d2' },
-    { text: 'Kalite ve Araç Performans Yönetimi', icon: <MonetizationOnIcon />, path: '/quality-cost-management', color: '#4caf50' },
+          { text: 'Kalitesizlik Maliyeti ve Araç Performans Yönetimi', icon: <MonetizationOnIcon />, path: '/quality-cost-management', color: '#4caf50' },
     { text: 'Üretim Kaynaklı Kalite Hata Takip', icon: <FactoryIcon />, path: '/production-quality-tracking', color: '#f44336' },
     { text: 'Karantina Yönetimi', icon: <SecurityIcon />, path: '/quarantine-management', color: '#e91e63' },
     { text: 'DÖF ve 8D Yönetimi', icon: <BugReportIcon />, path: '/dof-8d-management', color: '#f44336' },

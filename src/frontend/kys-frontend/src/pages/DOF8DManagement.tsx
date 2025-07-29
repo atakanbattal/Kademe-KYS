@@ -552,7 +552,7 @@ const calculateRemainingDays = (dueDate: string): number => {
 };
 
 const getDelayStatus = (dueDate: string, status: string): 'on_time' | 'warning' | 'overdue' => {
-  if (status === 'closed') return 'on_time';
+  if (status === 'closed' || status === 'rejected') return 'on_time';
   
   const remainingDays = calculateRemainingDays(dueDate);
   if (remainingDays < 0) return 'overdue';
@@ -2276,6 +2276,7 @@ const DOF8DManagement: React.FC = () => {
   // ✅ Context7 - Optimized Delay Message Function
   const getDelayMessage = useCallback((remainingDays: number, status: string): string => {
     if (status === 'closed') return 'Kapalı';
+    if (status === 'rejected') return 'Reddedildi';
     if (remainingDays < 0) return `${Math.abs(remainingDays)} gün gecikti`;
     if (remainingDays === 0) return 'Bugün son gün';
     if (remainingDays <= 3) return `${remainingDays} gün kaldı`;
@@ -2335,20 +2336,27 @@ const DOF8DManagement: React.FC = () => {
         // Context7 - Safe sorting with null checks
         if (!a || !b) return 0;
         
-        // ✅ AÇILIŞ TARİHİNE GÖRE SIRALAMA (en yeni açılan en üstte)
-        const aOpeningDate = a.openingDate || a.createdDate || '';
-        const bOpeningDate = b.openingDate || b.createdDate || '';
+        // ✅ OLUŞTURMA TARİHİNE GÖRE SIRALAMA (en yeni oluşturulan en üstte)
+        const aCreatedDate = a.createdDate || '';
+        const bCreatedDate = b.createdDate || '';
         
         // Tarihleri Date objesine çevir
-        const aDate = new Date(aOpeningDate);
-        const bDate = new Date(bOpeningDate);
+        const aDate = new Date(aCreatedDate);
+        const bDate = new Date(bCreatedDate);
         
         // Geçerli tarih kontrolü
         if (isNaN(aDate.getTime()) && isNaN(bDate.getTime())) return 0;
         if (isNaN(aDate.getTime())) return 1;
         if (isNaN(bDate.getTime())) return -1;
         
-        // En yeni açılan DÖF en üstte olacak şekilde sıralama
+        // Tarihler aynıysa DÖF numarasına göre sırala
+        if (aDate.getTime() === bDate.getTime()) {
+          const aDofNumber = a.dofNumber || '';
+          const bDofNumber = b.dofNumber || '';
+          return bDofNumber.localeCompare(aDofNumber); // Büyük numaradan küçüğe
+        }
+        
+        // En yeni oluşturulan DÖF en üstte olacak şekilde sıralama
         return bDate.getTime() - aDate.getTime();
       });
   }, [metrics.filteredRecords, filters.delayStatus, filters.priority, getDelayMessage]); // Context7 - Remove unnecessary dependencies
