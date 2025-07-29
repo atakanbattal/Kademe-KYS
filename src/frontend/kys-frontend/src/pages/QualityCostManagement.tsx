@@ -14464,6 +14464,11 @@ const MaterialPricingManagementComponent: React.FC = () => {
                   <MenuItem value="DX52D+Z">DX52D+Z - Galvanizli</MenuItem>
                   <MenuItem value="DX53D+Z">DX53D+Z - Galvanizli</MenuItem>
                   
+                  {/* Döküm Malzemeler */}
+                  <ListSubheader>Döküm Malzemeler</ListSubheader>
+                  <MenuItem value="Pik Döküm">Pik Döküm</MenuItem>
+                  <MenuItem value="Sfero Döküm">Sfero Döküm</MenuItem>
+                  
                   {/* Diğer */}
                   <ListSubheader>Diğer</ListSubheader>
                   <MenuItem value="Diğer">Diğer Malzeme</MenuItem>
