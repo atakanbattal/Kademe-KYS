@@ -244,6 +244,7 @@ const getModuleTitle = (pathname) => {
     if (pathname.startsWith('/supplier-quality')) return 'Tedarikçi Kalite Yönetimi';
     if (pathname.startsWith('/material-certificate-tracking')) return 'Malzeme Sertifika Takibi';
     if (pathname.startsWith('/quarantine-management')) return 'Karantina Yönetimi';
+    if (pathname.startsWith('/deviation-approval')) return 'Sapma Onayı Yönetimi';
     
     // Üretim ve Kalite Kontrol
     if (pathname.startsWith('/dimensional-control')) return 'Kontrol Planları';
@@ -351,6 +352,7 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
     { text: 'Doküman Yönetimi', icon: <DescriptionIcon />, path: '/document-management', color: '#009688' },
     { text: 'Tedarikçi Kalite Yönetimi', icon: <BusinessIcon />, path: '/supplier-quality', color: '#3f51b5' },
     { text: 'Malzeme Sertifika Takibi', icon: <AssignmentTurnedInIcon />, path: '/material-certificate-tracking', color: '#4caf50' },
+    { text: 'Sapma Onayı Yönetimi', icon: <AssignmentTurnedInIcon />, path: '/deviation-approval', color: '#ff9800' },
   ];
 
   // Sistem ve Ekipman Modülleri

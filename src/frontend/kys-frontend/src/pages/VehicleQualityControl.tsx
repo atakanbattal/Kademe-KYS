@@ -191,6 +191,31 @@ const VehicleQualityControl: React.FC = () => {
     estimatedResolutionDate: undefined,
     reportedBy: 'Sistem Kullanıcısı'
   });
+
+  // ✅ YENİ: Kayıt esnasında tarihli işlem ekleme
+  const [initialActions, setInitialActions] = useState<{
+    date: string;
+    action: string;
+    notes: string;
+  }[]>([]);
+
+  const addInitialAction = () => {
+    setInitialActions(prev => [...prev, {
+      date: new Date().toISOString().split('T')[0],
+      action: '',
+      notes: ''
+    }]);
+  };
+
+  const updateInitialAction = (index: number, field: string, value: string) => {
+    setInitialActions(prev => prev.map((action, i) => 
+      i === index ? { ...action, [field]: value } : action
+    ));
+  };
+
+  const removeInitialAction = (index: number) => {
+    setInitialActions(prev => prev.filter((_, i) => i !== index));
+  };
   
   // ===== FILTER & SEARCH STATES =====
   const [filters, setFilters] = useState<VehicleFilters>({});
@@ -348,6 +373,7 @@ const VehicleQualityControl: React.FC = () => {
       priority: 'medium'
     });
     setSelectedVehicle(null);
+    setInitialActions([]); // ✅ YENİ: Initial actions'ı da temizle
   };
 
   const resetDefectForm = () => {
@@ -532,8 +558,23 @@ const VehicleQualityControl: React.FC = () => {
         await vehicleQualityControlService.updateVehicle(selectedVehicle._id, vehicleForm);
         setSuccess('Araç başarıyla güncellendi');
       } else {
-        await vehicleQualityControlService.createVehicle(vehicleForm);
+        const newVehicle = await vehicleQualityControlService.createVehicle(vehicleForm);
+        
+        // ✅ YENİ: İlk işlemleri status history'ye ekle
+        if (initialActions.length > 0) {
+          for (const action of initialActions) {
+            if (action.action.trim()) {
+              await vehicleQualityControlService.updateVehicleStatus(
+                newVehicle._id,
+                newVehicle.currentStatus,
+                `${action.action}${action.notes ? ` - ${action.notes}` : ''}`
+              );
+            }
+          }
+        }
+        
         setSuccess('Araç başarıyla eklendi');
+        setInitialActions([]); // Initial actions'ı temizle
       }
       
       setVehicleDialogOpen(false);
@@ -1244,16 +1285,6 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                 </TableCell>
                 <TableCell>
                   <Stack direction="row" spacing={1}>
-                    {vehicle.currentStatus === VehicleStatus.PRODUCTION && (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="primary"
-                        onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
-                      >
-                        Kaliteye Al
-                      </Button>
-                    )}
                     {vehicle.currentStatus === VehicleStatus.QUALITY_CONTROL && (
                       <>
                         <Button
@@ -1978,6 +2009,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
               <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem', color: '#1976d2' }}>Araç Bilgileri</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem', color: '#1976d2' }}>Müşteri</TableCell>
               <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem', color: '#1976d2' }}>Uyarı Tipi</TableCell>
               <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem', color: '#1976d2' }}>Mesaj</TableCell>
               <TableCell sx={{ fontWeight: 'bold', fontSize: '0.875rem', color: '#1976d2' }}>Tarih</TableCell>
@@ -2021,6 +2053,11 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                         </Typography>
                       </Box>
                     </Box>
+                  </TableCell>
+                  <TableCell sx={{ py: 2 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                      {vehicle?.customerName || 'Bilinmiyor'}
+                    </Typography>
                   </TableCell>
                   <TableCell sx={{ py: 2 }}>
                     <Chip
@@ -2291,6 +2328,68 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
               value={vehicleForm.description}
               onChange={(e) => setVehicleForm({ ...vehicleForm, description: e.target.value })}
             />
+          </Grid>
+
+          {/* ✅ YENİ: Kayıt esnasında tarihli işlem ekleme */}
+          <Grid item xs={12}>
+            <Box sx={{ mt: 2, border: '1px solid #e0e0e0', borderRadius: 2, p: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">İlk İşlemler</Typography>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  startIcon={<AddIcon />}
+                  onClick={addInitialAction}
+                >
+                  İşlem Ekle
+                </Button>
+              </Box>
+              
+              {initialActions.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  Henüz işlem eklenmedi. Araç kaydı sırasında yapılan işlemleri buraya ekleyebilirsiniz.
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {initialActions.map((action, index) => (
+                    <Box key={index} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                      <TextField
+                        type="date"
+                        label="Tarih"
+                        size="small"
+                        value={action.date}
+                        onChange={(e) => updateInitialAction(index, 'date', e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ minWidth: 150 }}
+                      />
+                      <TextField
+                        label="İşlem"
+                        size="small"
+                        value={action.action}
+                        onChange={(e) => updateInitialAction(index, 'action', e.target.value)}
+                        placeholder="Örn: Kalite kontrol başlatıldı"
+                        sx={{ flex: 1 }}
+                      />
+                      <TextField
+                        label="Notlar"
+                        size="small"
+                        value={action.notes}
+                        onChange={(e) => updateInitialAction(index, 'notes', e.target.value)}
+                        placeholder="Ek bilgiler..."
+                        sx={{ flex: 1 }}
+                      />
+                      <IconButton 
+                        color="error" 
+                        size="small"
+                        onClick={() => removeInitialAction(index)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
           </Grid>
         </Grid>
       </DialogContent>

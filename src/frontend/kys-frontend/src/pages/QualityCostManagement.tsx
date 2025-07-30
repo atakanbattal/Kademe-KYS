@@ -10842,6 +10842,39 @@ const ProfessionalDataTable: React.FC<{
       const laborCost = formData.includeLabor ? baseMaliyet * 0.30 : 0;
       return Math.max(0, baseMaliyet + laborCost);
     }
+
+    // ✅ YENİ: Yeniden işlem maliyeti hesabı - Adet × Birim Maliyet
+    if (formData.maliyetTuru === 'yeniden_islem') {
+      // Adet bazlı hesaplama
+      if (formData.miktar > 0 && formData.birimMaliyet > 0) {
+        const toplamMaliyet = formData.miktar * formData.birimMaliyet;
+        
+        // İşçilik ve genel gider ekle (%30) - isteğe bağlı
+        if (formData.includeLabor) {
+          const laborCost = toplamMaliyet * 0.30;
+          return toplamMaliyet + laborCost;
+        }
+        
+        return toplamMaliyet;
+      }
+      
+      // Fallback: Eğer adet/birim maliyet yoksa mevcut maliyet değerini kullan
+      return formData.maliyet || 0;
+    }
+    
+    // ✅ YENİ: Yeniden işlem maliyeti - Adet bazlı hesaplama
+    if (formData.maliyetTuru === 'yeniden_islem' && formData.miktar > 0 && formData.birimMaliyet > 0) {
+      let toplamMaliyet = formData.miktar * formData.birimMaliyet;
+      
+      // İşçilik ve genel gider ekle (%30)
+      if (formData.includeLabor) {
+        const laborCost = toplamMaliyet * 0.30;
+        toplamMaliyet += laborCost;
+      }
+      
+      console.log(`🔧 YENİDEN İŞLEM MALİYETİ HESAPLAMA: ${formData.miktar} adet × ₺${formData.birimMaliyet} = ₺${toplamMaliyet}`);
+      return toplamMaliyet;
+    }
     
     // Weight-based calculation (Fire, etc.)
     if (maliyetTuruInfo?.requiresWeight && formData.agirlik > 0 && formData.kgMaliyet > 0) {
@@ -10857,6 +10890,19 @@ const ProfessionalDataTable: React.FC<{
     const externalProcessingCost = (formData.disIslemMaliyetleri || []).reduce((sum: number, islem: any) => sum + (islem.maliyet || 0), 0);
     return baseCost + externalProcessingCost;
   }, [calculateDynamicCost, formData.disIslemMaliyetleri]);
+
+  // ✅ YENİ: Real-time maliyet güncelleme - calculateDynamicCost sonucu formData.maliyet'e yansıtılsın
+  useEffect(() => {
+    // Sadece yeniden işlem maliyeti için real-time güncelleme
+    if (formData.maliyetTuru === 'yeniden_islem' && formData.miktar > 0 && formData.birimMaliyet > 0) {
+      const calculatedCost = calculateDynamicCost();
+      // Mevcut maliyet ile hesaplanan maliyet farklıysa güncelle
+      if (Math.abs((formData.maliyet || 0) - calculatedCost) > 0.01) {
+        console.log(`💰 Real-time maliyet güncelleme: ₺${formData.maliyet} → ₺${calculatedCost}`);
+        setFormData(prev => ({ ...prev, maliyet: calculatedCost }));
+      }
+    }
+  }, [formData.maliyetTuru, formData.miktar, formData.birimMaliyet, formData.includeLabor, calculateDynamicCost]);
 
   const getMaliyetTuruColor = (maliyetTuru: string) => {
     const colorMap: Record<string, 'error' | 'warning' | 'info' | 'success'> = {
@@ -10920,11 +10966,29 @@ const ProfessionalDataTable: React.FC<{
 
   const handleSave = useCallback(() => {
     const calculatedCost = calculateDynamicCost();
-    // 🔧 ETKİLENEN BİRİMLER MALİYETİ: Etkilenen diğer birimlerin maliyetini de dahil et
-    const ekBirimlerToplamMaliyet = (formData.ekBirimMaliyetleri || []).reduce((sum: number, eb: any) => sum + (eb.maliyet || 0), 0);
+    
+    // ✅ YENİ: ETKİLENEN BİRİMLER İÇİN ADET BAZLI HESAPLAMA
+    let ekBirimlerToplamMaliyet = 0;
+    if (formData.ekBirimMaliyetleri && formData.ekBirimMaliyetleri.length > 0) {
+      ekBirimlerToplamMaliyet = formData.ekBirimMaliyetleri.reduce((sum: number, eb: any) => {
+        // Eğer yeniden işlem maliyeti türündeyse adet ile çarp
+        if (formData.maliyetTuru === 'yeniden_islem' && formData.miktar > 0) {
+          return sum + ((eb.maliyet || 0) * formData.miktar);
+        }
+        return sum + (eb.maliyet || 0);
+      }, 0);
+    }
+    
     // 🔧 GÜVENLİ MALİYET HESAPLAMA: Temel maliyet + etkilenen birimler maliyeti
     const baseCost = calculatedCost > 0 ? calculatedCost : formData.maliyet || 0;
     const finalCost = baseCost + ekBirimlerToplamMaliyet;
+    
+    console.log(`💰 Hesaplama detayları:
+    - Temel maliyet: ₺${baseCost}
+    - Etkilenen birimler: ₺${ekBirimlerToplamMaliyet}
+    - Toplam: ₺${finalCost}
+    - Miktar: ${formData.miktar} adet
+    - Maliyet türü: ${formData.maliyetTuru}`);
     const finalFormData = {
       ...formData,
       maliyet: finalCost, // Use calculated cost + affected departments cost
@@ -11794,9 +11858,69 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                   />
                 </Grid>
 
-                {/* ✅ ETKİLENEN BİRİMLER BÖLÜMÜ - YENİ PROFESYONELLEŞTİRİLMİŞ TASARIM */}
+                {/* ✅ YENİ: YENİDEN İŞLEM MALİYETİ - ADET BAZLI SİSTEM */}
                 {formData.maliyetTuru === 'yeniden_islem' && (
                   <>
+                    <Grid item xs={12}>
+                      <Typography variant="h6" sx={{ 
+                        mb: 2, 
+                        color: 'primary.main',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}>
+                        <WorkIcon />
+                        Yeniden İşlem Maliyeti (Adet Bazlı)
+                      </Typography>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        required
+                        label="İşlenecek Adet"
+                        type="number"
+                        value={formData.miktar}
+                        onChange={(e) => setFormData({...formData, miktar: parseInt(e.target.value) || 0})}
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">adet</InputAdornment>
+                        }}
+                        helperText="Yeniden işlenecek parça sayısı"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        required
+                        label="Birim Maliyet"
+                        type="number"
+                        value={formData.birimMaliyet}
+                        onChange={(e) => setFormData({...formData, birimMaliyet: parseFloat(e.target.value) || 0})}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">₺</InputAdornment>,
+                          endAdornment: <InputAdornment position="end">/adet</InputAdornment>
+                        }}
+                        helperText="Parça başına yeniden işlem maliyeti"
+                      />
+                    </Grid>
+                    
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Toplam Maliyet"
+                        type="number"
+                        value={calculateDynamicCost()}
+                        disabled
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">₺</InputAdornment>
+                        }}
+                        helperText={`${formData.miktar} adet × ₺${formData.birimMaliyet} = ₺${calculateDynamicCost()}`}
+                        color="success"
+                      />
+                    </Grid>
+
                     <Grid item xs={12}>
                       <Typography variant="h6" sx={{ 
                         mb: 2, 
@@ -11804,7 +11928,8 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 1
+                        gap: 1,
+                        mt: 2
                       }}>
                         <WorkIcon />
                         Etkilenen Diğer Birimler

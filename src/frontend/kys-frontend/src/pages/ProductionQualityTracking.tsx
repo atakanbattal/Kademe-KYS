@@ -68,7 +68,8 @@ import {
   ExpandLess as ExpandLessIcon,
   FilterList as FilterListIcon,
   Report as ReportIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  DirectionsCar as DirectionsCarIcon
 } from '@mui/icons-material';
 
 import {
@@ -114,6 +115,19 @@ interface ProductionUnitPerformance {
   totalVehicles: number;
   repeatedVehicles: number;
   color: string;
+}
+
+// Aylık üretilen araçlar için interface
+interface MonthlyVehicleProduction {
+  id: string;
+  vehicleType: string;
+  serialNumber: string;
+  customerName: string;
+  model: string;
+  productionDate: string;
+  productionMonth: string; // YYYY-MM formatı
+  createdAt: string;
+  updatedAt: string;
 }
 
 // 🔍 MUTLAK İZOLASYON ARAMA KUTUSU - HİÇBİR PARENT RE-RENDER ETKİSİ YOK!
@@ -320,9 +334,9 @@ const ProductionQualityTracking: React.FC = () => {
     dateFrom: '',
     dateTo: '',
     searchTerm: '',
-    period: '', // dönem (ay/çeyrek)
+    period: 'monthly', // ✅ YENİ: Varsayılan olarak aylık filtre aktif
     year: new Date().getFullYear().toString(),
-    month: '',
+    month: String(new Date().getMonth() + 1).padStart(2, '0'), // ✅ YENİ: Mevcut ay varsayılan
     quarter: ''
   });
 
@@ -397,6 +411,7 @@ const ProductionQualityTracking: React.FC = () => {
     { value: 'Kompost Makinesi', label: 'Kompost Makinesi' },
     { value: 'Çay Toplama Makinesi', label: 'Çay Toplama Makinesi' },
     { value: 'KDM 35', label: 'KDM 35' },
+    { value: 'KDM 45', label: 'KDM 45' },
     { value: 'KDM 70', label: 'KDM 70' },
     { value: 'KDM 80', label: 'KDM 80' },
     { value: 'Rusya Motor Odası', label: 'Rusya Motor Odası' },
@@ -575,9 +590,65 @@ const ProductionQualityTracking: React.FC = () => {
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedRecord, setSelectedRecord] = useState<QualityDefectRecord | null>(null);
   
+  // Aylık üretim verileri için state'ler
+  const [monthlyVehicles, setMonthlyVehicles] = useState<MonthlyVehicleProduction[]>([]);
+  const [monthlyVehicleDialog, setMonthlyVehicleDialog] = useState(false);
+  const [monthlyVehicleForm, setMonthlyVehicleForm] = useState<Partial<MonthlyVehicleProduction>>({
+    vehicleType: '',
+    serialNumber: '',
+    customerName: '',
+    model: '',
+    productionDate: new Date().toISOString().split('T')[0],
+    productionMonth: new Date().toISOString().slice(0, 7)
+  });
+  
   // Dynamic defect types management
   const [defectTypesByUnit, setDefectTypesByUnit] = useState(initialDefectTypesByUnit);
   const [newDefectType, setNewDefectType] = useState('');
+
+  // ✅ CUSTOM DEFECT TYPES PERSİSTENCE: defectTypesByUnit'i localStorage'a kaydet/yükle
+  useEffect(() => {
+    try {
+      const savedDefectTypes = localStorage.getItem('customDefectTypesByUnit');
+      if (savedDefectTypes) {
+        const parsedDefectTypes = JSON.parse(savedDefectTypes);
+        // Mevcut initial types ile merge et
+        const mergedDefectTypes = { ...initialDefectTypesByUnit };
+        Object.keys(parsedDefectTypes).forEach(unit => {
+          mergedDefectTypes[unit] = [
+            ...(initialDefectTypesByUnit[unit] || []),
+            ...(parsedDefectTypes[unit] || []).filter(type => 
+              !(initialDefectTypesByUnit[unit] || []).includes(type)
+            )
+          ];
+        });
+        setDefectTypesByUnit(mergedDefectTypes);
+        console.log('✅ Custom defect types yüklendi:', mergedDefectTypes);
+      }
+    } catch (error) {
+      console.error('❌ Custom defect types yükleme hatası:', error);
+    }
+  }, []);
+
+  // ✅ defectTypesByUnit değiştiğinde localStorage'a kaydet
+  useEffect(() => {
+    try {
+      // Sadece custom types'ı kaydet (initial types'ları çıkar)
+      const customTypesOnly = {};
+      Object.keys(defectTypesByUnit).forEach(unit => {
+        const customTypes = (defectTypesByUnit[unit] || []).filter(type => 
+          !(initialDefectTypesByUnit[unit] || []).includes(type)
+        );
+        if (customTypes.length > 0) {
+          customTypesOnly[unit] = customTypes;
+        }
+      });
+      localStorage.setItem('customDefectTypesByUnit', JSON.stringify(customTypesOnly));
+      console.log('💾 Custom defect types kaydedildi:', customTypesOnly);
+    } catch (error) {
+      console.error('❌ Custom defect types kaydetme hatası:', error);
+    }
+  }, [defectTypesByUnit]);
   const [showAddDefectType, setShowAddDefectType] = useState(false);
   
   // Etkileşimli Dashboard için state'ler
@@ -586,6 +657,19 @@ const ProductionQualityTracking: React.FC = () => {
   const [selectedDetailData, setSelectedDetailData] = useState<any>(null);
   const [unitAnalysisDialogOpen, setUnitAnalysisDialogOpen] = useState(false);
   const [selectedUnitForAnalysis, setSelectedUnitForAnalysis] = useState<string>('');
+
+  // Aylık araç verilerini yükleme fonksiyonu (useEffect'ten önce tanımlanmalı)
+  const loadMonthlyVehicleData = useCallback(() => {
+    try {
+      const savedData = localStorage.getItem('monthlyVehicleProduction');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setMonthlyVehicles(parsedData);
+      }
+    } catch (error) {
+      console.error('Aylık araç veri yükleme hatası:', error);
+    }
+  }, []);
 
   // Load data from localStorage
   useEffect(() => {
@@ -601,7 +685,10 @@ const ProductionQualityTracking: React.FC = () => {
     } else {
       generateSampleData();
     }
-  }, []);
+    
+    // Aylık araç verilerini yükle
+    loadMonthlyVehicleData();
+  }, [loadMonthlyVehicleData]);
 
   // Generate sample data focused on performance
   const generateSampleData = () => {
@@ -695,6 +782,16 @@ const ProductionQualityTracking: React.FC = () => {
       setDefectRecords(data);
     } catch (error) {
       console.error('Veri kaydetme hatası:', error);
+    }
+  }, []);
+
+  // Aylık araç verilerini kaydetme
+  const saveMonthlyVehicleData = useCallback((data: MonthlyVehicleProduction[]) => {
+    try {
+      localStorage.setItem('monthlyVehicleProduction', JSON.stringify(data));
+      setMonthlyVehicles(data);
+    } catch (error) {
+      console.error('Aylık araç veri kaydetme hatası:', error);
     }
   }, []);
 
@@ -852,6 +949,49 @@ const ProductionQualityTracking: React.FC = () => {
     if (window.confirm('Bu kaydı silmek istediğinizden emin misiniz?')) {
       const updatedRecords = defectRecords.filter(r => r.id !== record.id);
       saveData(updatedRecords);
+    }
+  };
+
+  // Aylık araç yönetimi fonksiyonları
+  const handleAddMonthlyVehicle = () => {
+    if (!monthlyVehicleForm.vehicleType || !monthlyVehicleForm.serialNumber || !monthlyVehicleForm.customerName) {
+      alert('Lütfen gerekli alanları doldurun!');
+      return;
+    }
+
+    const newVehicle: MonthlyVehicleProduction = {
+      id: Date.now().toString(),
+      vehicleType: monthlyVehicleForm.vehicleType!,
+      serialNumber: monthlyVehicleForm.serialNumber!,
+      customerName: monthlyVehicleForm.customerName!,
+      model: monthlyVehicleForm.model || '',
+      productionDate: monthlyVehicleForm.productionDate!,
+      productionMonth: monthlyVehicleForm.productionMonth!,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const updatedVehicles = [...monthlyVehicles, newVehicle];
+    saveMonthlyVehicleData(updatedVehicles);
+    setMonthlyVehicleDialog(false);
+    resetMonthlyVehicleForm();
+  };
+
+  const resetMonthlyVehicleForm = () => {
+    setMonthlyVehicleForm({
+      vehicleType: '',
+      serialNumber: '',
+      customerName: '',
+      model: '',
+      productionDate: new Date().toISOString().split('T')[0],
+      productionMonth: new Date().toISOString().slice(0, 7)
+    });
+  };
+
+  const handleDeleteMonthlyVehicle = (vehicleId: string) => {
+    if (window.confirm('Bu araç kaydını silmek istediğinizden emin misiniz?')) {
+      const updatedVehicles = monthlyVehicles.filter(v => v.id !== vehicleId);
+      saveMonthlyVehicleData(updatedVehicles);
     }
   };
 
@@ -1318,7 +1458,17 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           .reduce((defectSum, defect) => defectSum + defect.repeatCount, 0);
       }, 0);
       
-      // İLK GEÇİŞ ORANI: Sadece bu birimde hata olan araçlar baz alınır
+      // İLK GEÇİŞ ORANI: TÜM ARAÇLAR BAZ ALINIR (hatası olmayan + ilk seferde başarılı)
+      
+      // 1. Bu birimde hiç hatası olmayan araçları bul
+      const vehiclesWithoutUnitDefects = filteredData.filter(record => {
+        const unitDefects = record.defects ? record.defects.filter(
+          defect => defect.productionUnit === unit.value
+        ) : [];
+        return unitDefects.length === 0;
+      });
+      
+      // 2. Bu birimde hatası olan ama ilk seferde başarılı olan araçları bul
       const vehiclesPassedFirstTime = vehiclesWithUnitDefects.filter(record => {
         const unitDefectsForVehicle = record.defects ? record.defects.filter(defect => 
           defect.productionUnit === unit.value
@@ -1327,8 +1477,12 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         return unitDefectsForVehicle.every(defect => defect.repeatCount <= 1);
       });
       
-      const firstTimePassRate = vehiclesWithUnitDefects.length > 0 ? 
-        (vehiclesPassedFirstTime.length / vehiclesWithUnitDefects.length) * 100 : 0;
+      // 3. Toplam başarılı araçlar = hatası olmayan + ilk seferde başarılı
+      const totalSuccessfulVehicles = vehiclesWithoutUnitDefects.length + vehiclesPassedFirstTime.length;
+      
+      // 4. İlk geçiş oranı = başarılı araçlar / tüm araçlar
+      const firstTimePassRate = filteredData.length > 0 ? 
+        (totalSuccessfulVehicles / filteredData.length) * 100 : 100;
       
       // Araç başına ortalama hata sayısı (sadece bu birimde hata olan araçlar)
       const avgDefectsPerVehicle = vehiclesWithUnitDefects.length > 0 ? 
@@ -1478,17 +1632,25 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         record.serialNumber.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
         (record.defects && record.defects.some(defect => defect.defectType.toLowerCase().includes(filters.searchTerm.toLowerCase())));
       
-      // Tarih filtreleme
+      // ✅ YENİ: Gelişmiş tarih filtreleme - Ay filtresi dönemden bağımsız çalışabilir
       let matchDate = true;
       
-      if (filters.period === 'monthly' && filters.year && filters.month) {
-        const recordDate = new Date(record.submissionDate);
-        const recordYear = recordDate.getFullYear();
+      // Önce yıl kontrolü yap
+      const recordDate = new Date(record.submissionDate);
+      const recordYear = recordDate.getFullYear();
+      const yearMatch = !filters.year || recordYear.toString() === filters.year;
+      
+      // Ay filtresi (dönemden bağımsız)
+      let monthMatch = true;
+      if (filters.month) {
         const recordMonth = String(recordDate.getMonth() + 1).padStart(2, '0');
-        matchDate = recordYear.toString() === filters.year && recordMonth === filters.month;
+        monthMatch = recordMonth === filters.month;
+      }
+      
+      // Dönem bazlı filtreleme
+      if (filters.period === 'monthly' && filters.year && filters.month) {
+        matchDate = yearMatch && monthMatch;
       } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
-        const recordDate = new Date(record.submissionDate);
-        const recordYear = recordDate.getFullYear();
         const recordMonth = recordDate.getMonth() + 1; // 1-12
         
         let quarterMatch = false;
@@ -1498,11 +1660,14 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           case 'Q3': quarterMatch = recordMonth >= 7 && recordMonth <= 9; break;
           case 'Q4': quarterMatch = recordMonth >= 10 && recordMonth <= 12; break;
         }
-        matchDate = recordYear.toString() === filters.year && quarterMatch;
+        matchDate = yearMatch && quarterMatch;
       } else if (filters.period === 'custom') {
         const matchDateFrom = !filters.dateFrom || record.submissionDate >= filters.dateFrom;
         const matchDateTo = !filters.dateTo || record.submissionDate <= filters.dateTo;
         matchDate = matchDateFrom && matchDateTo;
+      } else {
+        // ✅ YENİ: Dönem seçilmemiş ama yıl/ay filtreleri varsa onları uygula
+        matchDate = yearMatch && monthMatch;
       }
 
       return matchVehicleType && matchProductionUnit && matchStatus && matchSearch && matchDate;
@@ -2204,9 +2369,10 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
 
         {/* Tabs */}
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tab label="Executive Dashboard" icon={<AssessmentIcon />} />
-                      <Tab label="Birim Analizi" icon={<SearchIcon />} />
-          <Tab label="Hata Listesi" icon={<AssessmentIcon />} />
+                      <Tab label="Executive Dashboard" icon={<AssessmentIcon />} />
+            <Tab label="Birim Analizi" icon={<SearchIcon />} />
+            <Tab label="Hata Listesi" icon={<AssessmentIcon />} />
+            <Tab label="Aylık Üretim Araçları" icon={<DirectionsCarIcon />} />
         </Tabs>
 
         {/* Tab Content */}
@@ -2350,10 +2516,20 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                   return a.qualityScore - b.qualityScore;
                 })
                 .map((stat, sortedIndex) => {
-                // Bu birimde hata olan araç sayısı
-                const affectedVehicles = filteredData.filter(r => 
+                // Bu birimde hata olan araç sayısı - aylık üretim verisini de dikkate al
+                const defectiveVehicles = filteredData.filter(r => 
                   r.defects && r.defects.some(d => d.productionUnit === stat.unit)
                 ).length;
+                
+                // Birimde o ay üretilen toplam araç sayısı (monthly production data'dan)
+                const currentMonthProduced = monthlyVehicles.filter(v => {
+                  const vehicleMonth = v.productionMonth;
+                  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+                  return vehicleMonth === currentMonth;
+                }).length;
+                
+                // Etkilenen araç = defekt olan araç sayısı, toplam üretim = monthly vehicles
+                const affectedVehicles = Math.max(defectiveVehicles, currentMonthProduced > 0 ? currentMonthProduced : defectiveVehicles);
                 
                 const criticalDefects = filteredData.filter(r => 
                   r.defects && r.defects.some(d => d.productionUnit === stat.unit && d.severity === 'critical')
@@ -3401,8 +3577,206 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           </Box>
         )}
 
+        {/* Aylık Üretim Araçları Tab */}
+        {activeTab === 3 && (
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" fontWeight="bold">
+                Aylık Üretilen Araçlar ({monthlyVehicles.length} kayıt)
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setMonthlyVehicleDialog(true)}
+                sx={{ borderRadius: 2 }}
+              >
+                Yeni Araç Ekle
+              </Button>
+            </Box>
+
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, boxShadow: 2 }}>
+              <Table size="medium" stickyHeader>
+                <TableHead>
+                  <TableRow sx={{ 
+                    backgroundColor: 'primary.main',
+                    '& .MuiTableCell-head': {
+                      backgroundColor: 'primary.main',
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }
+                  }}>
+                    <TableCell>Seri No</TableCell>
+                    <TableCell>Araç Tipi</TableCell>
+                    <TableCell>Müşteri Adı</TableCell>
+                    <TableCell>Model</TableCell>
+                    <TableCell>Üretim Tarihi</TableCell>
+                    <TableCell>Üretim Ayı</TableCell>
+                    <TableCell align="center">İşlemler</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {/* ✅ YENİ: Aylık üretim araçlarına filtre uygula */}
+                  {monthlyVehicles.filter(vehicle => {
+                    // Yıl filtresi
+                    let yearMatch = true;
+                    if (filters.year) {
+                      const vehicleYear = vehicle.productionMonth.split('-')[0];
+                      yearMatch = vehicleYear === filters.year;
+                    }
+                    
+                    // Ay filtresi
+                    let monthMatch = true;
+                    if (filters.month) {
+                      const vehicleMonth = vehicle.productionMonth.split('-')[1];
+                      monthMatch = vehicleMonth === filters.month;
+                    }
+                    
+                    // Araç tipi filtresi
+                    let vehicleTypeMatch = true;
+                    if (filters.vehicleType) {
+                      vehicleTypeMatch = vehicle.vehicleType === filters.vehicleType;
+                    }
+                    
+                    return yearMatch && monthMatch && vehicleTypeMatch;
+                  }).map((vehicle) => (
+                    <TableRow key={vehicle.id} hover>
+                      <TableCell>{vehicle.serialNumber}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={vehicle.vehicleType} 
+                          size="small" 
+                          color="primary"
+                          sx={{ borderRadius: 1 }}
+                        />
+                      </TableCell>
+                      <TableCell>{vehicle.customerName}</TableCell>
+                      <TableCell>{vehicle.model}</TableCell>
+                      <TableCell>{new Date(vehicle.productionDate).toLocaleDateString('tr-TR')}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={vehicle.productionMonth} 
+                          size="small" 
+                          variant="outlined"
+                          sx={{ borderRadius: 1 }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton 
+                          size="small" 
+                          color="error"
+                          onClick={() => handleDeleteMonthlyVehicle(vehicle.id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {monthlyVehicles.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                        <Typography color="text.secondary">
+                          Henüz araç kaydı bulunmuyor
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
 
       </Paper>
+
+      {/* Aylık Araç Ekleme Dialog */}
+      <Dialog 
+        open={monthlyVehicleDialog} 
+        onClose={() => setMonthlyVehicleDialog(false)} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>Yeni Araç Ekle</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Araç Tipi *</InputLabel>
+                <Select
+                  value={monthlyVehicleForm.vehicleType || ''}
+                  label="Araç Tipi *"
+                  onChange={(e) => setMonthlyVehicleForm(prev => ({ ...prev, vehicleType: e.target.value }))}
+                >
+                  {vehicleTypes.map((type) => (
+                    <MenuItem key={type.value} value={type.value}>
+                      {type.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Seri Numarası *"
+                value={monthlyVehicleForm.serialNumber || ''}
+                onChange={(e) => setMonthlyVehicleForm(prev => ({ ...prev, serialNumber: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Müşteri Adı *"
+                value={monthlyVehicleForm.customerName || ''}
+                onChange={(e) => setMonthlyVehicleForm(prev => ({ ...prev, customerName: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Model"
+                value={monthlyVehicleForm.model || ''}
+                onChange={(e) => setMonthlyVehicleForm(prev => ({ ...prev, model: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="date"
+                label="Üretim Tarihi *"
+                value={monthlyVehicleForm.productionDate || ''}
+                onChange={(e) => {
+                  const date = new Date(e.target.value);
+                  const month = date.toISOString().slice(0, 7);
+                  setMonthlyVehicleForm(prev => ({ 
+                    ...prev, 
+                    productionDate: e.target.value,
+                    productionMonth: month
+                  }));
+                }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="month"
+                label="Üretim Ayı *"
+                value={monthlyVehicleForm.productionMonth || ''}
+                onChange={(e) => setMonthlyVehicleForm(prev => ({ ...prev, productionMonth: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMonthlyVehicleDialog(false)}>
+            İptal
+          </Button>
+          <Button onClick={handleAddMonthlyVehicle} variant="contained">
+            Ekle
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog */}
       <Dialog open={openDialog} onClose={closeDialog} maxWidth="md" fullWidth>
@@ -3415,13 +3789,32 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           <Grid container spacing={3}>
             {/* Vehicle Information */}
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Seri Numarası *"
-                value={formData.serialNumber || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, serialNumber: e.target.value }))}
-                disabled={dialogMode === 'view'}
-              />
+              <FormControl fullWidth>
+                <InputLabel>Seri Numarası (Aylık Üretim Listesinden) *</InputLabel>
+                <Select
+                  value={formData.serialNumber || ''}
+                  label="Seri Numarası (Aylık Üretim Listesinden) *"
+                  onChange={(e) => {
+                    const selectedVehicle = monthlyVehicles.find(v => v.serialNumber === e.target.value);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      serialNumber: e.target.value,
+                      vehicleType: selectedVehicle ? selectedVehicle.vehicleType : prev.vehicleType
+                    }));
+                  }}
+                  disabled={dialogMode === 'view'}
+                >
+                  {monthlyVehicles
+                    .filter((vehicle, index, self) => 
+                      index === self.findIndex(v => v.serialNumber === vehicle.serialNumber)
+                    )
+                    .map((vehicle) => (
+                      <MenuItem key={vehicle.id} value={vehicle.serialNumber}>
+                        {vehicle.serialNumber} - {vehicle.vehicleType} ({vehicle.customerName})
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>

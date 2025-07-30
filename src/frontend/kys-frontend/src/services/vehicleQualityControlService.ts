@@ -690,14 +690,14 @@ class VehicleQualityControlService {
       productionDate: data.productionDate,
       description: data.description,
       priority: data.priority || 'medium',
-      currentStatus: VehicleStatus.PRODUCTION,
+      currentStatus: VehicleStatus.QUALITY_CONTROL,
       statusHistory: [{
         id: Date.now().toString(),
-        status: VehicleStatus.PRODUCTION,
+        status: VehicleStatus.QUALITY_CONTROL,
         date: now,
         performedBy: 'Sistem Kullanıcısı',
         performedById: 'system',
-        notes: 'Araç sisteme eklendi'
+        notes: 'Araç sisteme eklendi ve kalite kontrole alındı'
       }],
       defects: [],
       isOverdue: false,
@@ -707,7 +707,7 @@ class VehicleQualityControlService {
     };
 
     this.vehicles.unshift(newVehicle);
-    this.addRecentActivity(newVehicle._id, newVehicle.vehicleName, 'Araç sisteme eklendi', VehicleStatus.PRODUCTION);
+    this.addRecentActivity(newVehicle._id, newVehicle.vehicleName, 'Araç sisteme eklendi ve kalite kontrole alındı', VehicleStatus.QUALITY_CONTROL);
     this.saveToStorage();
 
     return newVehicle;
@@ -1005,13 +1005,14 @@ class VehicleQualityControlService {
     const now = new Date();
 
     // Status history ekle
+    const statusMessage = this.getStatusChangeMessage(vehicle.currentStatus, newStatus);
     const newStatusRecord: StatusHistory = {
       id: Date.now().toString(),
       status: newStatus,
       date: now,
       performedBy: 'Sistem Kullanıcısı',
       performedById: 'system',
-      notes: notes || '',
+      notes: notes || statusMessage,
       reason: ''
     };
 
@@ -1048,6 +1049,22 @@ class VehicleQualityControlService {
       vehicle.warningLevel = 'none';
       vehicle.overdueDate = undefined;
     }
+  }
+
+  private getStatusChangeMessage(oldStatus: VehicleStatus, newStatus: VehicleStatus): string {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('tr-TR');
+    const timeStr = now.toLocaleTimeString('tr-TR');
+    
+    const statusTexts = {
+      [VehicleStatus.PRODUCTION]: 'üretime',
+      [VehicleStatus.QUALITY_CONTROL]: 'kalite kontrole',
+      [VehicleStatus.RETURNED_TO_PRODUCTION]: 'üretime geri',
+      [VehicleStatus.READY_FOR_SHIPMENT]: 'sevkiyata hazır',
+      [VehicleStatus.SHIPPED]: 'sevk edildi'
+    };
+
+    return `${dateStr} ${timeStr} tarihinde ${statusTexts[oldStatus] || 'bilinmeyen'} durumundan ${statusTexts[newStatus] || 'bilinmeyen'} durumuna geçirildi`;
   }
 
   // DEFECT METHODS

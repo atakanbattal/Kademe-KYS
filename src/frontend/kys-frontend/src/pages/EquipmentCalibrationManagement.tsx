@@ -620,7 +620,7 @@ interface Equipment {
   purchaseDate: string;
   installationDate: string;
   warrantyExpiry: string;
-  status: 'active' | 'inactive' | 'calibration' | 'out_of_service';
+  status: 'active' | 'inactive' | 'calibration' | 'out_of_service' | 'scrapped';
   calibrationRequired: boolean;
   calibrationFrequency: number; // months
   lastCalibrationDate: string;
@@ -4712,6 +4712,22 @@ const EquipmentCalibrationManagement: React.FC = () => {
     }
   };
 
+  const handleScrapEquipment = (equipment: Equipment) => {
+    if (window.confirm(`"${equipment.name}" ekipmanını hurdaya ayırmak istediğinize emin misiniz?`)) {
+      setEquipmentList(prevList => {
+        const updatedList = prevList.map(eq => 
+          eq.id === equipment.id 
+            ? { ...eq, status: 'scrapped' as const, notes: `${eq.notes ? eq.notes + '\n' : ''}Hurdaya Ayrılma Tarihi: ${new Date().toLocaleDateString('tr-TR')}` }
+            : eq
+        );
+        // LocalStorage'a kaydet
+        localStorage.setItem('equipment_calibration_data', JSON.stringify(updatedList));
+        return updatedList;
+      });
+      console.log(`${equipment.name} ekipmanı hurdaya ayrıldı`);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'valid':
@@ -4729,6 +4745,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
       
       case 'calibration':
         return <ScienceIcon />;
+      case 'scrapped':
+        return <DeleteIcon />;
       default:
         return <PendingIcon />;
     }
@@ -6154,6 +6172,24 @@ const EquipmentCalibrationManagement: React.FC = () => {
                             <ScienceIcon sx={{ fontSize: '16px' }} />
                           </IconButton>
                         </Tooltip>
+                        
+                        {equipment.status !== 'scrapped' && (
+                          <Tooltip title="Hurdaya Ayır">
+                            <IconButton 
+                              size="small"
+                              onClick={() => handleScrapEquipment(equipment)}
+                              sx={{
+                                padding: '4px',
+                                '&:hover': { 
+                                  backgroundColor: 'warning.50',
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              <DeleteIcon sx={{ fontSize: '16px', color: 'warning.main' }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         
                         <Tooltip title="Sil">
                           <IconButton 
@@ -7723,7 +7759,8 @@ const EquipmentCalibrationManagement: React.FC = () => {
                       <Chip 
                         label={selectedEquipment.status === 'active' ? 'Aktif' : 
                               selectedEquipment.status === 'inactive' ? 'İnaktif' :
-                              selectedEquipment.status === 'calibration' ? 'Kalibrasyonda' : 'Hizmet Dışı'}
+                              selectedEquipment.status === 'calibration' ? 'Kalibrasyonda' : 
+                              selectedEquipment.status === 'scrapped' ? 'Hurdaya Ayrılmış' : 'Hizmet Dışı'}
                         color={selectedEquipment.status === 'active' ? 'success' : 
                                selectedEquipment.status === 'calibration' ? 'warning' : 'error'}
                         sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}

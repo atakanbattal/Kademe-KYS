@@ -40,6 +40,7 @@ import TrainingManagement from './pages/TrainingManagement';
 import ProductionQualityTracking from './pages/ProductionQualityTracking';
 import QuarantineManagement from './pages/QuarantineManagement';
 import VehicleQualityControl from './pages/VehicleQualityControl';
+import DeviationApprovalManagement from './pages/DeviationApprovalManagement';
 
 // Main app content
 const AppContent = () => {
@@ -179,6 +180,11 @@ const AppContent = () => {
           <Route path="/quarantine-management" element={
             <Layout>
               <QuarantineManagement />
+            </Layout>
+          } />
+          <Route path="/deviation-approval" element={
+            <Layout>
+              <DeviationApprovalManagement />
             </Layout>
           } />
           {/* Catch all route */}
