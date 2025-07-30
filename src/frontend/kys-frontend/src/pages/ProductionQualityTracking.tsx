@@ -873,8 +873,9 @@ const ProductionQualityTracking: React.FC = () => {
 
   // Handle form submit
   const handleSave = () => {
-    if (!formData.serialNumber || !formData.vehicleType || !formData.inspector || !formData.defects?.length) {
-      alert('Lütfen zorunlu alanları doldurunuz ve en az bir hata ekleyiniz!');
+    // ✅ YENİ: Hata olmadan da kayıt yapılabilir (hiç hata yoksa kalite kontrolü geçmiş demektir)
+    if (!formData.serialNumber || !formData.vehicleType || !formData.inspector) {
+      alert('Lütfen zorunlu alanları doldurunuz! (Seri No, Araç Tipi, Kontrolör)');
       return;
     }
 
@@ -1484,9 +1485,19 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       const firstTimePassRate = filteredData.length > 0 ? 
         (totalSuccessfulVehicles / filteredData.length) * 100 : 100;
       
-      // Araç başına ortalama hata sayısı (sadece bu birimde hata olan araçlar)
-      const avgDefectsPerVehicle = vehiclesWithUnitDefects.length > 0 ? 
-        totalUnitDefectsWithRepeats / vehiclesWithUnitDefects.length : 0;
+      // ✅ YENİ: Araç başına ortalama hata sayısı (TOPLAM üretilen araçlara göre)
+      // Aylık üretim verilerinden toplam araç sayısını al
+      const currentMonth1 = new Date().toISOString().slice(0, 7); // YYYY-MM
+      const totalProducedVehicles1 = monthlyVehicles.filter(v => 
+        v.productionMonth === currentMonth1
+      ).length;
+      
+      // Eğer aylık üretim verisi yoksa filtredData uzunluğunu kullan
+      const totalVehicleCount1 = totalProducedVehicles1 > 0 ? totalProducedVehicles1 : filteredData.length;
+      
+      // Ortalama hata = toplam hata / toplam araç (hatalı olmayan araçlar da dahil)
+      const avgDefectsPerVehicle = totalVehicleCount1 > 0 ? 
+        totalUnitDefectsWithRepeats / totalVehicleCount1 : 0;
       
       // KALİTE SKORU HESAPLAMA - TÜRKİYE SANAYI STANDARTLARI (TSE)
       let qualityScore;
@@ -1558,6 +1569,15 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       // Tekrarlanan araç sayısını hesapla
       const repeatedVehiclesCount = vehiclesWithUnitDefects.length - vehiclesPassedFirstTime.length;
 
+      // ✅ YENİ: Toplam araç sayısını aylık üretim verilerinden al
+      const currentMonth2 = new Date().toISOString().slice(0, 7); // YYYY-MM
+      const totalProducedVehicles2 = monthlyVehicles.filter(v => 
+        v.productionMonth === currentMonth2
+      ).length;
+      
+      // Eğer aylık üretim verisi yoksa filtredData uzunluğunu kullan
+      const totalVehicleCount2 = totalProducedVehicles2 > 0 ? totalProducedVehicles2 : getFilteredData().length;
+
       return {
         unit: unit.value,
         unitName: unit.label,
@@ -1565,7 +1585,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         averageDefectsPerVehicle: Math.round(avgDefectsPerVehicle * 100) / 100,
         firstTimePassRate: Math.round(firstTimePassRate * 100) / 100,
         qualityScore: qualityScore,
-        totalVehicles: vehiclesWithUnitDefects.length,
+        totalVehicles: totalVehicleCount2, // ✅ YENİ: Toplam üretim verisi
         repeatedVehicles: repeatedVehiclesCount,
         color: unit.color
       };
@@ -1908,9 +1928,19 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       const firstTimePassRate = vehiclesWithUnitDefects.length > 0 ? 
         (vehiclesPassedFirstTime.length / vehiclesWithUnitDefects.length) * 100 : 0;
 
-      // Araç başına ortalama hata sayısı (sadece bu birimde hata olan araçlar)
-      const avgDefectsPerVehicle = vehiclesWithUnitDefects.length > 0 ? 
-        totalUnitDefectsWithRepeats / vehiclesWithUnitDefects.length : 0;
+      // ✅ YENİ: Araç başına ortalama hata sayısı (TOPLAM üretilen araçlara göre)
+      // Aylık üretim verilerinden toplam araç sayısını al
+      const currentMonth3 = new Date().toISOString().slice(0, 7); // YYYY-MM
+      const totalProducedVehicles3 = monthlyVehicles.filter(v => 
+        v.productionMonth === currentMonth3
+      ).length;
+      
+      // Eğer aylık üretim verisi yoksa filtredData uzunluğunu kullan
+      const totalVehicleCount3 = totalProducedVehicles3 > 0 ? totalProducedVehicles3 : getFilteredData().length;
+      
+      // Ortalama hata = toplam hata / toplam araç (hatalı olmayan araçlar da dahil)
+      const avgDefectsPerVehicle = totalVehicleCount3 > 0 ? 
+        totalUnitDefectsWithRepeats / totalVehicleCount3 : 0;
 
       // KALİTE SKORU HESAPLAMA - getProductionUnitPerformance ile TAMAMEN AYNI
       let qualityScore;
@@ -1975,6 +2005,15 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
 
       const repeatedVehiclesCount = vehiclesWithUnitDefects.length - vehiclesPassedFirstTime.length;
 
+      // ✅ YENİ: Toplam araç sayısını aylık üretim verilerinden al
+      const currentMonth4 = new Date().toISOString().slice(0, 7); // YYYY-MM
+      const totalProducedVehicles4 = monthlyVehicles.filter(v => 
+        v.productionMonth === currentMonth4
+      ).length;
+      
+      // Eğer aylık üretim verisi yoksa filtredData uzunluğunu kullan
+      const totalVehicleCount4 = totalProducedVehicles4 > 0 ? totalProducedVehicles4 : getFilteredData().length;
+
       return {
         unit: unit.value,
         unitName: unit.label,
@@ -1982,7 +2021,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         averageDefectsPerVehicle: Math.round(avgDefectsPerVehicle * 100) / 100,
         firstTimePassRate: Math.round(firstTimePassRate * 100) / 100,
         qualityScore: qualityScore,
-        totalVehicles: vehiclesWithUnitDefects.length,
+        totalVehicles: totalVehicleCount4, // ✅ YENİ: Toplam üretim verisi
         repeatedVehicles: repeatedVehiclesCount,
         color: unit.color
       };
@@ -2528,8 +2567,9 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                   return vehicleMonth === currentMonth;
                 }).length;
                 
-                // Etkilenen araç = defekt olan araç sayısı, toplam üretim = monthly vehicles
-                const affectedVehicles = Math.max(defectiveVehicles, currentMonthProduced > 0 ? currentMonthProduced : defectiveVehicles);
+                // ✅ YENİ: Etkilenen araç = sadece hatalı araçlar, toplam üretim = monthly vehicles
+                const affectedVehicles = defectiveVehicles;
+                const totalProducedThisMonth = currentMonthProduced;
                 
                 const criticalDefects = filteredData.filter(r => 
                   r.defects && r.defects.some(d => d.productionUnit === stat.unit && d.severity === 'critical')
