@@ -1770,25 +1770,58 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
 
   // Quality Performance KPIs
   const getQualityKPIs = () => {
+    // ✅ DÜZELTME: Filtrelenmiş verileri kullan
+    const filteredData = getFilteredData();
+    
     // Tekrarlama sayısını dahil ederek toplam hata sayısını hesapla
-    const totalDefects = defectRecords.reduce((sum, record) => {
+    const totalDefects = filteredData.reduce((sum, record) => {
       if (!record.defects) return sum;
       return sum + record.defects.reduce((defectSum, defect) => defectSum + defect.repeatCount, 0);
     }, 0);
     
     // Hata olan araçlar
-    const vehiclesWithDefects = defectRecords.filter(record => 
+    const vehiclesWithDefects = filteredData.filter(record => 
       record.defects && record.defects.length > 0
     );
     
-    // ✅ YENİ: Toplam araç sayısı = Aylık üretim verilerindeki araç sayısı
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-    const totalVehicles = monthlyVehicles.filter(v => 
-      v.productionMonth === currentMonth
-    ).length;
+    // ✅ DÜZELTME: Kullanıcının seçtiği filtreye göre toplam araç sayısını hesapla
+    let filteredMonthlyVehicles = [];
     
-    // Eğer aylık veri yoksa default hesaplama kullan
-    const totalVehiclesCount = totalVehicles > 0 ? totalVehicles : defectRecords.length;
+    if (filters.period === 'monthly' && filters.year && filters.month) {
+      const filterMonth = `${filters.year}-${filters.month}`;
+      filteredMonthlyVehicles = monthlyVehicles.filter(v => 
+        v.productionMonth === filterMonth
+      );
+    } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
+      // Çeyreklik filtreleme
+      let startMonth = 1, endMonth = 3;
+      switch (filters.quarter) {
+        case 'Q1': startMonth = 1; endMonth = 3; break;
+        case 'Q2': startMonth = 4; endMonth = 6; break;
+        case 'Q3': startMonth = 7; endMonth = 9; break;
+        case 'Q4': startMonth = 10; endMonth = 12; break;
+      }
+      
+      filteredMonthlyVehicles = monthlyVehicles.filter(v => {
+        const vehicleYear = parseInt(v.productionMonth.split('-')[0]);
+        const vehicleMonth = parseInt(v.productionMonth.split('-')[1]);
+        return vehicleYear === parseInt(filters.year) && 
+               vehicleMonth >= startMonth && vehicleMonth <= endMonth;
+      });
+    } else if (filters.period === 'custom' && filters.dateFrom && filters.dateTo) {
+      // Özel tarih aralığı
+      filteredMonthlyVehicles = monthlyVehicles.filter(v => {
+        const vehicleDate = new Date(v.productionDate);
+        const fromDate = new Date(filters.dateFrom);
+        const toDate = new Date(filters.dateTo);
+        return vehicleDate >= fromDate && vehicleDate <= toDate;
+      });
+    } else {
+      // Filtre seçilmemişse TÜM araçları kullan
+      filteredMonthlyVehicles = monthlyVehicles;
+    }
+    
+    const totalVehiclesCount = filteredMonthlyVehicles.length;
     
     const avgDefectsPerVehicle = totalVehiclesCount > 0 ? totalDefects / totalVehiclesCount : 0;
     
@@ -1809,13 +1842,31 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
     
     const repeatRate = totalVehiclesCount > 0 ? (repeatedVehicles.length / totalVehiclesCount) * 100 : 0;
 
+    // ✅ DEBUG: KPI hesaplama detayları
+    console.log('📊 Dashboard KPI Hesaplamaları:', {
+      filterPeriod: filters.period,
+      filterYear: filters.year,
+      filterMonth: filters.month,
+      filterQuarter: filters.quarter,
+      totalMonthlyVehicles: monthlyVehicles.length,
+      filteredMonthlyVehicles: filteredMonthlyVehicles.length,
+      totalVehiclesCount: totalVehiclesCount,
+      filteredDataLength: filteredData.length,
+      vehiclesWithDefects: vehiclesWithDefects.length,
+      vehiclesWithoutDefects: vehiclesWithoutDefectsCount,
+      totalDefects: totalDefects,
+      avgDefectsPerVehicle: avgDefectsPerVehicle,
+      firstTimePassRate: firstTimePassRate,
+      repeatRate: repeatRate
+    });
+
     return {
       totalVehicles: totalVehiclesCount,
       totalDefects,
       avgDefectsPerVehicle: Math.round(avgDefectsPerVehicle * 100) / 100,
       firstTimePassRate: Math.round(firstTimePassRate * 100) / 100,
       repeatRate: Math.round(repeatRate * 100) / 100,
-      criticalDefects: defectRecords.reduce((sum, record) => {
+      criticalDefects: filteredData.reduce((sum, record) => {
         if (!record.defects) return sum;
         return sum + record.defects
           .filter(defect => defect.severity === 'critical')
