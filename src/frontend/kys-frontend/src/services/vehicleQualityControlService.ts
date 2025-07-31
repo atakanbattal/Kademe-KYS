@@ -5,6 +5,7 @@ export enum VehicleStatus {
   PRODUCTION = 'production',
   QUALITY_CONTROL = 'quality_control', 
   RETURNED_TO_PRODUCTION = 'returned_to_production',
+  SERVICE = 'service',  // SERVİS adımı eklendi
   READY_FOR_SHIPMENT = 'ready_for_shipment',
   SHIPPED = 'shipped'
 }
@@ -43,12 +44,15 @@ export interface Vehicle {
   estimatedCompletionDate?: Date;
   productionReturnDate?: Date;
   qualityStartDate?: Date;
+  serviceStartDate?: Date; // Servis başlangıç tarihi
+  serviceEndDate?: Date; // Servis bitiş tarihi  
   shipmentDate?: Date;
   shipmentNotes?: string;
   targetShipmentDate?: Date; // Hedef müşteri sevk tarihi
   dmoDate?: Date; // DMO muayene tarihi
   qualityControlDuration?: number; // Kalitede geçirilen süre (gün)
   productionDuration?: number; // Üretimde geçirilen süre (gün)
+  serviceDuration?: number; // Serviste geçirilen süre (gün)
   totalProcessDuration?: number; // Toplam süreç süresi (gün)
   createdAt: Date;
   updatedAt: Date;
@@ -87,12 +91,14 @@ export interface DashboardStats {
   inProduction: number;
   inQualityControl: number;
   returnedToProduction: number;
+  inService: number;  // Servis durumu eklendi
   readyForShipment: number;
   shipped: number;
   overdueVehicles: number;
   criticalDefects: number;
   avgQualityTime: number;
   avgProductionTime: number;
+  avgServiceTime?: number;  // Servis süresi eklendi (opsiyonel)
   avgShipmentTime: number;
   monthlyShipped: number;
   qualityEfficiency: number;
@@ -340,6 +346,7 @@ export const getVehicleStatusLabel = (status: VehicleStatus): string => {
     case VehicleStatus.PRODUCTION: return 'Üretimde';
     case VehicleStatus.QUALITY_CONTROL: return 'Kalite Kontrolde';
     case VehicleStatus.RETURNED_TO_PRODUCTION: return 'Üretime Döndü';
+    case VehicleStatus.SERVICE: return 'Serviste';  // SERVİS etiketi eklendi
     case VehicleStatus.READY_FOR_SHIPMENT: return 'Sevke Hazır';
     case VehicleStatus.SHIPPED: return 'Sevk Edildi';
     default: return 'Bilinmiyor';
@@ -352,6 +359,7 @@ export const getVehicleStatusColor = (status: VehicleStatus): string => {
     case VehicleStatus.PRODUCTION: return '#f44336'; // Red for "Üretimde"
     case VehicleStatus.QUALITY_CONTROL: return '#ff9800'; // Yellow for "Kalite Kontrolde"
     case VehicleStatus.RETURNED_TO_PRODUCTION: return '#f44336'; // Red for "Üretime Döndü"
+    case VehicleStatus.SERVICE: return '#9c27b0'; // Purple for "Serviste"
     case VehicleStatus.READY_FOR_SHIPMENT: return '#4caf50'; // Green for "Sevke Hazır"
     case VehicleStatus.SHIPPED: return '#2196f3'; // Blue for "Sevk Edildi"
     default: return '#9e9e9e'; // Gray for unknown
@@ -473,9 +481,10 @@ class VehicleQualityControlService {
     const currentYear = now.getFullYear();
 
     const totalVehicles = this.vehicles.length;
-    const inProduction = this.vehicles.filter(v => v.currentStatus === VehicleStatus.RETURNED_TO_PRODUCTION).length;
+    const inProduction = this.vehicles.filter(v => v.currentStatus === VehicleStatus.PRODUCTION).length;
     const inQualityControl = this.vehicles.filter(v => v.currentStatus === VehicleStatus.QUALITY_CONTROL).length;
     const returnedToProduction = this.vehicles.filter(v => v.currentStatus === VehicleStatus.RETURNED_TO_PRODUCTION).length;
+    const inService = this.vehicles.filter(v => v.currentStatus === VehicleStatus.SERVICE).length;  // Servis durumu eklendi
     const readyForShipment = this.vehicles.filter(v => v.currentStatus === VehicleStatus.READY_FOR_SHIPMENT).length;
     const shipped = this.vehicles.filter(v => v.currentStatus === VehicleStatus.SHIPPED).length;
     const overdueVehicles = this.vehicles.filter(v => v.isOverdue).length;
@@ -493,6 +502,7 @@ class VehicleQualityControlService {
     // Ortalama süreler (saat cinsinden)
     const avgQualityTime = this.calculateAverageQualityTime();
     const avgProductionTime = this.calculateAverageProductionTime();
+    const avgServiceTime = this.calculateAverageServiceTime();  // Servis süresi eklendi
     const avgShipmentTime = this.calculateAverageShipmentTime();
     const qualityEfficiency = this.calculateQualityEfficiency();
 
@@ -501,12 +511,14 @@ class VehicleQualityControlService {
       inProduction,
       inQualityControl,
       returnedToProduction,
+      inService,  // Servis durumu eklendi
       readyForShipment,
       shipped,
       overdueVehicles,
       criticalDefects,
       avgQualityTime,
       avgProductionTime,
+      avgServiceTime,  // Servis süresi eklendi
       avgShipmentTime,
       monthlyShipped,
       qualityEfficiency,
@@ -624,6 +636,56 @@ class VehicleQualityControlService {
     return validCalculations > 0 ? Math.round(totalHours / validCalculations * 10) / 10 : 0;
   }
 
+  private calculateAverageServiceTime(): number {
+    // Servisten geçmiş araçları bul (servis bitmiş olanlar)
+    const servicedVehicles = this.vehicles.filter(v => 
+      v.statusHistory.some(h => h.status === VehicleStatus.SERVICE) &&
+      (v.currentStatus === VehicleStatus.QUALITY_CONTROL || 
+       v.currentStatus === VehicleStatus.READY_FOR_SHIPMENT || 
+       v.currentStatus === VehicleStatus.SHIPPED ||
+       v.serviceEndDate) // Servis bitiş tarihi olan araçlar
+    );
+
+    if (servicedVehicles.length === 0) return 0;
+
+    let totalHours = 0;
+    let validCalculations = 0;
+
+    servicedVehicles.forEach(vehicle => {
+      // Servise giriş zamanları
+      const serviceStarts = vehicle.statusHistory.filter(h => h.status === VehicleStatus.SERVICE);
+      
+      serviceStarts.forEach(start => {
+        let serviceEnd: Date | null = null;
+        
+        // Önce serviceEndDate alanına bak
+        if (vehicle.serviceEndDate) {
+          serviceEnd = new Date(vehicle.serviceEndDate);
+        } else {
+          // Servis başlangıcından sonraki ilk kalite veya sevke hazır durumunu bul
+          const serviceExit = vehicle.statusHistory.find(h => 
+            (h.status === VehicleStatus.QUALITY_CONTROL || h.status === VehicleStatus.READY_FOR_SHIPMENT) &&
+            new Date(h.date) > new Date(start.date)
+          );
+          if (serviceExit) {
+            serviceEnd = new Date(serviceExit.date);
+          }
+        }
+        
+        if (serviceEnd) {
+          const hours = (serviceEnd.getTime() - new Date(start.date).getTime()) / (1000 * 60 * 60);
+          // Mantıklı süre kontrolü (1 dakika - 30 gün arası)
+          if (hours >= 0.017 && hours <= 720) { // 1 dakika = 0.017 saat, 30 gün = 720 saat
+            totalHours += hours;
+            validCalculations++;
+          }
+        }
+      });
+    });
+
+    return validCalculations > 0 ? Math.round(totalHours / validCalculations * 10) / 10 : 0;
+  }
+
   private calculateQualityEfficiency(): number {
     if (this.vehicles.length === 0) return 100;
     
@@ -736,8 +798,16 @@ class VehicleQualityControlService {
       updatedVehicle.warningLevel = warningLevel;
     }
 
+    // DÜZELTME: Araç güncellemesi garantisini artır
     this.vehicles[vehicleIndex] = updatedVehicle;
-    this.addRecentActivity(id, updatedVehicle.vehicleName, 'Araç bilgileri güncellendi', updatedVehicle.currentStatus);
+    
+    // Durum değişikliği mesajını daha açıklayıcı yap
+    const statusChanged = data.currentStatus && data.currentStatus !== vehicle.currentStatus;
+    const activityMessage = statusChanged 
+      ? `Araç durumu "${getVehicleStatusLabel(vehicle.currentStatus)}" -> "${getVehicleStatusLabel(data.currentStatus!)}" olarak güncellendi`
+      : 'Araç bilgileri güncellendi';
+    
+    this.addRecentActivity(id, updatedVehicle.vehicleName, activityMessage, updatedVehicle.currentStatus);
     this.saveToStorage();
 
     return updatedVehicle;
@@ -1022,7 +1092,9 @@ class VehicleQualityControlService {
       statusHistory: [...vehicle.statusHistory, newStatusRecord],
       updatedAt: now,
       productionReturnDate: newStatus === VehicleStatus.RETURNED_TO_PRODUCTION ? now : vehicle.productionReturnDate,
-      qualityStartDate: newStatus === VehicleStatus.QUALITY_CONTROL ? now : vehicle.qualityStartDate
+      qualityStartDate: newStatus === VehicleStatus.QUALITY_CONTROL ? now : vehicle.qualityStartDate,
+      serviceStartDate: newStatus === VehicleStatus.SERVICE ? now : vehicle.serviceStartDate,
+      serviceEndDate: (newStatus === VehicleStatus.QUALITY_CONTROL || newStatus === VehicleStatus.READY_FOR_SHIPMENT) && vehicle.currentStatus === VehicleStatus.SERVICE ? now : vehicle.serviceEndDate
     };
 
     // Overdue kontrolü
@@ -1060,6 +1132,7 @@ class VehicleQualityControlService {
       [VehicleStatus.PRODUCTION]: 'üretime',
       [VehicleStatus.QUALITY_CONTROL]: 'kalite kontrole',
       [VehicleStatus.RETURNED_TO_PRODUCTION]: 'üretime geri',
+      [VehicleStatus.SERVICE]: 'servise',  // Servis durumu eklendi
       [VehicleStatus.READY_FOR_SHIPMENT]: 'sevkiyata hazır',
       [VehicleStatus.SHIPPED]: 'sevk edildi'
     };

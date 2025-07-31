@@ -579,8 +579,12 @@ const VehicleQualityControl: React.FC = () => {
       
       setVehicleDialogOpen(false);
       resetVehicleForm();
-      loadVehicles();
-      loadDashboardData();
+      
+      // DÜZELTME: Araç ekleme/güncelleme sonrası tüm verileri yenile
+      await Promise.all([
+        loadVehicles(),
+        loadDashboardData()
+      ]);
     } catch (err) {
       setError('Araç kaydedilirken hata oluştu: ' + (err instanceof Error ? err.message : 'Bilinmeyen hata'));
     } finally {
@@ -650,9 +654,14 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
     try {
       setLoading(true);
       await vehicleQualityControlService.updateVehicleStatus(vehicleId, newStatus, notes);
-      setSuccess(`Araç durumu "${getStatusText(newStatus)}" olarak güncellendi`);
-      loadVehicles();
-      loadDashboardData();
+      
+      // DÜZELTME: Veri senkronizasyonunu garantile - durum değişikliği sonrası tüm verileri yenile
+      await Promise.all([
+        loadVehicles(),
+        loadDashboardData()
+      ]);
+      
+      setSuccess(`Araç durumu "${getStatusText(newStatus)}" olarak güncellendi. Hızlı işlemler güncellenmiştir.`);
     } catch (err) {
       setError('Durum güncellenirken hata oluştu');
     } finally {
@@ -676,12 +685,17 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
       }
       
       await vehicleQualityControlService.addDefect(selectedVehicleForDefect._id, defectForm);
-      setSuccess(`${selectedVehicleForDefect.vehicleName} için eksiklik başarıyla eklendi`);
+      
+      // DÜZELTME: Eksiklik eklendikten sonra tüm verileri yenile
+      await Promise.all([
+        loadVehicles(),
+        loadDashboardData()
+      ]);
+      
+      setSuccess(`${selectedVehicleForDefect.vehicleName} için eksiklik başarıyla eklendi. Hızlı işlemler güncellenmiştir.`);
       setDefectDialogOpen(false);
       setSelectedVehicleForDefect(null);
       resetDefectForm();
-      loadVehicles();
-      loadDashboardData();
     } catch (err) {
       setError('Eksiklik eklenirken hata oluştu');
     } finally {
@@ -705,11 +719,15 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
       // Sonra durumu güncelle
       await vehicleQualityControlService.updateVehicleStatus(vehicleId, VehicleStatus.RETURNED_TO_PRODUCTION, defectForm.description);
       
-      setSuccess('Araç eksikliklerle birlikte üretime geri gönderildi');
+      // DÜZELTME: Üretime geri gönderildikten sonra tüm verileri yenile
+      await Promise.all([
+        loadVehicles(),
+        loadDashboardData()
+      ]);
+      
+      setSuccess('Araç eksikliklerle birlikte üretime geri gönderildi. Hızlı işlemler güncellenmiştir.');
       setDefectDialogOpen(false);
       resetDefectForm();
-      loadVehicles();
-      loadDashboardData();
     } catch (err) {
       setError('Üretime geri gönderilirken hata oluştu');
     } finally {
@@ -754,7 +772,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
     <Box sx={{ width: '100%' }}>
       {/* İstatistik kartları - Büyük ekran düzeni */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)', 
             color: 'white',
@@ -778,7 +796,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', 
             color: 'white',
@@ -802,7 +820,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)', 
             color: 'white',
@@ -826,7 +844,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)', 
             color: 'white',
@@ -850,9 +868,33 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)', 
+            color: 'white',
+            height: '120px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <CardContent sx={{ width: '100%' }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {dashboardStats?.inService || 0}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Serviste
+                  </Typography>
+                </Box>
+                <BuildIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #673ab7 0%, #512da8 100%)', 
             color: 'white',
             height: '120px',
             display: 'flex',
@@ -877,7 +919,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
 
       {/* İkinci satır - Performans kartları */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #ff5722 0%, #d84315 100%)', 
             color: 'white',
@@ -901,7 +943,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #795548 0%, #5d4037 100%)', 
             color: 'white',
@@ -925,7 +967,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #607d8b 0%, #455a64 100%)', 
             color: 'white',
@@ -949,7 +991,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #00bcd4 0%, #0097a7 100%)', 
             color: 'white',
@@ -973,7 +1015,31 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={2.4}>
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)', 
+            color: 'white',
+            height: '120px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <CardContent sx={{ width: '100%' }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                    {formatTurkishTime(dashboardStats?.avgServiceTime || 0)}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    Ort. Servis Süresi
+                  </Typography>
+                </Box>
+                <BuildIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             background: 'linear-gradient(135deg, #e91e63 0%, #c2185b 100%)', 
             color: 'white',
@@ -1128,6 +1194,84 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           </Card>
         </Grid>
       </Grid>
+
+      {/* Servis Araçları Listesi */}
+      <Grid container spacing={3} sx={{ mt: 2 }}>
+        <Grid item xs={12}>
+          <Card sx={{ minHeight: '400px' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', color: '#9c27b0', mb: 2 }}>
+                Servisteki Araçlar ({vehicles.filter(v => v.currentStatus === VehicleStatus.SERVICE).length})
+              </Typography>
+              {vehicles.filter(v => v.currentStatus === VehicleStatus.SERVICE).length > 0 ? (
+                <Grid container spacing={2}>
+                  {vehicles.filter(v => v.currentStatus === VehicleStatus.SERVICE).map((vehicle) => (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={vehicle._id}>
+                      <Card sx={{ 
+                        border: '2px solid #9c27b0', 
+                        backgroundColor: '#f3e5f5',
+                        '&:hover': { 
+                          transform: 'translateY(-2px)', 
+                          boxShadow: '0 4px 12px rgba(156, 39, 176, 0.3)' 
+                        },
+                        transition: 'all 0.3s ease'
+                      }}>
+                        <CardContent sx={{ p: 2 }}>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#9c27b0', mb: 1 }}>
+                            {vehicle.vehicleName}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                            Model: {vehicle.vehicleModel}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                            Seri No: {vehicle.serialNumber}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                            Müşteri: {vehicle.customerName}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#666', mb: 2, display: 'block' }}>
+                            Servise Giriş: {vehicle.serviceStartDate ? format(new Date(vehicle.serviceStartDate), 'dd.MM.yyyy HH:mm') : 'Bilinmiyor'}
+                          </Typography>
+                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
+                              sx={{ fontSize: '0.75rem' }}
+                            >
+                              Kaliteye Döndür
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="success"
+                              onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.READY_FOR_SHIPMENT)}
+                              sx={{ fontSize: '0.75rem' }}
+                            >
+                              Sevke Hazır
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <BuildIcon sx={{ fontSize: 64, color: '#9c27b0', mb: 2, opacity: 0.6 }} />
+                  <Typography variant="h6" color="textSecondary" sx={{ mb: 1 }}>
+                    Serviste Araç Bulunmuyor
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Araçları servise göndermek için hızlı işlemler butonlarını kullanabilirsiniz.
+                  </Typography>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 
@@ -1165,6 +1309,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                 <MenuItem value={VehicleStatus.PRODUCTION}>Üretimde</MenuItem>
                 <MenuItem value={VehicleStatus.QUALITY_CONTROL}>Kalitede</MenuItem>
                 <MenuItem value={VehicleStatus.RETURNED_TO_PRODUCTION}>Üretime Döndü</MenuItem>
+                <MenuItem value={VehicleStatus.SERVICE}>Serviste</MenuItem>
                 <MenuItem value={VehicleStatus.READY_FOR_SHIPMENT}>Sevke Hazır</MenuItem>
                 <MenuItem value={VehicleStatus.SHIPPED}>Sevk Edildi</MenuItem>
               </Select>
@@ -1284,7 +1429,30 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    {/* ÜRETIMDE durumdaki araçlar için butonlar */}
+                    {vehicle.currentStatus === VehicleStatus.PRODUCTION && (
+                      <>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
+                        >
+                          Kaliteye Gönder
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ backgroundColor: '#9c27b0', color: 'white', '&:hover': { backgroundColor: '#7b1fa2' } }}
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SERVICE)}
+                        >
+                          Servise Gönder
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* KALİTE KONTROLDE durumdaki araçlar için butonlar */}
                     {vehicle.currentStatus === VehicleStatus.QUALITY_CONTROL && (
                       <>
                         <Button
@@ -1298,6 +1466,14 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                         <Button
                           size="small"
                           variant="outlined"
+                          sx={{ backgroundColor: '#9c27b0', color: 'white', '&:hover': { backgroundColor: '#7b1fa2' } }}
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SERVICE)}
+                        >
+                          Servise Gönder
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
                           color="success"
                           onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.READY_FOR_SHIPMENT)}
                         >
@@ -1305,25 +1481,86 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                         </Button>
                       </>
                     )}
+                    
+                    {/* ÜRETİME DÖNDÜ durumdaki araçlar için butonlar */}
                     {vehicle.currentStatus === VehicleStatus.RETURNED_TO_PRODUCTION && (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="primary"
-                        onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
-                      >
-                        Kaliteye Döndür
-                      </Button>
+                      <>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
+                        >
+                          Kaliteye Döndür
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ backgroundColor: '#9c27b0', color: 'white', '&:hover': { backgroundColor: '#7b1fa2' } }}
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SERVICE)}
+                        >
+                          Servise Gönder
+                        </Button>
+                      </>
                     )}
+                    
+                    {/* SERVİSTE durumdaki araçlar için butonlar */}
+                    {vehicle.currentStatus === VehicleStatus.SERVICE && (
+                      <>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
+                        >
+                          Kaliteye Döndür
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="success"
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.READY_FOR_SHIPMENT)}
+                        >
+                          Sevke Hazır
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* SEVKE HAZIR durumdaki araçlar için butonlar */}
                     {vehicle.currentStatus === VehicleStatus.READY_FOR_SHIPMENT && (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="info"
-                        onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SHIPPED)}
-                      >
-                        Sevk Et
-                      </Button>
+                      <>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
+                        >
+                          Kaliteye Döndür
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ backgroundColor: '#9c27b0', color: 'white', '&:hover': { backgroundColor: '#7b1fa2' } }}
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SERVICE)}
+                        >
+                          Servise Gönder
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="info"
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SHIPPED)}
+                        >
+                          Sevk Et
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* SEVK EDİLDİ durumdaki araçlar için buton yok */}
+                    {vehicle.currentStatus === VehicleStatus.SHIPPED && (
+                      <Typography variant="caption" color="textSecondary">
+                        Sevk edildi
+                      </Typography>
                     )}
                   </Stack>
                 </TableCell>
@@ -4115,11 +4352,17 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
       };
       
       await vehicleQualityControlService.updateVehicle(editingVehicle._id, updateData);
-      await loadVehicles();
+      
+      // DÜZELTME: Hem araç listesini hem dashboard verilerini yenile
+      await Promise.all([
+        loadVehicles(),
+        loadDashboardData()
+      ]);
+      
       setVehicleEditDialogOpen(false);
       setEditingVehicle(null);
       resetVehicleForm();
-      setSuccess('Araç başarıyla güncellendi');
+      setSuccess('Araç başarıyla güncellendi. Hızlı işlemler güncellenmiştir.');
     } catch (error) {
       setError('Araç güncellenirken hata oluştu');
       console.error('Araç güncelleme hatası:', error);
@@ -4137,8 +4380,14 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
     try {
       setLoading(true);
       await vehicleQualityControlService.deleteVehicle(vehicle._id);
-      await loadVehicles();
-      setSuccess('Araç başarıyla silindi');
+      
+      // DÜZELTME: Araç silindikten sonra tüm verileri yenile
+      await Promise.all([
+        loadVehicles(),
+        loadDashboardData()
+      ]);
+      
+      setSuccess('Araç başarıyla silindi. Hızlı işlemler güncellenmiştir.');
     } catch (error) {
       setError('Araç silinirken hata oluştu');
       console.error('Araç silme hatası:', error);

@@ -216,10 +216,11 @@ export const updateVehicleStatus = async (req: Request, res: Response): Promise<
 
     // Durum geçişlerini kontrol et
     const validTransitions: Record<string, string[]> = {
-      [VehicleStatus.PRODUCTION]: [VehicleStatus.QUALITY_CONTROL],
-      [VehicleStatus.QUALITY_CONTROL]: [VehicleStatus.RETURNED_TO_PRODUCTION, VehicleStatus.READY_FOR_SHIPMENT],
-      [VehicleStatus.RETURNED_TO_PRODUCTION]: [VehicleStatus.QUALITY_CONTROL],
-      [VehicleStatus.READY_FOR_SHIPMENT]: [VehicleStatus.SHIPPED, VehicleStatus.QUALITY_CONTROL],
+      [VehicleStatus.PRODUCTION]: [VehicleStatus.QUALITY_CONTROL, VehicleStatus.SERVICE],
+      [VehicleStatus.QUALITY_CONTROL]: [VehicleStatus.RETURNED_TO_PRODUCTION, VehicleStatus.SERVICE, VehicleStatus.READY_FOR_SHIPMENT],
+      [VehicleStatus.RETURNED_TO_PRODUCTION]: [VehicleStatus.QUALITY_CONTROL, VehicleStatus.SERVICE],
+      [VehicleStatus.SERVICE]: [VehicleStatus.QUALITY_CONTROL, VehicleStatus.READY_FOR_SHIPMENT],
+      [VehicleStatus.READY_FOR_SHIPMENT]: [VehicleStatus.SHIPPED, VehicleStatus.QUALITY_CONTROL, VehicleStatus.SERVICE],
       [VehicleStatus.SHIPPED]: []
     };
 
@@ -242,13 +243,22 @@ export const updateVehicleStatus = async (req: Request, res: Response): Promise<
           updateData.qualityEntryDate = new Date();
         } else if (vehicle.currentStatus === VehicleStatus.RETURNED_TO_PRODUCTION) {
           updateData.qualityReentryDate = new Date();
+        } else if (vehicle.currentStatus === VehicleStatus.SERVICE) {
+          updateData.serviceEndDate = new Date();
         }
         break;
       case VehicleStatus.RETURNED_TO_PRODUCTION:
         updateData.productionReturnDate = new Date();
         break;
+      case VehicleStatus.SERVICE:
+        updateData.serviceStartDate = new Date();
+        // Üretimden servise gittiğinde özel işlem yok, sadece servis başlangıç tarihi
+        break;
       case VehicleStatus.READY_FOR_SHIPMENT:
         updateData.shipmentReadyDate = new Date();
+        if (vehicle.currentStatus === VehicleStatus.SERVICE) {
+          updateData.serviceEndDate = new Date();
+        }
         break;
       case VehicleStatus.SHIPPED:
         updateData.shipmentDate = new Date();
@@ -462,6 +472,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       VehicleQualityControl.countDocuments({ currentStatus: VehicleStatus.PRODUCTION }),
       VehicleQualityControl.countDocuments({ currentStatus: VehicleStatus.QUALITY_CONTROL }),
       VehicleQualityControl.countDocuments({ currentStatus: VehicleStatus.RETURNED_TO_PRODUCTION }),
+      VehicleQualityControl.countDocuments({ currentStatus: VehicleStatus.SERVICE }),
       VehicleQualityControl.countDocuments({ currentStatus: VehicleStatus.READY_FOR_SHIPMENT }),
       VehicleQualityControl.countDocuments({ currentStatus: VehicleStatus.SHIPPED }),
       
@@ -479,14 +490,15 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     ]);
 
     const dashboardData = {
-      totalVehicles: stats[0] + stats[1] + stats[2] + stats[3] + stats[4],
+      totalVehicles: stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
       inProduction: stats[0],
       inQualityControl: stats[1],
       returnedToProduction: stats[2],
-      readyForShipment: stats[3],
-      shipped: stats[4],
-      overdueVehicles: stats[5],
-      criticalDefects: stats[6] + stats[7], // warning + critical
+      inService: stats[3],  // Servis adımı eklendi
+      readyForShipment: stats[4],
+      shipped: stats[5],
+      overdueVehicles: stats[6],
+      criticalDefects: stats[7] + stats[8], // warning + critical
       avgQualityTime: 24, // Örnek veri
       avgProductionTime: 48, // Örnek veri
       monthlyShipped: stats[4], // Basit hesaplama

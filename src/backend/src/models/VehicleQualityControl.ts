@@ -5,6 +5,7 @@ export enum VehicleStatus {
   PRODUCTION = 'production',
   QUALITY_CONTROL = 'quality_control',
   RETURNED_TO_PRODUCTION = 'returned_to_production',
+  SERVICE = 'service',  // SERVİS adımı eklendi
   READY_FOR_SHIPMENT = 'ready_for_shipment',
   SHIPPED = 'shipped'
 }
@@ -70,6 +71,8 @@ export interface IVehicleQualityControl extends Document {
   qualityEntryDate?: Date;
   productionReturnDate?: Date;
   qualityReentryDate?: Date;
+  serviceStartDate?: Date;  // Servis başlangıç tarihi
+  serviceEndDate?: Date;    // Servis bitiş tarihi
   shipmentReadyDate?: Date;
   shipmentDate?: Date;
   
@@ -237,6 +240,12 @@ const vehicleQualityControlSchema = new Schema<IVehicleQualityControl>(
       type: Date
     },
     qualityReentryDate: {
+      type: Date
+    },
+    serviceStartDate: {
+      type: Date
+    },
+    serviceEndDate: {
       type: Date
     },
     shipmentReadyDate: {
