@@ -2786,6 +2786,17 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                           ).length;
                         }
                         
+                        // ✅ DEBUG: Console'da detaylı bilgi göster
+                        console.log('🚗 Dashboard Toplam Araç Hesaplama:', {
+                          filterPeriod: filters.period,
+                          filterYear: filters.year,
+                          filterMonth: filters.month,
+                          filterQuarter: filters.quarter,
+                          monthlyVehiclesTotal: monthlyVehicles.length,
+                          filteredPeriodVehicles: totalProducedInFilteredPeriod,
+                          finalResult: totalProducedInFilteredPeriod > 0 ? totalProducedInFilteredPeriod : monthlyVehicles.length
+                        });
+                        
                         // Eğer filtrelenmiş dönemde aylık veri yoksa toplam veriyi göster
                         return totalProducedInFilteredPeriod > 0 ? totalProducedInFilteredPeriod : monthlyVehicles.length;
                       })()}
