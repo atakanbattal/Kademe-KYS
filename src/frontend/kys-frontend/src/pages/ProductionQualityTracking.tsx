@@ -1661,15 +1661,15 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         calculation: `${vehiclesWithoutAnyDefects}/${totalProducedVehicles} = ${firstTimePassRate.toFixed(1)}%`
       });
       
-      // ✅ YENİ: Araç başına ortalama hata sayısı (TOPLAM üretilen araçlara göre)
+      // ✅ DÜZELTME: Araç başına ortalama hata sayısı (TOPLAM üretilen araçlara göre)
       // Aylık üretim verilerinden toplam araç sayısını al
       const currentMonth1 = new Date().toISOString().slice(0, 7); // YYYY-MM
       const totalProducedVehicles1 = monthlyVehicles.filter(v => 
         v.productionMonth === currentMonth1
       ).length;
       
-      // Eğer aylık üretim verisi yoksa filtredData uzunluğunu kullan
-      const totalVehicleCount1 = totalProducedVehicles1 > 0 ? totalProducedVehicles1 : filteredData.length;
+      // Eğer aylık üretim verisi yoksa tüm veriyi kullan
+      const totalVehicleCount1 = totalProducedVehicles1 > 0 ? totalProducedVehicles1 : monthlyVehicles.length;
       
       // Ortalama hata = toplam hata / toplam araç (hatalı olmayan araçlar da dahil)
       const avgDefectsPerVehicle = totalVehicleCount1 > 0 ? 
@@ -1745,14 +1745,14 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       // Tekrarlanan araç sayısını hesapla
       const repeatedVehiclesCount = vehiclesWithUnitDefects.length - vehiclesPassedFirstTime.length;
 
-      // ✅ YENİ: Toplam araç sayısını aylık üretim verilerinden al
+      // ✅ DÜZELTME: Toplam araç sayısını mevcut ay aylık üretim verilerinden al
       const currentMonth2 = new Date().toISOString().slice(0, 7); // YYYY-MM
       const totalProducedVehicles2 = monthlyVehicles.filter(v => 
         v.productionMonth === currentMonth2
       ).length;
       
-      // Eğer aylık üretim verisi yoksa filtredData uzunluğunu kullan
-      const totalVehicleCount2 = totalProducedVehicles2 > 0 ? totalProducedVehicles2 : getFilteredData().length;
+      // Eğer aylık üretim verisi yoksa tüm veriyi kullan
+      const totalVehicleCount2 = totalProducedVehicles2 > 0 ? totalProducedVehicles2 : monthlyVehicles.length;
 
       return {
         unit: unit.value,
@@ -2189,15 +2189,41 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         calculation: `${vehiclesWithoutAnyDefects}/${totalProducedInFilteredPeriod} = ${firstTimePassRate.toFixed(1)}%`
       });
 
-      // ✅ YENİ: Araç başına ortalama hata sayısı (TOPLAM üretilen araçlara göre)
-      // Aylık üretim verilerinden toplam araç sayısını al
-      const currentMonth3 = new Date().toISOString().slice(0, 7); // YYYY-MM
-      const totalProducedVehicles3 = monthlyVehicles.filter(v => 
-        v.productionMonth === currentMonth3
-      ).length;
+      // ✅ DÜZELTME: Araç başına ortalama hata sayısı (Filtrelenmiş dönem için)
+      // Filtrelenmiş dönemde toplam üretilen araç sayısını hesapla
+      let totalProducedInFilteredPeriod3 = 0;
       
-      // Eğer aylık üretim verisi yoksa filtredData uzunluğunu kullan
-      const totalVehicleCount3 = totalProducedVehicles3 > 0 ? totalProducedVehicles3 : getFilteredData().length;
+      if (filters.period === 'monthly' && filters.year && filters.month) {
+        const filterMonth = `${filters.year}-${filters.month}`;
+        totalProducedInFilteredPeriod3 = monthlyVehicles.filter(v => 
+          v.productionMonth === filterMonth
+        ).length;
+      } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
+        // Çeyreklik filtreleme
+        let startMonth = 1, endMonth = 3;
+        switch (filters.quarter) {
+          case 'Q1': startMonth = 1; endMonth = 3; break;
+          case 'Q2': startMonth = 4; endMonth = 6; break;
+          case 'Q3': startMonth = 7; endMonth = 9; break;
+          case 'Q4': startMonth = 10; endMonth = 12; break;
+        }
+        
+        totalProducedInFilteredPeriod3 = monthlyVehicles.filter(v => {
+          const vehicleYear = parseInt(v.productionMonth.split('-')[0]);
+          const vehicleMonth = parseInt(v.productionMonth.split('-')[1]);
+          return vehicleYear === parseInt(filters.year) && 
+                 vehicleMonth >= startMonth && vehicleMonth <= endMonth;
+        }).length;
+      } else {
+        // Varsayılan: Mevcut ay
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        totalProducedInFilteredPeriod3 = monthlyVehicles.filter(v => 
+          v.productionMonth === currentMonth
+        ).length;
+      }
+      
+      // Eğer filtrelenmiş dönemde aylık veri yoksa tüm veriyi göster
+      const totalVehicleCount3 = totalProducedInFilteredPeriod3 > 0 ? totalProducedInFilteredPeriod3 : monthlyVehicles.length;
       
       // Ortalama hata = toplam hata / toplam araç (hatalı olmayan araçlar da dahil)
       const avgDefectsPerVehicle = totalVehicleCount3 > 0 ? 
@@ -2266,14 +2292,41 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
 
       const repeatedVehiclesCount = vehiclesWithUnitDefects.length - vehiclesPassedFirstTime.length;
 
-      // ✅ YENİ: Toplam araç sayısını aylık üretim verilerinden al
-      const currentMonth4 = new Date().toISOString().slice(0, 7); // YYYY-MM
-      const totalProducedVehicles4 = monthlyVehicles.filter(v => 
-        v.productionMonth === currentMonth4
-      ).length;
+      // ✅ DÜZELTME: Toplam araç sayısını filtrelenmiş döneme göre aylık üretim verilerinden al
+      // Filtrelenmiş dönemde toplam üretilen araç sayısını hesapla
+      let totalProducedInFilteredPeriod4 = 0;
       
-      // Eğer aylık üretim verisi yoksa filtredData uzunluğunu kullan
-      const totalVehicleCount4 = totalProducedVehicles4 > 0 ? totalProducedVehicles4 : getFilteredData().length;
+      if (filters.period === 'monthly' && filters.year && filters.month) {
+        const filterMonth = `${filters.year}-${filters.month}`;
+        totalProducedInFilteredPeriod4 = monthlyVehicles.filter(v => 
+          v.productionMonth === filterMonth
+        ).length;
+      } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
+        // Çeyreklik filtreleme
+        let startMonth = 1, endMonth = 3;
+        switch (filters.quarter) {
+          case 'Q1': startMonth = 1; endMonth = 3; break;
+          case 'Q2': startMonth = 4; endMonth = 6; break;
+          case 'Q3': startMonth = 7; endMonth = 9; break;
+          case 'Q4': startMonth = 10; endMonth = 12; break;
+        }
+        
+        totalProducedInFilteredPeriod4 = monthlyVehicles.filter(v => {
+          const vehicleYear = parseInt(v.productionMonth.split('-')[0]);
+          const vehicleMonth = parseInt(v.productionMonth.split('-')[1]);
+          return vehicleYear === parseInt(filters.year) && 
+                 vehicleMonth >= startMonth && vehicleMonth <= endMonth;
+        }).length;
+      } else {
+        // Varsayılan: Mevcut ay
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        totalProducedInFilteredPeriod4 = monthlyVehicles.filter(v => 
+          v.productionMonth === currentMonth
+        ).length;
+      }
+      
+      // Eğer filtrelenmiş dönemde aylık veri yoksa tüm veriyi göster
+      const totalVehicleCount4 = totalProducedInFilteredPeriod4 > 0 ? totalProducedInFilteredPeriod4 : monthlyVehicles.length;
 
       return {
         unit: unit.value,
