@@ -2725,7 +2725,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                       <Tab label="Executive Dashboard" icon={<AssessmentIcon />} />
             <Tab label="Birim Analizi" icon={<SearchIcon />} />
             <Tab label="Hata Listesi" icon={<AssessmentIcon />} />
-            <Tab label="Aylık Üretim Araçları" icon={<DirectionsCarIcon />} />
+                            <Tab label="Araç Üretim Adetleri" icon={<DirectionsCarIcon />} />
         </Tabs>
 
         {/* Tab Content */}
@@ -2753,52 +2753,17 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                     <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Toplam İşlenen Araç</Typography>
                     <Typography variant="h2" fontWeight="bold" sx={{ mb: 1 }}>
                       {(() => {
-                        // ✅ DÜZELTME: Doğru toplam araç sayısı - Aylık üretim verilerinden al (birimlerle çarpmak yerine)
-                        // Filtrelenmiş dönemde toplam üretilen araç sayısını hesapla
-                        let totalProducedInFilteredPeriod = 0;
-                        
-                        if (filters.period === 'monthly' && filters.year && filters.month) {
-                          const filterMonth = `${filters.year}-${filters.month}`;
-                          totalProducedInFilteredPeriod = monthlyVehicles.filter(v => 
-                            v.productionMonth === filterMonth
-                          ).length;
-                        } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
-                          // Çeyreklik filtreleme
-                          let startMonth = 1, endMonth = 3;
-                          switch (filters.quarter) {
-                            case 'Q1': startMonth = 1; endMonth = 3; break;
-                            case 'Q2': startMonth = 4; endMonth = 6; break;
-                            case 'Q3': startMonth = 7; endMonth = 9; break;
-                            case 'Q4': startMonth = 10; endMonth = 12; break;
-                          }
-                          
-                          totalProducedInFilteredPeriod = monthlyVehicles.filter(v => {
-                            const vehicleYear = parseInt(v.productionMonth.split('-')[0]);
-                            const vehicleMonth = parseInt(v.productionMonth.split('-')[1]);
-                            return vehicleYear === parseInt(filters.year) && 
-                                   vehicleMonth >= startMonth && vehicleMonth <= endMonth;
-                          }).length;
-                        } else {
-                          // Varsayılan: Mevcut ay
-                          const currentMonth = new Date().toISOString().slice(0, 7);
-                          totalProducedInFilteredPeriod = monthlyVehicles.filter(v => 
-                            v.productionMonth === currentMonth
-                          ).length;
-                        }
+                        // ✅ DÜZELTME: TOPLAM araç sayısı - Filtreleme yapma, tüm aylık üretim verilerini say
+                        const totalVehicles = monthlyVehicles.length;
                         
                         // ✅ DEBUG: Console'da detaylı bilgi göster
                         console.log('🚗 Dashboard Toplam Araç Hesaplama:', {
-                          filterPeriod: filters.period,
-                          filterYear: filters.year,
-                          filterMonth: filters.month,
-                          filterQuarter: filters.quarter,
                           monthlyVehiclesTotal: monthlyVehicles.length,
-                          filteredPeriodVehicles: totalProducedInFilteredPeriod,
-                          finalResult: totalProducedInFilteredPeriod > 0 ? totalProducedInFilteredPeriod : monthlyVehicles.length
+                          defectRecordsLength: defectRecords.length,
+                          finalResult: totalVehicles
                         });
                         
-                        // Eğer filtrelenmiş dönemde aylık veri yoksa toplam veriyi göster
-                        return totalProducedInFilteredPeriod > 0 ? totalProducedInFilteredPeriod : monthlyVehicles.length;
+                        return totalVehicles;
                       })()}
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>Hata olan araçlar dahil</Typography>
@@ -2924,20 +2889,25 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                   return vehicleMonth === currentMonth;
                 }).length;
                 
-                // ✅ DÜZELTME: Etkilenen araç sayısını aylık üretim verilerinden doğru hesapla
+                // ✅ DÜZELTME: Etkilenen araç sayısını TOPLAM aylık üretim verilerinden hesapla (ay filtresi kaldırıldı)
                 // Bu birimde hatası olan araçların seri numaralarını aylık üretim verilerinde bul
                 const defectiveVehicleSerials = filteredData.filter(r => 
                   r.defects && r.defects.some(d => d.productionUnit === stat.unit)
                 ).map(r => r.serialNumber);
                 
-                // Aylık üretim verilerinde bu seri numaralarını bul
+                // Aylık üretim verilerinde bu seri numaralarını bul (AY FİLTRESİ KALDIRILDI)
                 const affectedVehiclesInMonthlyData = monthlyVehicles.filter(v => {
-                  const vehicleMonth = v.productionMonth;
-                  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-                  return vehicleMonth === currentMonth && defectiveVehicleSerials.includes(v.serialNumber);
+                  return defectiveVehicleSerials.includes(v.serialNumber);
                 });
                 
                 const affectedVehicles = affectedVehiclesInMonthlyData.length;
+                
+                // ✅ DEBUG: Etkilenen araç hesaplama detayları
+                console.log(`🚨 ${stat.unit} - Etkilenen Araç Hesaplama:`, {
+                  defectiveVehicleSerials,
+                  affectedVehiclesInMonthlyData: affectedVehiclesInMonthlyData.map(v => v.serialNumber),
+                  finalAffectedCount: affectedVehicles
+                });
                 const totalProducedThisMonth = currentMonthProduced;
                 
                 const criticalDefects = filteredData.filter(r => 
@@ -3991,7 +3961,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h6" fontWeight="bold">
-                Aylık Üretilen Araçlar ({monthlyVehicles.length} kayıt)
+                Araç Üretim Adetleri ({monthlyVehicles.length} kayıt)
               </Typography>
               <Button
                 variant="contained"
