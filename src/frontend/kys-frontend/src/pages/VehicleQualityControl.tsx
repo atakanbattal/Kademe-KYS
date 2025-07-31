@@ -1275,6 +1275,173 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
     </Box>
   );
 
+  // Servisteki araçlar render
+  const renderServiceVehicles = () => {
+    const serviceVehicles = vehicles.filter(v => v.currentStatus === VehicleStatus.SERVICE);
+    
+    return (
+      <Box sx={{ width: '100%' }}>
+        {/* Başlık ve istatistikler */}
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Box display="flex" alignItems="center" gap={2}>
+                <BuildIcon sx={{ fontSize: 48, color: '#9c27b0' }} />
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#9c27b0' }}>
+                    Servisteki Araçlar
+                  </Typography>
+                  <Typography variant="h6" color="textSecondary">
+                    Toplam {serviceVehicles.length} araç serviste bekliyor
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ 
+                background: 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)', 
+                color: 'white',
+                textAlign: 'center',
+                p: 2
+              }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  {formatTurkishTime(dashboardStats?.avgServiceTime || 0)}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Ortalama Servis Süresi
+                </Typography>
+              </Card>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {/* Servis araçları listesi/kartları */}
+        {serviceVehicles.length > 0 ? (
+          <Grid container spacing={3}>
+            {serviceVehicles.map((vehicle) => (
+              <Grid item xs={12} sm={6} md={4} lg={4} key={vehicle._id}>
+                <Card sx={{ 
+                  border: '2px solid #9c27b0', 
+                  backgroundColor: '#fafafa',
+                  '&:hover': { 
+                    transform: 'translateY(-4px)', 
+                    boxShadow: '0 8px 24px rgba(156, 39, 176, 0.3)' 
+                  },
+                  transition: 'all 0.3s ease',
+                  height: '100%'
+                }}>
+                  <CardContent sx={{ p: 3 }}>
+                    {/* Araç bilgileri */}
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#9c27b0', mb: 1 }}>
+                        {vehicle.vehicleName}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                        <strong>Model:</strong> {vehicle.vehicleModel}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                        <strong>Seri No:</strong> {vehicle.serialNumber}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                        <strong>Müşteri:</strong> {vehicle.customerName}
+                      </Typography>
+                      {vehicle.spsNumber && (
+                        <Typography variant="body2" color="textSecondary" sx={{ mb: 0.5 }}>
+                          <strong>SPS:</strong> {vehicle.spsNumber}
+                        </Typography>
+                      )}
+                    </Box>
+
+                    <Divider sx={{ mb: 2 }} />
+
+                    {/* Süre bilgileri */}
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#666', mb: 1 }}>
+                        Servis Bilgileri
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#666', display: 'block', mb: 1 }}>
+                        <strong>Servise Giriş:</strong> {vehicle.serviceStartDate ? format(new Date(vehicle.serviceStartDate), 'dd.MM.yyyy HH:mm') : 'Bilinmiyor'}
+                      </Typography>
+                      {vehicle.serviceStartDate && (
+                        <Typography variant="caption" sx={{ color: '#9c27b0', display: 'block', fontWeight: 'bold' }}>
+                          <strong>Serviste Geçen Süre:</strong> {formatDistanceToNow(new Date(vehicle.serviceStartDate), { addSuffix: false, locale: tr })}
+                        </Typography>
+                      )}
+                    </Box>
+
+                    {/* Eksiklik bilgileri */}
+                    {vehicle.defects.length > 0 && (
+                      <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#ff5722', mb: 1 }}>
+                          Aktif Eksiklikler ({vehicle.defects.length})
+                        </Typography>
+                        {vehicle.defects.slice(0, 2).map((defect) => (
+                          <Typography key={defect._id} variant="caption" sx={{ color: '#666', display: 'block', mb: 0.5 }}>
+                            • {defect.description.substring(0, 50)}{defect.description.length > 50 ? '...' : ''}
+                          </Typography>
+                        ))}
+                        {vehicle.defects.length > 2 && (
+                          <Typography variant="caption" sx={{ color: '#999', fontStyle: 'italic' }}>
+                            ve {vehicle.defects.length - 2} eksiklik daha...
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+
+                    {/* İşlem butonları */}
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
+                        sx={{ fontSize: '0.75rem', flex: 1 }}
+                      >
+                        Kaliteye Döndür
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="success"
+                        onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.READY_FOR_SHIPMENT)}
+                        sx={{ fontSize: '0.75rem', flex: 1 }}
+                      >
+                        Sevke Hazır
+                      </Button>
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setSelectedVehicle(vehicle);
+                          setVehicleDetailDialogOpen(true);
+                        }}
+                        sx={{ backgroundColor: '#e3f2fd', '&:hover': { backgroundColor: '#bbdefb' } }}
+                      >
+                        <VisibilityIcon fontSize="small" color="primary" />
+                      </IconButton>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Paper sx={{ p: 6, textAlign: 'center' }}>
+            <BuildIcon sx={{ fontSize: 80, color: '#9c27b0', mb: 3, opacity: 0.6 }} />
+            <Typography variant="h5" color="textSecondary" sx={{ mb: 2, fontWeight: 'bold' }}>
+              Serviste Araç Bulunmuyor
+            </Typography>
+            <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
+              Şu anda serviste bekleyen araç bulunmamaktadır.
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Araçları servise göndermek için araç listesindeki işlemler butonlarını kullanabilirsiniz.
+            </Typography>
+          </Paper>
+        )}
+      </Box>
+    );
+  };
+
   // Araç listesi render
   const renderVehicleList = () => (
     <Box sx={{ width: '100%' }}>
@@ -1432,24 +1599,14 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                   <Stack direction="row" spacing={1} flexWrap="wrap">
                     {/* ÜRETIMDE durumdaki araçlar için butonlar */}
                     {vehicle.currentStatus === VehicleStatus.PRODUCTION && (
-                      <>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
-                        >
-                          Kaliteye Gönder
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          sx={{ backgroundColor: '#9c27b0', color: 'white', '&:hover': { backgroundColor: '#7b1fa2' } }}
-                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SERVICE)}
-                        >
-                          Servise Gönder
-                        </Button>
-                      </>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
+                      >
+                        Kaliteye Gönder
+                      </Button>
                     )}
                     
                     {/* KALİTE KONTROLDE durumdaki araçlar için butonlar */}
@@ -1466,14 +1623,6 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                         <Button
                           size="small"
                           variant="outlined"
-                          sx={{ backgroundColor: '#9c27b0', color: 'white', '&:hover': { backgroundColor: '#7b1fa2' } }}
-                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SERVICE)}
-                        >
-                          Servise Gönder
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
                           color="success"
                           onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.READY_FOR_SHIPMENT)}
                         >
@@ -1484,24 +1633,14 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                     
                     {/* ÜRETİME DÖNDÜ durumdaki araçlar için butonlar */}
                     {vehicle.currentStatus === VehicleStatus.RETURNED_TO_PRODUCTION && (
-                      <>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
-                        >
-                          Kaliteye Döndür
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          sx={{ backgroundColor: '#9c27b0', color: 'white', '&:hover': { backgroundColor: '#7b1fa2' } }}
-                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SERVICE)}
-                        >
-                          Servise Gönder
-                        </Button>
-                      </>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
+                      >
+                        Kaliteye Döndür
+                      </Button>
                     )}
                     
                     {/* SERVİSTE durumdaki araçlar için butonlar */}
@@ -1536,14 +1675,6 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                           onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.QUALITY_CONTROL)}
                         >
                           Kaliteye Döndür
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          sx={{ backgroundColor: '#9c27b0', color: 'white', '&:hover': { backgroundColor: '#7b1fa2' } }}
-                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SERVICE)}
-                        >
-                          Servise Gönder
                         </Button>
                         <Button
                           size="small"
@@ -1600,6 +1731,18 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                         <EditIcon fontSize="small" color="success" />
                       </IconButton>
                     </Tooltip>
+                    {/* Servis butonu - sadece serviste olmayanlar için */}
+                    {vehicle.currentStatus !== VehicleStatus.SERVICE && vehicle.currentStatus !== VehicleStatus.SHIPPED && (
+                      <Tooltip title="Servise Gönder">
+                        <IconButton
+                          onClick={() => handleVehicleStatusUpdate(vehicle._id, VehicleStatus.SERVICE)}
+                          size="small"
+                          sx={{ backgroundColor: '#f3e5f5', '&:hover': { backgroundColor: '#e1bee7' } }}
+                        >
+                          <BuildIcon fontSize="small" sx={{ color: '#9c27b0' }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <Tooltip title="Sil">
                       <IconButton
                         onClick={() => handleVehicleDelete(vehicle)}
@@ -4443,6 +4586,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Tab icon={<DirectionsCarIcon />} label="Araçlar" />
           <Tab icon={<QualityControlIcon />} label="Kalite Kontrol" />
           <Tab icon={<FactoryIcon />} label="Üretim" />
+          <Tab icon={<BuildIcon />} label="Servisteki Araçlar" />
           <Tab icon={<ShippingIcon />} label="Sevk" />
           <Tab icon={<WarningIcon />} label="Uyarılar" />
         </Tabs>
@@ -4464,10 +4608,14 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
         </TabPanel>
 
         <TabPanel value={activeTab} index={4}>
-          {renderShipmentManagement()}
+          {renderServiceVehicles()}
         </TabPanel>
 
         <TabPanel value={activeTab} index={5}>
+          {renderShipmentManagement()}
+        </TabPanel>
+
+        <TabPanel value={activeTab} index={6}>
           {renderWarnings()}
         </TabPanel>
       </Paper>
