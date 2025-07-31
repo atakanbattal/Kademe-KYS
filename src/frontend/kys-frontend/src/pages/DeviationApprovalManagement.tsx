@@ -61,7 +61,7 @@ interface DeviationApproval {
   vehicleModel: string;
   vehicleSerialNumber: string;
   chassisNumber?: string; // Opsiyonel şasi numarası
-  deviationType: 'input-control' | 'semi-finished' | 'finished' | 'final-vehicle';
+  deviationType: 'input-control' | 'process-control' | 'final-control';
   description: string;
   reasonForDeviation: string;
   proposedSolution: string;
@@ -136,9 +136,8 @@ const VisuallyHiddenInput = styled('input')({
 // Constants
 const DEVIATION_TYPES = [
   { value: 'input-control', label: 'Girdi Kontrol' },
-  { value: 'semi-finished', label: 'Yarımamül' },
-  { value: 'finished', label: 'Mamül' },
-  { value: 'final-vehicle', label: 'Final Araç' }
+  { value: 'process-control', label: 'Proses Kontrol' },
+  { value: 'final-control', label: 'Final Kontrol' }
 ];
 
 const QUALITY_RISKS = [
@@ -533,14 +532,87 @@ const DeviationApprovalManagement: React.FC = () => {
   };
 
   // ✅ PDF görüntüleme fonksiyonları
+  // ✅ YENİ: Equipment Calibration modülündeki gibi PDF görüntüleme
   const handleViewAttachments = (attachments: DeviationAttachment[]) => {
     if (attachments.length === 0) {
       alert('Bu kayıtta görüntülenecek dosya bulunmuyor.');
       return;
     }
-    setSelectedAttachments(attachments);
-    setSelectedAttachmentIndex(0);
-    setPdfViewDialog(true);
+    
+    // İlk dosyayı görüntüle
+    const attachment = attachments[0];
+    if (attachment.url) {
+      try {
+        // Base64 string'den blob oluştur ve yeni sekmede aç
+        const byteCharacters = atob(attachment.url.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: attachment.fileType || 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } catch (error) {
+        console.error('❌ PDF görüntüleme hatası:', error);
+        alert('PDF görüntülenirken bir hata oluştu.');
+      }
+    } else {
+      alert('Dosya verisi bulunamadı.');
+    }
+  };
+
+  // ✅ YENİ: Tek dosya görüntüleme fonksiyonu
+  const handleViewSingleAttachment = (attachment: DeviationAttachment) => {
+    if (attachment.url) {
+      try {
+        // Base64 string'den blob oluştur ve yeni sekmede aç
+        const byteCharacters = atob(attachment.url.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: attachment.fileType || 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } catch (error) {
+        console.error('❌ PDF görüntüleme hatası:', error);
+        alert('PDF görüntülenirken bir hata oluştu.');
+      }
+    } else {
+      alert('Dosya verisi bulunamadı.');
+    }
+  };
+
+  // ✅ YENİ: Dosya indirme fonksiyonu
+  const handleDownloadAttachment = (attachment: DeviationAttachment) => {
+    if (attachment.url) {
+      try {
+        // Base64 string'den blob oluştur ve indir
+        const byteCharacters = atob(attachment.url.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: attachment.fileType || 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = attachment.fileName || 'sapma-dosya.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('❌ Dosya indirme hatası:', error);
+        alert('Dosya indirilirken bir hata oluştu.');
+      }
+    } else {
+      alert('Dosya verisi bulunamadı.');
+    }
   };
 
   const handleNextAttachment = () => {
@@ -567,15 +639,7 @@ const DeviationApprovalManagement: React.FC = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Sapma Onayı Yönetimi
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Üretim sürecindeki sapmaların onay süreçlerini yönetin ve izleyebilirliğini sağlayın
-        </Typography>
-      </Box>
+
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -1083,18 +1147,37 @@ const DeviationApprovalManagement: React.FC = () => {
               {formData.attachments && formData.attachments.length > 0 && (
                 <Box>
                   {formData.attachments.map((attachment) => (
-                    <Chip
-                      key={attachment.id}
-                      label={`${attachment.fileName} (${(attachment.fileSize / 1024).toFixed(1)} KB)`}
-                      variant="outlined"
-                      sx={{ mr: 1, mb: 1 }}
-                      onDelete={dialogMode !== 'view' ? () => {
-                        setFormData(prev => ({
-                          ...prev,
-                          attachments: prev.attachments?.filter(a => a.id !== attachment.id) || []
-                        }));
-                      } : undefined}
-                    />
+                    <Box key={attachment.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Chip
+                        label={`${attachment.fileName} (${(attachment.fileSize / 1024).toFixed(1)} KB)`}
+                        variant="outlined"
+                        sx={{ flex: 1, justifyContent: 'flex-start' }}
+                        onDelete={dialogMode !== 'view' ? () => {
+                          setFormData(prev => ({
+                            ...prev,
+                            attachments: prev.attachments?.filter(a => a.id !== attachment.id) || []
+                          }));
+                        } : undefined}
+                      />
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<ViewIcon />}
+                        onClick={() => handleViewSingleAttachment(attachment)}
+                        sx={{ minWidth: 'auto', px: 2 }}
+                      >
+                        Görüntüle
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<DownloadIcon />}
+                        onClick={() => handleDownloadAttachment(attachment)}
+                        sx={{ minWidth: 'auto', px: 2 }}
+                      >
+                        İndir
+                      </Button>
+                    </Box>
                   ))}
                 </Box>
               )}
