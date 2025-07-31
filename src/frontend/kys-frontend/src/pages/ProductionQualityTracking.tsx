@@ -593,6 +593,7 @@ const ProductionQualityTracking: React.FC = () => {
   // Aylık üretim verileri için state'ler
   const [monthlyVehicles, setMonthlyVehicles] = useState<MonthlyVehicleProduction[]>([]);
   const [monthlyVehicleDialog, setMonthlyVehicleDialog] = useState(false);
+  const [selectedMonthlyVehicleId, setSelectedMonthlyVehicleId] = useState<string | null>(null);
   const [monthlyVehicleForm, setMonthlyVehicleForm] = useState<Partial<MonthlyVehicleProduction>>({
     vehicleType: '',
     serialNumber: '',
@@ -665,9 +666,17 @@ const ProductionQualityTracking: React.FC = () => {
       if (savedData) {
         const parsedData = JSON.parse(savedData);
         setMonthlyVehicles(parsedData);
+        console.log('✅ Aylık araç verileri localStorage\'dan yüklendi:', parsedData.length, 'araç');
+      } else {
+        // ✅ YENİ: Eğer localStorage'da veri yoksa sample data oluştur
+        console.log('⚠️ localStorage\'da aylık araç verisi yok, sample data oluşturuluyor...');
+        generateSampleMonthlyVehicles();
       }
     } catch (error) {
       console.error('Aylık araç veri yükleme hatası:', error);
+      // ✅ YENİ: Hata durumunda da sample data oluştur
+      console.log('🔧 Hata nedeniyle sample data oluşturuluyor...');
+      generateSampleMonthlyVehicles();
     }
   }, []);
 
@@ -773,6 +782,134 @@ const ProductionQualityTracking: React.FC = () => {
 
     setDefectRecords(sampleData);
     localStorage.setItem('productionQualityData', JSON.stringify(sampleData));
+    
+    // ✅ YENİ: Aylık üretim araçları için sample data oluştur
+    generateSampleMonthlyVehicles();
+  };
+
+  // ✅ YENİ: Aylık üretim araçları için sample data oluşturma fonksiyonu
+  const generateSampleMonthlyVehicles = () => {
+    const currentDate = new Date();
+    const currentMonth = currentDate.toISOString().slice(0, 7); // YYYY-MM
+    
+    const sampleMonthlyVehicles: MonthlyVehicleProduction[] = [
+      // Mevcut aydaki araçlar (hatalı olanlar da dahil)
+      {
+        id: 'mv-1',
+        vehicleType: 'Aga2100',
+        serialNumber: 'AGA-2024-001',
+        customerName: 'ABC İnşaat Ltd.',
+        model: 'Aga2100-ST',
+        productionDate: '2024-12-01',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-01T08:00:00Z',
+        updatedAt: '2024-12-01T08:00:00Z'
+      },
+      {
+        id: 'mv-2',
+        vehicleType: 'HSCK',
+        serialNumber: 'HSC-2024-012',
+        customerName: 'XYZ Tarım A.Ş.',
+        model: 'HSCK-PRO',
+        productionDate: '2024-12-02',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-02T09:00:00Z',
+        updatedAt: '2024-12-02T09:00:00Z'
+      },
+      {
+        id: 'mv-3',
+        vehicleType: 'KDM 70',
+        serialNumber: 'KDM-2024-005',
+        customerName: 'DEF Çiftlik İşl.',
+        model: 'KDM70-Eco',
+        productionDate: '2024-12-03',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-03T10:00:00Z',
+        updatedAt: '2024-12-03T10:00:00Z'
+      },
+      // Hatasız araçlar - İlk geçiş oranını doğru hesaplamak için
+      {
+        id: 'mv-4',
+        vehicleType: 'Aga3000',
+        serialNumber: 'AGA-2024-015',
+        customerName: 'GHI Maden Ltd.',
+        model: 'Aga3000-HD',
+        productionDate: '2024-12-04',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-04T11:00:00Z',
+        updatedAt: '2024-12-04T11:00:00Z'
+      },
+      {
+        id: 'mv-5',
+        vehicleType: 'FTH-240',
+        serialNumber: 'FTH-2024-008',
+        customerName: 'JKL İnşaat A.Ş.',
+        model: 'FTH240-Plus',
+        productionDate: '2024-12-05',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-05T12:00:00Z',
+        updatedAt: '2024-12-05T12:00:00Z'
+      },
+      {
+        id: 'mv-6',
+        vehicleType: 'Aga6000',
+        serialNumber: 'AGA-2024-022',
+        customerName: 'MNO Taşımacılık',
+        model: 'Aga6000-Super',
+        productionDate: '2024-12-06',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-06T13:00:00Z',
+        updatedAt: '2024-12-06T13:00:00Z'
+      },
+      {
+        id: 'mv-7',
+        vehicleType: 'KDM 45',
+        serialNumber: 'KDM-2024-018',
+        customerName: 'PQR Tarım Kooperatifi',
+        model: 'KDM45-Compact',
+        productionDate: '2024-12-07',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-07T14:00:00Z',
+        updatedAt: '2024-12-07T14:00:00Z'
+      },
+      {
+        id: 'mv-8',
+        vehicleType: 'Çelik-2000',
+        serialNumber: 'CEL-2024-011',
+        customerName: 'STU Metal San.',
+        model: 'Çelik2000-Pro',
+        productionDate: '2024-12-08',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-08T15:00:00Z',
+        updatedAt: '2024-12-08T15:00:00Z'
+      },
+      {
+        id: 'mv-9',
+        vehicleType: 'KDM 80',
+        serialNumber: 'KDM-2024-025',
+        customerName: 'VWX Orman Ürünleri',
+        model: 'KDM80-Heavy',
+        productionDate: '2024-12-09',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-09T16:00:00Z',
+        updatedAt: '2024-12-09T16:00:00Z'
+      },
+      {
+        id: 'mv-10',
+        vehicleType: 'Kompost Makinesi',
+        serialNumber: 'KMP-2024-003',
+        customerName: 'YZA Organik Gübre',
+        model: 'Kompost-Eco',
+        productionDate: '2024-12-10',
+        productionMonth: currentMonth,
+        createdAt: '2024-12-10T17:00:00Z',
+        updatedAt: '2024-12-10T17:00:00Z'
+      }
+    ];
+
+    setMonthlyVehicles(sampleMonthlyVehicles);
+    localStorage.setItem('monthlyVehicleProduction', JSON.stringify(sampleMonthlyVehicles));
+    console.log('✅ Sample aylık araç verileri oluşturuldu:', sampleMonthlyVehicles.length, 'araç');
   };
 
   // Save data to localStorage
@@ -960,20 +1097,41 @@ const ProductionQualityTracking: React.FC = () => {
       return;
     }
 
-    const newVehicle: MonthlyVehicleProduction = {
-      id: Date.now().toString(),
-      vehicleType: monthlyVehicleForm.vehicleType!,
-      serialNumber: monthlyVehicleForm.serialNumber!,
-      customerName: monthlyVehicleForm.customerName!,
-      model: monthlyVehicleForm.model || '',
-      productionDate: monthlyVehicleForm.productionDate!,
-      productionMonth: monthlyVehicleForm.productionMonth!,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    if (selectedMonthlyVehicleId) {
+      // Düzenleme modu
+      const updatedVehicles = monthlyVehicles.map(vehicle =>
+        vehicle.id === selectedMonthlyVehicleId
+          ? {
+              ...vehicle,
+              vehicleType: monthlyVehicleForm.vehicleType!,
+              serialNumber: monthlyVehicleForm.serialNumber!,
+              customerName: monthlyVehicleForm.customerName!,
+              model: monthlyVehicleForm.model || '',
+              productionDate: monthlyVehicleForm.productionDate!,
+              productionMonth: monthlyVehicleForm.productionMonth!,
+              updatedAt: new Date().toISOString()
+            }
+          : vehicle
+      );
+      saveMonthlyVehicleData(updatedVehicles);
+    } else {
+      // Yeni ekleme modu
+      const newVehicle: MonthlyVehicleProduction = {
+        id: Date.now().toString(),
+        vehicleType: monthlyVehicleForm.vehicleType!,
+        serialNumber: monthlyVehicleForm.serialNumber!,
+        customerName: monthlyVehicleForm.customerName!,
+        model: monthlyVehicleForm.model || '',
+        productionDate: monthlyVehicleForm.productionDate!,
+        productionMonth: monthlyVehicleForm.productionMonth!,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
 
-    const updatedVehicles = [...monthlyVehicles, newVehicle];
-    saveMonthlyVehicleData(updatedVehicles);
+      const updatedVehicles = [...monthlyVehicles, newVehicle];
+      saveMonthlyVehicleData(updatedVehicles);
+    }
+    
     setMonthlyVehicleDialog(false);
     resetMonthlyVehicleForm();
   };
@@ -987,6 +1145,7 @@ const ProductionQualityTracking: React.FC = () => {
       productionDate: new Date().toISOString().split('T')[0],
       productionMonth: new Date().toISOString().slice(0, 7)
     });
+    setSelectedMonthlyVehicleId(null);
   };
 
   const handleDeleteMonthlyVehicle = (vehicleId: string) => {
@@ -1459,18 +1618,26 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           .reduce((defectSum, defect) => defectSum + defect.repeatCount, 0);
       }, 0);
       
-      // İLK GEÇİŞ ORANI: TÜM ARAÇLAR BAZ ALINIR (hatası olmayan + ilk seferde başarılı)
+      // İLK GEÇİŞ ORANI: TOPLAM ÜRETİLEN ARAÇLAR BAZ ALINIR (doğru hesaplama)
       
-      // 1. Bu birimde hiç hatası olmayan araçları bul
-      const vehiclesWithoutUnitDefects = filteredData.filter(record => {
-        const unitDefects = record.defects ? record.defects.filter(
-          defect => defect.productionUnit === unit.value
-        ) : [];
-        return unitDefects.length === 0;
+      // 1. Toplam üretilen araç sayısını aylık üretim verilerinden al
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+      const totalProducedVehicles = monthlyVehicles.filter(v => 
+        v.productionMonth === currentMonth
+      ).length;
+      
+      // 2. Bu birimde hatası olan araçları bul (defectRecords'tan, filtrelenmemiş)
+      const vehiclesWithUnitDefectsInThisMonth = defectRecords.filter(record => {
+        // Önce tarihi kontrol et (sadece bu aydakiler)
+        const recordMonth = new Date(record.submissionDate).toISOString().slice(0, 7);
+        if (recordMonth !== currentMonth) return false;
+        
+        // Bu birimde hata var mı?
+        return record.defects && record.defects.some(defect => defect.productionUnit === unit.value);
       });
       
-      // 2. Bu birimde hatası olan ama ilk seferde başarılı olan araçları bul
-      const vehiclesPassedFirstTime = vehiclesWithUnitDefects.filter(record => {
+      // 3. Bu birimde ilk seferde başarılı olanları bul
+      const vehiclesPassedFirstTime = vehiclesWithUnitDefectsInThisMonth.filter(record => {
         const unitDefectsForVehicle = record.defects ? record.defects.filter(defect => 
           defect.productionUnit === unit.value
         ) : [];
@@ -1478,12 +1645,21 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         return unitDefectsForVehicle.every(defect => defect.repeatCount <= 1);
       });
       
-      // 3. Toplam başarılı araçlar = hatası olmayan + ilk seferde başarılı
-      const totalSuccessfulVehicles = vehiclesWithoutUnitDefects.length + vehiclesPassedFirstTime.length;
+      // ✅ YENİ: BASİT İLK GEÇİŞ ORANI HESABI
+      // İlk geçiş oranı = Hata kaydı olmayan araç sayısı / Toplam üretilen araç sayısı
+      // Örnek: 10 araç üretilmiş, 5'ine hata kaydı girişse ilk geçiş oranı %50
+      const vehiclesWithoutAnyDefects = totalProducedVehicles - vehiclesWithUnitDefectsInThisMonth.length;
+      const firstTimePassRate = totalProducedVehicles > 0 ? 
+        (vehiclesWithoutAnyDefects / totalProducedVehicles) * 100 : 100;
       
-      // 4. İlk geçiş oranı = başarılı araçlar / tüm araçlar
-      const firstTimePassRate = filteredData.length > 0 ? 
-        (totalSuccessfulVehicles / filteredData.length) * 100 : 100;
+      // DEBUG: İlk geçiş oranı hesaplama bilgisi
+      console.log(`${unit.label} İlk Geçiş Oranı Hesaplama (BASİT):`, {
+        totalProducedVehicles,
+        vehiclesWithDefects: vehiclesWithUnitDefectsInThisMonth.length,
+        vehiclesWithoutDefects: vehiclesWithoutAnyDefects,
+        firstTimePassRate: firstTimePassRate.toFixed(1) + '%',
+        calculation: `${vehiclesWithoutAnyDefects}/${totalProducedVehicles} = ${firstTimePassRate.toFixed(1)}%`
+      });
       
       // ✅ YENİ: Araç başına ortalama hata sayısı (TOPLAM üretilen araçlara göre)
       // Aylık üretim verilerinden toplam araç sayısını al
@@ -1605,30 +1781,36 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       record.defects && record.defects.length > 0
     );
     
-    const totalVehicles = defectRecords.length;
-    const avgDefectsPerVehicle = vehiclesWithDefects.length > 0 ? totalDefects / vehiclesWithDefects.length : 0;
+    // ✅ YENİ: Toplam araç sayısı = Aylık üretim verilerindeki araç sayısı
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const totalVehicles = monthlyVehicles.filter(v => 
+      v.productionMonth === currentMonth
+    ).length;
     
-    // İlk geçiş başarılı araçlar: Hiç hata olmayan + tüm hataları ilk seferde olan
-    const vehiclesWithoutDefects = defectRecords.filter(record => 
-      !record.defects || record.defects.length === 0
-    );
+    // Eğer aylık veri yoksa default hesaplama kullan
+    const totalVehiclesCount = totalVehicles > 0 ? totalVehicles : defectRecords.length;
+    
+    const avgDefectsPerVehicle = totalVehiclesCount > 0 ? totalDefects / totalVehiclesCount : 0;
+    
+    // İlk geçiş başarılı araçlar: Hiç hatası olmayan + tüm hataları ilk seferde olan
+    const vehiclesWithoutDefectsCount = totalVehiclesCount - vehiclesWithDefects.length;
     
     const firstTimeSuccessVehicles = vehiclesWithDefects.filter(record =>
       record.defects && record.defects.every(defect => defect.repeatCount <= 1)
     );
     
-    const totalFirstTimePass = vehiclesWithoutDefects.length + firstTimeSuccessVehicles.length;
-    const firstTimePassRate = totalVehicles > 0 ? 
-      (totalFirstTimePass / totalVehicles) * 100 : 100;
+    const totalFirstTimePass = vehiclesWithoutDefectsCount + firstTimeSuccessVehicles.length;
+    const firstTimePassRate = totalVehiclesCount > 0 ? 
+      (totalFirstTimePass / totalVehiclesCount) * 100 : 100;
     
     const repeatedVehicles = vehiclesWithDefects.filter(record =>
       record.defects && record.defects.some(defect => defect.repeatCount > 1)
     );
     
-    const repeatRate = totalVehicles > 0 ? (repeatedVehicles.length / totalVehicles) * 100 : 0;
+    const repeatRate = totalVehiclesCount > 0 ? (repeatedVehicles.length / totalVehiclesCount) * 100 : 0;
 
     return {
-      totalVehicles,
+      totalVehicles: totalVehiclesCount,
       totalDefects,
       avgDefectsPerVehicle: Math.round(avgDefectsPerVehicle * 100) / 100,
       firstTimePassRate: Math.round(firstTimePassRate * 100) / 100,
@@ -1861,19 +2043,51 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       record.defects && record.defects.length > 0
     );
     
-    const totalVehicles = records.length;
-    const avgDefectsPerVehicle = vehiclesWithDefects.length > 0 ? totalDefects / vehiclesWithDefects.length : 0;
+    // ✅ YENİ: Filtrelenmiş dönemde toplam üretilen araç sayısını hesapla
+    let totalVehiclesInFilteredPeriod = 0;
     
-    // İlk geçiş başarılı araçlar: Hiç hata olmayan + tüm hataları ilk seferde olan
-    const vehiclesWithoutDefects = records.filter(record => 
-      !record.defects || record.defects.length === 0
-    );
+    if (filters.period === 'monthly' && filters.year && filters.month) {
+      const filterMonth = `${filters.year}-${filters.month}`;
+      totalVehiclesInFilteredPeriod = monthlyVehicles.filter(v => 
+        v.productionMonth === filterMonth
+      ).length;
+    } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
+      // Çeyreklik filtreleme
+      let startMonth = 1, endMonth = 3;
+      switch (filters.quarter) {
+        case 'Q1': startMonth = 1; endMonth = 3; break;
+        case 'Q2': startMonth = 4; endMonth = 6; break;
+        case 'Q3': startMonth = 7; endMonth = 9; break;
+        case 'Q4': startMonth = 10; endMonth = 12; break;
+      }
+      
+      totalVehiclesInFilteredPeriod = monthlyVehicles.filter(v => {
+        const vehicleYear = parseInt(v.productionMonth.split('-')[0]);
+        const vehicleMonth = parseInt(v.productionMonth.split('-')[1]);
+        return vehicleYear === parseInt(filters.year) && 
+               vehicleMonth >= startMonth && vehicleMonth <= endMonth;
+      }).length;
+    } else {
+      // Varsayılan: Mevcut ay
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      totalVehiclesInFilteredPeriod = monthlyVehicles.filter(v => 
+        v.productionMonth === currentMonth
+      ).length;
+    }
+    
+    // Eğer filtrelenmiş dönemde aylık veri yoksa hata kayıtlarını kullan
+    const totalVehicles = totalVehiclesInFilteredPeriod > 0 ? totalVehiclesInFilteredPeriod : records.length;
+    
+    const avgDefectsPerVehicle = totalVehicles > 0 ? totalDefects / totalVehicles : 0;
+    
+    // İlk geçiş başarılı araçlar: Hiç hatası olmayan + tüm hataları ilk seferde olan
+    const vehiclesWithoutDefectsCount = totalVehicles - vehiclesWithDefects.length;
     
     const firstTimeSuccessVehicles = vehiclesWithDefects.filter(record =>
       record.defects && record.defects.every(defect => defect.repeatCount <= 1)
     );
     
-    const totalFirstTimePass = vehiclesWithoutDefects.length + firstTimeSuccessVehicles.length;
+    const totalFirstTimePass = vehiclesWithoutDefectsCount + firstTimeSuccessVehicles.length;
     const firstTimePassRate = totalVehicles > 0 ? 
       (totalFirstTimePass / totalVehicles) * 100 : 100;
     
@@ -1916,7 +2130,42 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           .reduce((defectSum, defect) => defectSum + defect.repeatCount, 0);
       }, 0);
 
-      // İLK GEÇİŞ ORANI: Sadece bu birimde hata olan araçlar baz alınır
+      // İLK GEÇİŞ ORANI: TOPLAM ÜRETİLEN ARAÇLAR BAZ ALINIR (filtrelenmiş için)
+      
+      // 1. Filtrelenmiş dönemde toplam üretilen araç sayısı
+      let totalProducedInFilteredPeriod = 0;
+      
+      // Filtreleme dönemine göre aylık araç sayısını hesapla
+      if (filters.period === 'monthly' && filters.year && filters.month) {
+        const filterMonth = `${filters.year}-${filters.month}`;
+        totalProducedInFilteredPeriod = monthlyVehicles.filter(v => 
+          v.productionMonth === filterMonth
+        ).length;
+      } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
+        // Çeyreklik filtreleme
+        let startMonth = 1, endMonth = 3;
+        switch (filters.quarter) {
+          case 'Q1': startMonth = 1; endMonth = 3; break;
+          case 'Q2': startMonth = 4; endMonth = 6; break;
+          case 'Q3': startMonth = 7; endMonth = 9; break;
+          case 'Q4': startMonth = 10; endMonth = 12; break;
+        }
+        
+        totalProducedInFilteredPeriod = monthlyVehicles.filter(v => {
+          const vehicleYear = parseInt(v.productionMonth.split('-')[0]);
+          const vehicleMonth = parseInt(v.productionMonth.split('-')[1]);
+          return vehicleYear === parseInt(filters.year) && 
+                 vehicleMonth >= startMonth && vehicleMonth <= endMonth;
+        }).length;
+      } else {
+        // Varsayılan: Mevcut ay
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        totalProducedInFilteredPeriod = monthlyVehicles.filter(v => 
+          v.productionMonth === currentMonth
+        ).length;
+      }
+      
+      // 2. Bu birimde ilk seferde başarılı olan araçları bul
       const vehiclesPassedFirstTime = vehiclesWithUnitDefects.filter(record => {
         const unitDefectsForVehicle = record.defects ? record.defects.filter(defect => 
           defect.productionUnit === unit.value
@@ -1925,8 +2174,20 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         return unitDefectsForVehicle.every(defect => defect.repeatCount <= 1);
       });
       
-      const firstTimePassRate = vehiclesWithUnitDefects.length > 0 ? 
-        (vehiclesPassedFirstTime.length / vehiclesWithUnitDefects.length) * 100 : 0;
+      // ✅ YENİ: BASİT İLK GEÇİŞ ORANI HESABI (Filtrelenmiş)
+      // İlk geçiş oranı = Hata kaydı olmayan araç sayısı / Toplam üretilen araç sayısı
+      const vehiclesWithoutAnyDefects = totalProducedInFilteredPeriod - vehiclesWithUnitDefects.length;
+      const firstTimePassRate = totalProducedInFilteredPeriod > 0 ? 
+        (vehiclesWithoutAnyDefects / totalProducedInFilteredPeriod) * 100 : 100;
+        
+      // DEBUG: Filtrelenmiş ilk geçiş oranı hesaplama bilgisi
+      console.log(`FILTERED ${unit.label} İlk Geçiş Oranı (BASİT):`, {
+        totalProducedInFilteredPeriod,
+        vehiclesWithDefects: vehiclesWithUnitDefects.length,
+        vehiclesWithoutDefects: vehiclesWithoutAnyDefects,
+        firstTimePassRate: firstTimePassRate.toFixed(1) + '%',
+        calculation: `${vehiclesWithoutAnyDefects}/${totalProducedInFilteredPeriod} = ${firstTimePassRate.toFixed(1)}%`
+      });
 
       // ✅ YENİ: Araç başına ortalama hata sayısı (TOPLAM üretilen araçlara göre)
       // Aylık üretim verilerinden toplam araç sayısını al
@@ -2439,9 +2700,41 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                     <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Toplam İşlenen Araç</Typography>
                     <Typography variant="h2" fontWeight="bold" sx={{ mb: 1 }}>
                       {(() => {
-                        // Toplam araç sayısı
-                        const filteredUnits = getFilteredProductionUnitPerformance();
-                        return filteredUnits.reduce((sum, stat) => sum + stat.totalVehicles, 0);
+                        // ✅ DÜZELTME: Doğru toplam araç sayısı - Aylık üretim verilerinden al (birimlerle çarpmak yerine)
+                        // Filtrelenmiş dönemde toplam üretilen araç sayısını hesapla
+                        let totalProducedInFilteredPeriod = 0;
+                        
+                        if (filters.period === 'monthly' && filters.year && filters.month) {
+                          const filterMonth = `${filters.year}-${filters.month}`;
+                          totalProducedInFilteredPeriod = monthlyVehicles.filter(v => 
+                            v.productionMonth === filterMonth
+                          ).length;
+                        } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
+                          // Çeyreklik filtreleme
+                          let startMonth = 1, endMonth = 3;
+                          switch (filters.quarter) {
+                            case 'Q1': startMonth = 1; endMonth = 3; break;
+                            case 'Q2': startMonth = 4; endMonth = 6; break;
+                            case 'Q3': startMonth = 7; endMonth = 9; break;
+                            case 'Q4': startMonth = 10; endMonth = 12; break;
+                          }
+                          
+                          totalProducedInFilteredPeriod = monthlyVehicles.filter(v => {
+                            const vehicleYear = parseInt(v.productionMonth.split('-')[0]);
+                            const vehicleMonth = parseInt(v.productionMonth.split('-')[1]);
+                            return vehicleYear === parseInt(filters.year) && 
+                                   vehicleMonth >= startMonth && vehicleMonth <= endMonth;
+                          }).length;
+                        } else {
+                          // Varsayılan: Mevcut ay
+                          const currentMonth = new Date().toISOString().slice(0, 7);
+                          totalProducedInFilteredPeriod = monthlyVehicles.filter(v => 
+                            v.productionMonth === currentMonth
+                          ).length;
+                        }
+                        
+                        // Eğer filtrelenmiş dönemde aylık veri yoksa toplam veriyi göster
+                        return totalProducedInFilteredPeriod > 0 ? totalProducedInFilteredPeriod : monthlyVehicles.length;
                       })()}
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>Hata olan araçlar dahil</Typography>
@@ -2567,8 +2860,20 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                   return vehicleMonth === currentMonth;
                 }).length;
                 
-                // ✅ YENİ: Etkilenen araç = sadece hatalı araçlar, toplam üretim = monthly vehicles
-                const affectedVehicles = defectiveVehicles;
+                // ✅ DÜZELTME: Etkilenen araç sayısını aylık üretim verilerinden doğru hesapla
+                // Bu birimde hatası olan araçların seri numaralarını aylık üretim verilerinde bul
+                const defectiveVehicleSerials = filteredData.filter(r => 
+                  r.defects && r.defects.some(d => d.productionUnit === stat.unit)
+                ).map(r => r.serialNumber);
+                
+                // Aylık üretim verilerinde bu seri numaralarını bul
+                const affectedVehiclesInMonthlyData = monthlyVehicles.filter(v => {
+                  const vehicleMonth = v.productionMonth;
+                  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+                  return vehicleMonth === currentMonth && defectiveVehicleSerials.includes(v.serialNumber);
+                });
+                
+                const affectedVehicles = affectedVehiclesInMonthlyData.length;
                 const totalProducedThisMonth = currentMonthProduced;
                 
                 const criticalDefects = filteredData.filter(r => 
@@ -3627,7 +3932,10 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => setMonthlyVehicleDialog(true)}
+                onClick={() => {
+                  resetMonthlyVehicleForm();
+                  setMonthlyVehicleDialog(true);
+                }}
                 sx={{ borderRadius: 2 }}
               >
                 Yeni Araç Ekle
@@ -3701,13 +4009,37 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                         />
                       </TableCell>
                       <TableCell align="center">
-                        <IconButton 
-                          size="small" 
-                          color="error"
-                          onClick={() => handleDeleteMonthlyVehicle(vehicle.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                          <Tooltip title="Düzenle">
+                            <IconButton 
+                              size="small" 
+                              color="primary"
+                              onClick={() => {
+                                setMonthlyVehicleForm({
+                                  vehicleType: vehicle.vehicleType,
+                                  serialNumber: vehicle.serialNumber,
+                                  customerName: vehicle.customerName,
+                                  model: vehicle.model,
+                                  productionDate: vehicle.productionDate,
+                                  productionMonth: vehicle.productionMonth
+                                });
+                                setSelectedMonthlyVehicleId(vehicle.id);
+                                setMonthlyVehicleDialog(true);
+                              }}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Sil">
+                            <IconButton 
+                              size="small" 
+                              color="error"
+                              onClick={() => handleDeleteMonthlyVehicle(vehicle.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -3731,11 +4063,16 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       {/* Aylık Araç Ekleme Dialog */}
       <Dialog 
         open={monthlyVehicleDialog} 
-        onClose={() => setMonthlyVehicleDialog(false)} 
+        onClose={() => {
+          setMonthlyVehicleDialog(false);
+          resetMonthlyVehicleForm();
+        }} 
         maxWidth="sm" 
         fullWidth
       >
-        <DialogTitle>Yeni Araç Ekle</DialogTitle>
+        <DialogTitle>
+          {selectedMonthlyVehicleId ? 'Araç Bilgilerini Düzenle' : 'Yeni Araç Ekle'}
+        </DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -3809,11 +4146,14 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setMonthlyVehicleDialog(false)}>
+          <Button onClick={() => {
+            setMonthlyVehicleDialog(false);
+            resetMonthlyVehicleForm();
+          }}>
             İptal
           </Button>
           <Button onClick={handleAddMonthlyVehicle} variant="contained">
-            Ekle
+            {selectedMonthlyVehicleId ? 'Güncelle' : 'Ekle'}
           </Button>
         </DialogActions>
       </Dialog>
