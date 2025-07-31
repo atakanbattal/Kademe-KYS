@@ -2877,13 +2877,44 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                   return a.qualityScore - b.qualityScore;
                 })
                 .map((stat, sortedIndex) => {
-                // ✅ YENİ MANTIK: Her araç tüm birimlerden geçer!
-                // ETKİLENEN ARAÇ = O ayda üretilen TÜM araçlar (çünkü hepsi bu birimden geçti)
-                const currentMonthProduced = monthlyVehicles.filter(v => {
-                  const vehicleMonth = v.productionMonth;
-                  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-                  return vehicleMonth === currentMonth;
-                }).length;
+                // ✅ DÜZELTME: Kullanıcının seçtiği filtreye göre araç sayısını hesapla
+                let filteredMonthlyVehicles = [];
+                
+                if (filters.period === 'monthly' && filters.year && filters.month) {
+                  const filterMonth = `${filters.year}-${filters.month}`;
+                  filteredMonthlyVehicles = monthlyVehicles.filter(v => 
+                    v.productionMonth === filterMonth
+                  );
+                } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
+                  // Çeyreklik filtreleme
+                  let startMonth = 1, endMonth = 3;
+                  switch (filters.quarter) {
+                    case 'Q1': startMonth = 1; endMonth = 3; break;
+                    case 'Q2': startMonth = 4; endMonth = 6; break;
+                    case 'Q3': startMonth = 7; endMonth = 9; break;
+                    case 'Q4': startMonth = 10; endMonth = 12; break;
+                  }
+                  
+                  filteredMonthlyVehicles = monthlyVehicles.filter(v => {
+                    const vehicleYear = parseInt(v.productionMonth.split('-')[0]);
+                    const vehicleMonth = parseInt(v.productionMonth.split('-')[1]);
+                    return vehicleYear === parseInt(filters.year) && 
+                           vehicleMonth >= startMonth && vehicleMonth <= endMonth;
+                  });
+                } else if (filters.period === 'custom' && filters.dateFrom && filters.dateTo) {
+                  // Özel tarih aralığı
+                  filteredMonthlyVehicles = monthlyVehicles.filter(v => {
+                    const vehicleDate = new Date(v.productionDate);
+                    const fromDate = new Date(filters.dateFrom);
+                    const toDate = new Date(filters.dateTo);
+                    return vehicleDate >= fromDate && vehicleDate <= toDate;
+                  });
+                } else {
+                  // Filtre seçilmemişse TÜM araçları kullan
+                  filteredMonthlyVehicles = monthlyVehicles;
+                }
+                
+                const currentMonthProduced = filteredMonthlyVehicles.length;
                 
                 const affectedVehicles = currentMonthProduced; // TÜM araçlar etkilenen
                 
@@ -2899,9 +2930,14 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                 const firstPassRate = currentMonthProduced > 0 ? 
                   (successfulVehicles / currentMonthProduced) * 100 : 100;
                 
-                // ✅ DEBUG: Yeni mantık detayları
-                console.log(`🎯 ${stat.unit} - Doğru Hesaplama:`, {
-                  totalProducedThisMonth: currentMonthProduced,
+                // ✅ DEBUG: Filtrelenmiş hesaplama detayları
+                console.log(`🎯 ${stat.unit} - Filtrelenmiş Hesaplama:`, {
+                  filterPeriod: filters.period,
+                  filterYear: filters.year,
+                  filterMonth: filters.month,
+                  filterQuarter: filters.quarter,
+                  totalMonthlyVehicles: monthlyVehicles.length,
+                  filteredVehicleCount: currentMonthProduced,
                   affectedVehicles: affectedVehicles,
                   defectiveVehicleCount: defectiveVehicleCount,
                   successfulVehicles: successfulVehicles,
@@ -3185,12 +3221,44 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                           </Box>
                           
                           {(() => {
-                            // Kart için lokal hesaplamalar
-                            const cardCurrentMonthProduced = monthlyVehicles.filter(v => {
-                              const vehicleMonth = v.productionMonth;
-                              const currentMonth = new Date().toISOString().slice(0, 7);
-                              return vehicleMonth === currentMonth;
-                            }).length;
+                            // Kart için filtrelenmiş hesaplamalar
+                            let cardFilteredMonthlyVehicles = [];
+                            
+                            if (filters.period === 'monthly' && filters.year && filters.month) {
+                              const filterMonth = `${filters.year}-${filters.month}`;
+                              cardFilteredMonthlyVehicles = monthlyVehicles.filter(v => 
+                                v.productionMonth === filterMonth
+                              );
+                            } else if (filters.period === 'quarterly' && filters.year && filters.quarter) {
+                              // Çeyreklik filtreleme
+                              let startMonth = 1, endMonth = 3;
+                              switch (filters.quarter) {
+                                case 'Q1': startMonth = 1; endMonth = 3; break;
+                                case 'Q2': startMonth = 4; endMonth = 6; break;
+                                case 'Q3': startMonth = 7; endMonth = 9; break;
+                                case 'Q4': startMonth = 10; endMonth = 12; break;
+                              }
+                              
+                              cardFilteredMonthlyVehicles = monthlyVehicles.filter(v => {
+                                const vehicleYear = parseInt(v.productionMonth.split('-')[0]);
+                                const vehicleMonth = parseInt(v.productionMonth.split('-')[1]);
+                                return vehicleYear === parseInt(filters.year) && 
+                                       vehicleMonth >= startMonth && vehicleMonth <= endMonth;
+                              });
+                            } else if (filters.period === 'custom' && filters.dateFrom && filters.dateTo) {
+                              // Özel tarih aralığı
+                              cardFilteredMonthlyVehicles = monthlyVehicles.filter(v => {
+                                const vehicleDate = new Date(v.productionDate);
+                                const fromDate = new Date(filters.dateFrom);
+                                const toDate = new Date(filters.dateTo);
+                                return vehicleDate >= fromDate && vehicleDate <= toDate;
+                              });
+                            } else {
+                              // Filtre seçilmemişse TÜM araçları kullan
+                              cardFilteredMonthlyVehicles = monthlyVehicles;
+                            }
+                            
+                            const cardCurrentMonthProduced = cardFilteredMonthlyVehicles.length;
                             const cardAffectedVehicles = cardCurrentMonthProduced;
                             const cardDefectiveCount = filteredData.filter(r => 
                               r.defects && r.defects.some(d => d.productionUnit === stat.unit)
