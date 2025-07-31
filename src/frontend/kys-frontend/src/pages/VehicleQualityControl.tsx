@@ -776,21 +776,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.5rem' }}>
                     {dashboardStats?.totalVehicles || 0}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.75rem', lineHeight: 1.2 }}>
                     Toplam Araç
                   </Typography>
                 </Box>
-                <DirectionsCarIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <DirectionsCarIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -800,21 +800,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.5rem' }}>
                     {dashboardStats?.inQualityControl || 0}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.75rem', lineHeight: 1.2 }}>
                     Kalitede
                   </Typography>
                 </Box>
-                <QualityControlIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <QualityControlIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -824,21 +824,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.5rem' }}>
                     {dashboardStats?.inProduction || 0}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.75rem', lineHeight: 1.2 }}>
                     Üretimde
                   </Typography>
                 </Box>
-                <FactoryIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <FactoryIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -848,21 +848,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.5rem' }}>
                     {dashboardStats?.readyForShipment || 0}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.75rem', lineHeight: 1.2 }}>
                     Sevke Hazır
                   </Typography>
                 </Box>
-                <ShippingIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <ShippingIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -872,21 +872,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.5rem' }}>
                     {dashboardStats?.inService || 0}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.75rem', lineHeight: 1.2 }}>
                     Serviste
                   </Typography>
                 </Box>
-                <BuildIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <BuildIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -896,21 +896,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #673ab7 0%, #512da8 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.5rem' }}>
                     {dashboardStats?.shipped || 0}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.75rem', lineHeight: 1.2 }}>
                     Sevk Edildi
                   </Typography>
                 </Box>
-                <ShippingIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <ShippingIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -923,21 +923,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #ff5722 0%, #d84315 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.5rem' }}>
                     {dashboardStats?.overdueVehicles || 0}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.75rem', lineHeight: 1.2 }}>
                     Geciken Araçlar
                   </Typography>
                 </Box>
-                <WarningIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <WarningIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -947,21 +947,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #795548 0%, #5d4037 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {formatTurkishTime(dashboardStats?.avgQualityTime || 0)}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.7rem', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                     Ort. Kalite Süresi
                   </Typography>
                 </Box>
-                <AccessTimeIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <AccessTimeIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -971,21 +971,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #607d8b 0%, #455a64 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {formatTurkishTime(dashboardStats?.avgProductionTime || 0)}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.7rem', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                     Ort. Üretim Süresi
                   </Typography>
                 </Box>
-                <AccessTimeIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <AccessTimeIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -995,21 +995,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #00bcd4 0%, #0097a7 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {formatTurkishTime(dashboardStats?.avgShipmentTime || 0)}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.7rem', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                     Ort. Sevk Süresi
                   </Typography>
                 </Box>
-                <ShippingIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <ShippingIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -1019,21 +1019,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {formatTurkishTime(dashboardStats?.avgServiceTime || 0)}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.7rem', lineHeight: 1.1, whiteSpace: 'nowrap' }}>
                     Ort. Servis Süresi
                   </Typography>
                 </Box>
-                <BuildIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <BuildIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -1043,21 +1043,21 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Card sx={{ 
             background: 'linear-gradient(135deg, #e91e63 0%, #c2185b 100%)', 
             color: 'white',
-            height: '120px',
+            height: '110px',
             display: 'flex',
             alignItems: 'center'
           }}>
             <CardContent sx={{ width: '100%' }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.5rem' }}>
                     {dashboardStats?.criticalDefects || 0}
                   </Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.75rem', lineHeight: 1.2 }}>
                     Kritik Eksiklikler
                   </Typography>
                 </Box>
-                <ErrorIcon sx={{ fontSize: 48, opacity: 0.8 }} />
+                <ErrorIcon sx={{ fontSize: 40, opacity: 0.8 }} />
               </Box>
             </CardContent>
           </Card>
@@ -1304,10 +1304,10 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                 textAlign: 'center',
                 p: 2
               }}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5, fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {formatTurkishTime(dashboardStats?.avgServiceTime || 0)}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '0.7rem', lineHeight: 1.1 }}>
                   Ortalama Servis Süresi
                 </Typography>
               </Card>
