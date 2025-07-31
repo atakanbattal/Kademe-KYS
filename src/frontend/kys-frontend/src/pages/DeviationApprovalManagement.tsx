@@ -748,7 +748,7 @@ const DeviationApprovalManagement: React.FC = () => {
       </Box>
 
       {/* Deviations Table */}
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, boxShadow: 2, overflow: 'auto' }}>
+              <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, boxShadow: 2, overflow: 'auto', minWidth: 1400 }}>
         <Table size="medium" stickyHeader sx={{ minWidth: 1400 }}>
           <TableHead>
             <TableRow sx={{ 
@@ -759,17 +759,17 @@ const DeviationApprovalManagement: React.FC = () => {
                 fontWeight: 'bold'
               }
             }}>
-              <TableCell sx={{ minWidth: 120, whiteSpace: 'nowrap' }}>Sapma No</TableCell>
-              <TableCell sx={{ minWidth: 150, whiteSpace: 'nowrap' }}>Parça Adı</TableCell>
-              <TableCell sx={{ minWidth: 120, whiteSpace: 'nowrap' }}>Parça No</TableCell>
-              <TableCell sx={{ minWidth: 130, whiteSpace: 'nowrap' }}>Araç Modeli</TableCell>
-              <TableCell sx={{ minWidth: 120, whiteSpace: 'nowrap' }}>Sapma Tipi</TableCell>
-              <TableCell sx={{ minWidth: 120, whiteSpace: 'nowrap' }}>Kalite Riski</TableCell>
-              <TableCell sx={{ minWidth: 130, whiteSpace: 'nowrap' }}>Durum</TableCell>
-              <TableCell sx={{ minWidth: 120, whiteSpace: 'nowrap' }}>Talep Tarihi</TableCell>
-              <TableCell sx={{ minWidth: 80, textAlign: 'center' }}>Dosyalar</TableCell>
-              <TableCell sx={{ minWidth: 120, whiteSpace: 'nowrap' }}>Kullanım</TableCell>
-              <TableCell align="center" sx={{ minWidth: 250, width: 250 }}>İşlemler</TableCell>
+              <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>Sapma No</TableCell>
+              <TableCell sx={{ minWidth: 180, whiteSpace: 'nowrap' }}>Parça Adı</TableCell>
+              <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>Parça No</TableCell>
+              <TableCell sx={{ minWidth: 150, whiteSpace: 'nowrap' }}>Araç Modeli</TableCell>
+              <TableCell sx={{ minWidth: 160, whiteSpace: 'nowrap' }}>Sapma Tipi</TableCell>
+              <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>Kalite Riski</TableCell>
+              <TableCell sx={{ minWidth: 150, whiteSpace: 'nowrap' }}>Durum</TableCell>
+              <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>Talep Tarihi</TableCell>
+              <TableCell sx={{ minWidth: 120, textAlign: 'center', whiteSpace: 'nowrap' }}>Dosyalar</TableCell>
+              <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>Kullanım</TableCell>
+              <TableCell align="center" sx={{ minWidth: 280, width: 280 }}>İşlemler</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -787,23 +787,23 @@ const DeviationApprovalManagement: React.FC = () => {
                 </TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{deviation.partNumber}</TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{deviation.vehicleModel}</TableCell>
-                <TableCell>
+                <TableCell sx={{ minWidth: 160, whiteSpace: 'nowrap' }}>
                   <Chip 
                     label={DEVIATION_TYPES.find(t => t.value === deviation.deviationType)?.label}
                     size="small"
                     variant="outlined"
-                    sx={{ borderRadius: 1 }}
+                    sx={{ borderRadius: 1, minWidth: 120 }}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>
                   <Chip 
                     label={QUALITY_RISKS.find(r => r.value === deviation.qualityRisk)?.label}
                     size="small"
                     color={QUALITY_RISKS.find(r => r.value === deviation.qualityRisk)?.color as any}
-                    sx={{ borderRadius: 1 }}
+                    sx={{ borderRadius: 1, minWidth: 100 }}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ minWidth: 150, whiteSpace: 'nowrap' }}>
                   {deviation.status === 'rejected' && deviation.rejectionReason ? (
                     <Tooltip title={`Reddetme Sebebi: ${deviation.rejectionReason}`} arrow>
                       <Chip 
@@ -825,7 +825,7 @@ const DeviationApprovalManagement: React.FC = () => {
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>
                   {new Date(deviation.requestDate).toLocaleDateString('tr-TR')}
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ minWidth: 120, textAlign: 'center', whiteSpace: 'nowrap' }}>
                   <Tooltip title="Dosyaları Görüntüle">
                     <IconButton 
                       size="small" 
@@ -838,7 +838,7 @@ const DeviationApprovalManagement: React.FC = () => {
                     </IconButton>
                   </Tooltip>
                 </TableCell>
-                <TableCell sx={{ minWidth: 120 }}>
+                <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Badge badgeContent={deviation.usageTracking?.length || 0} color="secondary">
                       <VehicleIcon />
