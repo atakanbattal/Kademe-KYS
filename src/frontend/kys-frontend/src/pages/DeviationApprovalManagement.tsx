@@ -435,25 +435,52 @@ const DeviationApprovalManagement: React.FC = () => {
     }
   };
 
-  // File Upload Handler
+  // ✅ DÜZELTME: Equipment Calibration modülündeki gibi FileReader ile dosyayı base64'e çevir
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      const newAttachment: DeviationAttachment = {
-        id: Date.now().toString(),
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        uploadDate: new Date().toISOString(),
-        uploadedBy: formData.requestedBy || 'Kullanıcı'
+
+      // PDF veya resim dosyası kontrolü
+      if (!file.type.includes('pdf') && !file.type.includes('image')) {
+        alert('Sadece PDF ve resim dosyaları yüklenebilir.');
+        return;
+      }
+
+      // FileReader ile dosyayı base64'e çevir
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64Data = e.target?.result as string;
+        
+        const newAttachment: DeviationAttachment = {
+          id: Date.now().toString(),
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          uploadDate: new Date().toISOString(),
+          uploadedBy: formData.requestedBy || 'Kullanıcı',
+          url: base64Data // ✅ YENİ: Base64 data'yı url field'ına kaydet
+        };
+
+        setFormData(prev => ({
+          ...prev,
+          attachments: [...(prev.attachments || []), newAttachment]
+        }));
+
+        console.log('✅ Dosya başarıyla yüklendi:', file.name, 'Base64 length:', base64Data.length);
       };
 
-      setFormData(prev => ({
-        ...prev,
-        attachments: [...(prev.attachments || []), newAttachment]
-      }));
+      reader.onerror = () => {
+        console.error('❌ Dosya okuma hatası');
+        alert('Dosya okuma hatası oluştu.');
+      };
+
+      // Dosyayı base64 olarak oku
+      reader.readAsDataURL(file);
     }
+    
+    // Input'u temizle
+    event.target.value = '';
   };
 
   // Usage Tracking
