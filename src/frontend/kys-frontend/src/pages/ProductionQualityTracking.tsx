@@ -2877,38 +2877,36 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                   return a.qualityScore - b.qualityScore;
                 })
                 .map((stat, sortedIndex) => {
-                // Bu birimde hata olan araç sayısı - aylık üretim verisini de dikkate al
-                const defectiveVehicles = filteredData.filter(r => 
-                  r.defects && r.defects.some(d => d.productionUnit === stat.unit)
-                ).length;
-                
-                // Birimde o ay üretilen toplam araç sayısı (monthly production data'dan)
+                // ✅ YENİ MANTIK: Her araç tüm birimlerden geçer!
+                // ETKİLENEN ARAÇ = O ayda üretilen TÜM araçlar (çünkü hepsi bu birimden geçti)
                 const currentMonthProduced = monthlyVehicles.filter(v => {
                   const vehicleMonth = v.productionMonth;
                   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
                   return vehicleMonth === currentMonth;
                 }).length;
                 
-                // ✅ DÜZELTME: Etkilenen araç sayısını TOPLAM aylık üretim verilerinden hesapla (ay filtresi kaldırıldı)
-                // Bu birimde hatası olan araçların seri numaralarını aylık üretim verilerinde bul
-                const defectiveVehicleSerials = filteredData.filter(r => 
+                const affectedVehicles = currentMonthProduced; // TÜM araçlar etkilenen
+                
+                // Bu birimde HATA GİRİLEN araç sayısı
+                const defectiveVehicleCount = filteredData.filter(r => 
                   r.defects && r.defects.some(d => d.productionUnit === stat.unit)
-                ).map(r => r.serialNumber);
+                ).length;
                 
-                // Aylık üretim verilerinde bu seri numaralarını bul (AY FİLTRESİ KALDIRILDI)
-                const affectedVehiclesInMonthlyData = monthlyVehicles.filter(v => {
-                  return defectiveVehicleSerials.includes(v.serialNumber);
+                // BAŞARILI ARAÇ = Toplam araç - Hata girilen araç
+                const successfulVehicles = currentMonthProduced - defectiveVehicleCount;
+                
+                // İLK GEÇİŞ ORANI = Başarılı araç / Toplam araç * 100
+                const firstPassRate = currentMonthProduced > 0 ? 
+                  (successfulVehicles / currentMonthProduced) * 100 : 100;
+                
+                // ✅ DEBUG: Yeni mantık detayları
+                console.log(`🎯 ${stat.unit} - Doğru Hesaplama:`, {
+                  totalProducedThisMonth: currentMonthProduced,
+                  affectedVehicles: affectedVehicles,
+                  defectiveVehicleCount: defectiveVehicleCount,
+                  successfulVehicles: successfulVehicles,
+                  firstPassRate: firstPassRate.toFixed(1) + '%'
                 });
-                
-                const affectedVehicles = affectedVehiclesInMonthlyData.length;
-                
-                // ✅ DEBUG: Etkilenen araç hesaplama detayları
-                console.log(`🚨 ${stat.unit} - Etkilenen Araç Hesaplama:`, {
-                  defectiveVehicleSerials,
-                  affectedVehiclesInMonthlyData: affectedVehiclesInMonthlyData.map(v => v.serialNumber),
-                  finalAffectedCount: affectedVehicles
-                });
-                const totalProducedThisMonth = currentMonthProduced;
                 
                 const criticalDefects = filteredData.filter(r => 
                   r.defects && r.defects.some(d => d.productionUnit === stat.unit && d.severity === 'critical')
@@ -2923,48 +2921,77 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                   <Grid item xs={12} md={6} lg={4} key={stat.unit}>
                     <Card sx={{ 
                       height: '100%',
-                      background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
-                      border: '1px solid #e0e0e0',
+                      background: '#ffffff',
+                      border: `3px solid ${
+                        firstPassRate >= 90 ? '#4caf50' :
+                        firstPassRate >= 75 ? '#2196f3' :
+                        firstPassRate >= 50 ? '#ff9800' : '#f44336'
+                      }`,
+                      borderRadius: 4,
                       cursor: 'pointer',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
                       '&:hover': { 
-                        transform: 'translateY(-4px) scale(1.02)', 
-                        boxShadow: 8, 
-                        transition: 'all 0.3s ease',
-                        border: '1px solid #1976d2'
+                        transform: 'translateY(-8px)', 
+                        boxShadow: '0 16px 48px rgba(0,0,0,0.24)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        border: `3px solid ${
+                          firstPassRate >= 90 ? '#388e3c' :
+                          firstPassRate >= 75 ? '#1976d2' :
+                          firstPassRate >= 50 ? '#f57c00' : '#d32f2f'
+                        }`
                       }
                     }}
                     onClick={() => handleUnitCardClick(stat.unit, stat)}
                     >
+                      {/* Modern Header Bar */}
+                      <Box sx={{
+                        height: 6,
+                        background: `linear-gradient(90deg, ${
+                          firstPassRate >= 90 ? '#4caf50' :
+                          firstPassRate >= 75 ? '#2196f3' :
+                          firstPassRate >= 50 ? '#ff9800' : '#f44336'
+                        } 0%, ${
+                          firstPassRate >= 90 ? '#66bb6a' :
+                          firstPassRate >= 75 ? '#42a5f5' :
+                          firstPassRate >= 50 ? '#ffb74d' : '#ef5350'
+                        } 100%)`,
+                      }} />
+                      
                       <CardContent sx={{ p: 3 }}>
-                        {/* Department Header */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Box sx={{ 
-                              width: 16, 
-                              height: 16, 
-                              borderRadius: '50%', 
-                              backgroundColor: stat.color 
-                            }} />
-                            <Typography variant="h6" fontWeight="bold" color="primary">
+                        {/* Modern Department Header */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                          <Box>
+                            <Typography variant="h5" fontWeight="700" color="text.primary" sx={{ mb: 0.5 }}>
                               {stat.unitName}
                             </Typography>
-                            {/* Sıralama Göstergesi */}
-                            <Chip 
-                              label={`#${sortedIndex + 1}`}
-                              size="small"
-                              variant="outlined"
-                              color={
-                                sortedIndex === 0 ? 'error' : // En problemli
-                                sortedIndex === 1 ? 'warning' : // İkinci
-                                'default' // Diğerleri
-                              }
-                              sx={{ 
-                                fontSize: '0.7rem', 
-                                height: 20,
-                                fontWeight: 'bold'
-                              }}
-                            />
+                            <Typography variant="body2" color="text.secondary">
+                              Üretim Birimi
+                            </Typography>
                           </Box>
+                          <Box sx={{ 
+                            background: `linear-gradient(135deg, ${
+                              firstPassRate >= 90 ? '#4caf50' :
+                              firstPassRate >= 75 ? '#2196f3' :
+                              firstPassRate >= 50 ? '#ff9800' : '#f44336'
+                            } 0%, ${
+                              firstPassRate >= 90 ? '#66bb6a' :
+                              firstPassRate >= 75 ? '#42a5f5' :
+                              firstPassRate >= 50 ? '#ffb74d' : '#ef5350'
+                            } 100%)`,
+                            borderRadius: 3, 
+                            px: 2, 
+                            py: 1,
+                            color: 'white',
+                            boxShadow: 2
+                          }}>
+                            <Typography variant="body2" fontWeight="bold">
+                              #{sortedIndex + 1}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {/* Performance Status Badge */}
+                        <Box sx={{ mb: 3 }}>
                           <Chip 
                             label={
                               stat.totalVehicles === 0 ? 'Veri Yok' :
@@ -3057,7 +3084,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                             Kritik Hata: {criticalDefects}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Başarılı Araç: {stat.totalVehicles - stat.repeatedVehicles}
+                            Başarılı Araç: {successfulVehicles}
                           </Typography>
                         </Box>
 
@@ -3157,30 +3184,48 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                             />
                           </Box>
                           
-                          <Grid container spacing={2}>
-                            <Grid item xs={6}>
-                              <Typography variant="body2" color="text.secondary">Toplam Hata</Typography>
-                              <Typography variant="h5" color="error.main">{stat.totalDefects}</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <Typography variant="body2" color="text.secondary">Araç Sayısı</Typography>
-                              <Typography variant="h5">{stat.totalVehicles}</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <Typography variant="body2" color="text.secondary">Araç Başına Hata</Typography>
-                              <Typography variant="h5" color="warning.main">{stat.averageDefectsPerVehicle.toFixed(1)}</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <Typography variant="body2" color="text.secondary">İlk Geçiş Oranı</Typography>
-                              <Typography variant="h5" color="success.main">%{stat.firstTimePassRate.toFixed(1)}</Typography>
-                            </Grid>
-                            <Grid item xs={6}>
-                              <Typography variant="body2" color="text.secondary">Kalite Puanı</Typography>
-                              <Typography variant="h5" color={stat.qualityScore === 0 ? "text.secondary" : "success.main"}>
-                                {stat.qualityScore === 0 ? "Veri Yok" : stat.qualityScore}
-                              </Typography>
-                            </Grid>
-                          </Grid>
+                          {(() => {
+                            // Kart için lokal hesaplamalar
+                            const cardCurrentMonthProduced = monthlyVehicles.filter(v => {
+                              const vehicleMonth = v.productionMonth;
+                              const currentMonth = new Date().toISOString().slice(0, 7);
+                              return vehicleMonth === currentMonth;
+                            }).length;
+                            const cardAffectedVehicles = cardCurrentMonthProduced;
+                            const cardDefectiveCount = filteredData.filter(r => 
+                              r.defects && r.defects.some(d => d.productionUnit === stat.unit)
+                            ).length;
+                            const cardSuccessfulVehicles = cardAffectedVehicles - cardDefectiveCount;
+                            const cardFirstPassRate = cardAffectedVehicles > 0 ? 
+                              (cardSuccessfulVehicles / cardAffectedVehicles * 100) : 100;
+
+                            return (
+                              <Grid container spacing={2}>
+                                <Grid item xs={6}>
+                                  <Typography variant="body2" color="text.secondary">Toplam Hata</Typography>
+                                  <Typography variant="h5" color="error.main">{stat.totalDefects}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                  <Typography variant="body2" color="text.secondary">Etkilenen Araç</Typography>
+                                  <Typography variant="h5">{cardAffectedVehicles}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                  <Typography variant="body2" color="text.secondary">Başarılı Araç</Typography>
+                                  <Typography variant="h5" color="success.main">{cardSuccessfulVehicles}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                  <Typography variant="body2" color="text.secondary">İlk Geçiş Oranı</Typography>
+                                  <Typography variant="h5" color="success.main">%{cardFirstPassRate.toFixed(1)}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                  <Typography variant="body2" color="text.secondary">Kalite Puanı</Typography>
+                                  <Typography variant="h5" color={stat.qualityScore === 0 ? "text.secondary" : "success.main"}>
+                                    {stat.qualityScore === 0 ? "Veri Yok" : stat.qualityScore}
+                                  </Typography>
+                                </Grid>
+                              </Grid>
+                            );
+                          })()}
 
                           {/* Aylık Trend Indicator - Kompakt */}
                           <Box sx={{ 
