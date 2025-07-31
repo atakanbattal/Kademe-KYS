@@ -1811,7 +1811,9 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
     } else if (filters.period === 'custom' && filters.dateFrom && filters.dateTo) {
       // Özel tarih aralığı
       filteredMonthlyVehicles = monthlyVehicles.filter(v => {
+        if (!v.productionDate) return false; // ✅ KONTROL: Tarih yoksa dahil etme
         const vehicleDate = new Date(v.productionDate);
+        if (isNaN(vehicleDate.getTime())) return false; // ✅ KONTROL: Geçersiz tarih kontrolü
         const fromDate = new Date(filters.dateFrom);
         const toDate = new Date(filters.dateTo);
         return vehicleDate >= fromDate && vehicleDate <= toDate;
@@ -2719,57 +2721,7 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
           </AccordionDetails>
         </StyledAccordion>
 
-        {/* KPI Metrics - Filtreleme sisteminin altına taşındı */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={2}>
-                            <Card sx={{ background: `linear-gradient(135deg, ${appearanceSettings.primaryColor} 0%, ${appearanceSettings.primaryColor}aa 100%)`, color: 'white' }}>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" fontWeight="bold">{kpiMetrics.totalDefects}</Typography>
-                <Typography variant="body2">Toplam Hata</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Card sx={{ background: 'linear-gradient(135deg, #388e3c 0%, #66bb6a 100%)', color: 'white' }}>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" fontWeight="bold">{kpiMetrics.totalVehicles}</Typography>
-                <Typography variant="body2">Toplam Araç</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Card sx={{ background: 'linear-gradient(135deg, #f57c00 0%, #ffb74d 100%)', color: 'white' }}>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" fontWeight="bold">{kpiMetrics.avgDefectsPerVehicle}</Typography>
-                <Typography variant="body2">Araç Başına Hata</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Card sx={{ background: 'linear-gradient(135deg, #7b1fa2 0%, #ba68c8 100%)', color: 'white' }}>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" fontWeight="bold">%{kpiMetrics.firstTimePassRate}</Typography>
-                <Typography variant="body2">İlk Geçiş Oranı</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Card sx={{ background: 'linear-gradient(135deg, #d32f2f 0%, #ef5350 100%)', color: 'white' }}>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" fontWeight="bold">%{kpiMetrics.repeatRate}</Typography>
-                <Typography variant="body2">Tekrar Oran</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={2}>
-            <Card sx={{ background: 'linear-gradient(135deg, #455a64 0%, #78909c 100%)', color: 'white' }}>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" fontWeight="bold">{kpiMetrics.criticalDefects}</Typography>
-                <Typography variant="body2">Kritik Hatalar</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+
 
         {/* Tabs */}
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
@@ -2955,7 +2907,9 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                 } else if (filters.period === 'custom' && filters.dateFrom && filters.dateTo) {
                   // Özel tarih aralığı
                   filteredMonthlyVehicles = monthlyVehicles.filter(v => {
+                    if (!v.productionDate) return false; // ✅ KONTROL: Tarih yoksa dahil etme
                     const vehicleDate = new Date(v.productionDate);
+                    if (isNaN(vehicleDate.getTime())) return false; // ✅ KONTROL: Geçersiz tarih kontrolü
                     const fromDate = new Date(filters.dateFrom);
                     const toDate = new Date(filters.dateTo);
                     return vehicleDate >= fromDate && vehicleDate <= toDate;
@@ -3299,7 +3253,9 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                             } else if (filters.period === 'custom' && filters.dateFrom && filters.dateTo) {
                               // Özel tarih aralığı
                               cardFilteredMonthlyVehicles = monthlyVehicles.filter(v => {
+                                if (!v.productionDate) return false; // ✅ KONTROL: Tarih yoksa dahil etme
                                 const vehicleDate = new Date(v.productionDate);
+                                if (isNaN(vehicleDate.getTime())) return false; // ✅ KONTROL: Geçersiz tarih kontrolü
                                 const fromDate = new Date(filters.dateFrom);
                                 const toDate = new Date(filters.dateTo);
                                 return vehicleDate >= fromDate && vehicleDate <= toDate;
@@ -4197,7 +4153,12 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                       </TableCell>
                       <TableCell>{vehicle.customerName}</TableCell>
                       <TableCell>{vehicle.model}</TableCell>
-                      <TableCell>{new Date(vehicle.productionDate).toLocaleDateString('tr-TR')}</TableCell>
+                      <TableCell>
+                        {vehicle.productionDate && !isNaN(new Date(vehicle.productionDate).getTime()) 
+                          ? new Date(vehicle.productionDate).toLocaleDateString('tr-TR')
+                          : 'Geçersiz Tarih'
+                        }
+                      </TableCell>
                       <TableCell>
                         <Chip 
                           label={vehicle.productionMonth} 
