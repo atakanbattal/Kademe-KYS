@@ -259,10 +259,16 @@ const DeviationApprovalManagement: React.FC = () => {
   // Data Management
   const saveData = useCallback((data: DeviationApproval[]) => {
     try {
+      console.log('💾 SaveData çağrıldı, kayıt sayısı:', data.length);
+      console.log('📝 Kaydedilecek veriler:', data.map(d => ({ id: d.id, deviationNumber: d.deviationNumber, partName: d.partName })));
+      
       localStorage.setItem('deviationApprovalData', JSON.stringify(data));
       setDeviations(data);
+      
+      console.log('✅ Veriler başarıyla localStorage\'a kaydedildi');
     } catch (error) {
-      console.error('Veri kaydetme hatası:', error);
+      console.error('❌ Veri kaydetme hatası:', error);
+      alert('Veri kaydetme hatası oluştu: ' + error.message);
     }
   }, []);
 
@@ -349,15 +355,50 @@ const DeviationApprovalManagement: React.FC = () => {
     const newNumber = lastNumber + 1;
     const paddedNumber = String(newNumber).padStart(3, '0');
     
-    // localStorage'a kaydet
-    localStorage.setItem(lastDeviationKey, JSON.stringify({
-      year: currentYear,
-      number: newNumber
-    }));
-    
     console.log(`🔢 Yeni sapma numarası: ${currentYear}-${paddedNumber} (Önceki: ${lastYear}-${String(lastNumber).padStart(3, '0')})`);
     
     return `${currentYear}-${paddedNumber}`;
+  };
+
+  // ✅ YENİ: Sapma numarası kaydedilirken localStorage'u güncelle
+  const updateDeviationNumberCounter = (deviationNumber: string) => {
+    try {
+      const currentYear = new Date().getFullYear();
+      const match = deviationNumber.match(/^(\d{4})-(\d{3})$/);
+      
+      if (match) {
+        const year = parseInt(match[1]);
+        const number = parseInt(match[2]);
+        
+        if (year === currentYear) {
+          const lastDeviationKey = 'lastDeviationNumber';
+          const existingData = localStorage.getItem(lastDeviationKey);
+          
+          let shouldUpdate = true;
+          if (existingData) {
+            const { number: existingNumber } = JSON.parse(existingData);
+            shouldUpdate = number > existingNumber;
+          }
+          
+          if (shouldUpdate) {
+            localStorage.setItem(lastDeviationKey, JSON.stringify({
+              year: currentYear,
+              number: number
+            }));
+            console.log(`🔢 Sapma numarası sayacı güncellendi: ${year}-${String(number).padStart(3, '0')}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Sapma numarası sayacı güncellenirken hata:', error);
+    }
+  };
+
+  // ✅ YENİ: Güvenli ID üretici
+  const generateUniqueId = () => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substr(2, 9);
+    return `${timestamp}-${random}`;
   };
 
   const getStatusColor = (status: string) => {
@@ -419,6 +460,8 @@ const DeviationApprovalManagement: React.FC = () => {
 
   // Dialog Handlers
   const openCreateDialog = () => {
+    console.log('🆕 Yeni sapma dialog açılıyor');
+    
     setFormData({
       deviationNumber: generateDeviationNumber(),
       partName: '',
@@ -447,6 +490,8 @@ const DeviationApprovalManagement: React.FC = () => {
     });
     setDialogMode('create');
     setOpenDialog(true);
+    
+    console.log('✅ Form temizlendi ve dialog açıldı');
   };
 
   const openEditDialog = (deviation: DeviationApproval) => {
@@ -472,17 +517,56 @@ const DeviationApprovalManagement: React.FC = () => {
     setOpenDialog(false);
     setSelectedDeviation(null);
     setDialogMode('create');
+    // ✅ DÜZELTME: FormData'yı temizle
+    setFormData({
+      deviationNumber: '',
+      partName: '',
+      partNumber: '',
+      vehicles: [],
+      deviationType: 'input-control',
+      description: '',
+      reasonForDeviation: '',
+      proposedSolution: '',
+      qualityRisk: 'low',
+      requestDate: new Date().toISOString().split('T')[0],
+      requestedBy: '',
+      department: '',
+      rdApproval: { approved: false, approver: '' },
+      qualityApproval: { approved: false, approver: '' },
+      productionApproval: { approved: false, approver: '' },
+      generalManagerApproval: { approved: false, approver: '' },
+      status: 'pending',
+      attachments: [],
+      usageTracking: []
+    });
+    // Araç ekleme formunu da temizle
+    setCurrentVehicle({
+      model: '',
+      serialNumber: '',
+      chassisNumber: ''
+    });
   };
 
   // CRUD Operations
   const handleSubmit = async () => {
+    console.log('🚀 HandleSubmit başladı, dialogMode:', dialogMode);
+    console.log('📋 FormData durumu:', {
+      partName: formData.partName,
+      description: formData.description,
+      requestedBy: formData.requestedBy,
+      vehicles: formData.vehicles,
+      vehicleCount: formData.vehicles?.length || 0
+    });
+
     // Validasyon
     if (!formData.partName || !formData.description || !formData.requestedBy) {
+      console.error('❌ Temel alan validasyonu başarısız');
       alert('Lütfen gerekli alanları (Parça Adı, Açıklama, Talep Eden) doldurun!');
       return;
     }
 
     if (!formData.vehicles || formData.vehicles.length === 0) {
+      console.error('❌ Araç validasyonu başarısız - araç yok');
       alert('En az bir araç bilgisi eklemelisiniz!');
       return;
     }
@@ -490,17 +574,23 @@ const DeviationApprovalManagement: React.FC = () => {
     // Araçlarda eksik bilgi kontrolü
     const incompleteVehicles = formData.vehicles.filter(v => !v.model || !v.serialNumber);
     if (incompleteVehicles.length > 0) {
+      console.error('❌ Araç validasyonu başarısız - eksik bilgi:', incompleteVehicles);
       alert('Tüm araçlar için model ve seri numarası gereklidir!');
       return;
     }
+
+    console.log('✅ Tüm validasyonlar başarılı');
 
     const now = new Date().toISOString();
 
     try {
       if (dialogMode === 'create') {
+        // ✅ Sapma numarası belirleme
+        const finalDeviationNumber = formData.deviationNumber?.trim() || generateDeviationNumber();
+        
         const newDeviation: DeviationApproval = {
-          id: Date.now().toString(),
-          deviationNumber: formData.deviationNumber || generateDeviationNumber(),
+          id: generateUniqueId(), // ✅ Güvenli ID üretimi
+          deviationNumber: finalDeviationNumber,
           partName: formData.partName!,
           partNumber: formData.partNumber || '',
           vehicles: formData.vehicles!,
@@ -523,9 +613,12 @@ const DeviationApprovalManagement: React.FC = () => {
           updatedAt: now
         };
 
+        // ✅ Sapma numarası sayacını güncelle
+        updateDeviationNumberCounter(finalDeviationNumber);
+
         const updatedDeviations = [...deviations, newDeviation];
         saveData(updatedDeviations);
-        console.log('✅ Yeni sapma başarıyla oluşturuldu:', newDeviation.deviationNumber);
+        console.log('✅ Yeni sapma başarıyla oluşturuldu:', newDeviation.deviationNumber, 'ID:', newDeviation.id);
       } else if (dialogMode === 'edit' && selectedDeviation) {
         const updatedDeviations = deviations.map(deviation =>
           deviation.id === selectedDeviation.id
