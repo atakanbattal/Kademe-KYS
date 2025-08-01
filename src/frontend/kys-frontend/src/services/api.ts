@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003/api';
+// Railway production URL veya local development
+const API_URL = process.env.REACT_APP_API_URL || 
+                (process.env.NODE_ENV === 'production' 
+                  ? 'https://your-railway-app.up.railway.app/api'  // Bu URL'yi Railway deploy sonrası güncelleyin
+                  : 'http://localhost:5003/api');
 
 // Create an axios instance
 const api = axios.create({
