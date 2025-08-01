@@ -907,7 +907,6 @@ const DeviationApprovalManagement: React.FC = () => {
         setDeviations(updatedDeviations);
         
         console.log('✅ Sapma başarıyla silindi:', deviation.deviationNumber);
-        alert('✅ Sapma başarıyla silindi!');
         
       } catch (error: any) {
         console.error('❌ Silme hatası:', error);
@@ -1017,7 +1016,6 @@ const DeviationApprovalManagement: React.FC = () => {
         }));
 
         console.log('✅ Dosya başarıyla yüklendi:', file.name);
-        alert(`✅ Dosya başarıyla yüklendi!\n\n📁 ${file.name}\n📊 ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
         
       } catch (error: any) {
         console.error('❌ Dosya yükleme hatası:', error);

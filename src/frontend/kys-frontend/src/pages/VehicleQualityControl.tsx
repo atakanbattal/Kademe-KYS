@@ -314,43 +314,54 @@ const VehicleQualityControl: React.FC = () => {
   };
 
   const getProcessDuration = (vehicle: Vehicle): { quality: number; production: number; total: number } => {
-    let qualityDays = 0;
-    let productionDays = 0;
+    let qualityHours = 0;
+    let productionHours = 0;
 
-    // Kalite kontrol süresini hesapla
-    const qualityEntries = vehicle.statusHistory.filter(h => h.status === VehicleStatus.QUALITY_CONTROL);
-    const qualityExits = vehicle.statusHistory.filter(h => 
-      h.status === VehicleStatus.RETURNED_TO_PRODUCTION || 
-      h.status === VehicleStatus.READY_FOR_SHIPMENT
-    );
+    // Tüm durum geçmişini kronolojik olarak sırala
+    const sortedHistory = vehicle.statusHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    qualityEntries.forEach((entry, index) => {
-      const exit = qualityExits.find(e => new Date(e.date) > new Date(entry.date));
-      if (exit) {
-        qualityDays += Math.ceil((new Date(exit.date).getTime() - new Date(entry.date).getTime()) / (1000 * 60 * 60 * 24));
-      } else if (vehicle.currentStatus === VehicleStatus.QUALITY_CONTROL) {
-        qualityDays += Math.ceil((new Date().getTime() - new Date(entry.date).getTime()) / (1000 * 60 * 60 * 24));
+    // Her durum geçişi için süreyi hesapla
+    sortedHistory.forEach((entry, index) => {
+      const nextEntry = sortedHistory[index + 1];
+      let endDate: Date;
+
+      if (nextEntry) {
+        // Sonraki durum var - manuel girilen tarihi kullan
+        endDate = new Date(nextEntry.date);
+      } else if (entry.status === vehicle.currentStatus) {
+        // Mevcut durum - şu anki zamanı kullan
+        endDate = new Date();
+      } else {
+        // Bu durumdan çıkılmış ama kayıt yok - geç
+        return;
+      }
+
+      const startDate = new Date(entry.date);
+      const durationMs = endDate.getTime() - startDate.getTime();
+      
+      if (durationMs > 0) {
+        const durationHours = durationMs / (1000 * 60 * 60);
+
+        // Kalite kontrol süreleri
+        if (entry.status === VehicleStatus.QUALITY_CONTROL) {
+          qualityHours += durationHours;
+        }
+        
+        // Üretim süreleri  
+        if (entry.status === VehicleStatus.PRODUCTION || entry.status === VehicleStatus.RETURNED_TO_PRODUCTION) {
+          productionHours += durationHours;
+        }
       }
     });
 
-    // Üretim süresini hesapla
-    const productionEntries = vehicle.statusHistory.filter(h => 
-      h.status === VehicleStatus.PRODUCTION || h.status === VehicleStatus.RETURNED_TO_PRODUCTION
-    );
-    const productionExits = vehicle.statusHistory.filter(h => h.status === VehicleStatus.QUALITY_CONTROL);
+    // Toplam süre - araç oluşturulma tarihinden şu ana kadar
+    const totalHours = (new Date().getTime() - new Date(vehicle.createdAt).getTime()) / (1000 * 60 * 60);
 
-    productionEntries.forEach((entry, index) => {
-      const exit = productionExits.find(e => new Date(e.date) > new Date(entry.date));
-      if (exit) {
-        productionDays += Math.ceil((new Date(exit.date).getTime() - new Date(entry.date).getTime()) / (1000 * 60 * 60 * 24));
-      } else if (vehicle.currentStatus === VehicleStatus.PRODUCTION || vehicle.currentStatus === VehicleStatus.RETURNED_TO_PRODUCTION) {
-        productionDays += Math.ceil((new Date().getTime() - new Date(entry.date).getTime()) / (1000 * 60 * 60 * 24));
-      }
-    });
-
-    const totalDays = Math.ceil((new Date().getTime() - new Date(vehicle.createdAt).getTime()) / (1000 * 60 * 60 * 24));
-
-    return { quality: qualityDays, production: productionDays, total: totalDays };
+    return { 
+      quality: Math.max(0, Math.round(qualityHours)), 
+      production: Math.max(0, Math.round(productionHours)), 
+      total: Math.max(0, Math.round(totalHours))
+    };
   };
 
   // ===== MODEL BASED VEHICLE NAMES =====
@@ -3373,18 +3384,33 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                                   const startDate = history.date;
                                                   let endDate;
                                                   
-                                                  // Çıkış tarihi belirleme
-                                                  if (history.status === editingVehicle.currentStatus) {
-                                                    endDate = new Date(); // Mevcut durum için şu anki zaman
+                                                  // Çıkış tarihi belirleme - DÜZELTILDI: Manual tarih girişi dikkate alınır
+                                                  const sortedHistory = editingVehicle.statusHistory
+                                                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                                                  
+                                                  // Mevcut history item'ının sortedHistory'deki index'ini bul
+                                                  const currentHistoryIndex = sortedHistory.findIndex(h => h.id === history.id);
+                                                  const nextHistory = sortedHistory[currentHistoryIndex + 1];
+                                                  
+                                                  if (nextHistory) {
+                                                    // Sonraki duruma geçiş tarihi var - manuel girilen tarihi kullan
+                                                    endDate = new Date(nextHistory.date);
+                                                  } else if (history.status === editingVehicle.currentStatus) {
+                                                    // Mevcut durum - şu anki zamanı kullan
+                                                    endDate = new Date();
                                                   } else {
-                                                    const sortedHistory = editingVehicle.statusHistory
-                                                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                                                    const nextHistory = sortedHistory[index + 1];
-                                                    endDate = nextHistory ? new Date(nextHistory.date) : new Date();
+                                                    // Başka duruma geçmiş ama endDate bulunamıyor
+                                                    endDate = new Date();
                                                   }
                                                   
                                                   if (startDate && endDate) {
                                                     const diffMs = endDate.getTime() - new Date(startDate).getTime();
+                                                    
+                                                    // Negatif süre kontrolü
+                                                    if (diffMs < 0) {
+                                                      return 'Geçersiz tarih aralığı (başlangıç > bitiş)';
+                                                    }
+                                                    
                                                     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
                                                     const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                                                     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
