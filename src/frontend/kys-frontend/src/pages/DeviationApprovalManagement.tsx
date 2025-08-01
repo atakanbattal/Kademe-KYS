@@ -1,9 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import deviationApprovalService, { 
-  DeviationApproval, 
-  VehicleInfo, 
-  GetDeviationApprovalsParams 
-} from '../services/deviationApprovalService';
 import {
   Typography,
   Box,
@@ -33,8 +28,7 @@ import {
   Alert,
   Tooltip,
   Badge,
-  Container,
-  CircularProgress
+  Container
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -58,7 +52,60 @@ import {
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 
-// Local interfaces for additional features not in API service
+// Interfaces
+interface VehicleInfo {
+  id: string;
+  model: string;
+  serialNumber: string;
+  chassisNumber?: string;
+}
+
+interface DeviationApproval {
+  id: string;
+  deviationNumber: string;
+  partName: string;
+  partNumber: string;
+  vehicles: VehicleInfo[]; // Birden fazla araç desteki
+  deviationType: 'input-control' | 'process-control' | 'final-control';
+  description: string;
+  reasonForDeviation: string;
+  proposedSolution: string;
+  qualityRisk: 'low' | 'medium' | 'high' | 'critical';
+  requestDate: string;
+  requestedBy: string;
+  department: string;
+  rdApproval: {
+    approved: boolean;
+    approver: string;
+    approvalDate?: string;
+    comments?: string;
+  };
+  qualityApproval: {
+    approved: boolean;
+    approver: string;
+    approvalDate?: string;
+    comments?: string;
+  };
+  productionApproval: {
+    approved: boolean;
+    approver: string;
+    approvalDate?: string;
+    comments?: string;
+  };
+  generalManagerApproval: {
+    approved: boolean;
+    approver: string;
+    approvalDate?: string;
+    comments?: string;
+  };
+  status: 'pending' | 'rd-approved' | 'quality-approved' | 'production-approved' | 'final-approved' | 'rejected';
+  rejectionReason?: string; // Reddetme sebebi
+  attachments: DeviationAttachment[];
+  usageTracking: UsageTracking[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface DeviationAttachment {
   id: string;
   fileName: string;
@@ -146,11 +193,9 @@ const VEHICLE_TYPES = [
 const DeviationApprovalManagement: React.FC = () => {
   const { appearanceSettings } = useThemeContext();
 
-  // State Management with API integration
+  // State Management
   const [deviations, setDeviations] = useState<DeviationApproval[]>([]);
   const [filteredDeviations, setFilteredDeviations] = useState<DeviationApproval[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
@@ -211,153 +256,38 @@ const DeviationApprovalManagement: React.FC = () => {
   const [detailViewDialog, setDetailViewDialog] = useState(false);
   const [selectedDeviationForDetail, setSelectedDeviationForDetail] = useState<DeviationApproval | null>(null);
 
-  // Data Management with API integration
-  const loadData = useCallback(async (params: GetDeviationApprovalsParams = {}) => {
+  // Data Management
+  const saveData = useCallback((data: DeviationApproval[]) => {
     try {
-      setLoading(true);
-      setError(null);
-      console.log('📥 API\'den veri yükleniyor...');
+      console.log('💾 saveData çağrıldı, kayıt sayısı:', data.length);
+      console.log('📝 Kaydedilecek veriler:', data);
       
-      const response = await deviationApprovalService.getAll(params);
-      if (response.success) {
-        const data = Array.isArray(response.data) ? response.data : [response.data];
-        setDeviations(data);
-        console.log('✅ Veriler API\'den başarıyla yüklendi, kayıt sayısı:', data.length);
-      } else {
-        throw new Error('API yanıtı başarısız');
-      }
-    } catch (error: any) {
-      console.error('❌ Veri yükleme hatası:', error);
-      setError(error.message || 'Veriler yüklenirken hata oluştu');
-      alert('Veriler API\'den yüklenirken hata oluştu: ' + error.message);
-    } finally {
-      setLoading(false);
+      localStorage.setItem('deviationApprovalData', JSON.stringify(data));
+      console.log('✅ localStorage'a başarıyla kaydedildi');
+      
+      setDeviations(data);
+      console.log('✅ State başarıyla güncellendi');
+      
+    } catch (error) {
+      console.error('❌ Veri kaydetme hatası:', error);
+      alert('Veri kaydetme hatası: ' + error.message);
     }
   }, []);
 
-  const saveDeviation = useCallback(async (deviationData: Partial<DeviationApproval>, isUpdate = false) => {
+  const loadData = useCallback(() => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      let response;
-      if (isUpdate && deviationData.id) {
-        console.log('📝 Sapma onayı güncelleniyor:', deviationData.id);
-        response = await deviationApprovalService.update(deviationData.id, deviationData);
-      } else {
-        console.log('💾 Yeni sapma onayı oluşturuluyor');
-        response = await deviationApprovalService.create(deviationData);
+      const savedData = localStorage.getItem('deviationApprovalData');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setDeviations(parsedData);
       }
-      
-      if (response.success) {
-        console.log('✅ Sapma onayı başarıyla kaydedildi');
-        await loadData(); // Refresh data
-        return response.data;
-      } else {
-        throw new Error('API yanıtı başarısız');
-      }
-    } catch (error: any) {
-      console.error('❌ Sapma onayı kaydetme hatası:', error);
-      setError(error.message || 'Sapma onayı kaydedilirken hata oluştu');
-      alert('Sapma onayı kaydedilirken hata oluştu: ' + error.message);
-      throw error;
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Veri yükleme hatası:', error);
     }
-  }, [loadData]);
-
-  const deleteDeviation = useCallback(async (id: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('🗑️ Sapma onayı siliniyor:', id);
-      const response = await deviationApprovalService.delete(id);
-      
-      if (response.success) {
-        console.log('✅ Sapma onayı başarıyla silindi');
-        await loadData(); // Refresh data
-      } else {
-        throw new Error('API yanıtı başarısız');
-      }
-    } catch (error: any) {
-      console.error('❌ Sapma onayı silme hatası:', error);
-      setError(error.message || 'Sapma onayı silinirken hata oluştu');
-      alert('Sapma onayı silinirken hata oluştu: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [loadData]);
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
-
-  // Professional data management functions with API integration
-  const exportData = useCallback(async () => {
-    try {
-      setLoading(true);
-      console.log('📤 Veri export ediliyor...');
-      
-      const blob = await deviationApprovalService.exportData();
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `sapma-onay-verileri-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      console.log(`✅ ${deviations.length} kayıt export edildi`);
-      alert(`✅ ${deviations.length} kayıt başarıyla export edildi.`);
-    } catch (error: any) {
-      console.error('Export hatası:', error);
-      alert('Veri export edilirken hata oluştu: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [deviations.length]);
-
-  const importData = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        setLoading(true);
-        const content = e.target?.result as string;
-        const importedData = JSON.parse(content);
-        
-        // Veri formatını kontrol et
-        if (importedData.data && Array.isArray(importedData.data)) {
-          console.log('📥 Veri import ediliyor...');
-          
-          const results = await deviationApprovalService.importData(importedData.data);
-          
-          // Sonuçları göster
-          if (results.success > 0) {
-            await loadData(); // Refresh data
-            alert(`✅ Import tamamlandı!\n\n• Başarılı: ${results.success} kayıt\n• Başarısız: ${results.failed} kayıt${results.errors.length > 0 ? `\n\nHatalar:\n${results.errors.slice(0, 5).join('\n')}${results.errors.length > 5 ? '\n...' : ''}` : ''}`);
-          } else {
-            alert('❌ Hiçbir kayıt import edilemedi.\n\n' + results.errors.slice(0, 3).join('\n'));
-          }
-        } else {
-          alert('Geçersiz dosya formatı. Lütfen doğru JSON dosyasını seçin.');
-        }
-      } catch (error: any) {
-        console.error('Import hatası:', error);
-        alert('Dosya okuma hatası: ' + error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    reader.readAsText(file);
-    // Input'u temizle
-    event.target.value = '';
   }, [loadData]);
 
   // Filtreleme sistemi
@@ -427,50 +357,15 @@ const DeviationApprovalManagement: React.FC = () => {
     const newNumber = lastNumber + 1;
     const paddedNumber = String(newNumber).padStart(3, '0');
     
+    // localStorage'a kaydet
+    localStorage.setItem(lastDeviationKey, JSON.stringify({
+      year: currentYear,
+      number: newNumber
+    }));
+    
     console.log(`🔢 Yeni sapma numarası: ${currentYear}-${paddedNumber} (Önceki: ${lastYear}-${String(lastNumber).padStart(3, '0')})`);
     
     return `${currentYear}-${paddedNumber}`;
-  };
-
-  // ✅ YENİ: Sapma numarası kaydedilirken localStorage'u güncelle
-  const updateDeviationNumberCounter = (deviationNumber: string) => {
-    try {
-      const currentYear = new Date().getFullYear();
-      const match = deviationNumber.match(/^(\d{4})-(\d{3})$/);
-      
-      if (match) {
-        const year = parseInt(match[1]);
-        const number = parseInt(match[2]);
-        
-        if (year === currentYear) {
-          const lastDeviationKey = 'lastDeviationNumber';
-          const existingData = localStorage.getItem(lastDeviationKey);
-          
-          let shouldUpdate = true;
-          if (existingData) {
-            const { number: existingNumber } = JSON.parse(existingData);
-            shouldUpdate = number > existingNumber;
-          }
-          
-          if (shouldUpdate) {
-            localStorage.setItem(lastDeviationKey, JSON.stringify({
-              year: currentYear,
-              number: number
-            }));
-            console.log(`🔢 Sapma numarası sayacı güncellendi: ${year}-${String(number).padStart(3, '0')}`);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Sapma numarası sayacı güncellenirken hata:', error);
-    }
-  };
-
-  // ✅ YENİ: Güvenli ID üretici
-  const generateUniqueId = () => {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substr(2, 9);
-    return `${timestamp}-${random}`;
   };
 
   const getStatusColor = (status: string) => {
@@ -532,9 +427,9 @@ const DeviationApprovalManagement: React.FC = () => {
 
   // Dialog Handlers
   const openCreateDialog = () => {
-    console.log('🆕 Yeni sapma dialog açılıyor');
+    console.log('🆕 Yeni sapma modal açılıyor...');
     
-    setFormData({
+    const newFormData = {
       deviationNumber: generateDeviationNumber(),
       partName: '',
       partNumber: '',
@@ -554,16 +449,20 @@ const DeviationApprovalManagement: React.FC = () => {
       status: 'pending',
       attachments: [],
       usageTracking: []
-    });
+    };
+    
+    console.log('📝 Yeni form data ayarlanıyor:', newFormData);
+    setFormData(newFormData);
+    
     setCurrentVehicle({
       model: '',
       serialNumber: '',
       chassisNumber: ''
     });
+    
     setDialogMode('create');
     setOpenDialog(true);
-    
-    console.log('✅ Form temizlendi ve dialog açıldı');
+    console.log('✅ Modal açıldı, dialogMode: create');
   };
 
   const openEditDialog = (deviation: DeviationApproval) => {
@@ -586,11 +485,14 @@ const DeviationApprovalManagement: React.FC = () => {
   };
 
   const closeDialog = () => {
+    console.log('🔒 Modal kapatılıyor ve form temizleniyor...');
+    
     setOpenDialog(false);
     setSelectedDeviation(null);
     setDialogMode('create');
-    // ✅ DÜZELTME: FormData'yı temizle
-    setFormData({
+    
+    // Form data'yı temizle
+    const cleanFormData = {
       deviationNumber: '',
       partName: '',
       partNumber: '',
@@ -610,35 +512,39 @@ const DeviationApprovalManagement: React.FC = () => {
       status: 'pending',
       attachments: [],
       usageTracking: []
-    });
-    // Araç ekleme formunu da temizle
+    };
+    
+    console.log('🧹 Form data temizleniyor:', cleanFormData);
+    setFormData(cleanFormData);
+    
+    // Current vehicle state'ini de temizle
     setCurrentVehicle({
       model: '',
       serialNumber: '',
       chassisNumber: ''
     });
+    
+    console.log('✅ Modal başarıyla kapatıldı ve form temizlendi');
   };
 
-  // CRUD Operations with API integration
+  // CRUD Operations
   const handleSubmit = async () => {
-    console.log('🚀 HandleSubmit başladı, dialogMode:', dialogMode);
-    console.log('📋 FormData durumu:', {
-      partName: formData.partName,
-      description: formData.description,
-      requestedBy: formData.requestedBy,
-      vehicles: formData.vehicles,
-      vehicleCount: formData.vehicles?.length || 0
-    });
-
+    console.log('🔄 handleSubmit başladı, dialogMode:', dialogMode);
+    console.log('📝 Form data:', formData);
+    
     // Validasyon
     if (!formData.partName || !formData.description || !formData.requestedBy) {
-      console.error('❌ Temel alan validasyonu başarısız');
+      console.log('❌ Temel bilgiler eksik:', {
+        partName: !!formData.partName,
+        description: !!formData.description,
+        requestedBy: !!formData.requestedBy
+      });
       alert('Lütfen gerekli alanları (Parça Adı, Açıklama, Talep Eden) doldurun!');
       return;
     }
 
     if (!formData.vehicles || formData.vehicles.length === 0) {
-      console.error('❌ Araç validasyonu başarısız - araç yok');
+      console.log('❌ Araç bilgisi eksik:', formData.vehicles);
       alert('En az bir araç bilgisi eklemelisiniz!');
       return;
     }
@@ -646,58 +552,76 @@ const DeviationApprovalManagement: React.FC = () => {
     // Araçlarda eksik bilgi kontrolü
     const incompleteVehicles = formData.vehicles.filter(v => !v.model || !v.serialNumber);
     if (incompleteVehicles.length > 0) {
-      console.error('❌ Araç validasyonu başarısız - eksik bilgi:', incompleteVehicles);
+      console.log('❌ Eksik araç bilgileri:', incompleteVehicles);
       alert('Tüm araçlar için model ve seri numarası gereklidir!');
       return;
     }
 
-    console.log('✅ Tüm validasyonlar başarılı');
+    console.log('✅ Validasyon geçti, kayıt işlemi başlıyor...');
+    const now = new Date().toISOString();
 
     try {
-      const deviationData: Partial<DeviationApproval> = {
-        partName: formData.partName,
-        partNumber: formData.partNumber || '',
-        vehicles: formData.vehicles as VehicleInfo[],
-        deviationType: formData.deviationType as any,
-        description: formData.description,
-        reasonForDeviation: formData.reasonForDeviation || '',
-        proposedSolution: formData.proposedSolution || '',
-        qualityRisk: formData.qualityRisk as any,
-        requestDate: formData.requestDate || new Date().toISOString().split('T')[0],
-        requestedBy: formData.requestedBy,
-        department: formData.department || '',
-        attachments: formData.attachments as any[] || []
-      };
-
       if (dialogMode === 'create') {
-        console.log('💾 Yeni sapma onayı oluşturuluyor...');
-        await saveDeviation(deviationData, false);
-        console.log('✅ Yeni sapma başarıyla oluşturuldu');
+        console.log('📝 Yeni sapma oluşturuluyor...');
+        
+        const newDeviation: DeviationApproval = {
+          id: Date.now().toString(),
+          deviationNumber: formData.deviationNumber || generateDeviationNumber(),
+          partName: formData.partName!,
+          partNumber: formData.partNumber || '',
+          vehicles: formData.vehicles!,
+          deviationType: formData.deviationType!,
+          description: formData.description!,
+          reasonForDeviation: formData.reasonForDeviation || '',
+          proposedSolution: formData.proposedSolution || '',
+          qualityRisk: formData.qualityRisk!,
+          requestDate: formData.requestDate!,
+          requestedBy: formData.requestedBy!,
+          department: formData.department || '',
+          rdApproval: formData.rdApproval!,
+          qualityApproval: formData.qualityApproval!,
+          productionApproval: formData.productionApproval!,
+          generalManagerApproval: formData.generalManagerApproval!,
+          status: formData.status!,
+          attachments: formData.attachments || [],
+          usageTracking: formData.usageTracking || [],
+          createdAt: now,
+          updatedAt: now
+        };
+
+        console.log('📊 Oluşturulan sapma:', newDeviation);
+        
+        const updatedDeviations = [...deviations, newDeviation];
+        console.log('💾 localStorage'a kaydediliyor... Önceki kayıt sayısı:', deviations.length, 'Yeni kayıt sayısı:', updatedDeviations.length);
+        
+        saveData(updatedDeviations);
+        console.log('✅ Yeni sapma başarıyla oluşturuldu:', newDeviation.deviationNumber);
+        
       } else if (dialogMode === 'edit' && selectedDeviation) {
-        console.log('📝 Sapma onayı güncelleniyor...', selectedDeviation.id);
-        deviationData.id = selectedDeviation.id;
-        await saveDeviation(deviationData, true);
-        console.log('✅ Sapma başarıyla güncellendi');
+        console.log('✏️ Mevcut sapma güncelleniyor...', selectedDeviation.id);
+        
+        const updatedDeviations = deviations.map(deviation =>
+          deviation.id === selectedDeviation.id
+            ? { ...deviation, ...formData, updatedAt: now }
+            : deviation
+        );
+        saveData(updatedDeviations);
+        console.log('✅ Sapma başarıyla güncellendi:', selectedDeviation.deviationNumber);
       }
 
+      console.log('🔄 Modal kapatılıyor...');
       closeDialog();
+      
     } catch (error) {
       console.error('❌ Kaydetme hatası:', error);
-      // Error handling is done in saveDeviation function
+      alert('Kaydetme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     }
   };
 
-  const handleDelete = async (deviation: DeviationApproval) => {
+  const handleDelete = (deviation: DeviationApproval) => {
     if (window.confirm('Bu sapma onayını silmek istediğinizden emin misiniz?')) {
-      try {
-        if (deviation.id) {
-          await deleteDeviation(deviation.id);
-          console.log('✅ Sapma onayı başarıyla silindi:', deviation.deviationNumber);
-        }
-      } catch (error) {
-        console.error('❌ Silme hatası:', error);
-        // Error handling is done in deleteDeviation function
-      }
+      const updatedDeviations = deviations.filter(d => d.id !== deviation.id);
+      saveData(updatedDeviations);
     }
   };
 
@@ -947,22 +871,7 @@ const DeviationApprovalManagement: React.FC = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
 
-      {/* Loading Indicator */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 2 }}>
-          <CircularProgress size={24} />
-          <Typography variant="body2" sx={{ ml: 2 }}>
-            Veriler yükleniyor...
-          </Typography>
-        </Box>
-      )}
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -1128,49 +1037,18 @@ const DeviationApprovalManagement: React.FC = () => {
       </Paper>
 
       {/* Action Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h6" fontWeight="bold">
           Sapma Onayları ({stats.total} gösteriliyor / {stats.totalInSystem} toplam)
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {/* Export Button */}
-          <Button
-            variant="outlined"
-            startIcon={<GetAppIcon />}
-            onClick={exportData}
-            sx={{ borderRadius: 2 }}
-            disabled={deviations.length === 0 || loading}
-          >
-            {loading ? 'Export ediliyor...' : 'Export'}
-          </Button>
-          
-          {/* Import Button */}
-          <Button
-            variant="outlined"
-            startIcon={<CloudUploadIcon />}
-            component="label"
-            sx={{ borderRadius: 2 }}
-            disabled={loading}
-          >
-            {loading ? 'Import ediliyor...' : 'Import'}
-            <input
-              type="file"
-              hidden
-              accept=".json"
-              onChange={importData}
-            />
-          </Button>
-          
-          {/* Add New Button */}
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={openCreateDialog}
-            sx={{ borderRadius: 2 }}
-          >
-            Yeni Sapma Onayı
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={openCreateDialog}
+          sx={{ borderRadius: 2 }}
+        >
+          Yeni Sapma Onayı
+        </Button>
       </Box>
 
       {/* Deviations Table */}
