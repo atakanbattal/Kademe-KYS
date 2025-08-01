@@ -53,14 +53,19 @@ import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 
 // Interfaces
+interface VehicleInfo {
+  id: string;
+  model: string;
+  serialNumber: string;
+  chassisNumber?: string;
+}
+
 interface DeviationApproval {
   id: string;
   deviationNumber: string;
   partName: string;
   partNumber: string;
-  vehicleModel: string;
-  vehicleSerialNumber: string;
-  chassisNumber?: string; // Opsiyonel şasi numarası
+  vehicles: VehicleInfo[]; // Birden fazla araç desteki
   deviationType: 'input-control' | 'process-control' | 'final-control';
   description: string;
   reasonForDeviation: string;
@@ -190,15 +195,17 @@ const DeviationApprovalManagement: React.FC = () => {
 
   // State Management
   const [deviations, setDeviations] = useState<DeviationApproval[]>([]);
+  const [filteredDeviations, setFilteredDeviations] = useState<DeviationApproval[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedDeviation, setSelectedDeviation] = useState<DeviationApproval | null>(null);
   const [formData, setFormData] = useState<Partial<DeviationApproval>>({
     partName: '',
     partNumber: '',
-    vehicleModel: '',
-    vehicleSerialNumber: '',
-    chassisNumber: '',
+    vehicles: [],
     deviationType: 'input-control',
     description: '',
     reasonForDeviation: '',
@@ -214,6 +221,13 @@ const DeviationApprovalManagement: React.FC = () => {
     status: 'pending',
     attachments: [],
     usageTracking: []
+  });
+  
+  // Araç ekleme için state
+  const [currentVehicle, setCurrentVehicle] = useState<Partial<VehicleInfo>>({
+    model: '',
+    serialNumber: '',
+    chassisNumber: ''
   });
   const [attachmentDialog, setAttachmentDialog] = useState(false);
   const [usageDialog, setUsageDialog] = useState(false);
@@ -262,6 +276,40 @@ const DeviationApprovalManagement: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Filtreleme sistemi
+  useEffect(() => {
+    let filtered = deviations;
+
+    // Arama terimi filtresi
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(deviation => 
+        deviation.deviationNumber.toLowerCase().includes(search) ||
+        deviation.partName.toLowerCase().includes(search) ||
+        deviation.partNumber.toLowerCase().includes(search) ||
+        deviation.description.toLowerCase().includes(search) ||
+        deviation.requestedBy.toLowerCase().includes(search) ||
+        deviation.vehicles.some(vehicle => 
+          vehicle.model.toLowerCase().includes(search) ||
+          vehicle.serialNumber.toLowerCase().includes(search) ||
+          vehicle.chassisNumber?.toLowerCase().includes(search)
+        )
+      );
+    }
+
+    // Durum filtresi
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(deviation => deviation.status === statusFilter);
+    }
+
+    // Departman filtresi
+    if (departmentFilter !== 'all') {
+      filtered = filtered.filter(deviation => deviation.department === departmentFilter);
+    }
+
+    setFilteredDeviations(filtered);
+  }, [deviations, searchTerm, statusFilter, departmentFilter]);
 
   // Helper Functions
   const generateDeviationNumber = () => {
@@ -331,13 +379,45 @@ const DeviationApprovalManagement: React.FC = () => {
     }
   };
 
+  // Araç yönetimi fonksiyonları
+  const addVehicle = () => {
+    if (!currentVehicle.model || !currentVehicle.serialNumber) {
+      alert('Araç modeli ve seri numarası gereklidir!');
+      return;
+    }
+
+    const newVehicle: VehicleInfo = {
+      id: Date.now().toString(),
+      model: currentVehicle.model!,
+      serialNumber: currentVehicle.serialNumber!,
+      chassisNumber: currentVehicle.chassisNumber || ''
+    };
+
+    setFormData(prev => ({
+      ...prev,
+      vehicles: [...(prev.vehicles || []), newVehicle]
+    }));
+
+    setCurrentVehicle({
+      model: '',
+      serialNumber: '',
+      chassisNumber: ''
+    });
+  };
+
+  const removeVehicle = (vehicleId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      vehicles: prev.vehicles?.filter(v => v.id !== vehicleId) || []
+    }));
+  };
+
   // Dialog Handlers
   const openCreateDialog = () => {
     setFormData({
       partName: '',
       partNumber: '',
-      vehicleModel: '',
-      vehicleSerialNumber: '',
+      vehicles: [],
       deviationType: 'input-control',
       description: '',
       reasonForDeviation: '',
@@ -353,6 +433,11 @@ const DeviationApprovalManagement: React.FC = () => {
       status: 'pending',
       attachments: [],
       usageTracking: []
+    });
+    setCurrentVehicle({
+      model: '',
+      serialNumber: '',
+      chassisNumber: ''
     });
     setDialogMode('create');
     setOpenDialog(true);
@@ -379,53 +464,72 @@ const DeviationApprovalManagement: React.FC = () => {
   };
 
   // CRUD Operations
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    // Validasyon
     if (!formData.partName || !formData.description || !formData.requestedBy) {
-      alert('Lütfen gerekli alanları doldurun!');
+      alert('Lütfen gerekli alanları (Parça Adı, Açıklama, Talep Eden) doldurun!');
+      return;
+    }
+
+    if (!formData.vehicles || formData.vehicles.length === 0) {
+      alert('En az bir araç bilgisi eklemelisiniz!');
+      return;
+    }
+
+    // Araçlarda eksik bilgi kontrolü
+    const incompleteVehicles = formData.vehicles.filter(v => !v.model || !v.serialNumber);
+    if (incompleteVehicles.length > 0) {
+      alert('Tüm araçlar için model ve seri numarası gereklidir!');
       return;
     }
 
     const now = new Date().toISOString();
 
-    if (dialogMode === 'create') {
-      const newDeviation: DeviationApproval = {
-        id: Date.now().toString(),
-        deviationNumber: generateDeviationNumber(),
-        partName: formData.partName!,
-        partNumber: formData.partNumber || '',
-        vehicleModel: formData.vehicleModel || '',
-        vehicleSerialNumber: formData.vehicleSerialNumber || '',
-        deviationType: formData.deviationType!,
-        description: formData.description!,
-        reasonForDeviation: formData.reasonForDeviation || '',
-        proposedSolution: formData.proposedSolution || '',
-        qualityRisk: formData.qualityRisk!,
-        requestDate: formData.requestDate!,
-        requestedBy: formData.requestedBy!,
-        department: formData.department || '',
-        rdApproval: formData.rdApproval!,
-        qualityApproval: formData.qualityApproval!,
-        productionApproval: formData.productionApproval!,
-        generalManagerApproval: formData.generalManagerApproval!,
-        status: formData.status!,
-        attachments: formData.attachments || [],
-        usageTracking: formData.usageTracking || [],
-        createdAt: now,
-        updatedAt: now
-      };
+    try {
+      if (dialogMode === 'create') {
+        const newDeviation: DeviationApproval = {
+          id: Date.now().toString(),
+          deviationNumber: generateDeviationNumber(),
+          partName: formData.partName!,
+          partNumber: formData.partNumber || '',
+          vehicles: formData.vehicles!,
+          deviationType: formData.deviationType!,
+          description: formData.description!,
+          reasonForDeviation: formData.reasonForDeviation || '',
+          proposedSolution: formData.proposedSolution || '',
+          qualityRisk: formData.qualityRisk!,
+          requestDate: formData.requestDate!,
+          requestedBy: formData.requestedBy!,
+          department: formData.department || '',
+          rdApproval: formData.rdApproval!,
+          qualityApproval: formData.qualityApproval!,
+          productionApproval: formData.productionApproval!,
+          generalManagerApproval: formData.generalManagerApproval!,
+          status: formData.status!,
+          attachments: formData.attachments || [],
+          usageTracking: formData.usageTracking || [],
+          createdAt: now,
+          updatedAt: now
+        };
 
-      const updatedDeviations = [...deviations, newDeviation];
-      saveData(updatedDeviations);
-    } else if (dialogMode === 'edit' && selectedDeviation) {
-      const updatedDeviations = deviations.map(deviation =>
-        deviation.id === selectedDeviation.id
-          ? { ...deviation, ...formData, updatedAt: now }
-          : deviation
-      );
-      saveData(updatedDeviations);
+        const updatedDeviations = [...deviations, newDeviation];
+        saveData(updatedDeviations);
+        console.log('✅ Yeni sapma başarıyla oluşturuldu:', newDeviation.deviationNumber);
+      } else if (dialogMode === 'edit' && selectedDeviation) {
+        const updatedDeviations = deviations.map(deviation =>
+          deviation.id === selectedDeviation.id
+            ? { ...deviation, ...formData, updatedAt: now }
+            : deviation
+        );
+        saveData(updatedDeviations);
+        console.log('✅ Sapma başarıyla güncellendi:', selectedDeviation.deviationNumber);
+      }
+
+      closeDialog();
+    } catch (error) {
+      console.error('❌ Kaydetme hatası:', error);
+      alert('Kaydetme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     }
-
-    closeDialog();
   };
 
   const handleDelete = (deviation: DeviationApproval) => {
@@ -435,8 +539,22 @@ const DeviationApprovalManagement: React.FC = () => {
     }
   };
 
-  // ✅ DÜZELTME: Equipment Calibration modülündeki gibi FileReader ile dosyayı base64'e çevir
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Dosya yükleme fonksiyonu - Promise yapısına çevrildi
+  const uploadFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64Data = e.target?.result as string;
+        resolve(base64Data);
+      };
+      reader.onerror = () => {
+        reject(new Error('Dosya okuma hatası'));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
       const file = files[0];
@@ -447,10 +565,9 @@ const DeviationApprovalManagement: React.FC = () => {
         return;
       }
 
-      // FileReader ile dosyayı base64'e çevir
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64Data = e.target?.result as string;
+      try {
+        // Dosyayı base64'e çevir
+        const base64Data = await uploadFileToBase64(file);
         
         const newAttachment: DeviationAttachment = {
           id: Date.now().toString(),
@@ -459,7 +576,7 @@ const DeviationApprovalManagement: React.FC = () => {
           fileSize: file.size,
           uploadDate: new Date().toISOString(),
           uploadedBy: formData.requestedBy || 'Kullanıcı',
-          url: base64Data // ✅ YENİ: Base64 data'yı url field'ına kaydet
+          url: base64Data
         };
 
         setFormData(prev => ({
@@ -468,15 +585,10 @@ const DeviationApprovalManagement: React.FC = () => {
         }));
 
         console.log('✅ Dosya başarıyla yüklendi:', file.name, 'Base64 length:', base64Data.length);
-      };
-
-      reader.onerror = () => {
-        console.error('❌ Dosya okuma hatası');
-        alert('Dosya okuma hatası oluştu.');
-      };
-
-      // Dosyayı base64 olarak oku
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('❌ Dosya yükleme hatası:', error);
+        alert('Dosya yükleme sırasında bir hata oluştu.');
+      }
     }
     
     // Input'u temizle
@@ -656,13 +768,20 @@ const DeviationApprovalManagement: React.FC = () => {
 
   // Statistics
   const stats = useMemo(() => {
-    const pending = deviations.filter(d => d.status === 'pending').length;
-    const approved = deviations.filter(d => d.status === 'final-approved').length;
-    const rejected = deviations.filter(d => d.status === 'rejected').length;
-    const inProgress = deviations.length - pending - approved - rejected;
+    const pending = filteredDeviations.filter(d => d.status === 'pending').length;
+    const approved = filteredDeviations.filter(d => d.status === 'final-approved').length;
+    const rejected = filteredDeviations.filter(d => d.status === 'rejected').length;
+    const inProgress = filteredDeviations.length - pending - approved - rejected;
 
-    return { pending, approved, rejected, inProgress, total: deviations.length };
-  }, [deviations]);
+    return { 
+      pending, 
+      approved, 
+      rejected, 
+      inProgress, 
+      total: filteredDeviations.length,
+      totalInSystem: deviations.length 
+    };
+  }, [filteredDeviations, deviations]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -732,10 +851,109 @@ const DeviationApprovalManagement: React.FC = () => {
         </Grid>
       </Grid>
 
+      {/* Filters */}
+      <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+        <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
+          Filtreleme ve Arama
+        </Typography>
+        <Grid container spacing={3} alignItems="center">
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              placeholder="Sapma no, parça adı, açıklama veya araç bilgisi ile ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              variant="outlined"
+              size="small"
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Durum Filtresi</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Durum Filtresi"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="all">Tüm Durumlar</MenuItem>
+                <MenuItem value="pending">Beklemede</MenuItem>
+                <MenuItem value="rd-approved">Ar-Ge Onaylandı</MenuItem>
+                <MenuItem value="quality-approved">Kalite Onaylandı</MenuItem>
+                <MenuItem value="production-approved">Üretim Onaylandı</MenuItem>
+                <MenuItem value="final-approved">Nihai Onay</MenuItem>
+                <MenuItem value="rejected">Reddedildi</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Departman Filtresi</InputLabel>
+              <Select
+                value={departmentFilter}
+                label="Departman Filtresi"
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+              >
+                <MenuItem value="all">Tüm Departmanlar</MenuItem>
+                {DEPARTMENTS.map((dept) => (
+                  <MenuItem key={dept} value={dept}>
+                    {dept}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('all');
+                setDepartmentFilter('all');
+              }}
+              sx={{ height: 40 }}
+            >
+              Temizle
+            </Button>
+          </Grid>
+        </Grid>
+        <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Typography variant="body2" color="text.secondary">
+            Sonuç: {stats.total} / {stats.totalInSystem} kayıt
+          </Typography>
+          {searchTerm && (
+            <Chip
+              label={`Arama: "${searchTerm}"`}
+              onDelete={() => setSearchTerm('')}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+          )}
+          {statusFilter !== 'all' && (
+            <Chip
+              label={`Durum: ${getStatusLabel(statusFilter)}`}
+              onDelete={() => setStatusFilter('all')}
+              size="small"
+              color="secondary"
+              variant="outlined"
+            />
+          )}
+          {departmentFilter !== 'all' && (
+            <Chip
+              label={`Departman: ${departmentFilter}`}
+              onDelete={() => setDepartmentFilter('all')}
+              size="small"
+              color="info"
+              variant="outlined"
+            />
+          )}
+        </Box>
+      </Paper>
+
       {/* Action Buttons */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h6" fontWeight="bold">
-          Sapma Onayları ({deviations.length} kayıt)
+          Sapma Onayları ({stats.total} gösteriliyor / {stats.totalInSystem} toplam)
         </Typography>
         <Button
           variant="contained"
@@ -762,7 +980,7 @@ const DeviationApprovalManagement: React.FC = () => {
               <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>Sapma No</TableCell>
               <TableCell sx={{ minWidth: 180, whiteSpace: 'nowrap' }}>Parça Adı</TableCell>
               <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>Parça No</TableCell>
-              <TableCell sx={{ minWidth: 150, whiteSpace: 'nowrap' }}>Araç Modeli</TableCell>
+              <TableCell sx={{ minWidth: 200, whiteSpace: 'nowrap' }}>Araçlar</TableCell>
               <TableCell sx={{ minWidth: 160, whiteSpace: 'nowrap' }}>Sapma Tipi</TableCell>
               <TableCell sx={{ minWidth: 140, whiteSpace: 'nowrap' }}>Kalite Riski</TableCell>
               <TableCell sx={{ minWidth: 150, whiteSpace: 'nowrap' }}>Durum</TableCell>
@@ -773,7 +991,7 @@ const DeviationApprovalManagement: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {deviations.map((deviation) => (
+            {filteredDeviations.map((deviation) => (
               <TableRow key={deviation.id} hover>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>
                   <Typography variant="body2" fontWeight="bold">
@@ -786,7 +1004,37 @@ const DeviationApprovalManagement: React.FC = () => {
                   </Tooltip>
                 </TableCell>
                 <TableCell sx={{ whiteSpace: 'nowrap' }}>{deviation.partNumber}</TableCell>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>{deviation.vehicleModel}</TableCell>
+                <TableCell sx={{ maxWidth: 200, minWidth: 200 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    {deviation.vehicles && deviation.vehicles.length > 0 ? (
+                      deviation.vehicles.map((vehicle, index) => (
+                        <Box key={vehicle.id} sx={{ 
+                          fontSize: '0.75rem', 
+                          padding: '2px 8px', 
+                          backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                          borderRadius: 1,
+                          border: '1px solid rgba(25, 118, 210, 0.2)'
+                        }}>
+                          <Typography variant="caption" fontWeight="bold" display="block">
+                            {vehicle.model}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            SN: {vehicle.serialNumber}
+                          </Typography>
+                          {vehicle.chassisNumber && (
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              Şasi: {vehicle.chassisNumber}
+                            </Typography>
+                          )}
+                        </Box>
+                      ))
+                    ) : (
+                      <Typography variant="caption" color="text.disabled" fontStyle="italic">
+                        Araç bilgisi yok
+                      </Typography>
+                    )}
+                  </Box>
+                </TableCell>
                 <TableCell sx={{ minWidth: 160, whiteSpace: 'nowrap' }}>
                   <Chip 
                     label={DEVIATION_TYPES.find(t => t.value === deviation.deviationType)?.label}
@@ -911,12 +1159,29 @@ const DeviationApprovalManagement: React.FC = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {deviations.length === 0 && (
+            {filteredDeviations.length === 0 && (
               <TableRow>
                 <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
-                    Henüz sapma onayı kaydı bulunmuyor
+                    {deviations.length === 0 
+                      ? 'Henüz sapma onayı kaydı bulunmuyor' 
+                      : 'Filtreleme kriterlerine uygun kayıt bulunamadı'
+                    }
                   </Typography>
+                  {deviations.length > 0 && filteredDeviations.length === 0 && (
+                    <Button 
+                      variant="outlined" 
+                      size="small" 
+                      sx={{ mt: 1 }}
+                      onClick={() => {
+                        setSearchTerm('');
+                        setStatusFilter('all');
+                        setDepartmentFilter('all');
+                      }}
+                    >
+                      Filtreleri Temizle
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             )}
@@ -973,42 +1238,111 @@ const DeviationApprovalManagement: React.FC = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Araç Modeli</InputLabel>
-                <Select
-                  value={formData.vehicleModel || ''}
-                  label="Araç Modeli"
-                  onChange={(e) => setFormData(prev => ({ ...prev, vehicleModel: e.target.value }))}
-                  disabled={dialogMode === 'view'}
-                >
-                  {VEHICLE_TYPES.map((vehicle) => (
-                    <MenuItem key={vehicle.value} value={vehicle.value}>
-                      {vehicle.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            {/* Araç Bilgileri Bölümü */}
+            <Grid item xs={12}>
+              <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom sx={{ mt: 2 }}>
+                Araç Bilgileri
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Araç Seri Numarası"
-                value={formData.vehicleSerialNumber || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, vehicleSerialNumber: e.target.value }))}
-                disabled={dialogMode === 'view'}
-              />
-            </Grid>
+            {/* Araç Ekleme Formu */}
+            {dialogMode !== 'view' && (
+              <>
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Araç Modeli</InputLabel>
+                    <Select
+                      value={currentVehicle.model || ''}
+                      label="Araç Modeli"
+                      onChange={(e) => setCurrentVehicle(prev => ({ ...prev, model: e.target.value }))}
+                    >
+                      {VEHICLE_TYPES.map((vehicle) => (
+                        <MenuItem key={vehicle.value} value={vehicle.value}>
+                          {vehicle.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Şasi Numarası (Opsiyonel)"
-                value={formData.chassisNumber || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, chassisNumber: e.target.value }))}
-                disabled={dialogMode === 'view'}
-              />
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    fullWidth
+                    label="Araç Seri Numarası"
+                    value={currentVehicle.serialNumber || ''}
+                    onChange={(e) => setCurrentVehicle(prev => ({ ...prev, serialNumber: e.target.value }))}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    fullWidth
+                    label="Şasi Numarası (Opsiyonel)"
+                    value={currentVehicle.chassisNumber || ''}
+                    onChange={(e) => setCurrentVehicle(prev => ({ ...prev, chassisNumber: e.target.value }))}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={1}>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={addVehicle}
+                    sx={{ height: 56 }}
+                    disabled={!currentVehicle.model || !currentVehicle.serialNumber}
+                  >
+                    Ekle
+                  </Button>
+                </Grid>
+              </>
+            )}
+
+            {/* Eklenen Araçlar Listesi */}
+            <Grid item xs={12}>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Eklenen Araçlar ({formData.vehicles?.length || 0} adet)
+                </Typography>
+                {formData.vehicles && formData.vehicles.length > 0 ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {formData.vehicles.map((vehicle) => (
+                      <Box key={vehicle.id} sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 2, 
+                        p: 2, 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: 1,
+                        backgroundColor: '#f9f9f9'
+                      }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" fontWeight="bold">
+                            {vehicle.model}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            SN: {vehicle.serialNumber}
+                            {vehicle.chassisNumber && ` | Şasi: ${vehicle.chassisNumber}`}
+                          </Typography>
+                        </Box>
+                        {dialogMode !== 'view' && (
+                          <IconButton 
+                            size="small" 
+                            color="error" 
+                            onClick={() => removeVehicle(vehicle.id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Alert severity="warning" sx={{ mt: 1 }}>
+                    En az bir araç bilgisi eklemelisiniz
+                  </Alert>
+                )}
+              </Box>
             </Grid>
 
             <Grid item xs={12} sm={6}>
