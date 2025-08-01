@@ -203,6 +203,7 @@ const DeviationApprovalManagement: React.FC = () => {
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedDeviation, setSelectedDeviation] = useState<DeviationApproval | null>(null);
   const [formData, setFormData] = useState<Partial<DeviationApproval>>({
+    deviationNumber: '',
     partName: '',
     partNumber: '',
     vehicles: [],
@@ -250,6 +251,10 @@ const DeviationApprovalManagement: React.FC = () => {
   const [pdfViewDialog, setPdfViewDialog] = useState(false);
   const [selectedAttachments, setSelectedAttachments] = useState<DeviationAttachment[]>([]);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
+  
+  // Detaylı görüntüleme modalı
+  const [detailViewDialog, setDetailViewDialog] = useState(false);
+  const [selectedDeviationForDetail, setSelectedDeviationForDetail] = useState<DeviationApproval | null>(null);
 
   // Data Management
   const saveData = useCallback((data: DeviationApproval[]) => {
@@ -290,9 +295,9 @@ const DeviationApprovalManagement: React.FC = () => {
         deviation.partNumber.toLowerCase().includes(search) ||
         deviation.description.toLowerCase().includes(search) ||
         deviation.requestedBy.toLowerCase().includes(search) ||
-        deviation.vehicles.some(vehicle => 
-          vehicle.model.toLowerCase().includes(search) ||
-          vehicle.serialNumber.toLowerCase().includes(search) ||
+        deviation.vehicles?.some(vehicle => 
+          vehicle.model?.toLowerCase().includes(search) ||
+          vehicle.serialNumber?.toLowerCase().includes(search) ||
           vehicle.chassisNumber?.toLowerCase().includes(search)
         )
       );
@@ -415,6 +420,7 @@ const DeviationApprovalManagement: React.FC = () => {
   // Dialog Handlers
   const openCreateDialog = () => {
     setFormData({
+      deviationNumber: generateDeviationNumber(),
       partName: '',
       partNumber: '',
       vehicles: [],
@@ -457,6 +463,11 @@ const DeviationApprovalManagement: React.FC = () => {
     setOpenDialog(true);
   };
 
+  const openDetailViewDialog = (deviation: DeviationApproval) => {
+    setSelectedDeviationForDetail(deviation);
+    setDetailViewDialog(true);
+  };
+
   const closeDialog = () => {
     setOpenDialog(false);
     setSelectedDeviation(null);
@@ -489,7 +500,7 @@ const DeviationApprovalManagement: React.FC = () => {
       if (dialogMode === 'create') {
         const newDeviation: DeviationApproval = {
           id: Date.now().toString(),
-          deviationNumber: generateDeviationNumber(),
+          deviationNumber: formData.deviationNumber || generateDeviationNumber(),
           partName: formData.partName!,
           partNumber: formData.partNumber || '',
           vehicles: formData.vehicles!,
@@ -1116,8 +1127,8 @@ const DeviationApprovalManagement: React.FC = () => {
                     width: '100%',
                     maxWidth: 240
                   }}>
-                    <Tooltip title="Görüntüle">
-                      <IconButton size="small" onClick={() => openViewDialog(deviation)}>
+                    <Tooltip title="Detaylı Görüntüle">
+                      <IconButton size="small" onClick={() => openDetailViewDialog(deviation)}>
                         <ViewIcon />
                       </IconButton>
                     </Tooltip>
@@ -1221,6 +1232,17 @@ const DeviationApprovalManagement: React.FC = () => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
+                label="Sapma Numarası *"
+                value={formData.deviationNumber || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, deviationNumber: e.target.value }))}
+                disabled={dialogMode === 'view'}
+                helperText={dialogMode === 'create' ? 'Boş bırakılırsa otomatik oluşturulur' : ''}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
                 label="Parça Adı *"
                 value={formData.partName || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, partName: e.target.value }))}
@@ -1289,7 +1311,12 @@ const DeviationApprovalManagement: React.FC = () => {
                     variant="contained"
                     startIcon={<AddIcon />}
                     onClick={addVehicle}
-                    sx={{ height: 56 }}
+                    sx={{ 
+                      height: 56, 
+                      whiteSpace: 'nowrap',
+                      minWidth: 80,
+                      px: 2
+                    }}
                     disabled={!currentVehicle.model || !currentVehicle.serialNumber}
                   >
                     Ekle
@@ -1851,6 +1878,420 @@ const DeviationApprovalManagement: React.FC = () => {
               }}
             >
               İndir
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Detaylı Görüntüleme Modalı */}
+      <Dialog 
+        open={detailViewDialog} 
+        onClose={() => setDetailViewDialog(false)} 
+        maxWidth="xl" 
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 2, maxHeight: '95vh' }
+        }}
+      >
+        <DialogTitle sx={{ 
+          backgroundColor: 'primary.main', 
+          color: 'white',
+          fontWeight: 'bold',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Box>
+            <Typography variant="h6" fontWeight="bold">
+              Sapma Onayı Detayları
+            </Typography>
+            <Typography variant="subtitle2" sx={{ opacity: 0.9 }}>
+              {selectedDeviationForDetail?.deviationNumber} | {selectedDeviationForDetail?.partName}
+            </Typography>
+          </Box>
+          <Chip 
+            label={getStatusLabel(selectedDeviationForDetail?.status || '')}
+            size="small"
+            color={getStatusColor(selectedDeviationForDetail?.status || '') as any}
+            sx={{ color: 'white', fontWeight: 'bold' }}
+          />
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {selectedDeviationForDetail && (
+            <Box sx={{ height: '70vh', overflow: 'auto' }}>
+              {/* Header Info Cards */}
+              <Box sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={3}>
+                    <Card variant="outlined" sx={{ height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6" color="primary" fontWeight="bold">
+                          {selectedDeviationForDetail.deviationNumber}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Sapma Numarası
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Card variant="outlined" sx={{ height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6" color="secondary">
+                          {QUALITY_RISKS.find(r => r.value === selectedDeviationForDetail.qualityRisk)?.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Kalite Riski
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Card variant="outlined" sx={{ height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6" color="info.main">
+                          {selectedDeviationForDetail.vehicles?.length || 0}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Araç Sayısı
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Card variant="outlined" sx={{ height: '100%' }}>
+                      <CardContent sx={{ textAlign: 'center' }}>
+                        <Typography variant="h6" color="warning.main">
+                          {selectedDeviationForDetail.attachments?.length || 0}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Ek Dosya
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              <Box sx={{ p: 3 }}>
+                <Grid container spacing={4}>
+                  {/* Temel Bilgiler */}
+                  <Grid item xs={12} lg={6}>
+                    <Card variant="outlined" sx={{ height: 'fit-content' }}>
+                      <CardContent>
+                        <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
+                          Temel Bilgiler
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Parça Adı:</Typography>
+                            <Typography variant="body1" fontWeight="bold">{selectedDeviationForDetail.partName}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Parça Numarası:</Typography>
+                            <Typography variant="body1">{selectedDeviationForDetail.partNumber || 'Belirtilmemiş'}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Sapma Tipi:</Typography>
+                            <Chip 
+                              label={DEVIATION_TYPES.find(t => t.value === selectedDeviationForDetail.deviationType)?.label}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Açıklama:</Typography>
+                            <Typography variant="body1">{selectedDeviationForDetail.description}</Typography>
+                          </Box>
+                          {selectedDeviationForDetail.reasonForDeviation && (
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Sapma Sebebi:</Typography>
+                              <Typography variant="body1">{selectedDeviationForDetail.reasonForDeviation}</Typography>
+                            </Box>
+                          )}
+                          {selectedDeviationForDetail.proposedSolution && (
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">Önerilen Çözüm:</Typography>
+                              <Typography variant="body1">{selectedDeviationForDetail.proposedSolution}</Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* Araç Bilgileri */}
+                  <Grid item xs={12} lg={6}>
+                    <Card variant="outlined" sx={{ height: 'fit-content' }}>
+                      <CardContent>
+                        <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
+                          Araç Bilgileri ({selectedDeviationForDetail.vehicles?.length || 0} adet)
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                          {selectedDeviationForDetail.vehicles && selectedDeviationForDetail.vehicles.length > 0 ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              {selectedDeviationForDetail.vehicles.map((vehicle, index) => (
+                                <Paper key={vehicle.id} variant="outlined" sx={{ p: 2 }}>
+                                  <Typography variant="subtitle2" fontWeight="bold" color="primary">
+                                    Araç #{index + 1}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    <strong>Model:</strong> {vehicle.model}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    <strong>Seri No:</strong> {vehicle.serialNumber}
+                                  </Typography>
+                                  {vehicle.chassisNumber && (
+                                    <Typography variant="body2">
+                                      <strong>Şasi No:</strong> {vehicle.chassisNumber}
+                                    </Typography>
+                                  )}
+                                </Paper>
+                              ))}
+                            </Box>
+                          ) : (
+                            <Alert severity="info">Araç bilgisi bulunmuyor</Alert>
+                          )}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* Talep Bilgileri */}
+                  <Grid item xs={12} lg={6}>
+                    <Card variant="outlined" sx={{ height: 'fit-content' }}>
+                      <CardContent>
+                        <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
+                          Talep Bilgileri
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Talep Tarihi:</Typography>
+                            <Typography variant="body1">{new Date(selectedDeviationForDetail.requestDate).toLocaleDateString('tr-TR')}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Talep Eden:</Typography>
+                            <Typography variant="body1" fontWeight="bold">{selectedDeviationForDetail.requestedBy}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Departman:</Typography>
+                            <Typography variant="body1">{selectedDeviationForDetail.department || 'Belirtilmemiş'}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Oluşturulma:</Typography>
+                            <Typography variant="body1">{new Date(selectedDeviationForDetail.createdAt).toLocaleString('tr-TR')}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Son Güncelleme:</Typography>
+                            <Typography variant="body1">{new Date(selectedDeviationForDetail.updatedAt).toLocaleString('tr-TR')}</Typography>
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* Onay Süreci İzlenebilirliği */}
+                  <Grid item xs={12} lg={6}>
+                    <Card variant="outlined" sx={{ height: 'fit-content' }}>
+                      <CardContent>
+                        <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
+                          Onay Süreci İzlenebilirliği
+                        </Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {/* Ar-Ge Onayı */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            {selectedDeviationForDetail.rdApproval.approved ? (
+                              <CheckCircleIcon color="success" />
+                            ) : (
+                              <PendingIcon color="warning" />
+                            )}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" fontWeight="bold">Ar-Ge Onayı</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {selectedDeviationForDetail.rdApproval.approved 
+                                  ? `Onaylandı: ${selectedDeviationForDetail.rdApproval.approver}`
+                                  : 'Beklemede'
+                                }
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {/* Kalite Onayı */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            {selectedDeviationForDetail.qualityApproval.approved ? (
+                              <CheckCircleIcon color="success" />
+                            ) : (
+                              <PendingIcon color="warning" />
+                            )}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" fontWeight="bold">Kalite Onayı</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {selectedDeviationForDetail.qualityApproval.approved 
+                                  ? `Onaylandı: ${selectedDeviationForDetail.qualityApproval.approver}`
+                                  : 'Beklemede'
+                                }
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {/* Üretim Onayı */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            {selectedDeviationForDetail.productionApproval.approved ? (
+                              <CheckCircleIcon color="success" />
+                            ) : (
+                              <PendingIcon color="warning" />
+                            )}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" fontWeight="bold">Üretim Onayı</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {selectedDeviationForDetail.productionApproval.approved 
+                                  ? `Onaylandı: ${selectedDeviationForDetail.productionApproval.approver}`
+                                  : 'Beklemede'
+                                }
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {/* Genel Müdür Onayı */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            {selectedDeviationForDetail.generalManagerApproval.approved ? (
+                              <CheckCircleIcon color="success" />
+                            ) : (
+                              <PendingIcon color="warning" />
+                            )}
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="body2" fontWeight="bold">Genel Müdür Onayı</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {selectedDeviationForDetail.generalManagerApproval.approved 
+                                  ? `Onaylandı: ${selectedDeviationForDetail.generalManagerApproval.approver}`
+                                  : 'Beklemede'
+                                }
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {/* Reddetme Sebebi */}
+                          {selectedDeviationForDetail.status === 'rejected' && selectedDeviationForDetail.rejectionReason && (
+                            <Alert severity="error" sx={{ mt: 2 }}>
+                              <Typography variant="subtitle2" fontWeight="bold">Reddetme Sebebi:</Typography>
+                              <Typography variant="body2">{selectedDeviationForDetail.rejectionReason}</Typography>
+                            </Alert>
+                          )}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* Ek Dosyalar */}
+                  {selectedDeviationForDetail.attachments && selectedDeviationForDetail.attachments.length > 0 && (
+                    <Grid item xs={12}>
+                      <Card variant="outlined">
+                        <CardContent>
+                          <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
+                            Ek Dosyalar ({selectedDeviationForDetail.attachments.length} adet)
+                          </Typography>
+                          <Divider sx={{ mb: 2 }} />
+                          <Grid container spacing={2}>
+                            {selectedDeviationForDetail.attachments.map((attachment) => (
+                              <Grid item xs={12} sm={6} md={4} key={attachment.id}>
+                                <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                                  <DescriptionIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
+                                  <Typography variant="body2" fontWeight="bold" gutterBottom>
+                                    {attachment.fileName}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                                    {(attachment.fileSize / 1024).toFixed(1)} KB
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                    <Button 
+                                      size="small" 
+                                      variant="outlined" 
+                                      startIcon={<ViewIcon />}
+                                      onClick={() => handleViewSingleAttachment(attachment)}
+                                    >
+                                      Görüntüle
+                                    </Button>
+                                    <Button 
+                                      size="small" 
+                                      variant="outlined" 
+                                      startIcon={<DownloadIcon />}
+                                      onClick={() => handleDownloadAttachment(attachment)}
+                                    >
+                                      İndir
+                                    </Button>
+                                  </Box>
+                                </Paper>
+                              </Grid>
+                            ))}
+                          </Grid>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  )}
+
+                  {/* Kullanım Takibi */}
+                  {selectedDeviationForDetail.usageTracking && selectedDeviationForDetail.usageTracking.length > 0 && (
+                    <Grid item xs={12}>
+                      <Card variant="outlined">
+                        <CardContent>
+                          <Typography variant="h6" fontWeight="bold" color="primary" gutterBottom>
+                            Kullanım Takibi ({selectedDeviationForDetail.usageTracking.length} kayıt)
+                          </Typography>
+                          <Divider sx={{ mb: 2 }} />
+                          <TableContainer>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Araç Seri No</TableCell>
+                                  <TableCell>Model</TableCell>
+                                  <TableCell>Müşteri</TableCell>
+                                  <TableCell>Kullanım Tarihi</TableCell>
+                                  <TableCell>Lokasyon</TableCell>
+                                  <TableCell>Notlar</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {selectedDeviationForDetail.usageTracking.map((usage) => (
+                                  <TableRow key={usage.id}>
+                                    <TableCell>{usage.vehicleSerialNumber}</TableCell>
+                                    <TableCell>{usage.vehicleModel}</TableCell>
+                                    <TableCell>{usage.customerName}</TableCell>
+                                    <TableCell>{new Date(usage.usageDate).toLocaleDateString('tr-TR')}</TableCell>
+                                    <TableCell>{usage.location}</TableCell>
+                                    <TableCell>{usage.notes}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  )}
+                </Grid>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
+          <Button onClick={() => setDetailViewDialog(false)} variant="outlined">
+            Kapat
+          </Button>
+          {selectedDeviationForDetail && (
+            <Button 
+              onClick={() => {
+                setDetailViewDialog(false);
+                openEditDialog(selectedDeviationForDetail);
+              }} 
+              variant="contained"
+              startIcon={<EditIcon />}
+              disabled={selectedDeviationForDetail.status === 'final-approved' || selectedDeviationForDetail.status === 'rejected'}
+            >
+              Düzenle
             </Button>
           )}
         </DialogActions>
