@@ -256,19 +256,40 @@ const DeviationApprovalManagement: React.FC = () => {
   const [detailViewDialog, setDetailViewDialog] = useState(false);
   const [selectedDeviationForDetail, setSelectedDeviationForDetail] = useState<DeviationApproval | null>(null);
 
-  // Data Management
+  // Data Management with safe storage handling
   const saveData = useCallback((data: DeviationApproval[]) => {
     try {
       console.log('💾 SaveData çağrıldı, kayıt sayısı:', data.length);
-      console.log('📝 Kaydedilecek veriler:', data.map(d => ({ id: d.id, deviationNumber: d.deviationNumber, partName: d.partName })));
       
-      localStorage.setItem('deviationApprovalData', JSON.stringify(data));
+      // Veri sıkıştırma ile boyutu azalt
+      const compressedData = data.map(item => ({
+        ...item,
+        // Gereksiz boşlukları temizle
+        description: item.description?.trim(),
+        reasonForDeviation: item.reasonForDeviation?.trim(),
+        proposedSolution: item.proposedSolution?.trim()
+      }));
+      
+      const dataString = JSON.stringify(compressedData);
+      const dataSizeKB = new Blob([dataString]).size / 1024;
+      console.log('📊 Veri boyutu:', dataSizeKB.toFixed(2), 'KB');
+      
+      localStorage.setItem('deviationApprovalData', dataString);
       setDeviations(data);
-      
       console.log('✅ Veriler başarıyla localStorage\'a kaydedildi');
+      
     } catch (error) {
       console.error('❌ Veri kaydetme hatası:', error);
-      alert('Veri kaydetme hatası oluştu: ' + error.message);
+      
+      if (error.message.includes('quota') || error.message.includes('Storage')) {
+        // Veri silmek yerine kullanıcıyı bilgilendir
+        alert(`⚠️ Tarayıcı depolama alanı doldu!\n\nÇözüm önerileri:\n• Tarayıcı ayarlarından cache temizleyin\n• Diğger sekmelerdeki verileri kapatın\n• Verilerinizi export edip import yapabilirsiniz\n\nVerileriniz korundu ve işlem iptal edildi.`);
+        
+        // State'i eski haliyle koru, localStorage'a dokunma
+        console.log('💾 Veriler localStorage\'a kaydedilemedi ama state korundu');
+      } else {
+        alert('Veri kaydetme hatası oluştu: ' + error.message);
+      }
     }
   }, []);
 
@@ -277,16 +298,95 @@ const DeviationApprovalManagement: React.FC = () => {
       const savedData = localStorage.getItem('deviationApprovalData');
       if (savedData) {
         const parsedData = JSON.parse(savedData);
+        console.log('📥 Veri yüklendi, kayıt sayısı:', parsedData.length);
         setDeviations(parsedData);
+      } else {
+        console.log('📝 LocalStorage\'da veri bulunamadı, boş liste başlatılıyor');
+        setDeviations([]);
       }
     } catch (error) {
-      console.error('Veri yükleme hatası:', error);
+      console.error('❌ Veri yükleme hatası:', error);
+      
+      // Sadece corrupt veri durumunda yeniden başlat
+      if (error.message.includes('JSON') || error.message.includes('parse')) {
+        console.warn('⚠️ Veri formatı bozuk, yeni liste başlatılıyor');
+        setDeviations([]);
+        alert('Veri formatı bozulmuş. Yeni bir liste başlatıldı. Eski verileriniz varsa import edebilirsiniz.');
+      }
     }
   }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Professional data management functions
+  const exportData = useCallback(() => {
+    try {
+      const dataToExport = {
+        exportDate: new Date().toISOString(),
+        version: '1.0',
+        data: deviations,
+        totalRecords: deviations.length
+      };
+      
+      const dataStr = JSON.stringify(dataToExport, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `sapma-onay-verileri-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log(`✅ ${deviations.length} kayıt export edildi`);
+    } catch (error) {
+      console.error('Export hatası:', error);
+      alert('Veri export edilirken hata oluştu.');
+    }
+  }, [deviations]);
+
+  const importData = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const importedData = JSON.parse(content);
+        
+        // Veri formatını kontrol et
+        if (importedData.data && Array.isArray(importedData.data)) {
+          const newData = importedData.data;
+          
+          // Mevcut verilerle birleştir (duplicate check)
+          const existingIds = new Set(deviations.map(d => d.id));
+          const uniqueNewData = newData.filter((item: any) => !existingIds.has(item.id));
+          
+          if (uniqueNewData.length > 0) {
+            const combinedData = [...deviations, ...uniqueNewData];
+            saveData(combinedData);
+            alert(`✅ ${uniqueNewData.length} yeni kayıt import edildi.\nToplam: ${combinedData.length} kayıt`);
+          } else {
+            alert('Import edilen dosyada yeni kayıt bulunamadı.');
+          }
+        } else {
+          alert('Geçersiz dosya formatı. Lütfen doğru JSON dosyasını seçin.');
+        }
+      } catch (error) {
+        console.error('Import hatası:', error);
+        alert('Dosya okuma hatası. Lütfen geçerli bir JSON dosyası seçin.');
+      }
+    };
+    
+    reader.readAsText(file);
+    // Input'u temizle
+    event.target.value = '';
+  }, [deviations, saveData]);
 
   // Filtreleme sistemi
   useEffect(() => {
@@ -1055,18 +1155,48 @@ const DeviationApprovalManagement: React.FC = () => {
       </Paper>
 
       {/* Action Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h6" fontWeight="bold">
           Sapma Onayları ({stats.total} gösteriliyor / {stats.totalInSystem} toplam)
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={openCreateDialog}
-          sx={{ borderRadius: 2 }}
-        >
-          Yeni Sapma Onayı
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {/* Export Button */}
+          <Button
+            variant="outlined"
+            startIcon={<GetAppIcon />}
+            onClick={exportData}
+            sx={{ borderRadius: 2 }}
+            disabled={deviations.length === 0}
+          >
+            Export
+          </Button>
+          
+          {/* Import Button */}
+          <Button
+            variant="outlined"
+            startIcon={<CloudUploadIcon />}
+            component="label"
+            sx={{ borderRadius: 2 }}
+          >
+            Import
+            <input
+              type="file"
+              hidden
+              accept=".json"
+              onChange={importData}
+            />
+          </Button>
+          
+          {/* Add New Button */}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={openCreateDialog}
+            sx={{ borderRadius: 2 }}
+          >
+            Yeni Sapma Onayı
+          </Button>
+        </Box>
       </Box>
 
       {/* Deviations Table */}
