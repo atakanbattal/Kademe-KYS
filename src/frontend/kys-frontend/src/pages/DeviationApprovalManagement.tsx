@@ -262,15 +262,44 @@ const DeviationApprovalManagement: React.FC = () => {
       console.log('💾 saveData çağrıldı, kayıt sayısı:', data.length);
       console.log('📝 Kaydedilecek veriler:', data);
       
-      localStorage.setItem('deviationApprovalData', JSON.stringify(data));
+      // Önce storage boyutunu kontrol et
+      const dataToSave = JSON.stringify(data);
+      const estimatedSize = dataToSave.length * 2; // Tahmini boyut
+      
+      console.log('💾 Storage boyutu:', {
+        kayitSayisi: data.length,
+        tahminiBoyu: `${(estimatedSize / (1024 * 1024)).toFixed(2)}MB`
+      });
+      
+      localStorage.setItem('deviationApprovalData', dataToSave);
       console.log('✅ localStorage\'a başarıyla kaydedildi');
       
       setDeviations(data);
       console.log('✅ State başarıyla güncellendi');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Veri kaydetme hatası:', error);
-      alert('Veri kaydetme hatası: ' + error.message);
+      
+      // Quota aşımı hatasını özel olarak kontrol et
+      if (error.name === 'QuotaExceededError' || error.message?.includes('quota')) {
+        const storageInfo = `Mevcut storage kullanımı: ${(JSON.stringify(localStorage).length * 2 / (1024 * 1024)).toFixed(2)}MB`;
+        
+        alert(
+          '❌ STORAGE QUOTA AŞILDI!\n\n' +
+          'LocalStorage sınırı aşıldı.\n\n' +
+          storageInfo + '\n\n' +
+          'Çözüm önerileri:\n' +
+          '1. Eski sapma kayıtlarını silin\n' +
+          '2. Büyük PDF dosyalarını kaldırın\n' +
+          '3. Sayfa yenileyip tekrar deneyin\n' +
+          '4. Daha küçük dosyalar kullanın'
+        );
+      } else {
+        alert('Veri kaydetme hatası: ' + (error.message || 'Bilinmeyen hata'));
+      }
+      
+      // Hata durumunda eski state'i koru
+      console.warn('⚠️ Kaydetme başarısız, eski state korunuyor');
     }
   }, []);
 
@@ -625,7 +654,36 @@ const DeviationApprovalManagement: React.FC = () => {
     }
   };
 
-  // Dosya yükleme fonksiyonu - Promise yapısına çevrildi
+  // Resim dosyalarını compress etme fonksiyonu
+  const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Boyut hesaplama - aspect ratio korunur
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Resmi canvas'a çiz ve compress et
+        ctx?.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL(file.type, quality);
+        resolve(compressedBase64);
+      };
+      
+      img.onerror = () => reject(new Error('Resim yükleme hatası'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  // Dosya yükleme fonksiyonu - Promise yapısına çevrildi ve optimize edildi
   const uploadFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -651,9 +709,54 @@ const DeviationApprovalManagement: React.FC = () => {
         return;
       }
 
+      // Dosya boyutu kontrolü - 3MB sınırı
+      const maxFileSize = 3 * 1024 * 1024; // 3MB
+      if (file.size > maxFileSize) {
+        alert(`Dosya boyutu çok büyük! Maksimum ${Math.round(maxFileSize / (1024 * 1024))}MB boyutunda dosya yükleyebilirsiniz.\n\nMevcut dosya: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+        return;
+      }
+
       try {
-        // Dosyayı base64'e çevir
-        const base64Data = await uploadFileToBase64(file);
+        let base64Data: string;
+
+        // Resim dosyaları için compression
+        if (file.type.includes('image')) {
+          console.log('🖼️ Resim dosyası compress ediliyor...');
+          base64Data = await compressImage(file);
+          console.log('✅ Resim compress edildi. Orijinal:', file.size, 'Compressed Base64 length:', base64Data.length);
+        } else {
+          // PDF dosyalar için normal upload (ama boyut sınırı var)
+          console.log('📄 PDF dosyası yükleniyor...');
+          base64Data = await uploadFileToBase64(file);
+          console.log('✅ PDF yüklendi. Base64 length:', base64Data.length);
+        }
+
+        // LocalStorage quota kontrolü - Base64 verilerinin boyutunu kontrol et
+        const estimatedSize = base64Data.length * 2; // Tahmini boyut (characters * 2 bytes)
+        const currentStorageSize = JSON.stringify(localStorage).length * 2;
+        const totalEstimatedSize = currentStorageSize + estimatedSize;
+        
+        console.log('💾 Storage analizi:', {
+          currentSize: `${(currentStorageSize / (1024 * 1024)).toFixed(2)}MB`,
+          newFileSize: `${(estimatedSize / (1024 * 1024)).toFixed(2)}MB`,
+          totalEstimated: `${(totalEstimatedSize / (1024 * 1024)).toFixed(2)}MB`
+        });
+
+        // Eğer 8MB'ı geçecekse uyarı ver
+        if (totalEstimatedSize > 8 * 1024 * 1024) {
+          const shouldProceed = window.confirm(
+            `⚠️ UYARI: Bu dosya localStorage sınırını aşabilir!\n\n` +
+            `Mevcut kullanım: ${(currentStorageSize / (1024 * 1024)).toFixed(2)}MB\n` +
+            `Yeni dosya: ${(estimatedSize / (1024 * 1024)).toFixed(2)}MB\n` +
+            `Toplam: ${(totalEstimatedSize / (1024 * 1024)).toFixed(2)}MB\n\n` +
+            `Devam etmek istediğinize emin misiniz?\n\n` +
+            `İpucu: Daha küçük dosya yükleyin veya eski kayıtları silin.`
+          );
+          
+          if (!shouldProceed) {
+            return;
+          }
+        }
         
         const newAttachment: DeviationAttachment = {
           id: Date.now().toString(),
@@ -670,10 +773,25 @@ const DeviationApprovalManagement: React.FC = () => {
           attachments: [...(prev.attachments || []), newAttachment]
         }));
 
-        console.log('✅ Dosya başarıyla yüklendi:', file.name, 'Base64 length:', base64Data.length);
-      } catch (error) {
+        console.log('✅ Dosya başarıyla yüklendi:', file.name);
+        alert(`✅ Dosya başarıyla yüklendi!\n\n📁 ${file.name}\n📊 ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+        
+      } catch (error: any) {
         console.error('❌ Dosya yükleme hatası:', error);
-        alert('Dosya yükleme sırasında bir hata oluştu.');
+        
+        // Quota aşımı hatasını özel olarak kontrol et
+        if (error.message?.includes('quota') || error.name === 'QuotaExceededError') {
+          alert(
+            '❌ STORAGE QUOTA AŞILDI!\n\n' +
+            'LocalStorage sınırı aşıldı. Çözüm önerileri:\n\n' +
+            '1. Daha küçük dosya yükleyin (maksimum 3MB)\n' +
+            '2. Eski sapma kayıtlarını silin\n' +
+            '3. PDF yerine compress edilmiş resim kullanın\n' +
+            '4. Sayfa yenileyip tekrar deneyin'
+          );
+        } else {
+          alert('Dosya yükleme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+        }
       }
     }
     
