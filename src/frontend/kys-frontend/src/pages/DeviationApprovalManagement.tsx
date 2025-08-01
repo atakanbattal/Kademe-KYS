@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import deviationApprovalService, { 
+  DeviationApproval, 
+  VehicleInfo, 
+  GetDeviationApprovalsParams 
+} from '../services/deviationApprovalService';
 import {
   Typography,
   Box,
@@ -28,7 +33,8 @@ import {
   Alert,
   Tooltip,
   Badge,
-  Container
+  Container,
+  CircularProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -52,60 +58,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 
-// Interfaces
-interface VehicleInfo {
-  id: string;
-  model: string;
-  serialNumber: string;
-  chassisNumber?: string;
-}
-
-interface DeviationApproval {
-  id: string;
-  deviationNumber: string;
-  partName: string;
-  partNumber: string;
-  vehicles: VehicleInfo[]; // Birden fazla araç desteki
-  deviationType: 'input-control' | 'process-control' | 'final-control';
-  description: string;
-  reasonForDeviation: string;
-  proposedSolution: string;
-  qualityRisk: 'low' | 'medium' | 'high' | 'critical';
-  requestDate: string;
-  requestedBy: string;
-  department: string;
-  rdApproval: {
-    approved: boolean;
-    approver: string;
-    approvalDate?: string;
-    comments?: string;
-  };
-  qualityApproval: {
-    approved: boolean;
-    approver: string;
-    approvalDate?: string;
-    comments?: string;
-  };
-  productionApproval: {
-    approved: boolean;
-    approver: string;
-    approvalDate?: string;
-    comments?: string;
-  };
-  generalManagerApproval: {
-    approved: boolean;
-    approver: string;
-    approvalDate?: string;
-    comments?: string;
-  };
-  status: 'pending' | 'rd-approved' | 'quality-approved' | 'production-approved' | 'final-approved' | 'rejected';
-  rejectionReason?: string; // Reddetme sebebi
-  attachments: DeviationAttachment[];
-  usageTracking: UsageTracking[];
-  createdAt: string;
-  updatedAt: string;
-}
-
+// Local interfaces for additional features not in API service
 interface DeviationAttachment {
   id: string;
   fileName: string;
@@ -193,9 +146,11 @@ const VEHICLE_TYPES = [
 const DeviationApprovalManagement: React.FC = () => {
   const { appearanceSettings } = useThemeContext();
 
-  // State Management
+  // State Management with API integration
   const [deviations, setDeviations] = useState<DeviationApproval[]>([]);
   const [filteredDeviations, setFilteredDeviations] = useState<DeviationApproval[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
@@ -256,83 +211,96 @@ const DeviationApprovalManagement: React.FC = () => {
   const [detailViewDialog, setDetailViewDialog] = useState(false);
   const [selectedDeviationForDetail, setSelectedDeviationForDetail] = useState<DeviationApproval | null>(null);
 
-  // Data Management with safe storage handling
-  const saveData = useCallback((data: DeviationApproval[]) => {
+  // Data Management with API integration
+  const loadData = useCallback(async (params: GetDeviationApprovalsParams = {}) => {
     try {
-      console.log('💾 SaveData çağrıldı, kayıt sayısı:', data.length);
+      setLoading(true);
+      setError(null);
+      console.log('📥 API\'den veri yükleniyor...');
       
-      // Veri sıkıştırma ile boyutu azalt
-      const compressedData = data.map(item => ({
-        ...item,
-        // Gereksiz boşlukları temizle
-        description: item.description?.trim(),
-        reasonForDeviation: item.reasonForDeviation?.trim(),
-        proposedSolution: item.proposedSolution?.trim()
-      }));
-      
-      const dataString = JSON.stringify(compressedData);
-      const dataSizeKB = new Blob([dataString]).size / 1024;
-      console.log('📊 Veri boyutu:', dataSizeKB.toFixed(2), 'KB');
-      
-      localStorage.setItem('deviationApprovalData', dataString);
-      setDeviations(data);
-      console.log('✅ Veriler başarıyla localStorage\'a kaydedildi');
-      
-    } catch (error) {
-      console.error('❌ Veri kaydetme hatası:', error);
-      
-      if (error.message.includes('quota') || error.message.includes('Storage')) {
-        // Veri silmek yerine kullanıcıyı bilgilendir
-        alert(`⚠️ Tarayıcı depolama alanı doldu!\n\nÇözüm önerileri:\n• Tarayıcı ayarlarından cache temizleyin\n• Diğger sekmelerdeki verileri kapatın\n• Verilerinizi export edip import yapabilirsiniz\n\nVerileriniz korundu ve işlem iptal edildi.`);
-        
-        // State'i eski haliyle koru, localStorage'a dokunma
-        console.log('💾 Veriler localStorage\'a kaydedilemedi ama state korundu');
+      const response = await deviationApprovalService.getAll(params);
+      if (response.success) {
+        const data = Array.isArray(response.data) ? response.data : [response.data];
+        setDeviations(data);
+        console.log('✅ Veriler API\'den başarıyla yüklendi, kayıt sayısı:', data.length);
       } else {
-        alert('Veri kaydetme hatası oluştu: ' + error.message);
+        throw new Error('API yanıtı başarısız');
       }
+    } catch (error: any) {
+      console.error('❌ Veri yükleme hatası:', error);
+      setError(error.message || 'Veriler yüklenirken hata oluştu');
+      alert('Veriler API\'den yüklenirken hata oluştu: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const loadData = useCallback(() => {
+  const saveDeviation = useCallback(async (deviationData: Partial<DeviationApproval>, isUpdate = false) => {
     try {
-      const savedData = localStorage.getItem('deviationApprovalData');
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        console.log('📥 Veri yüklendi, kayıt sayısı:', parsedData.length);
-        setDeviations(parsedData);
-      } else {
-        console.log('📝 LocalStorage\'da veri bulunamadı, boş liste başlatılıyor');
-        setDeviations([]);
-      }
-    } catch (error) {
-      console.error('❌ Veri yükleme hatası:', error);
+      setLoading(true);
+      setError(null);
       
-      // Sadece corrupt veri durumunda yeniden başlat
-      if (error.message.includes('JSON') || error.message.includes('parse')) {
-        console.warn('⚠️ Veri formatı bozuk, yeni liste başlatılıyor');
-        setDeviations([]);
-        alert('Veri formatı bozulmuş. Yeni bir liste başlatıldı. Eski verileriniz varsa import edebilirsiniz.');
+      let response;
+      if (isUpdate && deviationData.id) {
+        console.log('📝 Sapma onayı güncelleniyor:', deviationData.id);
+        response = await deviationApprovalService.update(deviationData.id, deviationData);
+      } else {
+        console.log('💾 Yeni sapma onayı oluşturuluyor');
+        response = await deviationApprovalService.create(deviationData);
       }
+      
+      if (response.success) {
+        console.log('✅ Sapma onayı başarıyla kaydedildi');
+        await loadData(); // Refresh data
+        return response.data;
+      } else {
+        throw new Error('API yanıtı başarısız');
+      }
+    } catch (error: any) {
+      console.error('❌ Sapma onayı kaydetme hatası:', error);
+      setError(error.message || 'Sapma onayı kaydedilirken hata oluştu');
+      alert('Sapma onayı kaydedilirken hata oluştu: ' + error.message);
+      throw error;
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [loadData]);
+
+  const deleteDeviation = useCallback(async (id: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🗑️ Sapma onayı siliniyor:', id);
+      const response = await deviationApprovalService.delete(id);
+      
+      if (response.success) {
+        console.log('✅ Sapma onayı başarıyla silindi');
+        await loadData(); // Refresh data
+      } else {
+        throw new Error('API yanıtı başarısız');
+      }
+    } catch (error: any) {
+      console.error('❌ Sapma onayı silme hatası:', error);
+      setError(error.message || 'Sapma onayı silinirken hata oluştu');
+      alert('Sapma onayı silinirken hata oluştu: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadData]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Professional data management functions
-  const exportData = useCallback(() => {
+  // Professional data management functions with API integration
+  const exportData = useCallback(async () => {
     try {
-      const dataToExport = {
-        exportDate: new Date().toISOString(),
-        version: '1.0',
-        data: deviations,
-        totalRecords: deviations.length
-      };
+      setLoading(true);
+      console.log('📤 Veri export ediliyor...');
       
-      const dataStr = JSON.stringify(dataToExport, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
+      const blob = await deviationApprovalService.exportData();
+      const url = URL.createObjectURL(blob);
       
       const link = document.createElement('a');
       link.href = url;
@@ -343,50 +311,54 @@ const DeviationApprovalManagement: React.FC = () => {
       URL.revokeObjectURL(url);
       
       console.log(`✅ ${deviations.length} kayıt export edildi`);
-    } catch (error) {
+      alert(`✅ ${deviations.length} kayıt başarıyla export edildi.`);
+    } catch (error: any) {
       console.error('Export hatası:', error);
-      alert('Veri export edilirken hata oluştu.');
+      alert('Veri export edilirken hata oluştu: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-  }, [deviations]);
+  }, [deviations.length]);
 
-  const importData = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const importData = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        setLoading(true);
         const content = e.target?.result as string;
         const importedData = JSON.parse(content);
         
         // Veri formatını kontrol et
         if (importedData.data && Array.isArray(importedData.data)) {
-          const newData = importedData.data;
+          console.log('📥 Veri import ediliyor...');
           
-          // Mevcut verilerle birleştir (duplicate check)
-          const existingIds = new Set(deviations.map(d => d.id));
-          const uniqueNewData = newData.filter((item: any) => !existingIds.has(item.id));
+          const results = await deviationApprovalService.importData(importedData.data);
           
-          if (uniqueNewData.length > 0) {
-            const combinedData = [...deviations, ...uniqueNewData];
-            saveData(combinedData);
-            alert(`✅ ${uniqueNewData.length} yeni kayıt import edildi.\nToplam: ${combinedData.length} kayıt`);
+          // Sonuçları göster
+          if (results.success > 0) {
+            await loadData(); // Refresh data
+            alert(`✅ Import tamamlandı!\n\n• Başarılı: ${results.success} kayıt\n• Başarısız: ${results.failed} kayıt${results.errors.length > 0 ? `\n\nHatalar:\n${results.errors.slice(0, 5).join('\n')}${results.errors.length > 5 ? '\n...' : ''}` : ''}`);
           } else {
-            alert('Import edilen dosyada yeni kayıt bulunamadı.');
+            alert('❌ Hiçbir kayıt import edilemedi.\n\n' + results.errors.slice(0, 3).join('\n'));
           }
         } else {
           alert('Geçersiz dosya formatı. Lütfen doğru JSON dosyasını seçin.');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Import hatası:', error);
-        alert('Dosya okuma hatası. Lütfen geçerli bir JSON dosyası seçin.');
+        alert('Dosya okuma hatası: ' + error.message);
+      } finally {
+        setLoading(false);
       }
     };
     
     reader.readAsText(file);
     // Input'u temizle
     event.target.value = '';
-  }, [deviations, saveData]);
+  }, [loadData]);
 
   // Filtreleme sistemi
   useEffect(() => {
@@ -647,7 +619,7 @@ const DeviationApprovalManagement: React.FC = () => {
     });
   };
 
-  // CRUD Operations
+  // CRUD Operations with API integration
   const handleSubmit = async () => {
     console.log('🚀 HandleSubmit başladı, dialogMode:', dialogMode);
     console.log('📋 FormData durumu:', {
@@ -681,65 +653,51 @@ const DeviationApprovalManagement: React.FC = () => {
 
     console.log('✅ Tüm validasyonlar başarılı');
 
-    const now = new Date().toISOString();
-
     try {
+      const deviationData: Partial<DeviationApproval> = {
+        partName: formData.partName,
+        partNumber: formData.partNumber || '',
+        vehicles: formData.vehicles as VehicleInfo[],
+        deviationType: formData.deviationType as any,
+        description: formData.description,
+        reasonForDeviation: formData.reasonForDeviation || '',
+        proposedSolution: formData.proposedSolution || '',
+        qualityRisk: formData.qualityRisk as any,
+        requestDate: formData.requestDate || new Date().toISOString().split('T')[0],
+        requestedBy: formData.requestedBy,
+        department: formData.department || '',
+        attachments: formData.attachments as any[] || []
+      };
+
       if (dialogMode === 'create') {
-        // ✅ Sapma numarası belirleme
-        const finalDeviationNumber = formData.deviationNumber?.trim() || generateDeviationNumber();
-        
-        const newDeviation: DeviationApproval = {
-          id: generateUniqueId(), // ✅ Güvenli ID üretimi
-          deviationNumber: finalDeviationNumber,
-          partName: formData.partName!,
-          partNumber: formData.partNumber || '',
-          vehicles: formData.vehicles!,
-          deviationType: formData.deviationType!,
-          description: formData.description!,
-          reasonForDeviation: formData.reasonForDeviation || '',
-          proposedSolution: formData.proposedSolution || '',
-          qualityRisk: formData.qualityRisk!,
-          requestDate: formData.requestDate!,
-          requestedBy: formData.requestedBy!,
-          department: formData.department || '',
-          rdApproval: formData.rdApproval!,
-          qualityApproval: formData.qualityApproval!,
-          productionApproval: formData.productionApproval!,
-          generalManagerApproval: formData.generalManagerApproval!,
-          status: formData.status!,
-          attachments: formData.attachments || [],
-          usageTracking: formData.usageTracking || [],
-          createdAt: now,
-          updatedAt: now
-        };
-
-        // ✅ Sapma numarası sayacını güncelle
-        updateDeviationNumberCounter(finalDeviationNumber);
-
-        const updatedDeviations = [...deviations, newDeviation];
-        saveData(updatedDeviations);
-        console.log('✅ Yeni sapma başarıyla oluşturuldu:', newDeviation.deviationNumber, 'ID:', newDeviation.id);
+        console.log('💾 Yeni sapma onayı oluşturuluyor...');
+        await saveDeviation(deviationData, false);
+        console.log('✅ Yeni sapma başarıyla oluşturuldu');
       } else if (dialogMode === 'edit' && selectedDeviation) {
-        const updatedDeviations = deviations.map(deviation =>
-          deviation.id === selectedDeviation.id
-            ? { ...deviation, ...formData, updatedAt: now }
-            : deviation
-        );
-        saveData(updatedDeviations);
-        console.log('✅ Sapma başarıyla güncellendi:', selectedDeviation.deviationNumber);
+        console.log('📝 Sapma onayı güncelleniyor...', selectedDeviation.id);
+        deviationData.id = selectedDeviation.id;
+        await saveDeviation(deviationData, true);
+        console.log('✅ Sapma başarıyla güncellendi');
       }
 
       closeDialog();
     } catch (error) {
       console.error('❌ Kaydetme hatası:', error);
-      alert('Kaydetme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+      // Error handling is done in saveDeviation function
     }
   };
 
-  const handleDelete = (deviation: DeviationApproval) => {
+  const handleDelete = async (deviation: DeviationApproval) => {
     if (window.confirm('Bu sapma onayını silmek istediğinizden emin misiniz?')) {
-      const updatedDeviations = deviations.filter(d => d.id !== deviation.id);
-      saveData(updatedDeviations);
+      try {
+        if (deviation.id) {
+          await deleteDeviation(deviation.id);
+          console.log('✅ Sapma onayı başarıyla silindi:', deviation.deviationNumber);
+        }
+      } catch (error) {
+        console.error('❌ Silme hatası:', error);
+        // Error handling is done in deleteDeviation function
+      }
     }
   };
 
@@ -989,7 +947,22 @@ const DeviationApprovalManagement: React.FC = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
+      {/* Loading Indicator */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 2 }}>
+          <CircularProgress size={24} />
+          <Typography variant="body2" sx={{ ml: 2 }}>
+            Veriler yükleniyor...
+          </Typography>
+        </Box>
+      )}
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -1166,9 +1139,9 @@ const DeviationApprovalManagement: React.FC = () => {
             startIcon={<GetAppIcon />}
             onClick={exportData}
             sx={{ borderRadius: 2 }}
-            disabled={deviations.length === 0}
+            disabled={deviations.length === 0 || loading}
           >
-            Export
+            {loading ? 'Export ediliyor...' : 'Export'}
           </Button>
           
           {/* Import Button */}
@@ -1177,8 +1150,9 @@ const DeviationApprovalManagement: React.FC = () => {
             startIcon={<CloudUploadIcon />}
             component="label"
             sx={{ borderRadius: 2 }}
+            disabled={loading}
           >
-            Import
+            {loading ? 'Import ediliyor...' : 'Import'}
             <input
               type="file"
               hidden

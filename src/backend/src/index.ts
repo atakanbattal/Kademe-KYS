@@ -12,6 +12,7 @@ import materialQualityControlRoutes from './routes/materialQualityControlRoutes'
 import tankLeakTestRoutes from './routes/tankLeakTestRoutes';
 import qualityControlReportRoutes from './routes/qualityControlReportRoutes';
 import vehicleQualityControlRoutes from './routes/vehicleQualityControlRoutes';
+import deviationApprovalRoutes from './routes/deviationApprovalRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -42,6 +43,7 @@ app.use('/api/material-quality', materialQualityControlRoutes);
 app.use('/api/tank-leak-test', tankLeakTestRoutes);
 app.use('/api/quality-control-reports', qualityControlReportRoutes);
 app.use('/api/vehicle-quality-control', vehicleQualityControlRoutes);
+app.use('/api/deviation-approvals', deviationApprovalRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
