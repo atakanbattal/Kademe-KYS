@@ -52,6 +52,249 @@ import {
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 
+// ============================================
+// DEVIATION APPROVAL INDEXEDDB STORAGE MANAGER  
+// ============================================
+
+class DeviationApprovalStorage {
+  private dbName = 'DeviationApprovalDB';
+  private dbVersion = 1;
+  private storeNames = {
+    deviations: 'deviation-approvals',
+    attachments: 'deviation-attachments'
+  };
+  
+  private db: IDBDatabase | null = null;
+
+  async initialize(): Promise<void> {
+    if (this.db) return;
+
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.dbVersion);
+      
+      request.onerror = () => {
+        console.error('❌ DeviationApprovalStorage: IndexedDB açılamadı');
+        reject(new Error('IndexedDB açılamadı'));
+      };
+
+      request.onsuccess = (event) => {
+        this.db = (event.target as IDBOpenDBRequest).result;
+        console.log('✅ DeviationApprovalStorage: IndexedDB başarıyla açıldı');
+        resolve();
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        
+        // Sapma onayları store'u
+        if (!db.objectStoreNames.contains(this.storeNames.deviations)) {
+          const deviationStore = db.createObjectStore(this.storeNames.deviations, { keyPath: 'id' });
+          deviationStore.createIndex('deviationNumber', 'deviationNumber', { unique: false });
+          deviationStore.createIndex('status', 'status', { unique: false });
+          deviationStore.createIndex('createdAt', 'createdAt', { unique: false });
+          console.log('✅ Sapma onayları store oluşturuldu');
+        }
+        
+        // Ek dosyalar store'u
+        if (!db.objectStoreNames.contains(this.storeNames.attachments)) {
+          const attachmentStore = db.createObjectStore(this.storeNames.attachments, { keyPath: 'id' });
+          attachmentStore.createIndex('deviationId', 'deviationId', { unique: false });
+          attachmentStore.createIndex('fileName', 'fileName', { unique: false });
+          console.log('✅ Sapma ek dosyaları store oluşturuldu');
+        }
+      };
+    });
+  }
+
+  async saveDeviation(deviation: DeviationApproval): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.deviations], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.deviations);
+      
+      // Attachments'ları ayrı store'a kaydet
+      const deviationData = { ...deviation };
+      if (deviationData.attachments) {
+        // Attachments'ları ayrı kaydet
+        deviationData.attachments.forEach(async (attachment) => {
+          await this.saveAttachment(deviation.id, attachment);
+        });
+        
+        // Deviation'da sadece attachment ID'lerini tut
+        deviationData.attachments = deviation.attachments.map(att => ({
+          ...att,
+          url: 'STORED_IN_INDEXEDDB' // Büyük data'yı temizle
+        }));
+      }
+      
+      const request = store.put(deviationData);
+
+      request.onsuccess = () => {
+        console.log('✅ Sapma IndexedDB\'ye kaydedildi:', deviation.deviationNumber);
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error('❌ Sapma kaydedilemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async saveAttachment(deviationId: string, attachment: DeviationAttachment): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.attachments], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.attachments);
+      
+      const attachmentData = {
+        ...attachment,
+        deviationId: deviationId
+      };
+      
+      const request = store.put(attachmentData);
+
+      request.onsuccess = () => {
+        console.log('✅ Ek dosya IndexedDB\'ye kaydedildi:', attachment.fileName);
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error('❌ Ek dosya kaydedilemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async getAllDeviations(): Promise<DeviationApproval[]> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.deviations], 'readonly');
+      const store = transaction.objectStore(this.storeNames.deviations);
+      const request = store.getAll();
+
+      request.onsuccess = async () => {
+        const deviations = request.result;
+        
+        // Her deviation için attachments'ları yükle
+        for (const deviation of deviations) {
+          if (deviation.attachments) {
+            deviation.attachments = await this.getAttachmentsByDeviationId(deviation.id);
+          }
+        }
+        
+        console.log('✅ Tüm sapmalar IndexedDB\'den yüklendi:', deviations.length);
+        resolve(deviations);
+      };
+
+      request.onerror = () => {
+        console.error('❌ Sapmalar yüklenemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async getAttachmentsByDeviationId(deviationId: string): Promise<DeviationAttachment[]> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.attachments], 'readonly');
+      const store = transaction.objectStore(this.storeNames.attachments);
+      const index = store.index('deviationId');
+      const request = index.getAll(deviationId);
+
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+
+      request.onerror = () => {
+        console.error('❌ Ek dosyalar yüklenemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async deleteDeviation(deviationId: string): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise(async (resolve, reject) => {
+      // Önce attachments'ları sil
+      const attachments = await this.getAttachmentsByDeviationId(deviationId);
+      for (const attachment of attachments) {
+        await this.deleteAttachment(attachment.id);
+      }
+
+      // Sonra deviation'ı sil
+      const transaction = this.db!.transaction([this.storeNames.deviations], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.deviations);
+      const request = store.delete(deviationId);
+
+      request.onsuccess = () => {
+        console.log('✅ Sapma IndexedDB\'den silindi:', deviationId);
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error('❌ Sapma silinemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  async deleteAttachment(attachmentId: string): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeNames.attachments], 'readwrite');
+      const store = transaction.objectStore(this.storeNames.attachments);
+      const request = store.delete(attachmentId);
+
+      request.onsuccess = () => {
+        console.log('✅ Ek dosya IndexedDB\'den silindi:', attachmentId);
+        resolve();
+      };
+
+      request.onerror = () => {
+        console.error('❌ Ek dosya silinemedi:', request.error);
+        reject(request.error);
+      };
+    });
+  }
+
+  // LocalStorage'dan IndexedDB'ye migration
+  async migrateFromLocalStorage(): Promise<void> {
+    try {
+      const localData = localStorage.getItem('deviationApprovalData');
+      if (localData) {
+        const deviations: DeviationApproval[] = JSON.parse(localData);
+        console.log('🔄 LocalStorage\'dan IndexedDB\'ye migration başladı:', deviations.length, 'kayıt');
+        
+        for (const deviation of deviations) {
+          await this.saveDeviation(deviation);
+        }
+        
+        // Migration tamamlandıktan sonra localStorage'ı temizle
+        localStorage.removeItem('deviationApprovalData');
+        console.log('✅ Migration tamamlandı ve localStorage temizlendi');
+      }
+    } catch (error) {
+      console.error('❌ Migration hatası:', error);
+    }
+  }
+}
+
+// Global instance
+const deviationStorage = new DeviationApprovalStorage();
+
 // Interfaces
 interface VehicleInfo {
   id: string;
@@ -256,62 +499,68 @@ const DeviationApprovalManagement: React.FC = () => {
   const [detailViewDialog, setDetailViewDialog] = useState(false);
   const [selectedDeviationForDetail, setSelectedDeviationForDetail] = useState<DeviationApproval | null>(null);
 
-  // Data Management
-  const saveData = useCallback((data: DeviationApproval[]) => {
+  // Data Management - IndexedDB ile sınırsız storage
+  const saveData = useCallback(async (data: DeviationApproval[]) => {
     try {
-      console.log('💾 saveData çağrıldı, kayıt sayısı:', data.length);
-      console.log('📝 Kaydedilecek veriler:', data);
+      console.log('💾 saveData çağrıldı (IndexedDB), kayıt sayısı:', data.length);
       
-      // Önce storage boyutunu kontrol et
-      const dataToSave = JSON.stringify(data);
-      const estimatedSize = dataToSave.length * 2; // Tahmini boyut
+      // Her deviation'ı IndexedDB'ye kaydet
+      for (const deviation of data) {
+        await deviationStorage.saveDeviation(deviation);
+      }
       
-      console.log('💾 Storage boyutu:', {
-        kayitSayisi: data.length,
-        tahminiBoyu: `${(estimatedSize / (1024 * 1024)).toFixed(2)}MB`
-      });
-      
-      localStorage.setItem('deviationApprovalData', dataToSave);
-      console.log('✅ localStorage\'a başarıyla kaydedildi');
-      
+      console.log('✅ Tüm veriler IndexedDB\'ye başarıyla kaydedildi');
       setDeviations(data);
       console.log('✅ State başarıyla güncellendi');
       
     } catch (error: any) {
-      console.error('❌ Veri kaydetme hatası:', error);
-      
-      // Quota aşımı hatasını özel olarak kontrol et
-      if (error.name === 'QuotaExceededError' || error.message?.includes('quota')) {
-        const storageInfo = `Mevcut storage kullanımı: ${(JSON.stringify(localStorage).length * 2 / (1024 * 1024)).toFixed(2)}MB`;
-        
-        alert(
-          '❌ STORAGE QUOTA AŞILDI!\n\n' +
-          'LocalStorage sınırı aşıldı.\n\n' +
-          storageInfo + '\n\n' +
-          'Çözüm önerileri:\n' +
-          '1. Eski sapma kayıtlarını silin\n' +
-          '2. Büyük PDF dosyalarını kaldırın\n' +
-          '3. Sayfa yenileyip tekrar deneyin\n' +
-          '4. Daha küçük dosyalar kullanın'
-        );
-      } else {
-        alert('Veri kaydetme hatası: ' + (error.message || 'Bilinmeyen hata'));
-      }
+      console.error('❌ IndexedDB kaydetme hatası:', error);
+      alert('Veri kaydetme hatası: ' + (error.message || 'Bilinmeyen hata'));
       
       // Hata durumunda eski state'i koru
       console.warn('⚠️ Kaydetme başarısız, eski state korunuyor');
     }
   }, []);
 
-  const loadData = useCallback(() => {
+  const loadData = useCallback(async () => {
     try {
-      const savedData = localStorage.getItem('deviationApprovalData');
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        setDeviations(parsedData);
+      console.log('🔄 Veriler IndexedDB\'den yükleniyor...');
+      
+      // İlk önce migration kontrolü yap
+      await deviationStorage.migrateFromLocalStorage();
+      
+      // IndexedDB'den tüm verileri yükle
+      const data = await deviationStorage.getAllDeviations();
+      setDeviations(data);
+      
+      console.log('✅ Veriler IndexedDB\'den başarıyla yüklendi:', data.length, 'kayıt');
+      
+      // Storage boyutu bilgisi
+      const currentLocalStorage = JSON.stringify(localStorage).length * 2;
+      console.log('💾 Storage durumu:', {
+        indexedDBKayitlar: data.length,
+        localStorageBoyu: `${(currentLocalStorage / (1024 * 1024)).toFixed(2)}MB`,
+        mesaj: 'Artık sınırsız boyut!'
+      });
+      
+    } catch (error: any) {
+      console.error('❌ IndexedDB veri yükleme hatası:', error);
+      
+      // Fallback: LocalStorage'a dön
+      try {
+        const savedData = localStorage.getItem('deviationApprovalData');
+        if (savedData) {
+          const data = JSON.parse(savedData);
+          setDeviations(data);
+          console.log('⚠️ Fallback: localStorage\'dan yüklendi:', data.length, 'kayıt');
+        } else {
+          setDeviations([]);
+          console.log('ℹ️ Hiç veri bulunamadı');
+        }
+      } catch (fallbackError) {
+        console.error('❌ Fallback yükleme hatası:', fallbackError);
+        setDeviations([]);
       }
-    } catch (error) {
-      console.error('Veri yükleme hatası:', error);
     }
   }, []);
 
@@ -647,10 +896,23 @@ const DeviationApprovalManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = (deviation: DeviationApproval) => {
+  const handleDelete = async (deviation: DeviationApproval) => {
     if (window.confirm('Bu sapma onayını silmek istediğinizden emin misiniz?')) {
-      const updatedDeviations = deviations.filter(d => d.id !== deviation.id);
-      saveData(updatedDeviations);
+      try {
+        // IndexedDB'den sil
+        await deviationStorage.deleteDeviation(deviation.id);
+        
+        // State'i güncelle
+        const updatedDeviations = deviations.filter(d => d.id !== deviation.id);
+        setDeviations(updatedDeviations);
+        
+        console.log('✅ Sapma başarıyla silindi:', deviation.deviationNumber);
+        alert('✅ Sapma başarıyla silindi!');
+        
+      } catch (error: any) {
+        console.error('❌ Silme hatası:', error);
+        alert('Silme sırasında bir hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
+      }
     }
   };
 
@@ -709,10 +971,10 @@ const DeviationApprovalManagement: React.FC = () => {
         return;
       }
 
-      // Dosya boyutu kontrolü - 3MB sınırı
-      const maxFileSize = 3 * 1024 * 1024; // 3MB
+      // Dosya boyutu kontrolü - IndexedDB ile daha büyük dosyalar desteklenir
+      const maxFileSize = 50 * 1024 * 1024; // 50MB (IndexedDB ile çok daha büyük dosyalar)
       if (file.size > maxFileSize) {
-        alert(`Dosya boyutu çok büyük! Maksimum ${Math.round(maxFileSize / (1024 * 1024))}MB boyutunda dosya yükleyebilirsiniz.\n\nMevcut dosya: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
+        alert(`Dosya boyutu çok büyük! Maksimum ${Math.round(maxFileSize / (1024 * 1024))}MB boyutunda dosya yükleyebilirsiniz.\n\nMevcut dosya: ${(file.size / (1024 * 1024)).toFixed(2)}MB\n\n✨ IndexedDB sayesinde artık çok daha büyük dosyalar desteklenir!`);
         return;
       }
 
@@ -731,32 +993,13 @@ const DeviationApprovalManagement: React.FC = () => {
           console.log('✅ PDF yüklendi. Base64 length:', base64Data.length);
         }
 
-        // LocalStorage quota kontrolü - Base64 verilerinin boyutunu kontrol et
-        const estimatedSize = base64Data.length * 2; // Tahmini boyut (characters * 2 bytes)
-        const currentStorageSize = JSON.stringify(localStorage).length * 2;
-        const totalEstimatedSize = currentStorageSize + estimatedSize;
-        
-        console.log('💾 Storage analizi:', {
-          currentSize: `${(currentStorageSize / (1024 * 1024)).toFixed(2)}MB`,
-          newFileSize: `${(estimatedSize / (1024 * 1024)).toFixed(2)}MB`,
-          totalEstimated: `${(totalEstimatedSize / (1024 * 1024)).toFixed(2)}MB`
+        // IndexedDB ile artık boyut sınırı yok! 🎉
+        console.log('💾 IndexedDB ile sınırsız storage:', {
+          fileName: file.name,
+          originalSize: `${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+          base64Size: `${(base64Data.length / (1024 * 1024)).toFixed(2)}MB`,
+          mesaj: '✅ Artık boyut sınırı yok!'
         });
-
-        // Eğer 8MB'ı geçecekse uyarı ver
-        if (totalEstimatedSize > 8 * 1024 * 1024) {
-          const shouldProceed = window.confirm(
-            `⚠️ UYARI: Bu dosya localStorage sınırını aşabilir!\n\n` +
-            `Mevcut kullanım: ${(currentStorageSize / (1024 * 1024)).toFixed(2)}MB\n` +
-            `Yeni dosya: ${(estimatedSize / (1024 * 1024)).toFixed(2)}MB\n` +
-            `Toplam: ${(totalEstimatedSize / (1024 * 1024)).toFixed(2)}MB\n\n` +
-            `Devam etmek istediğinize emin misiniz?\n\n` +
-            `İpucu: Daha küçük dosya yükleyin veya eski kayıtları silin.`
-          );
-          
-          if (!shouldProceed) {
-            return;
-          }
-        }
         
         const newAttachment: DeviationAttachment = {
           id: Date.now().toString(),
@@ -779,19 +1022,7 @@ const DeviationApprovalManagement: React.FC = () => {
       } catch (error: any) {
         console.error('❌ Dosya yükleme hatası:', error);
         
-        // Quota aşımı hatasını özel olarak kontrol et
-        if (error.message?.includes('quota') || error.name === 'QuotaExceededError') {
-          alert(
-            '❌ STORAGE QUOTA AŞILDI!\n\n' +
-            'LocalStorage sınırı aşıldı. Çözüm önerileri:\n\n' +
-            '1. Daha küçük dosya yükleyin (maksimum 3MB)\n' +
-            '2. Eski sapma kayıtlarını silin\n' +
-            '3. PDF yerine compress edilmiş resim kullanın\n' +
-            '4. Sayfa yenileyip tekrar deneyin'
-          );
-        } else {
-          alert('Dosya yükleme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
-        }
+        alert('Dosya yükleme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
       }
     }
     
