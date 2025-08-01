@@ -263,7 +263,7 @@ const DeviationApprovalManagement: React.FC = () => {
       console.log('📝 Kaydedilecek veriler:', data);
       
       localStorage.setItem('deviationApprovalData', JSON.stringify(data));
-      console.log('✅ localStorage'a başarıyla kaydedildi');
+      console.log('✅ localStorage\'a başarıyla kaydedildi');
       
       setDeviations(data);
       console.log('✅ State başarıyla güncellendi');
@@ -434,11 +434,11 @@ const DeviationApprovalManagement: React.FC = () => {
       partName: '',
       partNumber: '',
       vehicles: [],
-      deviationType: 'input-control',
+      deviationType: 'input-control' as const,
       description: '',
       reasonForDeviation: '',
       proposedSolution: '',
-      qualityRisk: 'low',
+      qualityRisk: 'low' as const,
       requestDate: new Date().toISOString().split('T')[0],
       requestedBy: '',
       department: '',
@@ -446,7 +446,7 @@ const DeviationApprovalManagement: React.FC = () => {
       qualityApproval: { approved: false, approver: '' },
       productionApproval: { approved: false, approver: '' },
       generalManagerApproval: { approved: false, approver: '' },
-      status: 'pending',
+      status: 'pending' as const,
       attachments: [],
       usageTracking: []
     };
@@ -497,11 +497,11 @@ const DeviationApprovalManagement: React.FC = () => {
       partName: '',
       partNumber: '',
       vehicles: [],
-      deviationType: 'input-control',
+      deviationType: 'input-control' as const,
       description: '',
       reasonForDeviation: '',
       proposedSolution: '',
-      qualityRisk: 'low',
+      qualityRisk: 'low' as const,
       requestDate: new Date().toISOString().split('T')[0],
       requestedBy: '',
       department: '',
@@ -509,7 +509,7 @@ const DeviationApprovalManagement: React.FC = () => {
       qualityApproval: { approved: false, approver: '' },
       productionApproval: { approved: false, approver: '' },
       generalManagerApproval: { approved: false, approver: '' },
-      status: 'pending',
+      status: 'pending' as const,
       attachments: [],
       usageTracking: []
     };
@@ -592,7 +592,7 @@ const DeviationApprovalManagement: React.FC = () => {
         console.log('📊 Oluşturulan sapma:', newDeviation);
         
         const updatedDeviations = [...deviations, newDeviation];
-        console.log('💾 localStorage'a kaydediliyor... Önceki kayıt sayısı:', deviations.length, 'Yeni kayıt sayısı:', updatedDeviations.length);
+        console.log('💾 localStorage\'a kaydediliyor... Önceki kayıt sayısı:', deviations.length, 'Yeni kayıt sayısı:', updatedDeviations.length);
         
         saveData(updatedDeviations);
         console.log('✅ Yeni sapma başarıyla oluşturuldu:', newDeviation.deviationNumber);
