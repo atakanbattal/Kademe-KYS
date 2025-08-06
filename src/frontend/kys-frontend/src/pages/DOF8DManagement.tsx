@@ -60,7 +60,7 @@ import {
   Download as DownloadIcon,
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 
@@ -113,6 +113,8 @@ interface DOFRecord {
     closedBy?: string;
     closureTime?: string;
     finalStatus?: string;
+    closureNotes?: string;
+    evidenceDocuments?: Array<{fileName: string, fileType: string, fileData: string}>;
     cleanupDate?: string;
     cleanupVersion?: string;
     isSampleData?: boolean;
@@ -1046,8 +1048,7 @@ const generateDOFPDF = (record: DOFRecord): void => {
         action.completedDate ? new Date(action.completedDate).toLocaleDateString('tr-TR') : '-'
       ]);
 
-      // @ts-ignore
-      doc.autoTable({
+      (autoTable as any)(doc, {
         startY: currentY,
         head: [[turkishSafeText('Aksiyon'), turkishSafeText('Sorumlu'), turkishSafeText('Son Tarih'), turkishSafeText('Durum'), turkishSafeText('Tamamlanma')]],
         body: actionsData,
@@ -1072,8 +1073,7 @@ const generateDOFPDF = (record: DOFRecord): void => {
         margin: { left: margin, right: margin }
       });
 
-      // @ts-ignore
-      currentY = doc.lastAutoTable.finalY + 10;
+      currentY = (doc as any).lastAutoTable.finalY + 10;
     }
     
     // ============================================
@@ -1100,8 +1100,7 @@ const generateDOFPDF = (record: DOFRecord): void => {
         new Date(attachment.uploadDate).toLocaleDateString('tr-TR')
       ]);
 
-      // @ts-ignore
-      doc.autoTable({
+      (autoTable as any)(doc, {
         startY: currentY,
         head: [[turkishSafeText('#'), turkishSafeText('Dosya Adi'), turkishSafeText('Boyut'), turkishSafeText('Yuklenme Tarihi')]],
         body: attachmentsData,
@@ -1119,8 +1118,7 @@ const generateDOFPDF = (record: DOFRecord): void => {
         margin: { left: margin, right: margin }
       });
 
-      // @ts-ignore
-      currentY = doc.lastAutoTable.finalY + 10;
+      currentY = (doc as any).lastAutoTable.finalY + 10;
     }
     
     // ============================================
@@ -6638,7 +6636,16 @@ const DOF8DManagement: React.FC = () => {
                               evidenceDocuments: prev.evidenceDocuments?.filter((_, i) => i !== index) || []
                             }));
                           }}
-                          sx={{ maxWidth: 200 }}
+                          sx={{ 
+                            maxWidth: 300, 
+                            minWidth: 120,
+                            '& .MuiChip-label': {
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              fontSize: '0.75rem'
+                            }
+                          }}
                         />
                       ))}
                     </Box>

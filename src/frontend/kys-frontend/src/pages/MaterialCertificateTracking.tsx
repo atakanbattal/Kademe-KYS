@@ -743,7 +743,7 @@ const materialCategories: MaterialCategory[] = [
                 hardness: { min: 15, max: 25, type: 'HB' }
               },
               chemicalComposition: {
-                'Al': { min: 99.5 },
+                'Al': { min: 99.5, max: 100.0 },
                 'Si': { max: 0.25 },
                 'Fe': { max: 0.40 },
                 'Cu': { max: 0.05 },
@@ -765,7 +765,7 @@ const materialCategories: MaterialCategory[] = [
                 hardness: { min: 12, max: 22, type: 'HB' }
               },
               chemicalComposition: {
-                'Al': { min: 99.6 },
+                'Al': { min: 99.6, max: 100.0 },
                 'Si': { max: 0.25 },
                 'Fe': { max: 0.35 },
                 'Cu': { max: 0.05 },
@@ -787,7 +787,7 @@ const materialCategories: MaterialCategory[] = [
                 hardness: { min: 10, max: 20, type: 'HB' }
               },
               chemicalComposition: {
-                'Al': { min: 99.7 },
+                'Al': { min: 99.7, max: 100.0 },
                 'Si': { max: 0.20 },
                 'Fe': { max: 0.25 },
                 'Cu': { max: 0.04 },

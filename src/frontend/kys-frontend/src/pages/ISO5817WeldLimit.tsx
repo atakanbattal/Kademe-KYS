@@ -188,10 +188,10 @@ const CalculateButton = styled(Button)(({ theme }) => ({
 const WELD_TYPES = [
   { value: 'butt', label: 'Alın Kaynağı', description: 'İki parçanın uç uca kaynaklanması' },
   { value: 'fillet', label: 'Köşe Kaynağı', description: 'İki parçanın köşe şeklinde kaynaklanması' },
-  { value: 'corner', label: 'Köşe Kaynak', description: 'Köşe birleştirmeler' },
-  { value: 'edge', label: 'Kenar Kaynak', description: 'Kenar birleştirmeler' },
-  { value: 'overlap', label: 'Bindirme Kaynak', description: 'Bindirme birleştirmeler' },
-  { value: 'tee', label: 'T-Kaynak', description: 'T şeklinde birleştirmeler' },
+  { value: 'corner', label: 'Köşe Birleştirme', description: 'Köşe birleştirmeler' },
+  { value: 'edge', label: 'Kenar Kaynağı', description: 'Kenar birleştirmeler' },
+  { value: 'overlap', label: 'Bindirme Kaynağı', description: 'Bindirme birleştirmeler' },
+  { value: 'tee', label: 'T-Kaynağı', description: 'T şeklinde birleştirmeler' },
 ];
 
 // Modern Dinamik Hata Türleri ve Parametreleri
