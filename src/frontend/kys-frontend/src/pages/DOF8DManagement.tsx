@@ -1307,7 +1307,10 @@ const generateDOFPDF = async (record: DOFRecord): Promise<void> => {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
-        doc.text(turkishSafeText('EKLİ HATA GÖRSELLERİ VE KAPIT BELGELERI'), margin, imageY - 5);
+        const title = turkishSafeText('EKLİ HATA GÖRSELLERİ VE KANIT BELGELERI');
+        const titleWidth = doc.getTextWidth(title);
+        const titleX = (pageWidth - titleWidth) / 2; // Ortala
+        doc.text(title, titleX, imageY - 5);
         
         // Çizgi
         doc.setDrawColor(52, 152, 219);
