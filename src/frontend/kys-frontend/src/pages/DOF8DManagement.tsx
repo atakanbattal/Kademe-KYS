@@ -524,13 +524,66 @@ const getRootCauseSuggestions = (inputText: string): Array<{category: string; ca
     .slice(0, 5); // En iyi 5 öneri
 };
 
-// ✅ Context7 - Safe LocalStorage Functions
+// ✅ Context7 - Enhanced Safe LocalStorage Functions with IndexedDB fallback
 const safeSaveToLocalStorage = (key: string, value: string): boolean => {
   try {
+    // Önce localStorage boyutunu kontrol et
+    const currentSize = JSON.stringify(localStorage).length;
+    const newDataSize = value.length;
+    const totalSize = currentSize + newDataSize;
+    
+    console.log(`💾 Storage boyut kontrolü: Mevcut=${(currentSize/1024/1024).toFixed(2)}MB, Yeni=${(newDataSize/1024/1024).toFixed(2)}MB, Toplam=${(totalSize/1024/1024).toFixed(2)}MB`);
+    
+    // 8MB üstünde ise eski kayıtları temizle
+    if (totalSize > 8 * 1024 * 1024) {
+      console.log('⚠️ Storage limiti yaklaşıyor, temizlik yapılıyor...');
+      
+      // DOF kayıtları dışındaki verileri temizle
+      Object.keys(localStorage).forEach(storageKey => {
+        if (!storageKey.includes('dof') && !storageKey.includes('DOF')) {
+          localStorage.removeItem(storageKey);
+        }
+      });
+      
+      // Hala büyükse, eski DOF kayıtlarını temizle
+      if (JSON.stringify(localStorage).length > 6 * 1024 * 1024) {
+        const existingRecords = JSON.parse(localStorage.getItem('dofRecords') || '[]');
+        const recentRecords = existingRecords
+          .sort((a: any, b: any) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime())
+          .slice(0, 50); // Son 50 kaydı sakla
+        
+        localStorage.setItem('dofRecords', JSON.stringify(recentRecords));
+        console.log(`🧹 Eski DOF kayıtları temizlendi: ${existingRecords.length} → ${recentRecords.length}`);
+      }
+    }
+    
     localStorage.setItem(key, value);
     return true;
-  } catch (error) {
-    console.error('Context7 - LocalStorage save error:', error);
+  } catch (error: any) {
+    console.error('❌ Context7 - LocalStorage save error:', error);
+    
+    if (error.name === 'QuotaExceededError') {
+      console.log('🔄 LocalStorage quota aşıldı, acil temizlik yapılıyor...');
+      
+      // Kritik olmayan verileri sil
+      Object.keys(localStorage).forEach(storageKey => {
+        if (!storageKey.includes('dof') && !storageKey.includes('DOF')) {
+          localStorage.removeItem(storageKey);
+        }
+      });
+      
+      // Tekrar dene
+      try {
+        localStorage.setItem(key, value);
+        console.log('✅ Temizlik sonrası başarıyla kaydedildi');
+        return true;
+      } catch (retryError) {
+        console.error('❌ Temizlik sonrası da kaydedilemedi:', retryError);
+        alert('⚠️ UYARI: Dosya boyutu çok büyük!\n\nEkli görseller tarayıcı limitini aşıyor. Lütfen:\n\n1. Daha az görsel ekleyin\n2. Görsel boyutlarını küçültün\n3. PDF formatında dosya ekleyin\n\nDF kaydedildi ama eklentiler kaybolabilir.');
+        return false;
+      }
+    }
+    
     return false;
   }
 };
@@ -560,6 +613,115 @@ const getDelayStatus = (dueDate: string, status: string): 'on_time' | 'warning' 
   if (remainingDays < 0) return 'overdue';
   if (remainingDays <= 3) return 'warning';
   return 'on_time';
+};
+
+// ============================================
+// 💾 INDEXEDDB STORAGE SİSTEMİ - BÜYÜK DOSYALAR İÇİN
+// ============================================
+
+class DOFAttachmentStorage {
+  private dbName = 'DOFAttachmentsDB';
+  private version = 1;
+  private db: IDBDatabase | null = null;
+
+  async initialize(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.version);
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve();
+      };
+      
+      request.onupgradeneeded = (event) => {
+        this.db = (event.target as IDBOpenDBRequest).result;
+        if (!this.db.objectStoreNames.contains('attachments')) {
+          this.db.createObjectStore('attachments', { keyPath: 'id' });
+        }
+      };
+    });
+  }
+
+  async saveAttachment(attachment: Attachment): Promise<void> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['attachments'], 'readwrite');
+      const store = transaction.objectStore('attachments');
+      
+      const request = store.put(attachment);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getAttachment(id: string): Promise<Attachment | null> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['attachments'], 'readonly');
+      const store = transaction.objectStore('attachments');
+      
+      const request = store.get(id);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async deleteAttachment(id: string): Promise<void> {
+    if (!this.db) await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['attachments'], 'readwrite');
+      const store = transaction.objectStore('attachments');
+      
+      const request = store.delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+}
+
+const dofAttachmentStorage = new DOFAttachmentStorage();
+
+// ============================================
+// 🖼️ GELİŞMİŞ GÖRSEL COMPRESS FONKSİYONU
+// ============================================
+
+const compressImage = (file: File, quality: number = 0.7): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Optimal boyut hesaplama (max 1200px)
+      const maxDimension = 1200;
+      let { width, height } = img;
+      
+      if (width > height && width > maxDimension) {
+        height = (height * maxDimension) / width;
+        width = maxDimension;
+      } else if (height > maxDimension) {
+        width = (width * maxDimension) / height;
+        height = maxDimension;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Görsel çiz ve compress et
+      ctx?.drawImage(img, 0, 0, width, height);
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+      
+      console.log(`📸 Görsel compress edildi: ${file.size} → ${Math.round(compressedDataUrl.length * 0.75)} bytes`);
+      resolve(compressedDataUrl);
+    };
+    
+    img.onerror = () => reject(new Error('Görsel yüklenemedi'));
+    img.src = URL.createObjectURL(file);
+  });
 };
 
 // ============================================
@@ -2719,42 +2881,79 @@ const DOF8DManagement: React.FC = () => {
     }
   };
 
-  // 📎 DOSYA YÜKLEME FONKSİYONLARI
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // 📎 GELİŞMİŞ DOSYA YÜKLEME FONKSİYONLARI - COMPRESS VE INDEXEDDB DESTEKLİ
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
-    Array.from(files).forEach(file => {
-      if (file.size > 10 * 1024 * 1024) {
+    // Dosyaları tek tek işle
+    for (const file of Array.from(files)) {
+      try {
+        // Boyut kontrolü (artık daha esnek - 15MB'a çıkardık)
+        if (file.size > 15 * 1024 * 1024) {
+          setSnackbar({
+            open: true,
+            message: `Dosya boyutu 15MB'dan büyük olamaz: ${file.name}`,
+            severity: 'error'
+          });
+          continue;
+        }
+
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!allowedTypes.includes(file.type)) {
+          setSnackbar({
+            open: true,
+            message: `Desteklenmeyen dosya türü: ${file.name}`,
+            severity: 'error'
+          });
+          continue;
+        }
+
+        // Loading mesajı göster
         setSnackbar({
           open: true,
-          message: `Dosya boyutu 10MB'dan büyük olamaz: ${file.name}`,
-          severity: 'error'
+          message: `Dosya işleniyor: ${file.name}...`,
+          severity: 'info'
         });
-        return;
-      }
 
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (!allowedTypes.includes(file.type)) {
-        setSnackbar({
-          open: true,
-          message: `Desteklenmeyen dosya türü: ${file.name}`,
-          severity: 'error'
-        });
-        return;
-      }
+        let fileDataUrl: string;
+        let compressedSize: number;
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
+        // Görsel dosyaları için compress işlemi
+        if (file.type.includes('image')) {
+          console.log(`🖼️ Görsel compress ediliyor: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+          fileDataUrl = await compressImage(file, 0.7); // %70 kalite
+          compressedSize = Math.round(fileDataUrl.length * 0.75); // Base64 -> bytes tahmini
+          console.log(`✅ Compress tamamlandı: ${(compressedSize / 1024 / 1024).toFixed(2)}MB`);
+        } else {
+          // PDF ve diğer dosyalar için normal okuma
+          fileDataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = () => reject(new Error('Dosya okunamadı'));
+            reader.readAsDataURL(file);
+          });
+          compressedSize = file.size;
+        }
+
+        // Unique ID oluştur
+        const attachmentId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Attachment objesi oluştur
         const attachment: Attachment = {
-          id: Date.now().toString() + Math.random(),
+          id: attachmentId,
           name: file.name,
           type: file.type,
           uploadDate: new Date().toISOString(),
-          size: file.size,
-          url: e.target?.result as string
+          size: compressedSize,
+          url: `indexeddb://${attachmentId}` // IndexedDB referansı
         };
 
+        // IndexedDB'ye kaydet (büyük dosyalar için)
+        const fullAttachment = { ...attachment, url: fileDataUrl };
+        await dofAttachmentStorage.saveAttachment(fullAttachment);
+
+        // Form state'ine ekle (sadece metadata)
         setFormData(prev => ({
           ...prev,
           attachments: [...(prev.attachments || []), attachment]
@@ -2762,30 +2961,96 @@ const DOF8DManagement: React.FC = () => {
 
         setSnackbar({
           open: true,
-          message: `Dosya yüklendi: ${file.name}`,
+          message: `✅ Dosya başarıyla yüklendi: ${file.name} (${(compressedSize / 1024 / 1024).toFixed(2)}MB)`,
           severity: 'success'
         });
-      };
-      reader.readAsDataURL(file);
-    });
+
+        console.log(`💾 Dosya IndexedDB'ye kaydedildi: ${file.name}, ID: ${attachmentId}`);
+
+      } catch (error) {
+        console.error('❌ Dosya yükleme hatası:', error);
+        setSnackbar({
+          open: true,
+          message: `Dosya yükleme hatası: ${file.name}. Tekrar deneyin.`,
+          severity: 'error'
+        });
+      }
+    }
+
+    // Input'u temizle
+    event.target.value = '';
   };
 
-  const handleDownloadAttachment = (attachment: Attachment) => {
-    const link = document.createElement('a');
-    link.href = attachment.url;
-    link.download = attachment.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleViewAttachment = (attachment: Attachment) => {
+  const handleDownloadAttachment = async (attachment: Attachment) => {
     try {
-      if (attachment.url) {
+      let fileUrl = attachment.url;
+
+      // IndexedDB'den dosya çek
+      if (attachment.url.startsWith('indexeddb://')) {
+        const attachmentId = attachment.url.replace('indexeddb://', '');
+        const fullAttachment = await dofAttachmentStorage.getAttachment(attachmentId);
+        
+        if (!fullAttachment || !fullAttachment.url) {
+          setSnackbar({
+            open: true,
+            message: 'Dosya bulunamadı. Dosya silinmiş olabilir.',
+            severity: 'error'
+          });
+          return;
+        }
+        
+        fileUrl = fullAttachment.url;
+      }
+
+      // Download işlemi
+      const link = document.createElement('a');
+      link.href = fileUrl;
+      link.download = attachment.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setSnackbar({
+        open: true,
+        message: `Dosya indiriliyor: ${attachment.name}`,
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('❌ Dosya indirme hatası:', error);
+      setSnackbar({
+        open: true,
+        message: 'Dosya indirilemedi. Tekrar deneyin.',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleViewAttachment = async (attachment: Attachment) => {
+    try {
+      let fileUrl = attachment.url;
+
+      // IndexedDB'den dosya çek
+      if (attachment.url.startsWith('indexeddb://')) {
+        const attachmentId = attachment.url.replace('indexeddb://', '');
+        const fullAttachment = await dofAttachmentStorage.getAttachment(attachmentId);
+        
+        if (!fullAttachment || !fullAttachment.url) {
+          setSnackbar({
+            open: true,
+            message: 'Dosya bulunamadı. Dosya silinmiş olabilir.',
+            severity: 'error'
+          });
+          return;
+        }
+        
+        fileUrl = fullAttachment.url;
+      }
+
+      if (fileUrl) {
         // Base64 URL'leri için güvenli görüntüleme
-        if (attachment.url.startsWith('data:')) {
+        if (fileUrl.startsWith('data:')) {
           // Base64 verisi için blob oluştur
-          const base64Data = attachment.url.split(',')[1];
+          const base64Data = fileUrl.split(',')[1];
           const byteCharacters = atob(base64Data);
           const byteNumbers = new Array(byteCharacters.length);
           for (let i = 0; i < byteCharacters.length; i++) {
@@ -2798,20 +3063,24 @@ const DOF8DManagement: React.FC = () => {
           // Yeni sekmede aç
           const newWindow = window.open(blobUrl, '_blank');
           if (!newWindow) {
-            throw new Error('Pop-up engellenmiş olabilir');
+            setSnackbar({
+              open: true,
+              message: 'Popup engellendi. Lütfen popup engelleyicisini devre dışı bırakın.',
+              severity: 'warning'
+            });
           }
           
           // Memory leak'i önlemek için URL'yi temizle
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
         } else {
           // Normal URL için
-          window.open(attachment.url, '_blank');
+          window.open(fileUrl, '_blank');
         }
       } else {
         throw new Error('Dosya URL\'si bulunamadı');
       }
     } catch (error) {
-      console.error('Dosya görüntüleme hatası:', error);
+      console.error('❌ Dosya görüntüleme hatası:', error);
       setSnackbar({
         open: true,
         message: 'Dosya görüntülenemiyor. Lütfen dosyayı indirip açmayı deneyin.',
@@ -2820,17 +3089,30 @@ const DOF8DManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteAttachment = (attachmentId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      attachments: prev.attachments?.filter(att => att.id !== attachmentId) || []
-    }));
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    try {
+      // Form state'den kaldır
+      setFormData(prev => ({
+        ...prev,
+        attachments: prev.attachments?.filter(att => att.id !== attachmentId) || []
+      }));
 
-    setSnackbar({
-      open: true,
-      message: 'Dosya silindi',
-      severity: 'success'
-    });
+      // IndexedDB'den de sil
+      await dofAttachmentStorage.deleteAttachment(attachmentId);
+
+      setSnackbar({
+        open: true,
+        message: 'Dosya silindi',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('❌ Dosya silme hatası:', error);
+      setSnackbar({
+        open: true,
+        message: 'Dosya silinemedi. Tekrar deneyin.',
+        severity: 'error'
+      });
+    }
   };
 
   // Context7 - ENHANCED: Profesyonel DF Silme Sistemi
@@ -3210,7 +3492,16 @@ const DOF8DManagement: React.FC = () => {
           
           // Context7 - Koleksiyonlar
           actions: Array.isArray(formData.actions) ? formData.actions : [],
-          attachments: Array.isArray(formData.attachments) ? formData.attachments : [],
+          attachments: Array.isArray(formData.attachments) ? 
+            formData.attachments.map(att => ({
+              // Sadece metadata kaydet, gerçek dosya data'sı IndexedDB'de
+              id: att.id,
+              name: att.name,
+              type: att.type,
+              uploadDate: att.uploadDate,
+              size: att.size,
+              url: att.url.startsWith('indexeddb://') ? att.url : `indexeddb://${att.id}`
+            })) : [],
           
           // Context7 - 8D özel alanları
           d8Steps: formData.type === '8d' ? (formData.d8Steps || {}) : undefined,
