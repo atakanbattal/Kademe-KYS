@@ -2935,6 +2935,26 @@ const DOF8DManagement: React.FC = () => {
   });
   const [isUploading, setIsUploading] = useState(false);
 
+  // ⚡ PERFORMANS OPTIMIZASYON - SIMPLE & EFFECTIVE
+  // Optimize form field updates with useCallback
+  const updateFormField = useCallback((field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  // Optimize input change handlers  
+  const handleInputChange = useCallback((field: string) => 
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      updateFormField(field, event.target.value);
+    }, [updateFormField]
+  );
+
+  // Optimize select change handlers
+  const handleSelectChange = useCallback((field: string) => 
+    (event: any) => {
+      updateFormField(field, event.target.value);
+    }, [updateFormField]
+  );
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -2961,10 +2981,10 @@ const DOF8DManagement: React.FC = () => {
           if (file.size > 15 * 1024 * 1024) {
             errors.push(`${file.name}: Dosya boyutu 15MB'dan büyük`);
             return null;
-          }
+      }
 
-          const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-          if (!allowedTypes.includes(file.type)) {
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
             errors.push(`${file.name}: Desteklenmeyen dosya türü`);
             return null;
           }
@@ -2979,7 +2999,7 @@ const DOF8DManagement: React.FC = () => {
           } else {
             // PDF'ler için normal okuma
             fileDataUrl = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
+      const reader = new FileReader();
               reader.onload = (e) => resolve(e.target?.result as string);
               reader.onerror = () => reject(new Error('Dosya okunamadı'));
               reader.readAsDataURL(file);
@@ -2991,11 +3011,11 @@ const DOF8DManagement: React.FC = () => {
           const attachmentId = `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`;
 
           // Attachment objesi
-          const attachment: Attachment = {
+        const attachment: Attachment = {
             id: attachmentId,
-            name: file.name,
-            type: file.type,
-            uploadDate: new Date().toISOString(),
+          name: file.name,
+          type: file.type,
+          uploadDate: new Date().toISOString(),
             size: compressedSize,
             url: `indexeddb://${attachmentId}`
           };
@@ -3091,12 +3111,12 @@ const DOF8DManagement: React.FC = () => {
       }
 
       // Download işlemi
-      const link = document.createElement('a');
+    const link = document.createElement('a');
       link.href = fileUrl;
-      link.download = attachment.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    link.download = attachment.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
       setSnackbar({
         open: true,
@@ -3180,19 +3200,19 @@ const DOF8DManagement: React.FC = () => {
   const handleDeleteAttachment = async (attachmentId: string) => {
     try {
       // Form state'den kaldır
-      setFormData(prev => ({
-        ...prev,
-        attachments: prev.attachments?.filter(att => att.id !== attachmentId) || []
-      }));
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments?.filter(att => att.id !== attachmentId) || []
+    }));
 
       // IndexedDB'den de sil
       await dofAttachmentStorage.deleteAttachment(attachmentId);
 
-      setSnackbar({
-        open: true,
-        message: 'Dosya silindi',
-        severity: 'success'
-      });
+    setSnackbar({
+      open: true,
+      message: 'Dosya silindi',
+      severity: 'success'
+    });
     } catch (error) {
       console.error('❌ Dosya silme hatası:', error);
       setSnackbar({
@@ -3246,10 +3266,7 @@ const DOF8DManagement: React.FC = () => {
     return Math.round((completedSteps / stepKeys.length) * 100);
   }, []);
 
-  // ⚡ PERFORMANCE OPTIMIZED: Form Input Handlers
-  const handleFormFieldChange = useCallback((field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  }, []);
+  // ⚡ PERFORMANCE OPTIMIZED: Form Input Handlers (Replaced with optimized version above)
 
   const handleNestedFieldChange = useCallback((parentField: string, childField: string, value: any) => {
     setFormData(prev => ({
@@ -6160,7 +6177,7 @@ const DOF8DManagement: React.FC = () => {
                       fullWidth
                       label="Başlık"
                       value={formData.title}
-                onChange={(e) => handleFormFieldChange('title', e.target.value)}
+                                      onChange={handleInputChange('title')}
                       disabled={dialogMode === 'view'}
                 sx={{ mb: 2 }}
                     />
@@ -6170,7 +6187,7 @@ const DOF8DManagement: React.FC = () => {
                       multiline
                       rows={dialogMode === 'view' ? 8 : 4}
                       value={formData.description}
-                onChange={(e) => handleFormFieldChange('description', e.target.value)}
+                      onChange={handleInputChange('description')}
                       disabled={dialogMode === 'view'}
                 sx={{ 
                   mb: 2,
@@ -6188,7 +6205,7 @@ const DOF8DManagement: React.FC = () => {
                   fullWidth
                   label="Sorumlu Kişi"
                         value={formData.responsible}
-                  onChange={(e) => handleFormFieldChange('responsible', e.target.value)}
+                                        onChange={handleInputChange('responsible')}
                         disabled={dialogMode === 'view'}
                       />
                     <TextField
@@ -6196,7 +6213,7 @@ const DOF8DManagement: React.FC = () => {
                   label="Hedef Kapanış Tarihi"
                       type="date"
                       value={formData.dueDate}
-                  onChange={(e) => handleFormFieldChange('dueDate', e.target.value)}
+                                        onChange={handleInputChange('dueDate')}
                       disabled={dialogMode === 'view'}
                       InputLabelProps={{ shrink: true }}
                     />
