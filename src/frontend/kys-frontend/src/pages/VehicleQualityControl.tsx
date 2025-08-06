@@ -313,6 +313,58 @@ const VehicleQualityControl: React.FC = () => {
     return shippedEntry ? new Date(shippedEntry.date) : null;
   };
 
+  // En sık eksiklik ve dönüş sebebini hesapla
+  const calculateMostFrequentDefect = (vehicles: Vehicle[]): string => {
+    const defectCount: { [key: string]: number } = {};
+    
+    vehicles.forEach(vehicle => {
+      if (vehicle.defects) {
+        vehicle.defects.forEach(defect => {
+          const defectKey = defect.category || 'Bilinmeyen';
+          defectCount[defectKey] = (defectCount[defectKey] || 0) + 1;
+        });
+      }
+    });
+
+    if (Object.keys(defectCount).length === 0) return 'Veri Yok';
+    
+    return Object.entries(defectCount)
+      .sort(([,a], [,b]) => b - a)[0][0] || 'Veri Yok';
+  };
+
+  const calculateMostFrequentReturnReason = (vehicles: Vehicle[]): string => {
+    const returnReasons: { [key: string]: number } = {};
+    
+    vehicles.forEach(vehicle => {
+      if (vehicle.currentStatus === VehicleStatus.RETURNED_TO_PRODUCTION && vehicle.defects) {
+        vehicle.defects.forEach(defect => {
+          const reason = defect.description || defect.category || 'Belirtilmemiş';
+          returnReasons[reason] = (returnReasons[reason] || 0) + 1;
+        });
+      }
+    });
+
+    if (Object.keys(returnReasons).length === 0) {
+      // En sık genel eksiklik tipini bul
+      const allIssues: { [key: string]: number } = {};
+      vehicles.forEach(vehicle => {
+        if (vehicle.defects) {
+          vehicle.defects.forEach(defect => {
+            const category = defect.category || 'Genel';
+            allIssues[category] = (allIssues[category] || 0) + 1;
+          });
+        }
+      });
+      
+      if (Object.keys(allIssues).length === 0) return 'Veri Yok';
+      return Object.entries(allIssues)
+        .sort(([,a], [,b]) => b - a)[0][0] || 'Veri Yok';
+    }
+    
+    return Object.entries(returnReasons)
+      .sort(([,a], [,b]) => b - a)[0][0] || 'Veri Yok';
+  };
+
   const getProcessDuration = (vehicle: Vehicle): { quality: number; production: number; total: number } => {
     let qualityHours = 0;
     let productionHours = 0;
@@ -603,10 +655,10 @@ const VehicleQualityControl: React.FC = () => {
     }
   };
 
-  // DÖF oluşturma fonksiyonu
+  // DF oluşturma fonksiyonu
   const handleCreateDOF = (defect: any, vehicle: Vehicle | null) => {
     try {
-      // DÖF modülü için uygun format hazırla
+      // DF modülü için uygun format hazırla
       const prefillData = {
         sourceModule: 'vehicleQualityControl',
         sourceRecordId: vehicle?._id || `defect_${Date.now()}`,
@@ -650,14 +702,14 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
       // Prefill verisini localStorage'a kaydet
       localStorage.setItem('dof-form-prefill', JSON.stringify(prefillData));
       
-      // DÖF8DManagement sayfasına yönlendir ve form açılmasını tetikle
+      // DF8DManagement sayfasına yönlendir ve form açılmasını tetikle
       localStorage.setItem('dof-auto-open-form', 'true');
       window.location.href = '/dof-8d-management';
       
-      setSuccess('DÖF modülüne yönlendiriliyorsunuz...');
+      setSuccess('DF modülüne yönlendiriliyorsunuz...');
     } catch (error) {
-      setError('DÖF oluşturulurken hata oluştu');
-      console.error('DÖF creation error:', error);
+      setError('DF oluşturulurken hata oluştu');
+      console.error('DF creation error:', error);
     }
   };
 
@@ -1825,7 +1877,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Grid item xs={12} md={3}>
             <Card>
               <CardContent>
-                <Typography variant="h6" color="primary">Hidrolik</Typography>
+                <Typography variant="h6" color="primary">{calculateMostFrequentDefect(vehicles)}</Typography>
                 <Typography variant="body2">En Sık Eksiklik</Typography>
               </CardContent>
             </Card>
@@ -1985,7 +2037,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
           <Grid item xs={12} md={3}>
             <Card>
               <CardContent>
-                <Typography variant="h6" color="primary">Kaynak</Typography>
+                <Typography variant="h6" color="primary">{calculateMostFrequentReturnReason(vehicles)}</Typography>
                 <Typography variant="body2">En Sık Dönüş Sebebi</Typography>
               </CardContent>
             </Card>
@@ -3490,7 +3542,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                           <li>Uyarı sistemi hesaplamaları</li>
                           <li>Performans raporları ve istatistikler</li>
                           <li>Süreç takip metrikleri</li>
-                          <li>DÖF ve uygunsuzluk kayıtları</li>
+                          <li>DF ve uygunsuzluk kayıtları</li>
                         </ul>
                         <Typography variant="body2">
                           Lütfen değişiklikleri yapmadan önce bu etkileri göz önünde bulundurun.
@@ -4444,7 +4496,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                 py: 0.5
                               }}
                             >
-                              DÖF Oluştur
+                              DF Oluştur
                             </Button>
                           </Box>
                         </ListItem>

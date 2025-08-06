@@ -45,7 +45,7 @@ const drawerWidth = 280;
 
 const menuItems = [
   { text: 'Ana Panel', icon: <DashboardIcon />, id: 'dashboard' },
-  { text: 'DÖF ve 8D Yönetimi', icon: <AssignmentIcon />, id: 'dof' },
+  { text: 'DF ve 8D Yönetimi', icon: <AssignmentIcon />, id: 'dof' },
   { text: 'Kalitesizlik Maliyeti', icon: <AnalyticsIcon />, id: 'quality-cost' },
   { text: 'Tank Sızdırmazlık Testi', icon: <QualityIcon />, id: 'tank-test' },
   { text: 'WPS Yönetimi', icon: <EngineeringIcon />, id: 'wps' },
@@ -78,7 +78,7 @@ function App() {
                 <Card>
                   <CardContent>
                     <Typography variant="h6" color="primary">
-                      Toplam DÖF
+                      Toplam DF
                     </Typography>
                     <Typography variant="h4">
                       24

@@ -436,7 +436,7 @@ const generateIntegratedKPIs = (): KPI[] => {
     }
   };
 
-  // ✅ DÖF/8D VERİLERİ - DOF8DManagement'tan
+  // ✅ DF/8D VERİLERİ - DOF8DManagement'tan
   const getDOFKPIs = (): KPI[] => {
     try {
       const dofRecords = JSON.parse(localStorage.getItem('dofRecords') || '[]');
@@ -474,15 +474,15 @@ const generateIntegratedKPIs = (): KPI[] => {
       return [
         {
           id: 'dof-closure-rate',
-          title: 'DÖF Kapanma Oranı',
-          description: 'Kapatılan DÖF kayıtlarının toplam içindeki oranı',
+          title: 'DF Kapanma Oranı',
+          description: 'Kapatılan DF kayıtlarının toplam içindeki oranı',
           category: 'quality',
           department: 'Kalite Güvence',
           responsible: 'Kalite Müdürü',
           unit: '%',
           measurementPeriod: 'monthly',
           dataType: 'automatic',
-          dataSource: 'DÖF ve 8D Modülü',
+          dataSource: 'DF ve 8D Modülü',
           targetValue: 90,
           currentValue: closureRate,
           previousValue: 87,
@@ -502,15 +502,15 @@ const generateIntegratedKPIs = (): KPI[] => {
         },
         {
           id: 'dof-overdue-count',
-          title: 'Gecikmiş DÖF Sayısı',
-          description: 'Vadesi geçmiş açık DÖF kayıtlarının sayısı',
+          title: 'Gecikmiş DF Sayısı',
+          description: 'Vadesi geçmiş açık DF kayıtlarının sayısı',
           category: 'quality',
           department: 'Kalite Güvence',
           responsible: 'Kalite Sorumlusu',
           unit: 'adet',
           measurementPeriod: 'daily',
           dataType: 'automatic',
-          dataSource: 'DÖF ve 8D Modülü',
+          dataSource: 'DF ve 8D Modülü',
           targetValue: 0,
           currentValue: overdueDOF,
           previousValue: overdueDOF + 1,
@@ -1181,7 +1181,7 @@ const generateIntegratedKPIs = (): KPI[] => {
         unit: '%',
         measurementPeriod: 'monthly',
         dataType: 'automatic',
-        dataSource: 'DÖF ve 8D Modülü',
+        dataSource: 'DF ve 8D Modülü',
         targetValue: 85,
         currentValue: capaCompletionRate,
         previousValue: 82,
@@ -1420,7 +1420,7 @@ const generateIntegratedKPIs = (): KPI[] => {
         }
       });
       
-      // DÖF'lerden tekrar edenler
+      // DF'lerden tekrar edenler
       const dofTypes: { [key: string]: number } = {};
       dofRecords.forEach((dof: any) => {
         const key = dof.problemDescription || dof.description || dof.title;
@@ -1440,14 +1440,14 @@ const generateIntegratedKPIs = (): KPI[] => {
       return [{
         id: 'recurring-defects-count',
         title: 'Tekrar Eden Hata Sayısı',
-        description: 'Aynı tipte tekrar eden hata/DÖF adedi',
+        description: 'Aynı tipte tekrar eden hata/DF adedi',
         category: 'quality',
         department: 'Kalite Kontrol',
         responsible: 'Kalite Mühendisi',
         unit: 'adet',
         measurementPeriod: 'monthly',
         dataType: 'automatic',
-        dataSource: 'Üretim Kalite Takip ve DÖF Modülleri',
+        dataSource: 'Üretim Kalite Takip ve DF Modülleri',
         targetValue: 0,
         currentValue: recurringDefectsCount,
         previousValue: recurringDefectsCount + 2,

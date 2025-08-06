@@ -410,7 +410,7 @@ const aggregateExecutiveData = () => {
     const scrapCost = costData.filter((r: any) => r.maliyetTuru?.includes('hurda')).reduce((sum: number, record: any) => 
       sum + (parseFloat(record.birimMaliyet || 0) * parseFloat(record.miktar || 0)), 0);
 
-    // 🔧 DÖF Analizi
+    // 🔧 DF Analizi
     const totalDOF = dofRecords.length;
     const openDOF = dofRecords.filter((d: any) => d.status === 'open' || d.status === 'in_progress').length;
     const overdueDOF = dofRecords.filter((d: any) => {
@@ -577,14 +577,14 @@ const generateExecutiveMetrics = (data: any): ExecutiveMetric[] => {
     },
     {
       id: 'dof-closure-rate',
-      title: 'DÖF Kapama Oranı',
+      title: 'DF Kapama Oranı',
       value: data.dofClosureRate,
       unit: '%',
       trend: data.dofClosureRate >= 85 ? 'up' : 'down',
       trendValue: Math.abs(data.dofClosureRate - 85),
       status: data.dofClosureRate >= 90 ? 'excellent' : data.dofClosureRate >= 80 ? 'good' : data.dofClosureRate >= 70 ? 'warning' : 'critical',
       target: 90,
-      source: 'DÖF ve 8D Modülü',
+      source: 'DF ve 8D Modülü',
       lastUpdate: new Date().toLocaleString('tr-TR'),
       icon: <AssignmentTurnedInIcon />,
       color: '#1976D2'
@@ -721,14 +721,14 @@ const analyzeModuleHealth = (data: any): ModuleHealth[] => {
       ]
     },
     {
-      module: 'DÖF ve 8D Yönetimi',
+      module: 'DF ve 8D Yönetimi',
       status: data.overdueDOF === 0 ? 'healthy' : data.overdueDOF <= 3 ? 'warning' : 'critical',
       score: Math.max(0, 100 - (data.overdueDOF * 10)),
       lastSync: new Date().toLocaleString('tr-TR'),
       recordCount: data.recordCounts.dof,
       keyMetrics: [
         { metric: 'Kapama Oranı', value: data.dofClosureRate, status: data.dofClosureRate >= 85 ? 'good' : 'warning' },
-        { metric: 'Gecikmiş DÖF', value: data.overdueDOF, status: data.overdueDOF === 0 ? 'good' : 'critical' }
+        { metric: 'Gecikmiş DF', value: data.overdueDOF, status: data.overdueDOF === 0 ? 'good' : 'critical' }
       ]
     },
     {
@@ -842,10 +842,10 @@ const generateCriticalAlerts = (data: any): CriticalAlert[] => {
   if (data.overdueDOF > 0) {
     alerts.push({
       id: 'overdue-dof',
-      title: 'Gecikmiş DÖF Uyarısı',
-      message: `${data.overdueDOF} adet DÖF vadesini geçmiş durumda`,
+      title: 'Gecikmiş DF Uyarısı',
+      message: `${data.overdueDOF} adet DF vadesini geçmiş durumda`,
       severity: data.overdueDOF > 5 ? 'high' : 'medium',
-      module: 'DÖF ve 8D Yönetimi',
+      module: 'DF ve 8D Yönetimi',
       timestamp: new Date().toLocaleString('tr-TR'),
       actionRequired: true
     });
@@ -949,7 +949,7 @@ const Dashboard: React.FC = () => {
     return [
       {
         id: 'kpi-1',
-        title: 'DÖF Kapama Oranı',
+        title: 'DF Kapama Oranı',
         currentValue: dofEfficiency,
         targetValue: 85,
         unit: '%',
@@ -957,7 +957,7 @@ const Dashboard: React.FC = () => {
         trend: dofEfficiency > 75 ? 'up' : 'down',
         trendValue: Math.abs(dofEfficiency - 75),
         category: 'Kalite',
-        description: 'DÖF kapatma etkinliği',
+        description: 'DF kapatma etkinliği',
         history: generateHistory(dofEfficiency)
       },
       {
@@ -1437,7 +1437,7 @@ const Dashboard: React.FC = () => {
     );
   };
 
-  // 📋 DÖF WIDGETİ
+  // 📋 DF WIDGETİ
   const DOFWidget: React.FC = () => {
     const [dofData, setDofData] = useState<any>(null);
     
@@ -1487,7 +1487,7 @@ const Dashboard: React.FC = () => {
               <AssignmentIcon sx={{ color: 'white', fontSize: 20 }} />
             </Box>
             <Typography variant="h6" fontWeight="bold" sx={{ fontSize: '1rem' }}>
-              DÖF Kapanış Oranı
+              DF Kapanış Oranı
             </Typography>
           </Box>
           
@@ -2043,7 +2043,7 @@ const Dashboard: React.FC = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="caption">DÖF Sistemi</Typography>
+                <Typography variant="caption">DF Sistemi</Typography>
                 <Typography variant="caption" fontWeight="bold">
                   %{overallStatus?.dofScore?.toFixed(1) || 0}
                 </Typography>
@@ -2211,7 +2211,7 @@ const Dashboard: React.FC = () => {
           <QuarantineWidget />
         </Grid>
 
-        {/* 📋 DÖF VE KAPATMA ORANI */}
+        {/* 📋 DF VE KAPATMA ORANI */}
         <Grid item xs={12} md={6} lg={4}>
           <DOFWidget />
         </Grid>

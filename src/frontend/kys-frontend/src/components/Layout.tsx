@@ -234,8 +234,8 @@ const getModuleTitle = (pathname) => {
     if (pathname.startsWith('/vehicle-quality-control')) return 'Araç Kalite Kontrol Takip Sistemi';
     if (pathname.startsWith('/quality-cost-management')) return 'Kalitesizlik Maliyeti ve Araç Performans Yönetimi';
     if (pathname.startsWith('/quality-cost')) return 'Kalitesizlik Maliyeti ve Araç Performans Yönetimi';
-    if (pathname.startsWith('/dof-8d-management')) return 'DÖF ve 8D Yönetimi';
-    if (pathname.startsWith('/dof-8d')) return 'DÖF ve 8D Yönetimi';
+    if (pathname.startsWith('/dof-8d-management')) return 'DF ve 8D Yönetimi';
+    if (pathname.startsWith('/dof-8d')) return 'DF ve 8D Yönetimi';
     if (pathname.startsWith('/risk-management')) return 'Risk Yönetimi';
     if (pathname.startsWith('/internal-audit-management')) return 'İç/Çapraz Tetkik Yönetimi';
     if (pathname.startsWith('/internal-audit')) return 'İç/Çapraz Tetkik Yönetimi';
@@ -328,7 +328,7 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
           { text: 'Kalitesizlik Maliyeti ve Araç Performans Yönetimi', icon: <MonetizationOnIcon />, path: '/quality-cost-management', color: '#4caf50' },
     { text: 'Üretim Kaynaklı Kalite Hata Takip', icon: <FactoryIcon />, path: '/production-quality-tracking', color: '#f44336' },
     { text: 'Karantina Yönetimi', icon: <SecurityIcon />, path: '/quarantine-management', color: '#e91e63' },
-    { text: 'DÖF ve 8D Yönetimi', icon: <BugReportIcon />, path: '/dof-8d-management', color: '#f44336' },
+    { text: 'DF ve 8D Yönetimi', icon: <BugReportIcon />, path: '/dof-8d-management', color: '#f44336' },
     { text: 'İç Tetkik Yönetimi', icon: <AssignmentTurnedInIcon />, path: '/internal-audit-management', color: '#1976d2' },
     { text: 'Risk Yönetimi', icon: <SecurityIcon />, path: '/risk-management', color: '#e91e63' },
   ];

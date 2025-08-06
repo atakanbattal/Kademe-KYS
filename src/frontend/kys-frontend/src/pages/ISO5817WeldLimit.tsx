@@ -42,18 +42,44 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
-// Types
+// Modern Types
 interface WeldData {
   materialThickness: number;
   weldType: string;
   weldWidth: number;
   weldHeight?: number;             // Kaynak yüksekliği (h) - alın kaynak için
   defectCode: string;
+  defectType: string;              // Modern: Dinamik hata türü
+  qualityLevel: string;            // B, C, D
+  dynamicParameters: { [key: string]: any }; // Dinamik parametreler
   // Köşe kaynak özel parametreleri
   nominalThroatThickness?: number; // Nominal boğaz kalınlığı (a)
   actualThroatThickness?: number;  // Fiili boğaz kalınlığı (aA)
   legLength1?: number;             // İlk bacak boyu (z1)
   legLength2?: number;             // İkinci bacak boyu (z2)
+}
+
+interface ModernCalculationResult {
+  defectInfo: {
+    code: string;
+    name: string;
+    description: string;
+    category: string;
+  };
+  weldDetails: {
+    materialThickness: number;
+    weldType: string;
+    qualityLevel: string;
+  };
+  parameters: { [key: string]: any };
+  calculation: {
+    allowed: boolean;
+    result: string;
+    reason: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    [key: string]: any;
+  };
+  timestamp: string;
 }
 
 interface DefectLimit {
@@ -158,7 +184,244 @@ const CalculateButton = styled(Button)(({ theme }) => ({
 const WELD_TYPES = [
   { value: 'butt', label: 'Alın Kaynağı', description: 'İki parçanın uç uca kaynaklanması' },
   { value: 'fillet', label: 'Köşe Kaynağı', description: 'İki parçanın köşe şeklinde kaynaklanması' },
+  { value: 'corner', label: 'Köşe Kaynak', description: 'Köşe birleştirmeler' },
+  { value: 'edge', label: 'Kenar Kaynak', description: 'Kenar birleştirmeler' },
+  { value: 'overlap', label: 'Bindirme Kaynak', description: 'Bindirme birleştirmeler' },
+  { value: 'tee', label: 'T-Kaynak', description: 'T şeklinde birleştirmeler' },
 ];
+
+// Modern Dinamik Hata Türleri ve Parametreleri
+const DEFECT_TYPES = [
+  {
+    code: '100',
+    name: 'Çatlak (Crack)',
+    category: 'yüzey',
+    parameters: ['length', 'depth'], // Sadece uzunluk ve derinlik
+    description: 'Her kalite seviyesinde müsaade edilmeyen kritik hata',
+    calculation: 'length_based', // Uzunluk bazlı hesaplama
+    appliesTo: ['butt', 'fillet', 'corner', 'edge', 'overlap', 'tee']
+  },
+  {
+    code: '101',
+    name: 'Yüzey Porozitesi (Surface Porosity)',
+    category: 'yüzey',
+    parameters: ['diameter', 'count', 'area'],
+    description: 'Kaynak yüzeyindeki gözenekler',
+    calculation: 'area_density',
+    appliesTo: ['butt', 'fillet', 'corner', 'edge', 'overlap', 'tee']
+  },
+  {
+    code: '201',
+    name: 'Penetrasyon Eksikliği (Lack of Penetration)',
+    category: 'iç',
+    parameters: ['depth', 'length', 'materialThickness'],
+    description: 'Kaynak kökünde penetrasyon eksikliği',
+    calculation: 'penetration_based',
+    appliesTo: ['butt', 'tee']
+  },
+  {
+    code: '202',
+    name: 'Kaynak Eksikliği (Lack of Fusion)',
+    category: 'iç',
+    parameters: ['length', 'depth', 'location'],
+    description: 'Ana metal ile kaynak metali arasında füzyon eksikliği',
+    calculation: 'fusion_based',
+    appliesTo: ['butt', 'fillet', 'tee']
+  },
+  {
+    code: '300',
+    name: 'Undercut',
+    category: 'geometrik',
+    parameters: ['depth', 'length', 'materialThickness'],
+    description: 'Kaynak kenarındaki oyuk',
+    calculation: 'undercut_based',
+    appliesTo: ['butt', 'fillet', 'corner', 'tee']
+  },
+  {
+    code: '301',
+    name: 'Aşırı Yığılma (Excessive Reinforcement)',
+    category: 'geometrik',
+    parameters: ['height', 'width', 'throatThickness'],
+    description: 'Kaynak metalinin aşırı yığılması',
+    calculation: 'height_based',
+    appliesTo: ['butt', 'fillet']
+  },
+  {
+    code: '400',
+    name: 'İç Porozite (Internal Porosity)',
+    category: 'iç',
+    parameters: ['diameter', 'count', 'volume', 'inspectionArea'],
+    description: 'Kaynak içindeki gözenekler',
+    calculation: 'volume_density',
+    appliesTo: ['butt', 'fillet', 'corner', 'edge', 'overlap', 'tee']
+  },
+  {
+    code: '401',
+    name: 'Cüruf Kalıntısı (Slag Inclusion)',
+    category: 'iç',
+    parameters: ['length', 'width', 'depth'],
+    description: 'Kaynak içinde kalan cüruf parçacıkları',
+    calculation: 'inclusion_based',
+    appliesTo: ['butt', 'fillet', 'corner', 'tee']
+  }
+];
+
+// Dinamik Parametre Tanımları
+const PARAMETER_DEFINITIONS = {
+  length: { label: 'Uzunluk', unit: 'mm', type: 'number', min: 0, max: 1000 },
+  depth: { label: 'Derinlik', unit: 'mm', type: 'number', min: 0, max: 100 },
+  width: { label: 'Genişlik', unit: 'mm', type: 'number', min: 0, max: 100 },
+  height: { label: 'Yükseklik', unit: 'mm', type: 'number', min: 0, max: 50 },
+  diameter: { label: 'Çap', unit: 'mm', type: 'number', min: 0, max: 50 },
+  count: { label: 'Adet', unit: 'adet', type: 'number', min: 1, max: 100 },
+  area: { label: 'Alan', unit: 'mm²', type: 'number', min: 1, max: 10000 },
+  volume: { label: 'Hacim', unit: 'mm³', type: 'number', min: 1, max: 1000000 },
+  materialThickness: { label: 'Malzeme Kalınlığı', unit: 'mm', type: 'number', min: 1, max: 200 },
+  throatThickness: { label: 'Boğaz Kalınlığı', unit: 'mm', type: 'number', min: 1, max: 50 },
+  inspectionArea: { label: 'Muayene Alanı', unit: 'mm²', type: 'number', min: 100, max: 100000 },
+  location: { label: 'Konum', unit: '', type: 'select', options: ['köök', 'yüzey', 'kenar'] }
+};
+
+// Modern Hesaplama Motoru
+const CALCULATION_ENGINE = {
+  length_based: (params: any, qualityLevel: string) => {
+    // Çatlak için uzunluk bazlı hesaplama - hiçbir kalite seviyesinde müsaade edilmez
+    return {
+      allowed: false,
+      result: 'REDDEDİLDİ',
+      reason: 'Çatlaklar hiçbir kalite seviyesinde kabul edilemez',
+      severity: 'CRITICAL'
+    };
+  },
+  
+  area_density: (params: any, qualityLevel: string) => {
+    // Yüzey porozitesi için alan yoğunluğu hesaplaması
+    const { diameter, count, area } = params;
+    const totalPoreArea = Math.PI * Math.pow(diameter / 2, 2) * count;
+    const density = (totalPoreArea / area) * 100; // Yüzde olarak
+    
+    const limits = {
+      'B': 2, // %2 maksimum
+      'C': 4, // %4 maksimum  
+      'D': 6  // %6 maksimum
+    };
+    
+    const limit = limits[qualityLevel] || limits['D'];
+    const allowed = density <= limit;
+    
+    return {
+      allowed,
+      result: allowed ? 'KABUL EDİLDİ' : 'REDDEDİLDİ',
+      reason: `Porozite yoğunluğu: ${density.toFixed(2)}% (Limit: ${limit}%)`,
+      density: density.toFixed(2),
+      limit,
+      severity: density > limit * 1.5 ? 'HIGH' : density > limit ? 'MEDIUM' : 'LOW'
+    };
+  },
+  
+  penetration_based: (params: any, qualityLevel: string) => {
+    // Penetrasyon eksikliği hesaplaması
+    const { depth, length, materialThickness } = params;
+    const penetrationRatio = (depth / materialThickness) * 100;
+    
+    const limits = {
+      'B': 10, // %10 maksimum penetrasyon eksikliği
+      'C': 20, // %20 maksimum
+      'D': 30  // %30 maksimum
+    };
+    
+    const limit = limits[qualityLevel] || limits['D'];
+    const allowed = penetrationRatio <= limit;
+    
+    return {
+      allowed,
+      result: allowed ? 'KABUL EDİLDİ' : 'REDDEDİLDİ',
+      reason: `Penetrasyon eksikliği: ${penetrationRatio.toFixed(1)}% (Limit: ${limit}%)`,
+      penetrationRatio: penetrationRatio.toFixed(1),
+      limit,
+      severity: penetrationRatio > limit * 1.5 ? 'HIGH' : penetrationRatio > limit ? 'MEDIUM' : 'LOW'
+    };
+  },
+  
+  undercut_based: (params: any, qualityLevel: string) => {
+    // Undercut hesaplaması
+    const { depth, length, materialThickness } = params;
+    const depthRatio = (depth / materialThickness) * 100;
+    
+    const limits = {
+      'B': { maxDepth: 0.5, maxRatio: 5 },   // 0.5mm veya %5
+      'C': { maxDepth: 1.0, maxRatio: 10 },  // 1.0mm veya %10
+      'D': { maxDepth: 2.0, maxRatio: 15 }   // 2.0mm veya %15
+    };
+    
+    const limit = limits[qualityLevel] || limits['D'];
+    const depthOk = depth <= limit.maxDepth;
+    const ratioOk = depthRatio <= limit.maxRatio;
+    const allowed = depthOk && ratioOk;
+    
+    return {
+      allowed,
+      result: allowed ? 'KABUL EDİLDİ' : 'REDDEDİLDİ',
+      reason: `Undercut derinliği: ${depth}mm (${depthRatio.toFixed(1)}%) - Limit: ${limit.maxDepth}mm (${limit.maxRatio}%)`,
+      depth,
+      depthRatio: depthRatio.toFixed(1),
+      limit,
+      severity: !depthOk || !ratioOk ? (depth > limit.maxDepth * 1.5 ? 'HIGH' : 'MEDIUM') : 'LOW'
+    };
+  },
+  
+  volume_density: (params: any, qualityLevel: string) => {
+    // İç porozite hacim yoğunluğu hesaplaması
+    const { diameter, count, volume, inspectionArea } = params;
+    const poreVolume = Math.PI * Math.pow(diameter / 2, 2) * (diameter / 2) * (4/3) * count; // Küre hacmi yaklaşımı
+    const density = (poreVolume / volume) * 100;
+    
+    const limits = {
+      'B': 2,  // %2 maksimum hacim yoğunluğu
+      'C': 4,  // %4 maksimum
+      'D': 8   // %8 maksimum
+    };
+    
+    const limit = limits[qualityLevel] || limits['D'];
+    const allowed = density <= limit;
+    
+    return {
+      allowed,
+      result: allowed ? 'KABUL EDİLDİ' : 'REDDEDİLDİ',
+      reason: `İç porozite yoğunluğu: ${density.toFixed(2)}% (Limit: ${limit}%)`,
+      density: density.toFixed(2),
+      limit,
+      severity: density > limit * 2 ? 'HIGH' : density > limit ? 'MEDIUM' : 'LOW'
+    };
+  },
+  
+  height_based: (params: any, qualityLevel: string) => {
+    // Aşırı yığılma yükseklik hesaplaması
+    const { height, width, throatThickness } = params;
+    const heightRatio = (height / throatThickness) * 100;
+    
+    const limits = {
+      'B': { maxHeight: 3, maxRatio: 20 },   // 3mm veya %20
+      'C': { maxHeight: 5, maxRatio: 30 },   // 5mm veya %30
+      'D': { maxHeight: 7, maxRatio: 40 }    // 7mm veya %40
+    };
+    
+    const limit = limits[qualityLevel] || limits['D'];
+    const heightOk = height <= limit.maxHeight;
+    const ratioOk = heightRatio <= limit.maxRatio;
+    const allowed = heightOk && ratioOk;
+    
+    return {
+      allowed,
+      result: allowed ? 'KABUL EDİLDİ' : 'REDDEDİLDİ',
+      reason: `Aşırı yığılma: ${height}mm (${heightRatio.toFixed(1)}%) - Limit: ${limit.maxHeight}mm (${limit.maxRatio}%)`,
+      height,
+      heightRatio: heightRatio.toFixed(1),
+      limit,
+      severity: !heightOk || !ratioOk ? 'MEDIUM' : 'LOW'
+    };
+  }
+};
 
 const QUALITY_LEVELS = [
   { 
@@ -587,12 +850,16 @@ const ISO5817WeldLimit: React.FC = () => {
     weldWidth: 0,
     weldHeight: 0,
     defectCode: '',
+    defectType: '',
+    qualityLevel: 'C',
+    dynamicParameters: {},
     nominalThroatThickness: 0,
     actualThroatThickness: 0,
     legLength1: 0,
     legLength2: 0,
   });
   const [result, setResult] = useState<CalculationResult | null>(null);
+  const [modernResult, setModernResult] = useState<ModernCalculationResult | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [defectSearchTerm, setDefectSearchTerm] = useState<string>('');
 
@@ -653,6 +920,34 @@ const ISO5817WeldLimit: React.FC = () => {
       return;
     }
 
+    // Modern sistem için defect type bulma
+    const modernDefect = DEFECT_TYPES.find(d => d.code === weldData.defectCode);
+    if (modernDefect && modernDefect.calculation && CALCULATION_ENGINE[modernDefect.calculation]) {
+      // Modern hesaplama motoru kullan
+      const calculationResult = CALCULATION_ENGINE[modernDefect.calculation](
+        weldData.dynamicParameters, 
+        weldData.qualityLevel
+      );
+      
+      const modernResult: ModernCalculationResult = {
+        calculation: calculationResult,
+        defectInfo: {
+          code: modernDefect.code,
+          name: modernDefect.name,
+          category: modernDefect.category,
+          description: modernDefect.description
+        },
+        parameters: weldData.dynamicParameters,
+        qualityLevel: weldData.qualityLevel,
+        standard: 'ISO 5817',
+        calculatedAt: new Date().toISOString()
+      };
+      
+      setModernResult(modernResult);
+      return;
+    }
+
+    // Fallback: Eski sistem
     const defect = DEFECT_CODES.find(d => d.code === weldData.defectCode);
     if (!defect) return;
 
@@ -1104,12 +1399,16 @@ const ISO5817WeldLimit: React.FC = () => {
       weldWidth: 0,
       weldHeight: 0,
       defectCode: '',
+      defectType: '',
+      qualityLevel: 'C',
+      dynamicParameters: {},
       nominalThroatThickness: 0,
       actualThroatThickness: 0,
       legLength1: 0,
       legLength2: 0,
     });
     setResult(null);
+    setModernResult(null);
     setErrors({});
   };
 
@@ -1445,6 +1744,80 @@ const ISO5817WeldLimit: React.FC = () => {
                 </Box>
                </Box>
 
+              {/* Dinamik Parametre Alanları */}
+              {weldData.defectCode && (() => {
+                const selectedDefect = DEFECT_TYPES.find(d => d.code === weldData.defectCode);
+                if (!selectedDefect || !selectedDefect.parameters || selectedDefect.parameters.length === 0) {
+                  return null;
+                }
+                
+                return (
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      {selectedDefect.name} - Dinamik Parametreler
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {selectedDefect.description}
+                    </Typography>
+                    
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+                      {selectedDefect.parameters.map((paramName) => {
+                        const paramDef = PARAMETER_DEFINITIONS[paramName];
+                        if (!paramDef) return null;
+                        
+                        return (
+                          <TextField
+                            key={paramName}
+                            label={`${paramDef.label} (${paramDef.unit})`}
+                            type={paramDef.type}
+                            value={weldData.dynamicParameters[paramName] || ''}
+                            onChange={(e) => {
+                              const value = paramDef.type === 'number' ? Number(e.target.value) : e.target.value;
+                              setWeldData({
+                                ...weldData,
+                                dynamicParameters: {
+                                  ...weldData.dynamicParameters,
+                                  [paramName]: value
+                                }
+                              });
+                            }}
+                            inputProps={{
+                              min: paramDef.min,
+                              max: paramDef.max,
+                              step: paramDef.type === 'number' ? 0.1 : undefined
+                            }}
+                            helperText={`${paramDef.min !== undefined ? `Min: ${paramDef.min}` : ''} ${paramDef.max !== undefined ? `Max: ${paramDef.max}` : ''}`}
+                            required
+                            sx={{ '& .MuiInputLabel-root': { fontSize: '0.95rem' } }}
+                          />
+                        );
+                      })}
+                    </Box>
+                  </Box>
+                );
+              })()}
+
+              {/* Kalite Seviyesi Seçimi */}
+              {weldData.defectCode && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Kalite Seviyesi
+                  </Typography>
+                  <FormControl fullWidth required>
+                    <InputLabel>Kalite Seviyesi</InputLabel>
+                    <Select
+                      value={weldData.qualityLevel}
+                      label="Kalite Seviyesi"
+                      onChange={(e) => setWeldData({...weldData, qualityLevel: e.target.value})}
+                    >
+                      <MenuItem value="B">B - En Yüksek Kalite</MenuItem>
+                      <MenuItem value="C">C - Orta Kalite</MenuItem>
+                      <MenuItem value="D">D - Ortalama Kalite</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              )}
+
               {/* Hesapla Butonu */}
               <Box sx={{ display: 'flex', justifyContent: 'center', pt: 2 }}>
                 <Button
@@ -1469,6 +1842,130 @@ const ISO5817WeldLimit: React.FC = () => {
              </Box>
            </Box>
                   </Paper>
+
+        {/* Modern Results Section */}
+        {modernResult && (
+         <Paper sx={{ 
+            p: 4, 
+            mb: 4,
+            borderRadius: 3,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+          }}>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h5" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AssignmentIcon color="primary" />
+                Modern Hesaplama Sonuçları - {modernResult.defectInfo.code}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                ISO 5817 standardına göre dinamik parametre tabanlı kalite değerlendirmesi
+             </Typography>
+           </Box>
+           
+           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+             {/* Hata Bilgisi */}
+             <Card variant="outlined">
+               <CardContent>
+                 <Typography variant="h6" gutterBottom>
+                   <InfoIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                   Hata Bilgisi
+                 </Typography>
+                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+                   <Box>
+                     <Typography variant="caption" color="text.secondary">Hata Kodu</Typography>
+                     <Typography variant="body1" fontWeight={600}>{modernResult.defectInfo.code}</Typography>
+                   </Box>
+                   <Box>
+                     <Typography variant="caption" color="text.secondary">Hata Adı</Typography>
+                     <Typography variant="body1" fontWeight={600}>{modernResult.defectInfo.name}</Typography>
+                   </Box>
+                   <Box>
+                     <Typography variant="caption" color="text.secondary">Kategori</Typography>
+                     <Typography variant="body1" fontWeight={600}>{modernResult.defectInfo.category}</Typography>
+                   </Box>
+                   <Box>
+                     <Typography variant="caption" color="text.secondary">Kalite Seviyesi</Typography>
+                     <Typography variant="body1" fontWeight={600}>{modernResult.qualityLevel}</Typography>
+                   </Box>
+                 </Box>
+                 <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                   {modernResult.defectInfo.description}
+                 </Typography>
+               </CardContent>
+             </Card>
+
+             {/* Hesaplama Sonucu */}
+             <Card variant="outlined">
+               <CardContent>
+                 <Typography variant="h6" gutterBottom>
+                   <CalculateIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                   Hesaplama Sonucu
+                 </Typography>
+                 <Box sx={{ 
+                   display: 'flex', 
+                   alignItems: 'center', 
+                   gap: 2, 
+                   p: 2, 
+                   borderRadius: 2,
+                   bgcolor: modernResult.calculation.allowed ? 'success.light' : 'error.light'
+                 }}>
+                   {modernResult.calculation.allowed ? (
+                     <CheckCircleIcon sx={{ color: 'success.dark', fontSize: 40 }} />
+                   ) : (
+                     <CancelIcon sx={{ color: 'error.dark', fontSize: 40 }} />
+                   )}
+                   <Box>
+                     <Typography variant="h6" fontWeight={700} 
+                       color={modernResult.calculation.allowed ? 'success.dark' : 'error.dark'}>
+                       {modernResult.calculation.result}
+                     </Typography>
+                     <Typography variant="body1">
+                       {modernResult.calculation.reason}
+                     </Typography>
+                     {modernResult.calculation.severity && (
+                       <Typography variant="caption" sx={{ 
+                         px: 1, 
+                         py: 0.5, 
+                         borderRadius: 1, 
+                         bgcolor: modernResult.calculation.severity === 'HIGH' ? 'error.main' : 
+                                 modernResult.calculation.severity === 'MEDIUM' ? 'warning.main' : 'info.main',
+                         color: 'white',
+                         fontWeight: 600
+                       }}>
+                         Öncelik: {modernResult.calculation.severity}
+                       </Typography>
+                     )}
+                   </Box>
+                 </Box>
+               </CardContent>
+             </Card>
+
+             {/* Girilen Parametreler */}
+             <Card variant="outlined">
+               <CardContent>
+                 <Typography variant="h6" gutterBottom>
+                   <InfoIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                   Girilen Parametreler
+                 </Typography>
+                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+                   {Object.entries(modernResult.parameters).map(([key, value]) => {
+                     const paramDef = PARAMETER_DEFINITIONS[key];
+                     return (
+                       <Box key={key}>
+                         <Typography variant="caption" color="text.secondary">
+                           {paramDef?.label || key}
+                         </Typography>
+                         <Typography variant="body1" fontWeight={600}>
+                           {value} {paramDef?.unit || ''}
+                         </Typography>
+                       </Box>
+                     );
+                   })}
+                 </Box>
+               </CardContent>
+             </Card>
+           </Box>
+         </Paper>
+        )}
 
         {/* Results Section */}
         {result && (

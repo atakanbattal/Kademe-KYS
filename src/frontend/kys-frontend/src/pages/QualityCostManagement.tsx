@@ -135,7 +135,7 @@ import {
   ComposedChart,
 } from 'recharts';
 
-// DÖF/8D Integration Import
+// DF/8D Integration Import
 import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
 
 
@@ -2482,8 +2482,8 @@ export default function QualityCostManagement() {
     return trendMap[direction.toLowerCase()] || direction;
   };
 
-  // ✅ DÖF Form Functions
-  // DÖF durumlarını takip etmek için yardımcı fonksiyonlar
+  // ✅ DF Form Functions
+  // DF durumlarını takip etmek için yardımcı fonksiyonlar
   const getDOFStatusKey = (recordData: any) => {
     // Her kayıt için benzersiz bir anahtar oluştur
     if (recordData.unit) {
@@ -2500,21 +2500,21 @@ export default function QualityCostManagement() {
 
   const isDOFCreated = (recordData: any) => {
     try {
-      // ✅ KAPSAMLI DÖF KONTROLÜ - Hem dofRecords hem de dof-8d-records anahtarlarını kontrol et
-      console.log('🔍 DÖF Kontrol Başladı:', {
+      // ✅ KAPSAMLI DF KONTROLÜ - Hem dofRecords hem de dof-8d-records anahtarlarını kontrol et
+      console.log('🔍 DF Kontrol Başladı:', {
         parcaKodu: recordData.parcaKodu,
         birim: recordData.birim,
         maliyetTuru: recordData.maliyetTuru,
         recordId: recordData.id
       });
 
-      // 1. Ana DÖF kayıtlarını kontrol et (dofRecords)
+      // 1. Ana DF kayıtlarını kontrol et (dofRecords)
       const mainDofRecords = localStorage.getItem('dofRecords');
       let foundInMain = false;
       
       if (mainDofRecords) {
         const parsedMainRecords = JSON.parse(mainDofRecords);
-        console.log('🔍 Ana DÖF Kayıtları:', parsedMainRecords.length, 'kayıt');
+        console.log('🔍 Ana DF Kayıtları:', parsedMainRecords.length, 'kayıt');
         
         foundInMain = parsedMainRecords.some((dof: any) => {
           // Kaynak modül ve kayıt ID'si eşleşmesi
@@ -2534,7 +2534,7 @@ export default function QualityCostManagement() {
           const isMatch = sourceMatch || titleMatch || descMatch || (titleMatch && deptMatch);
           
           if (isMatch) {
-            console.log('✅ Ana kayıtlarda DÖF bulundu:', {
+            console.log('✅ Ana kayıtlarda DF bulundu:', {
               dofId: dof.id,
               dofNumber: dof.dofNumber,
               sourceMatch,
@@ -2548,13 +2548,13 @@ export default function QualityCostManagement() {
         });
       }
 
-      // 2. Entegrasyon DÖF kayıtlarını kontrol et (dof-8d-records)
+      // 2. Entegrasyon DF kayıtlarını kontrol et (dof-8d-records)
       const integrationDofRecords = localStorage.getItem('dof-8d-records');
       let foundInIntegration = false;
       
       if (integrationDofRecords) {
         const parsedIntegrationRecords = JSON.parse(integrationDofRecords);
-        console.log('🔍 Entegrasyon DÖF Kayıtları:', parsedIntegrationRecords.length, 'kayıt');
+        console.log('🔍 Entegrasyon DF Kayıtları:', parsedIntegrationRecords.length, 'kayıt');
         
         foundInIntegration = parsedIntegrationRecords.some((dof: any) => {
           const sourceMatch = dof.sourceModule === 'qualityCost' && 
@@ -2568,7 +2568,7 @@ export default function QualityCostManagement() {
           const isMatch = sourceMatch || titleMatch || descMatch;
           
           if (isMatch) {
-            console.log('✅ Entegrasyon kayıtlarında DÖF bulundu:', {
+            console.log('✅ Entegrasyon kayıtlarında DF bulundu:', {
               dofId: dof.id,
               dofNumber: dof.dofNumber,
               sourceMatch,
@@ -2583,7 +2583,7 @@ export default function QualityCostManagement() {
 
       const finalResult = foundInMain || foundInIntegration;
       
-      console.log('🔍 DÖF Kontrol Sonucu:', {
+      console.log('🔍 DF Kontrol Sonucu:', {
         parcaKodu: recordData.parcaKodu,
         foundInMain,
         foundInIntegration,
@@ -2593,13 +2593,13 @@ export default function QualityCostManagement() {
       return finalResult;
       
     } catch (error) {
-      console.error('❌ DÖF durumu kontrol hatası:', error);
+      console.error('❌ DF durumu kontrol hatası:', error);
       return false;
     }
   };
 
   const markDOFAsCreated = (recordData: any) => {
-    // Yeni entegrasyon sistemi için DÖF kaydı oluştur
+    // Yeni entegrasyon sistemi için DF kaydı oluştur
     const recordId = recordData.id || `cost_${recordData.parcaKodu}_${recordData.birim}`;
     
     // Eski sistem (fallback) - localStorage güncelleme
@@ -2620,15 +2620,15 @@ export default function QualityCostManagement() {
   };
 
   const openDOFForm = (recordData: any) => {
-    console.log('🚀 DÖF Form açılıyor:', recordData);
+    console.log('🚀 DF Form açılıyor:', recordData);
     
-    // ✅ ÖNCE DÖF VAR MI KONTROL ET
+    // ✅ ÖNCE DF VAR MI KONTROL ET
     if (isDOFCreated(recordData)) {
-      alert(`⚠️ UYARI: ${recordData.parcaKodu} parça kodu için zaten bir uygunsuzluk kaydı oluşturulmuş!\n\nAynı parça için birden fazla uygunsuzluk açamazsınız. Mevcut uygunsuzluk kaydını DÖF ve 8D Yönetimi modülünden kontrol edebilirsiniz.`);
-      return; // DÖF açma işlemini durdur
+      alert(`⚠️ UYARI: ${recordData.parcaKodu} parça kodu için zaten bir uygunsuzluk kaydı oluşturulmuş!\n\nAynı parça için birden fazla uygunsuzluk açamazsınız. Mevcut uygunsuzluk kaydını DF ve 8D Yönetimi modülünden kontrol edebilirsiniz.`);
+      return; // DF açma işlemini durdur
     }
     
-    // DÖF8DManagement modülünün form'unu açmak için prefill verilerini hazırla
+    // DF8DManagement modülünün form'unu açmak için prefill verilerini hazırla
     const mappedDepartment = mapBirimToDepartment(recordData.birim || recordData.department);
     
     const prefillData = {
@@ -2662,7 +2662,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     // Prefill verisini localStorage'a kaydet
     localStorage.setItem('dof-form-prefill', JSON.stringify(prefillData));
     
-    // DÖF8DManagement sayfasına yönlendir ve form açılmasını tetikle
+    // DF8DManagement sayfasına yönlendir ve form açılmasını tetikle
     localStorage.setItem('dof-auto-open-form', 'true');
     window.location.href = '/dof-8d-management';
   };
@@ -9823,7 +9823,7 @@ const ProfessionalDataTable: React.FC<{
                             },
                             cursor: dofCreated ? 'default' : 'pointer'
                           }}
-                          title={dofCreated ? "Bu Birim İçin DÖF Zaten Oluşturulmuş" : "Bu Birim İçin DÖF/8D Oluştur"}
+                          title={dofCreated ? "Bu Birim İçin DF Zaten Oluşturulmuş" : "Bu Birim İçin DF/8D Oluştur"}
                           disabled={dofCreated}
                         >
                           {dofCreated ? <CheckCircleIcon fontSize="small" /> : <ReportProblemIcon fontSize="small" />}
@@ -9976,7 +9976,7 @@ const ProfessionalDataTable: React.FC<{
                           },
                           cursor: dofCreated ? 'default' : 'pointer'
                         }}
-                        title={dofCreated ? "Bu Kayıt İçin DÖF Zaten Oluşturulmuş" : "Bu Kayıt İçin DÖF/8D Oluştur"}
+                        title={dofCreated ? "Bu Kayıt İçin DF Zaten Oluşturulmuş" : "Bu Kayıt İçin DF/8D Oluştur"}
                         disabled={dofCreated}
                       >
                         {dofCreated ? <CheckCircleIcon fontSize="small" /> : <ReportProblemIcon fontSize="small" />}
@@ -11156,12 +11156,12 @@ const ProfessionalDataTable: React.FC<{
     }
   }, [onDataRefresh]);
 
-  // ✅ DÖF/8D Integration Functions
+  // ✅ DF/8D Integration Functions
   const getDOFStatusForRecord = useCallback((record: any) => {
     try {
-      // ✅ KAPSAMLI DÖF DURUM KONTROLÜ - Hem dofRecords hem de dof-8d-records anahtarlarını kontrol et
+      // ✅ KAPSAMLI DF DURUM KONTROLÜ - Hem dofRecords hem de dof-8d-records anahtarlarını kontrol et
       
-      // 1. Ana DÖF kayıtlarını kontrol et (dofRecords)
+      // 1. Ana DF kayıtlarını kontrol et (dofRecords)
       const mainDofRecords = localStorage.getItem('dofRecords');
       if (mainDofRecords) {
         const parsedMainRecords = JSON.parse(mainDofRecords);
@@ -11185,7 +11185,7 @@ const ProfessionalDataTable: React.FC<{
         }
       }
 
-      // 2. Entegrasyon DÖF kayıtlarını kontrol et (dof-8d-records)
+      // 2. Entegrasyon DF kayıtlarını kontrol et (dof-8d-records)
       const integrationDofRecords = localStorage.getItem('dof-8d-records');
       if (integrationDofRecords) {
         const parsedIntegrationRecords = JSON.parse(integrationDofRecords);
@@ -11211,18 +11211,18 @@ const ProfessionalDataTable: React.FC<{
     return checkDOFStatus('qualityCost', record.id.toString());
       
     } catch (error) {
-      console.error('❌ DÖF durum kontrolü hatası:', error);
+      console.error('❌ DF durum kontrolü hatası:', error);
       return null;
     }
   }, []);
 
   const handleCreateDOFForRecord = useCallback((record: any) => {
-    console.log('🚀 Birleşik Veri Yönetimi - DÖF oluşturuluyor:', record);
+    console.log('🚀 Birleşik Veri Yönetimi - DF oluşturuluyor:', record);
     
-    // ✅ ÖNCE DÖF VAR MI KONTROL ET
+    // ✅ ÖNCE DF VAR MI KONTROL ET
     if (getDOFStatusForRecord(record)) {
-      alert(`⚠️ UYARI: Bu kayıt için zaten bir uygunsuzluk kaydı oluşturulmuş!\n\nAynı kayıt için birden fazla uygunsuzluk açamazsınız. Mevcut uygunsuzluk kaydını DÖF ve 8D Yönetimi modülünden kontrol edebilirsiniz.`);
-      return; // DÖF açma işlemini durdur
+      alert(`⚠️ UYARI: Bu kayıt için zaten bir uygunsuzluk kaydı oluşturulmuş!\n\nAynı kayıt için birden fazla uygunsuzluk açamazsınız. Mevcut uygunsuzluk kaydını DF ve 8D Yönetimi modülünden kontrol edebilirsiniz.`);
+      return; // DF açma işlemini durdur
     }
 
     // Birim mapping (inline)
@@ -11273,10 +11273,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
     // Prefill verisini localStorage'a kaydet
     localStorage.setItem('dof-form-prefill', JSON.stringify(prefillData));
     
-    // DÖF8DManagement sayfasına yönlendir ve form açılmasını tetikle
+    // DF8DManagement sayfasına yönlendir ve form açılmasını tetikle
     localStorage.setItem('dof-auto-open-form', 'true');
     
-    console.log('🚀 Birleşik Veri Yönetimi - DÖF form açılıyor:', {
+    console.log('🚀 Birleşik Veri Yönetimi - DF form açılıyor:', {
       parcaKodu: record.parcaKodu,
       recordId: record.id,
       prefillDataSaved: true,
@@ -11687,7 +11687,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         <DeleteIcon />
                         </IconButton>
                         {/* ✅ HER KAYIT İÇİN UYGUNSUZLUK OLUŞTURMA BUTONU */}
-                          <Tooltip title={getDOFStatusForRecord(row) ? `DÖF Mevcut: ${getDOFStatusForRecord(row)?.dofNumber}` : "Uygunsuzluk Oluştur"}>
+                          <Tooltip title={getDOFStatusForRecord(row) ? `DF Mevcut: ${getDOFStatusForRecord(row)?.dofNumber}` : "Uygunsuzluk Oluştur"}>
                             <IconButton 
                               size="small" 
                               onClick={() => handleCreateDOFForRecord(row)}

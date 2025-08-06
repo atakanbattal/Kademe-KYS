@@ -84,7 +84,7 @@ interface DOFRecord {
   attachments: Attachment[];
   history: HistoryRecord[];
   delayReason?: string;
-  rejectionReason?: string; // ✅ DÖF reddedildiğinde neden açıklaması
+  rejectionReason?: string; // ✅ DF reddedildiğinde neden açıklaması
   mdiNumber?: string; // ✅ MDİ numarası (Manuel girilen Mühendislik Değişiklik İsteği numarası)
   remainingDays?: number;
   delayStatus?: 'on_time' | 'warning' | 'overdue';
@@ -570,27 +570,12 @@ const validatePDFData = (record: DOFRecord): { isValid: boolean; errors: string[
   
   // Zorunlu alanları kontrol et
   if (!record.title || record.title.trim() === '') {
-    errors.push('• DÖF Başlığı boş olamaz');
+    errors.push('• DF Başlığı boş olamaz');
   }
   
-  if (!record.description || record.description.trim() === '' || record.description === 'Detay bilgi yok') {
-    errors.push('• Problem açıklaması yazılmalıdır ("Detay bilgi yok" kabul edilmez)');
-  }
-  
-  if (!record.responsible || record.responsible.trim() === '') {
-    errors.push('• Sorumlu kişi belirtilmelidir');
-  }
-  
-  if (!record.department || record.department.trim() === '') {
-    errors.push('• Sorumlu departman belirtilmelidir');
-  }
-  
-  if (!record.dueDate || record.dueDate.trim() === '') {
-    errors.push('• Hedef kapanış tarihi belirtilmelidir');
-  }
-  
-  if (!record.rootCause || record.rootCause.trim() === '' || record.rootCause === 'Belirtilmemiş') {
-    errors.push('• Kök neden analizi yapılmalıdır');
+  // Esnek validasyon - sadece kritik alanları kontrol et
+  if (!record.description || record.description.trim() === '') {
+    errors.push('• Problem açıklaması yazılmalıdır');
   }
   
   return {
@@ -615,7 +600,7 @@ const generateDOFPDF = (record: DOFRecord): void => {
     
     // Veri kontrolü
     if (!record || !record.dofNumber) {
-      alert('DÖF kaydı eksik veya hatalı. PDF oluşturulamadı.');
+      alert('DF kaydı eksik veya hatalı. PDF oluşturulamadı.');
       return;
     }
     
@@ -699,14 +684,14 @@ const generateDOFPDF = (record: DOFRecord): void => {
     currentY += 10;
     
     // ============================================
-    // 📊 DÖF BAŞLIK BİLGİLERİ
+    // 📊 DF BAŞLIK BİLGİLERİ
     // ============================================
     
     doc.setFontSize(18);
     doc.setTextColor(0, 0, 0);
           const recordTitle = record.type === '8d' ? 
         turkishSafeText('8D Problem Çözme Raporu') : 
-              'Düzeltici Faaliyet Raporu (DÖF)';
+              'Düzeltici Faaliyet Raporu (DF)';
     const recordTitleWidth = doc.getTextWidth(recordTitle);
     doc.text(recordTitle, (pageWidth - recordTitleWidth) / 2, currentY);
     currentY += 15;
@@ -778,8 +763,8 @@ const generateDOFPDF = (record: DOFRecord): void => {
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text(`${turkishSafeText('DÖF Tipi')}: ${getTypeText(record.type || 'corrective')}`, margin + 5, currentY + 14);
-    doc.text(`${turkishSafeText('DÖF No')}: ${safeText(record.dofNumber)}`, margin + 5, currentY + 18);
+    doc.text(`${turkishSafeText('DF Tipi')}: ${getTypeText(record.type || 'corrective')}`, margin + 5, currentY + 14);
+    doc.text(`${turkishSafeText('DF No')}: ${safeText(record.dofNumber)}`, margin + 5, currentY + 18);
     doc.text(`${turkishSafeText('Oluşturma')}: ${safeDate(record.openingDate || record.createdDate)}`, margin + 5, currentY + 22);
     
     // Durum bilgisi - sağ üstte profesyonel görünüm
@@ -823,7 +808,7 @@ const generateDOFPDF = (record: DOFRecord): void => {
 
     // Tablo verileri
     const basicInfoRows = [
-      [turkishSafeText('DÖF Başlığı'), safeText(record.title)],
+      [turkishSafeText('DF Başlığı'), safeText(record.title)],
       [turkishSafeText('Tip'), getTypeText(record.type || 'corrective')],
       [turkishSafeText('Durum'), getStatusText(record.status || 'open')],
       [turkishSafeText('Öncelik Seviyesi'), getPriorityText(record.priority || 'medium')],
@@ -972,7 +957,7 @@ const generateDOFPDF = (record: DOFRecord): void => {
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(14);
-        doc.text(turkishSafeText('KADEME A.Ş. - DÖF RAPORU (DEVAM)'), margin + 5, currentY + 10);
+        doc.text(turkishSafeText('KADEME A.Ş. - DF RAPORU (DEVAM)'), margin + 5, currentY + 10);
         currentY += 25;
       }
       
@@ -1293,10 +1278,10 @@ const generateDOFPDF = (record: DOFRecord): void => {
         .trim();
     };
     
-    const safeTitle = createSafeFileName(record.title || 'DÖF');
+    const safeTitle = createSafeFileName(record.title || 'DF');
     const safeDOFNumber = createSafeFileName(record.dofNumber || 'NO');
     const currentDate = new Date().toISOString().split('T')[0];
-    const fileName = `DÖF_${safeDOFNumber}_${safeTitle}_${currentDate}.pdf`;
+    const fileName = `DF_${safeDOFNumber}_${safeTitle}_${currentDate}.pdf`;
     
     doc.save(fileName);
     
@@ -1304,7 +1289,10 @@ const generateDOFPDF = (record: DOFRecord): void => {
     
   } catch (error) {
     console.error('❌ PDF oluşturma hatası:', error);
-    alert('PDF oluşturulurken bir hata oluştu. Lütfen tekrar deneyiniz.');
+    console.error('Hata detayları:', error);
+    // Daha detaylı hata mesajı
+    const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+    alert(`PDF oluşturulurken bir hata oluştu:\n${errorMessage}\n\nLütfen tüm alanların doğru doldurulduğundan emin olun ve tekrar deneyin.`);
   }
 };
 
@@ -1586,7 +1574,7 @@ const DOF8DManagement: React.FC = () => {
   
   const [previewDOFNumber, setPreviewDOFNumber] = useState<string>('');
 
-  // ✅ DÖF Kapatma Modal State'leri
+  // ✅ DF Kapatma Modal State'leri
   const [closeModalOpen, setCloseModalOpen] = useState(false);
   const [selectedRecordForClose, setSelectedRecordForClose] = useState<DOFRecord | null>(null);
   const [closureData, setClosureData] = useState({
@@ -1601,7 +1589,7 @@ const DOF8DManagement: React.FC = () => {
   
   // Context7 - ENHANCED: Güvenli ve Akıllı Veri Yönetimi Sistemi
   const [dofRecords, setDofRecords] = useState<DOFRecord[]>(() => {
-    console.log('🚀 Context7 - DÖF Veri Yönetimi Başlatılıyor...');
+    console.log('🚀 Context7 - DF Veri Yönetimi Başlatılıyor...');
     
     try {
       const storedRecords = localStorage.getItem('dofRecords');
@@ -1705,8 +1693,8 @@ const DOF8DManagement: React.FC = () => {
             acc[r.type] = (acc[r.type] || 0) + 1;
             return acc;
           }, {} as any);
-          console.log('🔍 DÖF Tür Dağılımı Debug:', typeCount);
-          console.log('📊 DÖF Tür Detay:', validatedRecords.map(r => ({ 
+          console.log('🔍 DF Tür Dağılımı Debug:', typeCount);
+          console.log('📊 DF Tür Detay:', validatedRecords.map(r => ({ 
             id: r.id.substring(0, 15), 
             type: r.type, 
             title: r.title?.substring(0, 30) 
@@ -1783,7 +1771,7 @@ const DOF8DManagement: React.FC = () => {
         const autoOpenForm = localStorage.getItem('dof-auto-open-form');
         
         if (prefillData && autoOpenForm === 'true') {
-          console.log('🎯 DÖF Prefill verisi bulundu, form açılıyor...');
+          console.log('🎯 DF Prefill verisi bulundu, form açılıyor...');
           const parsedData = JSON.parse(prefillData);
           
           // Güvenli veri erişimi
@@ -1816,7 +1804,7 @@ const DOF8DManagement: React.FC = () => {
           localStorage.removeItem('dof-form-prefill');
           localStorage.removeItem('dof-auto-open-form');
           
-          console.log('✅ DÖF formu prefill verileriyle açıldı');
+          console.log('✅ DF formu prefill verileriyle açıldı');
         }
       } catch (error) {
         console.error('❌ Prefill veri okuma hatası:', error);
@@ -1871,7 +1859,7 @@ const DOF8DManagement: React.FC = () => {
           localStorage.removeItem('dof-form-prefill');
           localStorage.removeItem('dof-auto-open-form');
           
-          console.log('✅ Periyodik kontrol: DÖF formu prefill verileriyle açıldı');
+          console.log('✅ Periyodik kontrol: DF formu prefill verileriyle açıldı');
         }
       } catch (error) {
         console.error('❌ Periyodik prefill kontrol hatası:', error);
@@ -2007,8 +1995,8 @@ const DOF8DManagement: React.FC = () => {
         // MDİ türü ama numara girilmemişse uyarı
         setPreviewDOFNumber('MDİ numarası giriniz');
       } else {
-        // Normal DÖF/8D numarası üret
-        const prefix = formData.type === '8d' ? '8D' : 'DÖF';
+        // Normal DF/8D numarası üret
+        const prefix = formData.type === '8d' ? '8D' : 'DF';
         const generatedNumber = generateUniqueNumber(prefix, dofRecords);
         setPreviewDOFNumber(generatedNumber);
       }
@@ -2051,9 +2039,9 @@ const DOF8DManagement: React.FC = () => {
       }
     };
 
-    // ✅ DÖF Türleri Migration - Eski "corrective" ve "preventive" türlerini "corrective_preventive" olarak güncelle
+    // ✅ DF Türleri Migration - Eski "corrective" ve "preventive" türlerini "corrective_preventive" olarak güncelle
     const migrateDOFTypes = () => {
-      console.log('🔄 DÖF türleri migration başlatılıyor...');
+      console.log('🔄 DF türleri migration başlatılıyor...');
       
       const recordsToMigrate = dofRecords.filter(record => 
         (record.type as any) === 'corrective' || (record.type as any) === 'preventive'
@@ -2077,7 +2065,7 @@ const DOF8DManagement: React.FC = () => {
           return record;
         });
         
-        console.log('✅ DÖF türleri migration tamamlandı, localStorage güncellenecek');
+        console.log('✅ DF türleri migration tamamlandı, localStorage güncellenecek');
         setDofRecords(updatedRecords);
         localStorage.setItem('dofRecords', JSON.stringify(updatedRecords));
       } else {
@@ -2349,22 +2337,22 @@ const DOF8DManagement: React.FC = () => {
         if (isNaN(aDate.getTime())) return 1;
         if (isNaN(bDate.getTime())) return -1;
         
-        // Tarihler aynıysa DÖF numarasına göre sırala
+        // Tarihler aynıysa DF numarasına göre sırala
         if (aDate.getTime() === bDate.getTime()) {
           const aDofNumber = a.dofNumber || '';
           const bDofNumber = b.dofNumber || '';
           return bDofNumber.localeCompare(aDofNumber); // Büyük numaradan küçüğe
         }
         
-        // En yeni oluşturulan DÖF en üstte olacak şekilde sıralama
+        // En yeni oluşturulan DF en üstte olacak şekilde sıralama
         return bDate.getTime() - aDate.getTime();
       });
   }, [metrics.filteredRecords, filters.delayStatus, filters.priority, getDelayMessage]); // Context7 - Remove unnecessary dependencies
 
-  // Context7 - ENHANCED: Profesyonel DÖF Kapatma Sistemi
+  // Context7 - ENHANCED: Profesyonel DF Kapatma Sistemi
   const closeDOF = useCallback((recordId: string, closeReason: string = 'Manuel kapatma') => {
     try {
-      console.log('🔒 Context7 - DÖF kapatma işlemi başlatılıyor...', recordId);
+      console.log('🔒 Context7 - DF kapatma işlemi başlatılıyor...', recordId);
       
       // Context7 - GÜVENLI KAYIT BULMA
       const recordToClose = dofRecords.find(r => r.id === recordId);
@@ -2389,7 +2377,7 @@ const DOF8DManagement: React.FC = () => {
         remainingDays: recordToClose.remainingDays
       });
 
-      // DÖF kapatma modal'ını aç
+      // DF kapatma modal'ını aç
       setSelectedRecordForClose(recordToClose);
       setClosureData({
         closedDate: new Date().toISOString().split('T')[0],
@@ -2399,7 +2387,7 @@ const DOF8DManagement: React.FC = () => {
       setCloseModalOpen(true);
       
     } catch (error) {
-      console.error('❌ Context7 - DÖF kapatma hatası:', error);
+      console.error('❌ Context7 - DF kapatma hatası:', error);
       // Kapatma hatası - sessiz hata
     }
   }, [dofRecords]);
@@ -2463,7 +2451,7 @@ const DOF8DManagement: React.FC = () => {
                 ...(record.history || []),
                 {
                   id: `close_${Date.now()}`,
-                  action: 'DÖF Kapatıldı',
+                  action: 'DF Kapatıldı',
                   user: 'Sistem Kullanıcısı',
                   date: closedDate,
                   details: `${getCloseReasonText(closeReason)} | Kapanış: ${closedTime} | ${wasOverdue ? '⚠️ Gecikme ile' : '✅ Zamanında'} kapatıldı | Kalan gün: ${finalRemainingDays}${closureData.closureNotes ? ` | Not: ${closureData.closureNotes}` : ''}`
@@ -2504,10 +2492,10 @@ const DOF8DManagement: React.FC = () => {
         closureNotes: ''
       });
       
-      console.log('✅ Context7 - DÖF kapatma işlemi başarıyla tamamlandı');
+      console.log('✅ Context7 - DF kapatma işlemi başarıyla tamamlandı');
       
     } catch (error) {
-      console.error('❌ Context7 - DÖF kapatma hatası:', error);
+      console.error('❌ Context7 - DF kapatma hatası:', error);
     }
   }, [selectedRecordForClose, closureData, dofRecords]);
 
@@ -2585,11 +2573,40 @@ const DOF8DManagement: React.FC = () => {
 
   const handleViewAttachment = (attachment: Attachment) => {
     try {
-      window.open(attachment.url, '_blank');
+      if (attachment.url) {
+        // Base64 URL'leri için güvenli görüntüleme
+        if (attachment.url.startsWith('data:')) {
+          // Base64 verisi için blob oluştur
+          const base64Data = attachment.url.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: attachment.type || 'application/octet-stream' });
+          const blobUrl = URL.createObjectURL(blob);
+          
+          // Yeni sekmede aç
+          const newWindow = window.open(blobUrl, '_blank');
+          if (!newWindow) {
+            throw new Error('Pop-up engellenmiş olabilir');
+          }
+          
+          // Memory leak'i önlemek için URL'yi temizle
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        } else {
+          // Normal URL için
+          window.open(attachment.url, '_blank');
+        }
+      } else {
+        throw new Error('Dosya URL\'si bulunamadı');
+      }
     } catch (error) {
+      console.error('Dosya görüntüleme hatası:', error);
       setSnackbar({
         open: true,
-        message: 'Dosya görüntüleme hatası',
+        message: 'Dosya görüntülenemiyor. Lütfen dosyayı indirip açmayı deneyin.',
         severity: 'error'
       });
     }
@@ -2608,14 +2625,14 @@ const DOF8DManagement: React.FC = () => {
     });
   };
 
-  // Context7 - ENHANCED: Profesyonel DÖF Silme Sistemi
+  // Context7 - ENHANCED: Profesyonel DF Silme Sistemi
   const deleteDOFRecord = useCallback((recordId: string) => {
     try {
-      console.log('🗑️ Context7 - DÖF silme işlemi başlatılıyor:', recordId);
+      console.log('🗑️ Context7 - DF silme işlemi başlatılıyor:', recordId);
       
       setDofRecords(prev => {
         const updatedRecords = prev.filter(record => record.id !== recordId);
-        console.log(`✅ Context7 - DÖF silindi. Önceki: ${prev.length}, Sonrası: ${updatedRecords.length}`);
+        console.log(`✅ Context7 - DF silindi. Önceki: ${prev.length}, Sonrası: ${updatedRecords.length}`);
         
         // Context7 - Silme sonrası localStorage'a kaydet
         try {
@@ -2627,12 +2644,12 @@ const DOF8DManagement: React.FC = () => {
         return updatedRecords;
       });
       
-      // DÖF başarıyla silindi - sessiz işlem
+      // DF başarıyla silindi - sessiz işlem
       
-      console.log('✅ Context7 - DÖF silme işlemi başarıyla tamamlandı');
+      console.log('✅ Context7 - DF silme işlemi başarıyla tamamlandı');
       
     } catch (error) {
-      console.error('❌ Context7 - DÖF silme hatası:', error);
+      console.error('❌ Context7 - DF silme hatası:', error);
       // Silme hatası - sessiz hata
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps  
@@ -2868,35 +2885,35 @@ const DOF8DManagement: React.FC = () => {
   // ✅ Etkileşimli Tablo Fonksiyonları
   const handleDepartmentClick = (department: string) => {
     console.log('🏢 Context7 - Department clicked:', department);
-    // Filtreyi departmana göre ayarla ve DÖF Listesi tab'ına geç
+    // Filtreyi departmana göre ayarla ve DF Listesi tab'ına geç
     handleFilterChange('department', department);
-    setActiveTab(1); // DÖF Listesi tab'ına geç
+    setActiveTab(1); // DF Listesi tab'ına geç
   };
 
   const handleStatusClick = (status: string) => {
     console.log('📊 Context7 - Status clicked:', status);
-    // Filtreyi duruma göre ayarla ve DÖF Listesi tab'ına geç
+    // Filtreyi duruma göre ayarla ve DF Listesi tab'ına geç
     handleFilterChange('status', status);
     setActiveTab(1);
   };
 
   const handlePriorityClick = (priority: string) => {
     console.log('⚠️ Context7 - Priority clicked:', priority);
-    // Filtreyi öncelik durumuna göre ayarla ve DÖF Listesi tab'ına geç
+    // Filtreyi öncelik durumuna göre ayarla ve DF Listesi tab'ına geç
     handleFilterChange('priority', priority);
     setActiveTab(1);
   };
 
   const handleDelayStatusClick = (delayStatus: string) => {
     console.log('⏰ Context7 - Delay status clicked:', delayStatus);
-    // Filtreyi gecikme durumuna göre ayarla ve DÖF Listesi tab'ına geç
+    // Filtreyi gecikme durumuna göre ayarla ve DF Listesi tab'ına geç
     handleFilterChange('delayStatus', delayStatus);
     setActiveTab(1);
   };
 
   const handleDOFNumberClick = (dofNumber: string) => {
     console.log('📋 Context7 - DOF number clicked:', dofNumber);
-    // İlgili DÖF kaydını bul ve görüntüle
+    // İlgili DF kaydını bul ve görüntüle
     const record = dofRecords.find(r => r.dofNumber === dofNumber);
     if (record) {
       openViewDialog(record);
@@ -2926,7 +2943,7 @@ const DOF8DManagement: React.FC = () => {
       
       // ✅ Rejected status için red nedeni zorunlu
       if (formData.status === 'rejected' && !formData.rejectionReason?.trim()) {
-        validationErrors.push('DÖF reddedildiğinde red nedeni açıklaması zorunludur');
+        validationErrors.push('DF reddedildiğinde red nedeni açıklaması zorunludur');
       }
       
       // ✅ MDİ türü için MDİ numarası zorunlu
@@ -2948,7 +2965,7 @@ const DOF8DManagement: React.FC = () => {
       if (dialogMode === 'create') {
         console.log('🆕 Context7 - Yeni kayıt oluşturuluyor...');
         
-        const dofPrefix = formData.type === '8d' ? '8D' : 'DÖF';
+        const dofPrefix = formData.type === '8d' ? '8D' : 'DF';
         const recordId = `${dofPrefix}-${now.getTime()}`;
         
         // Context7 - AKILLI NUMARA ÜRETİMİ (QualityCostManagement ile uyumlu)
@@ -2960,8 +2977,8 @@ const DOF8DManagement: React.FC = () => {
           // 8D kayıtları için benzersiz numara
           dofNumber = generateUniqueNumber('8D', dofRecords);
         } else {
-          // DÖF kayıtları için benzersiz numara
-          dofNumber = generateUniqueNumber('DÖF', dofRecords);
+          // DF kayıtları için benzersiz numara
+          dofNumber = generateUniqueNumber('DF', dofRecords);
         }
 
         const newRecord: DOFRecord = {
@@ -3010,16 +3027,16 @@ const DOF8DManagement: React.FC = () => {
           // Context7 - Geçmiş kaydı
           history: [{
             id: `h1_${now.getTime()}`,
-            action: `${formData.type === '8d' ? '8D Problemi' : 'DÖF'} Oluşturuldu`,
+            action: `${formData.type === '8d' ? '8D Problemi' : 'DF'} Oluşturuldu`,
             user: 'Atakan Battal',
             date: currentDate,
-            details: `Yeni ${formData.type === '8d' ? '8D problemi çözme' : 'DÖF'} kaydı oluşturuldu. Tip: ${DOF_TYPES.find(t => t.value === formData.type)?.label}, Departman: ${formData.department}, Sorumlu: ${formData.responsible}, Durum: ${STATUS_OPTIONS.find(s => s.value === formData.status)?.label}`
+            details: `Yeni ${formData.type === '8d' ? '8D problemi çözme' : 'DF'} kaydı oluşturuldu. Tip: ${DOF_TYPES.find(t => t.value === formData.type)?.label}, Departman: ${formData.department}, Sorumlu: ${formData.responsible}, Durum: ${STATUS_OPTIONS.find(s => s.value === formData.status)?.label}`
           }].concat(formData.status === 'closed' ? [{
             id: `h2_${now.getTime()}`,
-            action: 'DÖF Kapatıldı',
+            action: 'DF Kapatıldı',
             user: 'Atakan Battal',
             date: currentDate,
-            details: `DÖF kapalı durumda oluşturuldu ve otomatik olarak kapatıldı.`
+            details: `DF kapalı durumda oluşturuldu ve otomatik olarak kapatıldı.`
           }] : [])
         };
 
@@ -3047,7 +3064,7 @@ const DOF8DManagement: React.FC = () => {
           return updated;
         });
         
-        // DÖF başarıyla oluşturuldu - Alert kaldırıldı
+        // DF başarıyla oluşturuldu - Alert kaldırıldı
         
       } else if (dialogMode === 'edit' && selectedRecord) {
         console.log('✏️ Context7 - Kayıt güncelleniyor...', selectedRecord.id);
@@ -3083,10 +3100,10 @@ const DOF8DManagement: React.FC = () => {
             ...selectedRecord.history,
             {
               id: `edit_${now.getTime()}`,
-              action: 'DÖF/8D Güncellendi',
+              action: 'DF/8D Güncellendi',
               user: 'Atakan Battal',
               date: currentDate,
-              details: `Kayıt güncellendi. ${formData.dofNumber !== selectedRecord.dofNumber ? `DÖF Numarası: ${selectedRecord.dofNumber} → ${formData.dofNumber} | ` : ''}${formData.type === '8d' ? `8D İlerleme: %${calculate8DProgress(formData.d8Steps)} | ` : ''}Değişiklik zamanı: ${currentTime}`
+              details: `Kayıt güncellendi. ${formData.dofNumber !== selectedRecord.dofNumber ? `DF Numarası: ${selectedRecord.dofNumber} → ${formData.dofNumber} | ` : ''}${formData.type === '8d' ? `8D İlerleme: %${calculate8DProgress(formData.d8Steps)} | ` : ''}Değişiklik zamanı: ${currentTime}`
             }
           ]
         };
@@ -3115,7 +3132,7 @@ const DOF8DManagement: React.FC = () => {
           return updated;
         });
         
-        // DÖF başarıyla güncellendi - Alert kaldırıldı
+        // DF başarıyla güncellendi - Alert kaldırıldı
       }
       
       // ✅ Prefill verilerini temizle (kayıt tamamlandığında)
@@ -3136,7 +3153,7 @@ const DOF8DManagement: React.FC = () => {
     } catch (error) {
       console.error('❌ Context7 - Kayıt hatası:', error);
       // Kayıt hatası - kullanıcıya hata mesajı göster
-      alert('❌ DÖF kaydetme sırasında bir hata oluştu. Lütfen tekrar deneyiniz.\n\nHata: ' + (error as Error).message);
+      alert('❌ DF kaydetme sırasında bir hata oluştu. Lütfen tekrar deneyiniz.\n\nHata: ' + (error as Error).message);
     }
   };
 
@@ -3299,7 +3316,7 @@ const DOF8DManagement: React.FC = () => {
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
               <UltraIsolatedSearchInput
                 label="Gelişmiş Arama"
-                placeholder="DÖF numarası, başlık, açıklama..."
+                placeholder="DF numarası, başlık, açıklama..."
                 initialValue={filters.searchTerm}
                 onDebouncedChange={handleDebouncedSearchChange}
                 fullWidth
@@ -3456,7 +3473,7 @@ const DOF8DManagement: React.FC = () => {
         scrollButtons="auto"
       >
         <Tab label="Dashboard" icon={<DashboardIcon />} />
-        <Tab label="DÖF/8D Listesi" icon={<AssignmentIcon />} />
+        <Tab label="DF/8D Listesi" icon={<AssignmentIcon />} />
         <Tab label="Raporlar" icon={<AssessmentIcon />} />
       </Tabs>
 
@@ -3482,7 +3499,7 @@ const DOF8DManagement: React.FC = () => {
                         {metrics.total}
                       </Typography>
                       <Typography variant="h6" color="text.primary" fontWeight={600}>
-                        Toplam DÖF/8D
+                        Toplam DF/8D
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                       {Object.values(filters).some(filter => filter) ? 'Filtreli kayıt sayısı' : 'Aktif kayıt sayısı'}
@@ -4039,7 +4056,7 @@ const DOF8DManagement: React.FC = () => {
                         minWidth: 120,
                         maxWidth: 120
                       }}>
-                        DÖF No
+                        DF No
                       </TableCell>
                       <TableCell sx={{ 
                         fontWeight: 700, 
@@ -4363,7 +4380,7 @@ const DOF8DManagement: React.FC = () => {
                         minWidth: 120,
                         maxWidth: 120
                       }}>
-                        DÖF No
+                        DF No
                       </TableCell>
                       <TableCell sx={{ 
                         fontWeight: 700, 
@@ -4605,7 +4622,7 @@ const DOF8DManagement: React.FC = () => {
 
             </Paper>
 
-            {/* 4. Kritiklik Bazlı DÖF Dağılımı */}
+            {/* 4. Kritiklik Bazlı DF Dağılımı */}
             <Paper sx={{ 
               p: 0, 
               borderRadius: 3, 
@@ -4626,7 +4643,7 @@ const DOF8DManagement: React.FC = () => {
               }}>
                 <TrendingUpIcon />
                 <Typography variant="h6" fontWeight={600}>
-                  4. Kritiklik Bazlı DÖF Dağılımı
+                  4. Kritiklik Bazlı DF Dağılımı
                 </Typography>
               </Box>
               <TableContainer sx={{ maxHeight: 450 }}>
@@ -4649,7 +4666,7 @@ const DOF8DManagement: React.FC = () => {
                         borderColor: 'info.main',
                         color: 'info.main'
                       }}>
-                        Toplam DÖF
+                        Toplam DF
                       </TableCell>
                       <TableCell align="center" sx={{ 
                         fontWeight: 700, 
@@ -4944,12 +4961,12 @@ const DOF8DManagement: React.FC = () => {
                   </Typography>
                                 <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
                                   {metrics.filteredRecords.length === 0 
-                                    ? 'Hiç DÖF kaydı yok' 
+                                    ? 'Hiç DF kaydı yok' 
                                     : `${metrics.filteredRecords.length} kayıt var, ancak kök neden bilgisi eksik`}
                                 </Typography>
                                 {metrics.filteredRecords.length === 0 && (
                                   <Typography variant="caption" color="primary.main" sx={{ fontStyle: 'italic' }}>
-                                    Dashboard sekmesine gidip "Yeni DÖF/8D Ekle" butonunu kullanarak kayıt oluşturabilirsiniz
+                                    Dashboard sekmesine gidip "Yeni DF/8D Ekle" butonunu kullanarak kayıt oluşturabilirsiniz
                                   </Typography>
                                 )}
                 </Box>
@@ -5004,7 +5021,7 @@ const DOF8DManagement: React.FC = () => {
                                 // Kök neden kategorisine göre filtreleme 
                                 // Bu özellik geliştirilecek - şimdilik console log
                                 console.log('🔍 Context7 - Root cause category clicked:', category);
-                                setActiveTab(1); // DÖF Listesi tab'ına geç
+                                setActiveTab(1); // DF Listesi tab'ına geç
                               }}
                             >
                               <TableCell sx={{ 
@@ -5055,12 +5072,12 @@ const DOF8DManagement: React.FC = () => {
         </Box>
       )}
 
-      {/* ✅ Gelişmiş DÖF/8D Listesi Tab */}
+      {/* ✅ Gelişmiş DF/8D Listesi Tab */}
       {activeTab === 1 && (
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h5" fontWeight={600}>
-              DÖF/8D Kayıtları ({enhancedFilteredRecords.length})
+              DF/8D Kayıtları ({enhancedFilteredRecords.length})
           </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button
@@ -5084,7 +5101,7 @@ const DOF8DManagement: React.FC = () => {
                 onClick={openCreateDialog}
                                 sx={{ borderRadius: 2 }}
               >
-                Yeni DÖF/8D Ekle
+                Yeni DF/8D Ekle
               </Button>
               
 
@@ -5102,7 +5119,7 @@ const DOF8DManagement: React.FC = () => {
                 <TableHead>
                   <TableRow>
                   <TableCell sx={{ minWidth: 150, maxWidth: 150 }}>
-                    <Typography fontWeight={600} variant="body2">DÖF No</Typography>
+                    <Typography fontWeight={600} variant="body2">DF No</Typography>
                   </TableCell>
                   <TableCell sx={{ minWidth: 280, maxWidth: 280 }}>
                     <Typography fontWeight={600} variant="body2">Başlık</Typography>
@@ -5305,7 +5322,7 @@ const DOF8DManagement: React.FC = () => {
                             size="small" 
                             color="success" 
                             onClick={() => closeDOF(record.id, 'Manuel kapatma')}
-                            title="DÖF'ü Kapat"
+                            title="DF'ü Kapat"
                             sx={{ width: 24, height: 24 }}
                           >
                             <CheckCircleIcon sx={{ fontSize: 16 }} />
@@ -5328,7 +5345,7 @@ const DOF8DManagement: React.FC = () => {
                   <TableRow>
                     <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">
-                        Filtrelere uygun DÖF kaydı bulunamadı.
+                        Filtrelere uygun DF kaydı bulunamadı.
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                         Filtreleri değiştirerek farklı sonuçlara ulaşabilirsiniz
@@ -5347,7 +5364,7 @@ const DOF8DManagement: React.FC = () => {
                       <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
             <Typography variant="h5" fontWeight={600}>
-              DÖF/8D Gelişmiş Analiz Raporları
+              DF/8D Gelişmiş Analiz Raporları
                         </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button variant="outlined" startIcon={<ExcelIcon />} size="small">
@@ -5371,7 +5388,7 @@ const DOF8DManagement: React.FC = () => {
                         </Typography>
                       </Box>
                 <Typography variant="body2" color="text.secondary" paragraph>
-                  Tüm DÖF/8D kayıtlarının genel durumu ve istatistikleri
+                  Tüm DF/8D kayıtlarının genel durumu ve istatistikleri
                 </Typography>
                 <Button
                   variant="outlined"
@@ -5435,11 +5452,11 @@ const DOF8DManagement: React.FC = () => {
               bgcolor: formData.type === '8d' ? 'primary.main' : 'secondary.main', 
               color: 'white' 
             }}>
-              {formData.type === '8d' ? '8D' : 'DÖF'}
+              {formData.type === '8d' ? '8D' : 'DF'}
             </Box>
             <Typography variant="h6">
-              {dialogMode === 'create' ? 'Yeni DÖF/8D Oluştur' : 
-               dialogMode === 'edit' ? 'DÖF/8D Düzenle' : 'DÖF/8D Görüntüle'}
+              {dialogMode === 'create' ? 'Yeni DF/8D Oluştur' : 
+               dialogMode === 'edit' ? 'DF/8D Düzenle' : 'DF/8D Görüntüle'}
             </Typography>
           </Box>
         </DialogTitle>
@@ -5484,7 +5501,7 @@ const DOF8DManagement: React.FC = () => {
                           ? 'Manuel numara giriniz' 
                           : 'Otomatik oluşturulur')
                       : dialogMode === 'edit'
-                      ? 'DÖF numarasını düzenleyebilirsiniz'
+                      ? 'DF numarasını düzenleyebilirsiniz'
                       : ''
                   }
                   sx={{
@@ -5639,7 +5656,7 @@ const DOF8DManagement: React.FC = () => {
                       <Box sx={{ mt: 2 }}>
                         <Alert severity="error" sx={{ mb: 2 }}>
                           <Typography variant="body2">
-                            <strong>Red Nedeni Açıklaması Gerekli!</strong> Bu DÖF reddedilmiş durumda. 
+                            <strong>Red Nedeni Açıklaması Gerekli!</strong> Bu DF reddedilmiş durumda. 
                             Lütfen red nedenini detaylı bir şekilde açıklayın.
                           </Typography>
                         </Alert>
@@ -5656,7 +5673,7 @@ const DOF8DManagement: React.FC = () => {
                           error={formData.status === 'rejected' && !formData.rejectionReason?.trim()}
                           helperText={
                             formData.status === 'rejected' && !formData.rejectionReason?.trim() 
-                              ? "Bu alan DÖF reddedildiğinde zorunludur" 
+                              ? "Bu alan DF reddedildiğinde zorunludur" 
                               : "Red nedeni açıklaması sistem geçmişinde saklanacaktır"
                           }
                           sx={{ 
@@ -5672,12 +5689,12 @@ const DOF8DManagement: React.FC = () => {
                       </Box>
                     )}
 
-                    {/* ✅ DÖF KAPATMA ÖZELLİKLERİ - Status 'closed' seçildiğinde görünür */}
+                    {/* ✅ DF KAPATMA ÖZELLİKLERİ - Status 'closed' seçildiğinde görünür */}
                     {formData.status === 'closed' && (
                       <Box sx={{ mt: 2 }}>
                         <Alert severity="success" sx={{ mb: 2 }}>
                           <Typography variant="body2">
-                            <strong>DÖF Kapatma Bilgileri</strong> Bu DÖF kapatılmış durumda. 
+                            <strong>DF Kapatma Bilgileri</strong> Bu DF kapatılmış durumda. 
                             Kapatma tarihi ve nedeni aşağıda belirtilmelidir.
                           </Typography>
                         </Alert>
@@ -5692,7 +5709,7 @@ const DOF8DManagement: React.FC = () => {
                             disabled={dialogMode === 'view'}
                             InputLabelProps={{ shrink: true }}
                             required
-                            helperText="DÖF'ün kapatıldığı tarih"
+                            helperText="DF'ün kapatıldığı tarih"
                             sx={{ 
                               '& .MuiOutlinedInput-root': {
                                 bgcolor: 'success.50'
@@ -6357,7 +6374,7 @@ const DOF8DManagement: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* ✅ DÖF Kapatma Modal'ı - Şık ve Modern Tasarım */}
+      {/* ✅ DF Kapatma Modal'ı - Şık ve Modern Tasarım */}
       <Dialog
         open={closeModalOpen}
         onClose={() => setCloseModalOpen(false)}
@@ -6383,7 +6400,7 @@ const DOF8DManagement: React.FC = () => {
             <CheckCircleIcon sx={{ fontSize: 32 }} />
             <Box>
               <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                DÖF Kapatma İşlemi
+                DF Kapatma İşlemi
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 {selectedRecordForClose?.dofNumber} - {selectedRecordForClose?.title}
@@ -6515,7 +6532,7 @@ const DOF8DManagement: React.FC = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Typography variant="body2">
-                    <strong>DÖF:</strong> {selectedRecordForClose?.dofNumber}
+                    <strong>DF:</strong> {selectedRecordForClose?.dofNumber}
                   </Typography>
                   <Typography variant="body2">
                     <strong>Departman:</strong> {selectedRecordForClose?.department}
@@ -6582,7 +6599,7 @@ const DOF8DManagement: React.FC = () => {
               }
             }}
           >
-            DÖF'ü Kapat
+            DF'ü Kapat
           </Button>
         </DialogActions>
       </Dialog>

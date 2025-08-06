@@ -322,27 +322,35 @@ interface DeviationApproval {
     approver: string;
     approvalDate?: string;
     comments?: string;
+    rejectionReason?: string;
   };
   qualityApproval: {
     approved: boolean;
     approver: string;
     approvalDate?: string;
     comments?: string;
+    rejectionReason?: string;
   };
   productionApproval: {
     approved: boolean;
     approver: string;
     approvalDate?: string;
     comments?: string;
+    rejectionReason?: string;
   };
   generalManagerApproval: {
     approved: boolean;
     approver: string;
     approvalDate?: string;
     comments?: string;
+    rejectionReason?: string;
   };
-  status: 'pending' | 'rd-approved' | 'quality-approved' | 'production-approved' | 'final-approved' | 'rejected';
+  status: 'pending' | 'rd-approved' | 'quality-approved' | 'production-approved' | 'final-approved' | 'rejected' | 'closed';
   rejectionReason?: string; // Reddetme sebebi
+  closureNotes?: string; // Kapatma notları
+  closureDate?: string; // Kapatma tarihi
+  closedBy?: string; // Kapatan kişi
+  closureDocuments?: DeviationAttachment[]; // Kapatma kanıt dokümanları
   attachments: DeviationAttachment[];
   usageTracking: UsageTracking[];
   createdAt: string;
@@ -357,6 +365,7 @@ interface DeviationAttachment {
   uploadDate: string;
   uploadedBy: string;
   url?: string;
+  deviationId?: string; // İsteğe bağlı property eklendi
 }
 
 interface UsageTracking {
@@ -495,6 +504,22 @@ const DeviationApprovalManagement: React.FC = () => {
   const [selectedAttachments, setSelectedAttachments] = useState<DeviationAttachment[]>([]);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
   
+  // DF Kapatma Dialog State'leri
+  const [closureDialogOpen, setClosureDialogOpen] = useState(false);
+  const [selectedDeviationForClosure, setSelectedDeviationForClosure] = useState<DeviationApproval | null>(null);
+  const [closureNotes, setClosureNotes] = useState('');
+  const [closureDocuments, setClosureDocuments] = useState<DeviationAttachment[]>([]);
+  
+  // Nihai Karar Modal State
+  const [finalDecisionModal, setFinalDecisionModal] = useState(false);
+  const [selectedDeviationForDecision, setSelectedDeviationForDecision] = useState<DeviationApproval | null>(null);
+  const [departmentDecisions, setDepartmentDecisions] = useState({
+    rd: { approved: false, rejectionReason: '' },
+    quality: { approved: false, rejectionReason: '' },
+    production: { approved: false, rejectionReason: '' },
+    generalManager: { approved: false, rejectionReason: '' }
+  });
+  
   // Detaylı görüntüleme modalı
   const [detailViewDialog, setDetailViewDialog] = useState(false);
   const [selectedDeviationForDetail, setSelectedDeviationForDetail] = useState<DeviationApproval | null>(null);
@@ -599,6 +624,14 @@ const DeviationApprovalManagement: React.FC = () => {
       filtered = filtered.filter(deviation => deviation.department === departmentFilter);
     }
 
+    // Sapma numarasına göre sıralama (DF-001, DF-002, DF-003 gibi)
+    // Sapma numarasına göre sıralama (en yeni/büyük numara üstte)
+    filtered = filtered.sort((a, b) => {
+      const aNum = a.deviationNumber?.split('-')[1];
+      const bNum = b.deviationNumber?.split('-')[1];
+      return parseInt(bNum || '0') - parseInt(aNum || '0'); // Ters sıralama
+    });
+
     setFilteredDeviations(filtered);
   }, [deviations, searchTerm, statusFilter, departmentFilter]);
 
@@ -652,9 +685,10 @@ const DeviationApprovalManagement: React.FC = () => {
       case 'rd-approved': return 'info';
       case 'quality-approved': return 'info';
       case 'production-approved': return 'info';
-      case 'final-approved': return 'success';
-      case 'rejected': return 'error';
-      default: return 'default';
+          case 'final-approved': return 'success';
+    case 'rejected': return 'error';
+    case 'closed': return 'info';
+    default: return 'default';
     }
   };
 
@@ -666,6 +700,7 @@ const DeviationApprovalManagement: React.FC = () => {
       case 'production-approved': return 'Üretim Onaylandı';
       case 'final-approved': return 'Nihai Onay';
       case 'rejected': return 'Reddedildi';
+      case 'closed': return 'Kapatıldı';
       default: return status;
     }
   };
@@ -1103,6 +1138,140 @@ const DeviationApprovalManagement: React.FC = () => {
     setRejectionReason('');
   };
 
+  // Birim Onayları Sistemi
+  const handleDepartmentApproval = (deviation: DeviationApproval, department: string, approved: boolean) => {
+    const currentUser = 'Mevcut Kullanıcı'; // Bu gerçek uygulamada auth context'ten gelecek
+    
+    const updatedDeviations = deviations.map(dev => {
+      if (dev.id === deviation.id) {
+        const updatedDeviation = { ...dev };
+        
+        // İlgili departmanın onayını güncelle
+        switch (department) {
+          case 'rd':
+            updatedDeviation.rdApproval = { approved, approver: approved ? currentUser : '' };
+            break;
+          case 'quality':
+            updatedDeviation.qualityApproval = { approved, approver: approved ? currentUser : '' };
+            break;
+          case 'production':
+            updatedDeviation.productionApproval = { approved, approver: approved ? currentUser : '' };
+            break;
+          case 'generalManager':
+            updatedDeviation.generalManagerApproval = { approved, approver: approved ? currentUser : '' };
+            break;
+        }
+        
+        // Tüm birimlerin onayı var mı kontrol et
+        const allApproved = updatedDeviation.rdApproval.approved && 
+                           updatedDeviation.qualityApproval.approved && 
+                           updatedDeviation.productionApproval.approved && 
+                           updatedDeviation.generalManagerApproval.approved;
+        
+        // Eğer tüm birimler onayladıysa otomatik olarak nihai onay yap
+        if (allApproved && updatedDeviation.status !== 'final-approved') {
+          updatedDeviation.status = 'final-approved';
+        } else if (!allApproved && updatedDeviation.status === 'final-approved') {
+          // Eğer herhangi bir birim onayını geri aldıysa nihai onayı iptal et
+          updatedDeviation.status = 'pending';
+        }
+        
+        updatedDeviation.updatedAt = new Date().toISOString();
+        return updatedDeviation;
+      }
+      return dev;
+    });
+
+    saveData(updatedDeviations);
+  };
+
+  // Nihai Karar Modal Fonksiyonları
+  const openFinalDecisionModal = (deviation: DeviationApproval) => {
+    setSelectedDeviationForDecision(deviation);
+    // Mevcut onayları yükle
+    setDepartmentDecisions({
+      rd: { approved: deviation.rdApproval.approved, rejectionReason: '' },
+      quality: { approved: deviation.qualityApproval.approved, rejectionReason: '' },
+      production: { approved: deviation.productionApproval.approved, rejectionReason: '' },
+      generalManager: { approved: deviation.generalManagerApproval.approved, rejectionReason: '' }
+    });
+    setFinalDecisionModal(true);
+  };
+
+  const closeFinalDecisionModal = () => {
+    setFinalDecisionModal(false);
+    setSelectedDeviationForDecision(null);
+    setDepartmentDecisions({
+      rd: { approved: false, rejectionReason: '' },
+      quality: { approved: false, rejectionReason: '' },
+      production: { approved: false, rejectionReason: '' },
+      generalManager: { approved: false, rejectionReason: '' }
+    });
+  };
+
+  const handleFinalDecision = () => {
+    if (!selectedDeviationForDecision) return;
+
+    const currentUser = 'Mevcut Kullanıcı';
+    const now = new Date().toISOString();
+    
+    const updatedDeviations = deviations.map(dev => {
+      if (dev.id === selectedDeviationForDecision.id) {
+        const updatedDeviation = { ...dev };
+        
+        // Birim onaylarını güncelle
+        updatedDeviation.rdApproval = { 
+          approved: departmentDecisions.rd.approved, 
+          approver: departmentDecisions.rd.approved ? currentUser : '',
+          rejectionReason: !departmentDecisions.rd.approved ? departmentDecisions.rd.rejectionReason : undefined
+        };
+        updatedDeviation.qualityApproval = { 
+          approved: departmentDecisions.quality.approved, 
+          approver: departmentDecisions.quality.approved ? currentUser : '',
+          rejectionReason: !departmentDecisions.quality.approved ? departmentDecisions.quality.rejectionReason : undefined
+        };
+        updatedDeviation.productionApproval = { 
+          approved: departmentDecisions.production.approved, 
+          approver: departmentDecisions.production.approved ? currentUser : '',
+          rejectionReason: !departmentDecisions.production.approved ? departmentDecisions.production.rejectionReason : undefined
+        };
+        updatedDeviation.generalManagerApproval = { 
+          approved: departmentDecisions.generalManager.approved, 
+          approver: departmentDecisions.generalManager.approved ? currentUser : '',
+          rejectionReason: !departmentDecisions.generalManager.approved ? departmentDecisions.generalManager.rejectionReason : undefined
+        };
+        
+        // Tüm birimlerin onayı var mı kontrol et
+        const allApproved = updatedDeviation.rdApproval.approved && 
+                           updatedDeviation.qualityApproval.approved && 
+                           updatedDeviation.productionApproval.approved && 
+                           updatedDeviation.generalManagerApproval.approved;
+        
+        // Herhangi bir birim ret etmişse rejected yap
+        const anyRejected = !updatedDeviation.rdApproval.approved || 
+                           !updatedDeviation.qualityApproval.approved || 
+                           !updatedDeviation.productionApproval.approved || 
+                           !updatedDeviation.generalManagerApproval.approved;
+        
+        if (allApproved) {
+          updatedDeviation.status = 'final-approved';
+        } else if (anyRejected) {
+          updatedDeviation.status = 'rejected';
+        } else {
+          updatedDeviation.status = 'pending';
+        }
+        
+        updatedDeviation.updatedAt = now;
+        return updatedDeviation;
+      }
+      return dev;
+    });
+
+    saveData(updatedDeviations);
+    closeFinalDecisionModal();
+    alert('Nihai karar başarıyla kaydedildi!');
+  };
+
   // ✅ PDF görüntüleme fonksiyonları
   // ✅ YENİ: Equipment Calibration modülündeki gibi PDF görüntüleme
   const handleViewAttachments = (attachments: DeviationAttachment[]) => {
@@ -1124,7 +1293,12 @@ const DeviationApprovalManagement: React.FC = () => {
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: attachment.fileType || 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        const newWindow = window.open(url, '_blank');
+        if (!newWindow) {
+          alert('Pop-up engellenmiş olabilir. Lütfen tarayıcı ayarlarını kontrol edin.');
+        }
+        // Memory leak'i önlemek için URL'yi temizle
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       } catch (error) {
         console.error('❌ PDF görüntüleme hatası:', error);
         alert('PDF görüntülenirken bir hata oluştu.');
@@ -1147,7 +1321,12 @@ const DeviationApprovalManagement: React.FC = () => {
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: attachment.fileType || 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        const newWindow = window.open(url, '_blank');
+        if (!newWindow) {
+          alert('Pop-up engellenmiş olabilir. Lütfen tarayıcı ayarlarını kontrol edin.');
+        }
+        // Memory leak'i önlemek için URL'yi temizle
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       } catch (error) {
         console.error('❌ PDF görüntüleme hatası:', error);
         alert('PDF görüntülenirken bir hata oluştu.');
@@ -1199,17 +1378,101 @@ const DeviationApprovalManagement: React.FC = () => {
     );
   };
 
+  // DF Kapatma Dialog Fonksiyonları
+  const openClosureDialog = (deviation: DeviationApproval) => {
+    setSelectedDeviationForClosure(deviation);
+    setClosureNotes('');
+    setClosureDocuments([]);
+    setClosureDialogOpen(true);
+  };
+
+  const closeClosureDialog = () => {
+    setClosureDialogOpen(false);
+    setSelectedDeviationForClosure(null);
+    setClosureNotes('');
+    setClosureDocuments([]);
+  };
+
+  const handleClosureFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      let base64Data: string;
+      if (file.type.includes('image')) {
+        base64Data = await compressImage(file);
+      } else {
+        base64Data = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const newAttachment: DeviationAttachment = {
+        id: Date.now().toString(),
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        url: base64Data,
+        uploadDate: new Date().toISOString(),
+        uploadedBy: 'Kullanıcı',
+        deviationId: selectedDeviationForClosure?.id || ''
+      };
+
+      setClosureDocuments(prev => [...prev, newAttachment]);
+    } catch (error) {
+      console.error('Kapatma dosyası yükleme hatası:', error);
+      alert('Dosya yükleme sırasında bir hata oluştu.');
+    }
+  };
+
+  const handleCloseDeviation = async () => {
+    if (!selectedDeviationForClosure || !closureNotes.trim()) {
+      alert('Lütfen kapatma notlarını girin.');
+      return;
+    }
+
+    try {
+      const now = new Date().toISOString();
+      const updatedDeviation: DeviationApproval = {
+        ...selectedDeviationForClosure,
+        status: 'closed',
+        closureNotes,
+        closureDate: now,
+        closedBy: 'Kullanıcı',
+        closureDocuments,
+        updatedAt: now
+      };
+
+      const updatedDeviations = deviations.map(dev => 
+        dev.id === selectedDeviationForClosure.id ? updatedDeviation : dev
+      );
+
+      setDeviations(updatedDeviations);
+      await saveData(updatedDeviations);
+      
+      alert('DF başarıyla kapatıldı!');
+      closeClosureDialog();
+    } catch (error) {
+      console.error('DF kapatma hatası:', error);
+      alert('DF kapatılırken bir hata oluştu.');
+    }
+  };
+
   // Statistics
   const stats = useMemo(() => {
     const pending = filteredDeviations.filter(d => d.status === 'pending').length;
     const approved = filteredDeviations.filter(d => d.status === 'final-approved').length;
     const rejected = filteredDeviations.filter(d => d.status === 'rejected').length;
-    const inProgress = filteredDeviations.length - pending - approved - rejected;
+    const closed = filteredDeviations.filter(d => d.status === 'closed').length;
+    const inProgress = filteredDeviations.length - pending - approved - rejected - closed;
 
     return { 
       pending, 
       approved, 
-      rejected, 
+      rejected,
+      closed, 
       inProgress, 
       total: filteredDeviations.length,
       totalInSystem: deviations.length 
@@ -1315,6 +1578,7 @@ const DeviationApprovalManagement: React.FC = () => {
                 <MenuItem value="production-approved">Üretim Onaylandı</MenuItem>
                 <MenuItem value="final-approved">Nihai Onay</MenuItem>
                 <MenuItem value="rejected">Reddedildi</MenuItem>
+                <MenuItem value="closed">Kapatıldı</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -1554,34 +1818,34 @@ const DeviationApprovalManagement: React.FC = () => {
                         <ViewIcon />
                       </IconButton>
                     </Tooltip>
-                    {deviation.status !== 'final-approved' && deviation.status !== 'rejected' && (
+                    {deviation.status !== 'rejected' && deviation.status !== 'closed' && (
                       <Tooltip title="Düzenle">
                         <IconButton size="small" onClick={() => openEditDialog(deviation)}>
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
                     )}
-                    {deviation.status !== 'final-approved' && deviation.status !== 'rejected' && (
-                      <>
-                        <Tooltip title="Onayla">
-                          <IconButton 
-                            size="small" 
-                            color="success" 
-                            onClick={() => handleStatusChange(deviation, 'final-approved')}
-                          >
-                            <CheckCircleIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Reddet">
-                          <IconButton 
-                            size="small" 
-                            color="error" 
-                            onClick={() => handleStatusChange(deviation, 'rejected')}
-                          >
-                            <CancelIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </>
+                    {deviation.status !== 'final-approved' && deviation.status !== 'rejected' && deviation.status !== 'closed' && (
+                      <Tooltip title="Nihai Karar">
+                        <IconButton 
+                          size="small" 
+                          color="primary" 
+                          onClick={() => openFinalDecisionModal(deviation)}
+                        >
+                          <CheckCircleIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {deviation.status === 'final-approved' && (
+                      <Tooltip title="DF'ü Kapat">
+                        <IconButton 
+                          size="small" 
+                          color="warning" 
+                          onClick={() => openClosureDialog(deviation)}
+                        >
+                          <CheckCircleIcon />
+                        </IconButton>
+                      </Tooltip>
                     )}
                     <Tooltip title="Sil">
                       <IconButton size="small" color="error" onClick={() => handleDelete(deviation)}>
@@ -2603,6 +2867,55 @@ const DeviationApprovalManagement: React.FC = () => {
                               <Typography variant="body2">{selectedDeviationForDetail.rejectionReason}</Typography>
                             </Alert>
                           )}
+
+                          {/* Kapatma Bilgileri */}
+                          {selectedDeviationForDetail.status === 'closed' && (
+                            <Alert severity="success" sx={{ mt: 2 }}>
+                              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                                DF Kapatma Bilgileri
+                              </Typography>
+                              {selectedDeviationForDetail.closureNotes && (
+                                <Box sx={{ mb: 1 }}>
+                                  <Typography variant="body2" fontWeight="bold">Kapatma Notları:</Typography>
+                                  <Typography variant="body2">{selectedDeviationForDetail.closureNotes}</Typography>
+                                </Box>
+                              )}
+                              <Box sx={{ display: 'flex', gap: 3, mt: 1 }}>
+                                {selectedDeviationForDetail.closureDate && (
+                                  <Box>
+                                    <Typography variant="body2" fontWeight="bold">Kapatma Tarihi:</Typography>
+                                    <Typography variant="body2">
+                                      {new Date(selectedDeviationForDetail.closureDate).toLocaleString('tr-TR')}
+                                    </Typography>
+                                  </Box>
+                                )}
+                                {selectedDeviationForDetail.closedBy && (
+                                  <Box>
+                                    <Typography variant="body2" fontWeight="bold">Kapatan:</Typography>
+                                    <Typography variant="body2">{selectedDeviationForDetail.closedBy}</Typography>
+                                  </Box>
+                                )}
+                              </Box>
+                              {selectedDeviationForDetail.closureDocuments && selectedDeviationForDetail.closureDocuments.length > 0 && (
+                                <Box sx={{ mt: 2 }}>
+                                  <Typography variant="body2" fontWeight="bold" gutterBottom>
+                                    Kapatma Dokümanları ({selectedDeviationForDetail.closureDocuments.length} adet):
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                    {selectedDeviationForDetail.closureDocuments.map((doc) => (
+                                      <Chip
+                                        key={doc.id}
+                                        label={doc.fileName}
+                                        size="small"
+                                        variant="outlined"
+                                        color="success"
+                                      />
+                                    ))}
+                                  </Box>
+                                </Box>
+                              )}
+                            </Alert>
+                          )}
                         </Box>
                       </CardContent>
                     </Card>
@@ -2711,11 +3024,282 @@ const DeviationApprovalManagement: React.FC = () => {
               }} 
               variant="contained"
               startIcon={<EditIcon />}
-              disabled={selectedDeviationForDetail.status === 'final-approved' || selectedDeviationForDetail.status === 'rejected'}
+              disabled={selectedDeviationForDetail.status === 'rejected' || selectedDeviationForDetail.status === 'closed'}
             >
               Düzenle
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* DF Kapatma Dialog */}
+      <Dialog 
+        open={closureDialogOpen} 
+        onClose={closeClosureDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ 
+          bgcolor: '#1976d2', 
+          color: 'white', 
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <CheckCircleIcon />
+          DF Kapatma
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {selectedDeviationForClosure && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                {selectedDeviationForClosure.deviationNumber} - {selectedDeviationForClosure.partName}
+              </Typography>
+              
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                label="Kapatma Notları *"
+                value={closureNotes}
+                onChange={(e) => setClosureNotes(e.target.value)}
+                placeholder="DF'ün nasıl çözüldüğünü ve kapatma gerekçesini detaylı olarak açıklayın..."
+                sx={{ mb: 3 }}
+              />
+
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Kapatma Kanıt Dokümanları
+                </Typography>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  startIcon={<CloudUploadIcon />}
+                  sx={{ mb: 2 }}
+                >
+                  Kanıt Dosyası Ekle
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*,.pdf"
+                    onChange={handleClosureFileUpload}
+                  />
+                </Button>
+                
+                {closureDocuments.length > 0 && (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      {closureDocuments.length} dosya eklendi
+                    </Typography>
+                    {closureDocuments.map((doc) => (
+                      <Chip
+                        key={doc.id}
+                        label={doc.fileName}
+                        size="small"
+                        onDelete={() => setClosureDocuments(prev => prev.filter(d => d.id !== doc.id))}
+                        sx={{ mr: 1, mb: 1 }}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
+          <Button onClick={closeClosureDialog}>
+            İptal
+          </Button>
+          <Button 
+            onClick={handleCloseDeviation} 
+            variant="contained"
+            disabled={!closureNotes.trim()}
+            startIcon={<CheckCircleIcon />}
+          >
+            DF'ü Kapat
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Nihai Karar Modal */}
+      <Dialog 
+        open={finalDecisionModal} 
+        onClose={closeFinalDecisionModal} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            borderBottom: '1px solid #e0e0e0',
+            backgroundColor: '#f8f9fa',
+            fontWeight: 600
+          }}
+        >
+          Nihai Karar - {selectedDeviationForDecision?.deviationNumber}
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          {selectedDeviationForDecision && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                {selectedDeviationForDecision.partName} - {selectedDeviationForDecision.partNumber}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {selectedDeviationForDecision.description}
+              </Typography>
+              
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6" gutterBottom>Birim Onayları</Typography>
+                
+                {/* ArGe Onayı */}
+                <Card sx={{ mb: 2, p: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold">ArGe Onayı</Typography>
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <Select
+                        value={departmentDecisions.rd.approved ? 'approved' : 'rejected'}
+                        onChange={(e) => setDepartmentDecisions(prev => ({
+                          ...prev,
+                          rd: { ...prev.rd, approved: e.target.value === 'approved' }
+                        }))}
+                      >
+                        <MenuItem value="approved">Onayla</MenuItem>
+                        <MenuItem value="rejected">Reddet</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  {!departmentDecisions.rd.approved && (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Reddetme Sebebi"
+                      value={departmentDecisions.rd.rejectionReason}
+                      onChange={(e) => setDepartmentDecisions(prev => ({
+                        ...prev,
+                        rd: { ...prev.rd, rejectionReason: e.target.value }
+                      }))}
+                      sx={{ mt: 1 }}
+                    />
+                  )}
+                </Card>
+
+                {/* Kalite Onayı */}
+                <Card sx={{ mb: 2, p: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold">Kalite Onayı</Typography>
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <Select
+                        value={departmentDecisions.quality.approved ? 'approved' : 'rejected'}
+                        onChange={(e) => setDepartmentDecisions(prev => ({
+                          ...prev,
+                          quality: { ...prev.quality, approved: e.target.value === 'approved' }
+                        }))}
+                      >
+                        <MenuItem value="approved">Onayla</MenuItem>
+                        <MenuItem value="rejected">Reddet</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  {!departmentDecisions.quality.approved && (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Reddetme Sebebi"
+                      value={departmentDecisions.quality.rejectionReason}
+                      onChange={(e) => setDepartmentDecisions(prev => ({
+                        ...prev,
+                        quality: { ...prev.quality, rejectionReason: e.target.value }
+                      }))}
+                      sx={{ mt: 1 }}
+                    />
+                  )}
+                </Card>
+
+                {/* Üretim Onayı */}
+                <Card sx={{ mb: 2, p: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold">Üretim Onayı</Typography>
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <Select
+                        value={departmentDecisions.production.approved ? 'approved' : 'rejected'}
+                        onChange={(e) => setDepartmentDecisions(prev => ({
+                          ...prev,
+                          production: { ...prev.production, approved: e.target.value === 'approved' }
+                        }))}
+                      >
+                        <MenuItem value="approved">Onayla</MenuItem>
+                        <MenuItem value="rejected">Reddet</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  {!departmentDecisions.production.approved && (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Reddetme Sebebi"
+                      value={departmentDecisions.production.rejectionReason}
+                      onChange={(e) => setDepartmentDecisions(prev => ({
+                        ...prev,
+                        production: { ...prev.production, rejectionReason: e.target.value }
+                      }))}
+                      sx={{ mt: 1 }}
+                    />
+                  )}
+                </Card>
+
+                {/* Fabrika Müdürü Onayı */}
+                <Card sx={{ mb: 2, p: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold">Fabrika Müdürü Onayı</Typography>
+                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                      <Select
+                        value={departmentDecisions.generalManager.approved ? 'approved' : 'rejected'}
+                        onChange={(e) => setDepartmentDecisions(prev => ({
+                          ...prev,
+                          generalManager: { ...prev.generalManager, approved: e.target.value === 'approved' }
+                        }))}
+                      >
+                        <MenuItem value="approved">Onayla</MenuItem>
+                        <MenuItem value="rejected">Reddet</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                  {!departmentDecisions.generalManager.approved && (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Reddetme Sebebi"
+                      value={departmentDecisions.generalManager.rejectionReason}
+                      onChange={(e) => setDepartmentDecisions(prev => ({
+                        ...prev,
+                        generalManager: { ...prev.generalManager, rejectionReason: e.target.value }
+                      }))}
+                      sx={{ mt: 1 }}
+                    />
+                  )}
+                </Card>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ borderTop: '1px solid #e0e0e0', p: 2 }}>
+          <Button onClick={closeFinalDecisionModal} color="inherit">
+            İptal
+          </Button>
+          <Button 
+            onClick={handleFinalDecision}
+            variant="contained"
+            color="primary"
+          >
+            Nihai Kararı Kaydet
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>

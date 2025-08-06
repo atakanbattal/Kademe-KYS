@@ -71,7 +71,7 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material';
 
-// DÖF/8D Integration Import
+// DF/8D Integration Import
 import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
 import { styled } from '@mui/material/styles';
 import {
@@ -1479,7 +1479,7 @@ const TestManagement: React.FC = () => {
     }
   };
 
-  // ✅ DÖF/8D Integration Functions
+  // ✅ DF/8D Integration Functions
   const handleCreateDOFForTest = (test: TestRecord) => {
     const dofParams: DOFCreationParams = {
       sourceModule: 'fanTest',
@@ -1492,7 +1492,7 @@ const TestManagement: React.FC = () => {
       responsiblePerson: test.operator
     };
 
-    // DÖF/8D yönetimi sayfasına yönlendir
+    // DF/8D yönetimi sayfasına yönlendir
     const dofUrl = navigateToDOFForm(dofParams);
     window.location.href = dofUrl;
   };
@@ -1889,9 +1889,9 @@ const TestManagement: React.FC = () => {
                           <PdfIcon />
                         </IconButton>
                       </Tooltip>
-                      {/* DÖF Oluştur butonu - fail veya conditional için */}
+                      {/* DF Oluştur butonu - fail veya conditional için */}
                       {(test.overallResult === 'fail' || test.overallResult === 'conditional') && (
-                        <Tooltip title={getDOFStatusForTest(test) ? `DÖF Mevcut: ${getDOFStatusForTest(test)?.dofNumber}` : "Uygunsuzluk Oluştur"}>
+                        <Tooltip title={getDOFStatusForTest(test) ? `DF Mevcut: ${getDOFStatusForTest(test)?.dofNumber}` : "Uygunsuzluk Oluştur"}>
                           <IconButton 
                             size="small"
                             onClick={() => handleCreateDOFForTest(test)}
@@ -3606,7 +3606,7 @@ const TestCreation: React.FC = () => {
 
 // Main Component
 const FanTestAnalysis: React.FC = () => {
-  // ✅ DÖF pattern uygulandı: State initialization with localStorage
+  // ✅ DF pattern uygulandı: State initialization with localStorage
   const [testRecords, setTestRecords] = useState<TestRecord[]>(() => {
     try {
       const storedRecords = localStorage.getItem('fanTestRecords');
@@ -3626,7 +3626,7 @@ const FanTestAnalysis: React.FC = () => {
   const [selectedTest, setSelectedTest] = useState<TestRecord | null>(null);
   const [tabValue, setTabValue] = useState(0);
 
-  // ✅ DÖF pattern uygulandı: Auto-save to localStorage when testRecords change
+  // ✅ DF pattern uygulandı: Auto-save to localStorage when testRecords change
   useEffect(() => {
     try {
       localStorage.setItem('fanTestRecords', JSON.stringify(testRecords));

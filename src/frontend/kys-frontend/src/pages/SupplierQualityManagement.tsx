@@ -1818,13 +1818,13 @@ const SupplierQualityManagement: React.FC = () => {
     showSnackbar('Denetim önerisi reddedildi', 'info');
   };
 
-  // DÖF Integration - Prefill form ile DÖF formunu direkt açma
+  // DF Integration - Prefill form ile DF formunu direkt açma
   const createDOFFromNonconformity = (nonconformity: NonconformityRecord) => {
     const supplier = suppliers.find(s => s.id === nonconformity.supplierId);
     if (!supplier) return;
 
     try {
-      // DÖF form prefill data oluştur
+      // DF form prefill data oluştur
       const dofPrefillData = {
         title: `Tedarikçi Uygunsuzluğu - ${supplier.name}`,
         description: `Tedarikçi: ${supplier.name}
@@ -1849,7 +1849,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
         }
       };
 
-      // Prefill data'yı localStorage'a kaydet (DÖF modülünün beklediği format)
+      // Prefill data'yı localStorage'a kaydet (DF modülünün beklediği format)
       const prefillWrapper = {
         prefillData: dofPrefillData
       };
@@ -1862,13 +1862,13 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       );
       setNonconformities(updatedNonconformities);
 
-      showSnackbar(`DÖF formu prefill verilerle açılıyor...`, 'info');
+      showSnackbar(`DF formu prefill verilerle açılıyor...`, 'info');
       
-      // DÖF form sayfasını yeni sekmede aç
+      // DF form sayfasını yeni sekmede aç
       window.open('/dof-8d-management', '_blank');
     } catch (error) {
-      console.error('DÖF oluşturma hatası:', error);
-      showSnackbar('DÖF oluşturulurken hata oluştu', 'error');
+      console.error('DF oluşturma hatası:', error);
+      showSnackbar('DF oluşturulurken hata oluştu', 'error');
     }
   };
 
@@ -5282,7 +5282,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         <DeleteIcon />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="DÖF Oluştur">
+                    <Tooltip title="DF Oluştur">
                       <IconButton size="small" color="warning" onClick={() => createDOFFromNonconformity({ 
                         id: 'temp', 
                         supplierId: supplier.id, 
@@ -6685,7 +6685,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                     {safeNonconformities.filter(nc => nc && nc.dofId).length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    DÖF Oluşturulan
+                    DF Oluşturulan
                   </Typography>
                 </Box>
               </Box>
@@ -6838,9 +6838,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         </IconButton>
                       </Tooltip>
                       <Tooltip title={
-                        !nonconformity.dofId ? "DÖF Oluştur" : 
-                        nonconformity.dofId === 'creating' ? "DÖF Oluşturuluyor..." : 
-                        "DÖF Oluşturuldu"
+                        !nonconformity.dofId ? "DF Oluştur" : 
+                        nonconformity.dofId === 'creating' ? "DF Oluşturuluyor..." : 
+                        "DF Oluşturuldu"
                       }>
                         <IconButton 
                           size="small" 
@@ -7108,9 +7108,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={
-                          !issue.dofId ? "DÖF Oluştur" : 
-                          issue.dofId === 'creating' ? "DÖF Oluşturuluyor..." : 
-                          "DÖF Oluşturuldu"
+                          !issue.dofId ? "DF Oluştur" : 
+                          issue.dofId === 'creating' ? "DF Oluşturuluyor..." : 
+                          "DF Oluşturuldu"
                         }>
                           <IconButton 
                             size="small" 
@@ -7128,7 +7128,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                                   createDOFFromNonconformity(nonconformity);
                                 }
                               } else {
-                                // Defect için DÖF oluştur
+                                // Defect için DF oluştur
                                 const defect = safeDefects.find(d => d.id === issue.originalId);
                                 if (defect) {
                                   const mockNonconformity: NonconformityRecord = {
@@ -7370,9 +7370,9 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                         </IconButton>
                       </Tooltip>
                       <Tooltip title={
-                        !defect.dofId ? "DÖF Oluştur" : 
-                        defect.dofId === 'creating' ? "DÖF Oluşturuluyor..." : 
-                        "DÖF Oluşturuldu"
+                        !defect.dofId ? "DF Oluştur" : 
+                        defect.dofId === 'creating' ? "DF Oluşturuluyor..." : 
+                        "DF Oluşturuldu"
                       }>
                         <IconButton 
                           size="small" 
@@ -7384,7 +7384,7 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                           onClick={() => {
                             if (defect.dofId) return;
                             
-                            // Defect için DÖF ID'sini 'creating' olarak işaretle
+                            // Defect için DF ID'sini 'creating' olarak işaretle
                             const updatedDefects = defects.map(d => 
                               d.id === defect.id ? { ...d, dofId: 'creating' } : d
                             );

@@ -152,17 +152,36 @@ interface MaterialStandard {
   }[];
 }
 
+interface MaterialGrade {
+  id: string;
+  name: string;
+  standards: string[];
+  specifications?: {
+    mechanicalProperties?: {
+      yieldStrength?: { min: number; max: number; unit: string };
+      tensileStrength?: { min: number; max: number; unit: string };
+      elongation?: { min: number; unit: string };
+      impactEnergy?: { min: number; temp: number; unit: string };
+      hardness?: { min: number; max: number; type: string };
+    };
+    chemicalComposition?: {
+      [element: string]: { min?: number; max: number };
+    };
+    physicalProperties?: {
+      density?: { value: number; unit: string };
+      thermalConductivity?: { value: number; unit: string };
+      electricalResistivity?: { value: number; unit: string };
+    };
+  };
+}
+
 interface MaterialCategory {
   id: string;
   name: string;
   subCategories: {
     id: string;
     name: string;
-    grades: {
-      id: string;
-      name: string;
-      standards: string[];
-    }[];
+    grades: MaterialGrade[];
   }[];
 }
 
@@ -256,25 +275,281 @@ const materialCategories: MaterialCategory[] = [
         id: 'structural_steel',
         name: 'Yapısal Çelik',
         grades: [
-          { id: 's235jr', name: 'S235JR', standards: ['DIN EN 10025-2'] },
-          { id: 's235j0', name: 'S235J0', standards: ['DIN EN 10025-2'] },
-          { id: 's235j2', name: 'S235J2', standards: ['DIN EN 10025-2'] },
-          { id: 's275jr', name: 'S275JR', standards: ['DIN EN 10025-2'] },
-          { id: 's275j0', name: 'S275J0', standards: ['DIN EN 10025-2'] },
-          { id: 's275j2', name: 'S275J2', standards: ['DIN EN 10025-2'] },
-          { id: 's355jr', name: 'S355JR', standards: ['DIN EN 10025-2'] },
-          { id: 's355j0', name: 'S355J0', standards: ['DIN EN 10025-2'] },
-          { id: 's355k2', name: 'S355K2', standards: ['DIN EN 10025-2'] }
+          { 
+            id: 's235jr', 
+            name: 'S235JR', 
+            standards: ['DIN EN 10025-2'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 235, max: 360, unit: 'MPa' },
+                tensileStrength: { min: 360, max: 510, unit: 'MPa' },
+                elongation: { min: 26, unit: '%' },
+                hardness: { min: 120, max: 160, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { max: 0.20 },
+                'Mn': { max: 1.40 },
+                'P': { max: 0.045 },
+                'S': { max: 0.045 },
+                'Si': { max: 0.55 }
+              }
+            }
+          },
+          { 
+            id: 's235j0', 
+            name: 'S235J0', 
+            standards: ['DIN EN 10025-2'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 235, max: 360, unit: 'MPa' },
+                tensileStrength: { min: 360, max: 510, unit: 'MPa' },
+                elongation: { min: 26, unit: '%' },
+                impactEnergy: { min: 27, temp: 0, unit: 'J' },
+                hardness: { min: 120, max: 160, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { max: 0.19 },
+                'Mn': { max: 1.40 },
+                'P': { max: 0.040 },
+                'S': { max: 0.040 },
+                'Si': { max: 0.55 }
+              }
+            }
+          },
+          { 
+            id: 's235j2', 
+            name: 'S235J2', 
+            standards: ['DIN EN 10025-2'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 235, max: 360, unit: 'MPa' },
+                tensileStrength: { min: 360, max: 510, unit: 'MPa' },
+                elongation: { min: 26, unit: '%' },
+                impactEnergy: { min: 27, temp: -20, unit: 'J' },
+                hardness: { min: 120, max: 160, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { max: 0.18 },
+                'Mn': { max: 1.40 },
+                'P': { max: 0.035 },
+                'S': { max: 0.035 },
+                'Si': { max: 0.55 }
+              }
+            }
+          },
+          { 
+            id: 's275jr', 
+            name: 'S275JR', 
+            standards: ['DIN EN 10025-2'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 275, max: 410, unit: 'MPa' },
+                tensileStrength: { min: 410, max: 560, unit: 'MPa' },
+                elongation: { min: 23, unit: '%' },
+                hardness: { min: 130, max: 170, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { max: 0.21 },
+                'Mn': { max: 1.50 },
+                'P': { max: 0.045 },
+                'S': { max: 0.045 },
+                'Si': { max: 0.55 }
+              }
+            }
+          },
+          { 
+            id: 's275j0', 
+            name: 'S275J0', 
+            standards: ['DIN EN 10025-2'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 275, max: 410, unit: 'MPa' },
+                tensileStrength: { min: 410, max: 560, unit: 'MPa' },
+                elongation: { min: 23, unit: '%' },
+                impactEnergy: { min: 27, temp: 0, unit: 'J' },
+                hardness: { min: 130, max: 170, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { max: 0.20 },
+                'Mn': { max: 1.50 },
+                'P': { max: 0.040 },
+                'S': { max: 0.040 },
+                'Si': { max: 0.55 }
+              }
+            }
+          },
+          { 
+            id: 's275j2', 
+            name: 'S275J2', 
+            standards: ['DIN EN 10025-2'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 275, max: 410, unit: 'MPa' },
+                tensileStrength: { min: 410, max: 560, unit: 'MPa' },
+                elongation: { min: 23, unit: '%' },
+                impactEnergy: { min: 27, temp: -20, unit: 'J' },
+                hardness: { min: 130, max: 170, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { max: 0.19 },
+                'Mn': { max: 1.50 },
+                'P': { max: 0.035 },
+                'S': { max: 0.035 },
+                'Si': { max: 0.55 }
+              }
+            }
+          },
+          { 
+            id: 's355jr', 
+            name: 'S355JR', 
+            standards: ['DIN EN 10025-2'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 355, max: 490, unit: 'MPa' },
+                tensileStrength: { min: 490, max: 630, unit: 'MPa' },
+                elongation: { min: 22, unit: '%' },
+                hardness: { min: 150, max: 190, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { max: 0.24 },
+                'Mn': { max: 1.60 },
+                'P': { max: 0.045 },
+                'S': { max: 0.045 },
+                'Si': { max: 0.55 }
+              }
+            }
+          },
+          { 
+            id: 's355j0', 
+            name: 'S355J0', 
+            standards: ['DIN EN 10025-2'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 355, max: 490, unit: 'MPa' },
+                tensileStrength: { min: 490, max: 630, unit: 'MPa' },
+                elongation: { min: 22, unit: '%' },
+                impactEnergy: { min: 27, temp: 0, unit: 'J' },
+                hardness: { min: 150, max: 190, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { max: 0.22 },
+                'Mn': { max: 1.60 },
+                'P': { max: 0.040 },
+                'S': { max: 0.040 },
+                'Si': { max: 0.55 }
+              }
+            }
+          },
+          { 
+            id: 's355k2', 
+            name: 'S355K2', 
+            standards: ['DIN EN 10025-2'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 355, max: 490, unit: 'MPa' },
+                tensileStrength: { min: 490, max: 630, unit: 'MPa' },
+                elongation: { min: 22, unit: '%' },
+                impactEnergy: { min: 40, temp: -20, unit: 'J' },
+                hardness: { min: 150, max: 190, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { max: 0.20 },
+                'Mn': { max: 1.60 },
+                'P': { max: 0.035 },
+                'S': { max: 0.035 },
+                'Si': { max: 0.55 }
+              }
+            }
+          }
         ]
       },
       {
         id: 'tool_steel',
         name: 'Takım Çeliği',
         grades: [
-          { id: '1.2312', name: '1.2312 (P20)', standards: ['DIN EN ISO 4957'] },
-          { id: '1.2344', name: '1.2344 (H13)', standards: ['DIN EN ISO 4957'] },
-          { id: '1.2379', name: '1.2379 (D2)', standards: ['DIN EN ISO 4957'] },
-          { id: '1.2767', name: '1.2767 (A2)', standards: ['DIN EN ISO 4957'] }
+          { 
+            id: '1.2312', 
+            name: '1.2312 (P20)', 
+            standards: ['DIN EN ISO 4957'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 550, max: 700, unit: 'MPa' },
+                tensileStrength: { min: 750, max: 950, unit: 'MPa' },
+                elongation: { min: 12, unit: '%' },
+                hardness: { min: 28, max: 35, type: 'HRC' }
+              },
+              chemicalComposition: {
+                'C': { min: 0.28, max: 0.40 },
+                'Si': { min: 0.20, max: 0.80 },
+                'Mn': { min: 0.60, max: 1.00 },
+                'Cr': { min: 1.80, max: 2.10 },
+                'Ni': { min: 0.90, max: 1.20 }
+              }
+            }
+          },
+          { 
+            id: '1.2344', 
+            name: '1.2344 (H13)', 
+            standards: ['DIN EN ISO 4957'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 1000, max: 1250, unit: 'MPa' },
+                tensileStrength: { min: 1150, max: 1400, unit: 'MPa' },
+                elongation: { min: 10, unit: '%' },
+                hardness: { min: 48, max: 52, type: 'HRC' }
+              },
+              chemicalComposition: {
+                'C': { min: 0.32, max: 0.45 },
+                'Si': { min: 0.80, max: 1.20 },
+                'Mn': { min: 0.25, max: 0.50 },
+                'Cr': { min: 4.80, max: 5.50 },
+                'Mo': { min: 1.10, max: 1.50 },
+                'V': { min: 0.80, max: 1.20 }
+              }
+            }
+          },
+          { 
+            id: '1.2379', 
+            name: '1.2379 (D2)', 
+            standards: ['DIN EN ISO 4957'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 1400, max: 1700, unit: 'MPa' },
+                tensileStrength: { min: 1600, max: 1900, unit: 'MPa' },
+                elongation: { min: 8, unit: '%' },
+                hardness: { min: 58, max: 62, type: 'HRC' }
+              },
+              chemicalComposition: {
+                'C': { min: 1.40, max: 1.60 },
+                'Si': { min: 0.10, max: 0.60 },
+                'Mn': { min: 0.20, max: 0.60 },
+                'Cr': { min: 11.00, max: 13.00 },
+                'Mo': { min: 0.70, max: 1.20 },
+                'V': { min: 0.50, max: 1.10 }
+              }
+            }
+          },
+          { 
+            id: '1.2767', 
+            name: '1.2767 (A2)', 
+            standards: ['DIN EN ISO 4957'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 1200, max: 1450, unit: 'MPa' },
+                tensileStrength: { min: 1400, max: 1650, unit: 'MPa' },
+                elongation: { min: 10, unit: '%' },
+                hardness: { min: 57, max: 61, type: 'HRC' }
+              },
+              chemicalComposition: {
+                'C': { min: 0.95, max: 1.05 },
+                'Si': { min: 0.10, max: 0.50 },
+                'Mn': { min: 0.60, max: 1.00 },
+                'Cr': { min: 4.75, max: 5.50 },
+                'Mo': { min: 0.90, max: 1.40 },
+                'V': { min: 0.15, max: 0.50 }
+              }
+            }
+          }
         ]
       },
       {
@@ -324,6 +599,202 @@ const materialCategories: MaterialCategory[] = [
           { id: '6061', name: '6061', standards: ['DIN EN 573-3', 'ASTM B221'] },
           { id: '6063', name: '6063', standards: ['DIN EN 573-3', 'ASTM B221'] },
           { id: '6082', name: '6082', standards: ['DIN EN 573-3', 'ASTM B221'] }
+        ]
+      },
+      {
+        id: 'al_2000',
+        name: '2000 Serisi (Al-Cu)',
+        grades: [
+          { id: '2024', name: '2024 (AlCu4Mg1)', standards: ['DIN EN 573-3', 'ASTM B209'] },
+          { id: '2017', name: '2017 (AlCu4MgSi)', standards: ['DIN EN 573-3', 'ASTM B209'] }
+        ]
+      },
+      {
+        id: 'al_5000',
+        name: '5000 Serisi (Al-Mg)',
+        grades: [
+          { id: '5754', name: '5754 (AlMg3)', standards: ['DIN EN 573-3', 'ASTM B209'] },
+          { id: '5083', name: '5083 (AlMg4.5Mn0.7)', standards: ['DIN EN 573-3', 'ASTM B209'] }
+        ]
+      },
+      {
+        id: 'al_6000',
+        name: '6000 Serisi (Al-Mg-Si)',
+        grades: [
+          { id: '6061', name: '6061 (AlMg1SiCu)', standards: ['DIN EN 573-3', 'ASTM B209'] },
+          { id: '6082', name: '6082 (AlSi1MgMn)', standards: ['DIN EN 573-3', 'ASTM B209'] }
+        ]
+      },
+      {
+        id: 'al_7000',
+        name: '7000 Serisi (Al-Zn)',
+        grades: [
+          { id: '7075', name: '7075 (AlZn5.5MgCu)', standards: ['DIN EN 573-3', 'ASTM B209'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'copper',
+    name: 'Bakır Alaşımları',
+    subCategories: [
+      {
+        id: 'pure_copper',
+        name: 'Saf Bakır',
+        grades: [
+          { id: 'cu_ehtp', name: 'Cu-ETP (E-Cu58)', standards: ['DIN EN 1976', 'ASTM B152'] },
+          { id: 'cu_dhp', name: 'Cu-DHP (SF-Cu)', standards: ['DIN EN 1976', 'ASTM B152'] }
+        ]
+      },
+      {
+        id: 'brass',
+        name: 'Pirinç',
+        grades: [
+          { id: 'cuzn37', name: 'CuZn37 (Ms63)', standards: ['DIN EN 12163', 'ASTM B36'] },
+          { id: 'cuzn39pb3', name: 'CuZn39Pb3 (Ms58)', standards: ['DIN EN 12163', 'ASTM B16'] }
+        ]
+      },
+      {
+        id: 'bronze',
+        name: 'Bronz',
+        grades: [
+          { id: 'cusn8', name: 'CuSn8 (Bronz)', standards: ['DIN EN 1982', 'ASTM B505'] },
+          { id: 'cual10ni5fe4', name: 'CuAl10Ni5Fe4', standards: ['DIN EN 1982', 'ASTM B148'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'titanium',
+    name: 'Titanyum Alaşımları',
+    subCategories: [
+      {
+        id: 'pure_titanium',
+        name: 'Saf Titanyum',
+        grades: [
+          { id: 'grade1', name: 'Grade 1 (Ti1)', standards: ['ASTM B265', 'DIN 17850'] },
+          { id: 'grade2', name: 'Grade 2 (Ti2)', standards: ['ASTM B265', 'DIN 17850'] }
+        ]
+      },
+      {
+        id: 'ti_alloys',
+        name: 'Titanyum Alaşımları',
+        grades: [
+          { id: 'ti6al4v', name: 'Ti-6Al-4V (Grade 5)', standards: ['ASTM B265', 'DIN 17851'] },
+          { id: 'ti6al4v_eli', name: 'Ti-6Al-4V ELI (Grade 23)', standards: ['ASTM F136', 'ISO 5832-3'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'nickel',
+    name: 'Nikel Alaşımları',
+    subCategories: [
+      {
+        id: 'pure_nickel',
+        name: 'Saf Nikel',
+        grades: [
+          { id: 'ni200', name: 'Nickel 200', standards: ['ASTM B162', 'DIN 17740'] },
+          { id: 'ni201', name: 'Nickel 201', standards: ['ASTM B162', 'DIN 17740'] }
+        ]
+      },
+      {
+        id: 'inconel',
+        name: 'Inconel Alaşımları',
+        grades: [
+          { id: 'inconel600', name: 'Inconel 600', standards: ['ASTM B166', 'DIN 17751'] },
+          { id: 'inconel625', name: 'Inconel 625', standards: ['ASTM B446', 'DIN 17750'] },
+          { id: 'inconel718', name: 'Inconel 718', standards: ['ASTM B637', 'DIN 17751'] }
+        ]
+      },
+      {
+        id: 'hastelloy',
+        name: 'Hastelloy Alaşımları',
+        grades: [
+          { id: 'hastelloy_c276', name: 'Hastelloy C-276', standards: ['ASTM B575', 'DIN 17752'] },
+          { id: 'hastelloy_c22', name: 'Hastelloy C-22', standards: ['ASTM B575', 'DIN 17752'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'magnesium',
+    name: 'Magnezyum Alaşımları',
+    subCategories: [
+      {
+        id: 'mg_alloys',
+        name: 'Magnezyum Alaşımları',
+        grades: [
+          { id: 'az31b', name: 'AZ31B', standards: ['ASTM B90', 'DIN 1729'] },
+          { id: 'az61a', name: 'AZ61A', standards: ['ASTM B90', 'DIN 1729'] },
+          { id: 'az80a', name: 'AZ80A', standards: ['ASTM B90', 'DIN 1729'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'plastics',
+    name: 'Plastik Malzemeler',
+    subCategories: [
+      {
+        id: 'thermoplastics',
+        name: 'Termoplastikler',
+        grades: [
+          { id: 'pe_hd', name: 'PE-HD (Yüksek Yoğ. Polietilen)', standards: ['DIN EN ISO 1872-1', 'ASTM D3350'] },
+          { id: 'pe_ld', name: 'PE-LD (Düşük Yoğ. Polietilen)', standards: ['DIN EN ISO 1872-1', 'ASTM D3350'] },
+          { id: 'pp', name: 'PP (Polipropilen)', standards: ['DIN EN ISO 1873-1', 'ASTM D4101'] },
+          { id: 'pvc', name: 'PVC (Polivinil Klorür)', standards: ['DIN EN ISO 1163-1', 'ASTM D1784'] },
+          { id: 'abs', name: 'ABS (Akrilonitril Butadien Stiren)', standards: ['DIN EN ISO 2580-1', 'ASTM D4673'] },
+          { id: 'pa6', name: 'PA6 (Poliamid 6)', standards: ['DIN EN ISO 1874-1', 'ASTM D789'] },
+          { id: 'pa66', name: 'PA66 (Poliamid 66)', standards: ['DIN EN ISO 1874-1', 'ASTM D789'] },
+          { id: 'pc', name: 'PC (Polikarbonat)', standards: ['DIN EN ISO 7391-1', 'ASTM D3935'] },
+          { id: 'pom', name: 'POM (Poliaçetal)', standards: ['DIN EN ISO 9988-1', 'ASTM D4181'] }
+        ]
+      },
+      {
+        id: 'thermosets',
+        name: 'Termosetler',
+        grades: [
+          { id: 'epoxy', name: 'Epoksi Reçine', standards: ['DIN EN 60455', 'ASTM D1652'] },
+          { id: 'polyurethane', name: 'Poliüretan', standards: ['DIN EN ISO 1853', 'ASTM D412'] },
+          { id: 'phenolic', name: 'Fenolik Reçine', standards: ['DIN EN 61212', 'ASTM D700'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'composites',
+    name: 'Kompozit Malzemeler',
+    subCategories: [
+      {
+        id: 'carbon_fiber',
+        name: 'Karbon Fiber Kompozitler',
+        grades: [
+          { id: 'cfrp_std', name: 'CFRP (Standart Modül)', standards: ['DIN EN 2374', 'ASTM D3039'] },
+          { id: 'cfrp_hm', name: 'CFRP (Yüksek Modül)', standards: ['DIN EN 2374', 'ASTM D3039'] }
+        ]
+      },
+      {
+        id: 'glass_fiber',
+        name: 'Cam Fiber Kompozitler',
+        grades: [
+          { id: 'gfrp', name: 'GFRP (Cam Fiber)', standards: ['DIN EN 13706', 'ASTM D2584'] }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'ceramics',
+    name: 'Seramik Malzemeler',
+    subCategories: [
+      {
+        id: 'technical_ceramics',
+        name: 'Teknik Seramikler',
+        grades: [
+          { id: 'al2o3', name: 'Al2O3 (Alümina)', standards: ['DIN EN 843', 'ASTM C1161'] },
+          { id: 'zro2', name: 'ZrO2 (Zirkonya)', standards: ['DIN EN 843', 'ASTM C1161'] },
+          { id: 'sic', name: 'SiC (Silisyum Karbür)', standards: ['DIN EN 843', 'ASTM C1161'] },
+          { id: 'si3n4', name: 'Si3N4 (Silisyum Nitrür)', standards: ['DIN EN 843', 'ASTM C1161'] }
         ]
       }
     ]
@@ -3721,11 +4192,40 @@ const MaterialCertificateTracking: React.FC = () => {
 
   const handleViewCertificate = (certificate: Certificate) => {
     try {
-      window.open(certificate.url, '_blank');
+      if (certificate.url) {
+        // Base64 URL'leri için güvenli görüntüleme
+        if (certificate.url.startsWith('data:')) {
+          // Base64 verisi için blob oluştur
+          const base64Data = certificate.url.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: certificate.fileType || 'application/pdf' });
+          const blobUrl = URL.createObjectURL(blob);
+          
+          // Yeni sekmede aç
+          const newWindow = window.open(blobUrl, '_blank');
+          if (!newWindow) {
+            throw new Error('Pop-up engellenmiş olabilir');
+          }
+          
+          // Memory leak'i önlemek için URL'yi temizle
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        } else {
+          // Normal URL için
+          window.open(certificate.url, '_blank');
+        }
+      } else {
+        throw new Error('Sertifika URL\'si bulunamadı');
+      }
     } catch (error) {
+      console.error('Sertifika görüntüleme hatası:', error);
       setSnackbar({
         open: true,
-        message: 'Dosya görüntüleme hatası',
+        message: 'Sertifika görüntülenemiyor. Lütfen dosyayı indirip açmayı deneyin.',
         severity: 'error'
       });
     }

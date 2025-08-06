@@ -322,10 +322,10 @@ const KPI_MODULES = [
   },
   { 
     value: 'dof_8d', 
-    label: 'DÖF ve 8D Yönetimi', 
+    label: 'DF ve 8D Yönetimi', 
     icon: <AssignmentIcon />, 
     color: '#ff9800',
-    dataSource: 'DÖF ve 8D Yönetimi Modülü'
+    dataSource: 'DF ve 8D Yönetimi Modülü'
   },
   { 
     value: 'vehicle_quality', 
@@ -664,42 +664,42 @@ const KPI_TEMPLATES: KPITemplate[] = [
     dataSource: 'Kalitesizlik Maliyetleri Modülü'
   },
   
-  // DÖF ve 8D KPI'ları
+  // DF ve 8D KPI'ları
   {
     id: 'dof_closure_rate',
-    name: 'DÖF Kapanma Oranı',
+    name: 'DF Kapanma Oranı',
     category: 'quality',
-    description: 'Zamanında kapatılan DÖF ve 8D kayıtları yüzdesi',
+    description: 'Zamanında kapatılan DF ve 8D kayıtları yüzdesi',
     unit: '%',
     targetValue: 95,
-    dataSource: 'DÖF ve 8D Yönetimi Modülü'
+    dataSource: 'DF ve 8D Yönetimi Modülü'
   },
   {
     id: 'dof_overdue_rate',
-    name: 'DÖF Gecikme Oranı',
+    name: 'DF Gecikme Oranı',
     category: 'quality',
-    description: 'Süre aşımına uğrayan DÖF kayıtları yüzdesi',
+    description: 'Süre aşımına uğrayan DF kayıtları yüzdesi',
     unit: '%',
     targetValue: 5,
-    dataSource: 'DÖF ve 8D Yönetimi Modülü'
+    dataSource: 'DF ve 8D Yönetimi Modülü'
   },
   {
     id: 'dof_avg_closure_time',
-    name: 'Ortalama DÖF Kapanma Süresi',
+    name: 'Ortalama DF Kapanma Süresi',
     category: 'quality',
-    description: 'DÖF kayıtlarının ortalama çözüm süresi',
+    description: 'DF kayıtlarının ortalama çözüm süresi',
     unit: 'gün',
     targetValue: 15,
-    dataSource: 'DÖF ve 8D Yönetimi Modülü'
+    dataSource: 'DF ve 8D Yönetimi Modülü'
   },
   {
     id: 'critical_dof_count',
-    name: 'Kritik DÖF Sayısı',
+    name: 'Kritik DF Sayısı',
     category: 'quality',
-    description: 'Açık durumdaki kritik seviye DÖF kayıtları',
+    description: 'Açık durumdaki kritik seviye DF kayıtları',
     unit: 'adet',
     targetValue: 0,
-    dataSource: 'DÖF ve 8D Yönetimi Modülü'
+    dataSource: 'DF ve 8D Yönetimi Modülü'
   },
   {
     id: '8d_completion_rate',
@@ -708,7 +708,7 @@ const KPI_TEMPLATES: KPITemplate[] = [
     description: '8D sürecini tamamlayan kayıtların oranı',
     unit: '%',
     targetValue: 90,
-    dataSource: 'DÖF ve 8D Yönetimi Modülü'
+    dataSource: 'DF ve 8D Yönetimi Modülü'
   },
   
   // Araç Kalite Takibi KPI'ları
@@ -797,9 +797,9 @@ const KPI_TEMPLATES: KPITemplate[] = [
   },
   {
     id: 'supplier_open_dof',
-    name: 'Tedarikçi Açık DÖF Sayısı',
+    name: 'Tedarikçi Açık DF Sayısı',
     category: 'supplier',
-    description: 'Tedarikçilerle ilgili açık DÖF kayıtları',
+    description: 'Tedarikçilerle ilgili açık DF kayıtları',
     unit: 'adet',
     targetValue: 5,
     dataSource: 'Tedarikçi Kalite Yönetimi Modülü'
@@ -1062,7 +1062,7 @@ const fetchDOF8DData = (): DOF8DData => {
     // ✅ DataSyncManager'dan direk veri al
     const dofData = dataSyncManager.getDOFData();
     
-    console.log('📊 DataSyncManager DÖF Verileri:', dofData);
+    console.log('📊 DataSyncManager DF Verileri:', dofData);
     
     // Merkezi veriden direkt dön
     return {
@@ -1076,7 +1076,7 @@ const fetchDOF8DData = (): DOF8DData => {
     
     // Not: Artık localStorage'a bağımlı değil, DataSyncManager kullanıyor
   } catch (error) {
-    console.error('DÖF veri çekme hatası:', error);
+    console.error('DF veri çekme hatası:', error);
     // Fallback - DataSyncManager çalışmazsa
     return {
       total: 43,
@@ -1890,7 +1890,7 @@ const calculateKPIValueForPeriod = (kpiId: string, period: string): number => {
         const dofData = dataSyncManager.getDOFData();
         const baseValue = dofData?.closureRate || 87.5;
         
-        // Dönem bazlı DÖF performansı
+        // Dönem bazlı DF performansı
         const periodPerformance: Record<string, number> = {
           'this_week': baseValue * 1.12,     // Bu hafta çok iyi
           'this_month': baseValue * 1.05,    // Bu ay iyi
@@ -2312,7 +2312,7 @@ const calculateKPIValue = (kpiId: string): number => {
         return qualityCostData.totalCost > 0 ? (qualityCostData.complaintCost / qualityCostData.totalCost) * 100 : 0;
       
       // ============================================
-      // 📋 DÖF ve 8D KPI'LARI
+      // 📋 DF ve 8D KPI'LARI
       // ============================================
       case 'dof_closure_rate':
         return dofData.closureRate;
@@ -3074,15 +3074,15 @@ const EXECUTIVE_SUMMARY: ExecutiveSummary = {
     'Müşteri memnuniyeti hedefin %4.4 üzerinde',
     'Kalitesizlik maliyetleri %15.3 azaldı',
     'Tedarikçi kalite oranı %91.1 seviyesinde',
-    'DÖF kapanma oranı %66.7 ile hedefin altında'
+    'DF kapanma oranı %66.7 ile hedefin altında'
   ],
   criticalIssues: [
-    'DÖF kapanma süreleri hedefin üzerinde',
+    'DF kapanma süreleri hedefin üzerinde',
     'Bazı tedarikçilerde kalite sorunları devam ediyor',
     'Araç kalite takibinde veri eksiklikleri'
   ],
   strategicRecommendations: [
-    'DÖF süreç iyileştirme projesi başlatılmalı',
+    'DF süreç iyileştirme projesi başlatılmalı',
     'Tedarikçi eğitim programları artırılmalı',
     'Araç kalite veri toplama sistemi güçlendirilmeli',
     'Predictive analytics kullanımı yaygınlaştırılmalı'
@@ -3391,7 +3391,7 @@ const formatValue = (value: number, unit: string): string => {
 const checkDataSourceHealth = (dataSource: string): boolean => {
   try {
     // ✅ Gerçek localStorage key'lerini kullan
-    if (dataSource.includes('DÖF ve 8D Yönetimi')) {
+    if (dataSource.includes('DF ve 8D Yönetimi')) {
       const dofRecords = JSON.parse(localStorage.getItem('dofRecords') || '[]');
       return Array.isArray(dofRecords) && dofRecords.length > 0;
     }
@@ -5114,7 +5114,7 @@ const PERIOD_FILTERS = [
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const MODULE_FILTERS = [
   { value: 'all', label: 'Tüm Modüller' },
-  { value: 'dof', label: 'DÖF ve 8D Yönetimi' },
+  { value: 'dof', label: 'DF ve 8D Yönetimi' },
   { value: 'quality_cost', label: 'Kalitesizlik Maliyetleri' },
   { value: 'vehicle_quality', label: 'Araç Kalite Takibi' },
   { value: 'supplier_quality', label: 'Tedarikçi Kalite Yönetimi' },
@@ -5159,7 +5159,7 @@ const MEASUREMENT_PERIOD_FILTERS = [
 
 // KPI'nın modülünü belirleyen fonksiyon
 const getKPIModule = (kpi: KPI): string => {
-  if (kpi.dataSource.includes('DÖF ve 8D')) return 'dof';
+  if (kpi.dataSource.includes('DF ve 8D')) return 'dof';
   if (kpi.dataSource.includes('Kalitesizlik Maliyetleri')) return 'quality_cost';
   if (kpi.dataSource.includes('Araç Kalite')) return 'vehicle_quality';
   if (kpi.dataSource.includes('Tedarikçi Kalite')) return 'supplier_quality';

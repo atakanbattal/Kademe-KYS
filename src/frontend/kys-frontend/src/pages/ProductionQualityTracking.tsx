@@ -1155,7 +1155,7 @@ const ProductionQualityTracking: React.FC = () => {
     }
   };
 
-  // DÖF/8D oluşturma fonksiyonu
+  // DF/8D oluşturma fonksiyonu
   const handleCreateDOF = (record: QualityDefectRecord) => {
     const defect = record.defects && record.defects[0];
     const dofParams: DOFCreationParams = {
@@ -1175,11 +1175,11 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
       responsiblePerson: record.inspector || 'Belirtilmemiş'
     };
 
-    // DÖF kaydı oluştur
+    // DF kaydı oluştur
     const result = createDOFFromSourceRecord(dofParams);
     
     if (result.success) {
-      // DÖF form açma bilgilerini localStorage'a kaydet
+      // DF form açma bilgilerini localStorage'a kaydet
       localStorage.setItem('dof-auto-open-form', 'true');
       localStorage.setItem('dof-form-prefill', JSON.stringify({
         ...dofParams,
@@ -1187,10 +1187,10 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
         openInEditMode: true
       }));
       
-      // DÖF/8D Management sayfasına direkt yönlendir
+      // DF/8D Management sayfasına direkt yönlendir
       window.location.href = '/dof-8d-management';
     } else {
-      alert(`DÖF oluşturma hatası: ${result.error}`);
+      alert(`DF oluşturma hatası: ${result.error}`);
     }
   };
 

@@ -751,10 +751,10 @@ const RiskManagement: React.FC = () => {
     }
   };
 
-  // DÖF oluşturma fonksiyonu
+  // DF oluşturma fonksiyonu
   const handleCreateDOF = (risk: RiskRecord) => {
     try {
-      // DÖF form verilerini hazırla
+      // DF form verilerini hazırla
       const dofFormData = {
         title: `Risk Yönetimi - ${risk.title}`,
         description: `Risk ID: ${risk.riskId}\n\nRisk Açıklaması: ${risk.description}\n\nRisk Kategorisi: ${riskCategories[risk.category]?.label}\nRisk Seviyesi: ${getRiskLevelLabel(risk.riskLevel)}\nRisk Skoru: ${risk.riskScore}/25\n\nSorumlu: ${risk.owner}\nDepartman: ${risk.department}\n\nTespit Eden: ${risk.identifiedBy}\nTespit Tarihi: ${risk.identifiedDate}`,
@@ -769,17 +769,17 @@ const RiskManagement: React.FC = () => {
         sourceRecordId: risk.riskId
       };
 
-      // DÖF form verilerini localStorage'a kaydet (prefill için)
+      // DF form verilerini localStorage'a kaydet (prefill için)
       localStorage.setItem('dof-form-prefill', JSON.stringify(dofFormData));
       
-      // DÖF sayfasına yönlendir
+      // DF sayfasına yönlendir
       window.open('/dof-8d-management', '_blank');
       
-      alert('DÖF formu hazırlandı! Yeni sekmede DÖF Yönetimi sayfası açıldı ve form otomatik dolduruldu.');
+      alert('DF formu hazırlandı! Yeni sekmede DF Yönetimi sayfası açıldı ve form otomatik dolduruldu.');
       
     } catch (error) {
-      console.error('DÖF oluşturma hatası:', error);
-      alert('DÖF oluşturulurken bir hata oluştu.');
+      console.error('DF oluşturma hatası:', error);
+      alert('DF oluşturulurken bir hata oluştu.');
     }
   };
 

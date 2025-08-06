@@ -10,7 +10,7 @@
  * 
  * Entegre Modüller:
  * 1. Kalite ve Araç Performans Yönetimi
- * 2. DÖF ve 8D Yönetimi
+ * 2. DF ve 8D Yönetimi
  * 3. Üretim Kaynaklı Kalite Hata Takip Sistemi 
  * 4. Tank Sızdırmazlık Testi
  * 5. Fan Balans ve Kaynak Kalite Analizi
@@ -139,7 +139,7 @@ const getQualityCostData = () => {
   }
 };
 
-// DÖF ve 8D verilerini çek
+// DF ve 8D verilerini çek
 const getDOFData = () => {
   try {
     const data = JSON.parse(localStorage.getItem('dofRecords') || '[]');
@@ -575,7 +575,7 @@ const QualityManagement: React.FC = () => {
   const calculateKPIs = useCallback(() => {
     console.log('🔄 Quality Management KPI hesaplama başladı...');
     
-    // ✅ DÖF modülü tarzında CANLI VERİ ÇEKME
+    // ✅ DF modülü tarzında CANLI VERİ ÇEKME
     const loadRealTimeData = () => {
       console.log('📦 Quality Management - Real-time veri çekme başlıyor...');
       
@@ -682,7 +682,7 @@ const QualityManagement: React.FC = () => {
       },
       {
         id: 'dof_closure_rate',
-        name: 'DÖF Kapanma Oranı',
+        name: 'DF Kapanma Oranı',
         category: 'quality',
         currentValue: dofData.closureRate,
         targetValue: getStoredTargetValue('dof_closure_rate', 85),
@@ -702,8 +702,8 @@ const QualityManagement: React.FC = () => {
                  current >= target * 0.8 ? 'warning' : 'critical';
         })(),
         lastUpdated: new Date().toISOString(),
-        dataSource: 'DÖF ve 8D Yönetimi Modülü',
-        description: 'Zamanında kapatılan DÖF kayıtlarının oranı',
+        dataSource: 'DF ve 8D Yönetimi Modülü',
+        description: 'Zamanında kapatılan DF kayıtlarının oranı',
         isHigherBetter: true
       },
       {
@@ -1156,7 +1156,7 @@ const QualityManagement: React.FC = () => {
         dataQuality: qualityCostData.dataQuality
       },
       {
-        moduleName: 'DÖF ve 8D Yönetimi',
+        moduleName: 'DF ve 8D Yönetimi',
         status: dofData.totalDOF > 0 ? 'connected' : 'disconnected',
         lastSync: new Date().toISOString(),
         recordCount: dofData.totalDOF,

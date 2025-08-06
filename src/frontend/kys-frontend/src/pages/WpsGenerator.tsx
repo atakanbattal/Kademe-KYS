@@ -2369,7 +2369,7 @@ const WpsGenerator: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPreviewOpen(false)}>Kapat</Button>
-          <Button variant="contained" startIcon={<PdfIcon />} onClick={() => {/* generateEnhancedPDF */}}>PDF İndir</Button>
+          <Button variant="contained" startIcon={<PdfIcon />} onClick={generateEnhancedPDF}>PDF İndir</Button>
         </DialogActions>
       </Dialog>
 

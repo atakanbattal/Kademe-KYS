@@ -77,7 +77,7 @@ import { styled } from '@mui/material/styles';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
-// DÖF/8D Integration Import
+// DF/8D Integration Import
 import { navigateToDOFForm, checkDOFStatus, DOFCreationParams } from '../utils/dofIntegration';
 
 // Theme Context Import
@@ -1473,9 +1473,9 @@ const TankLeakTest: React.FC = () => {
     }
   };
 
-  // DÖF/8D Integration Functions
+  // DF/8D Integration Functions
   const handleCreateDOFForTest = (test: TestRecord) => {
-    // DÖF form verilerini localStorage'a kaydet - form otomatik açılsın
+    // DF form verilerini localStorage'a kaydet - form otomatik açılsın
     const dofFormData = {
       title: `Tank Sızdırmazlık Testi Başarısızlığı - ${test.tankInfo.serialNumber}`,
       department: 'Kaynakhane',
@@ -1490,7 +1490,7 @@ const TankLeakTest: React.FC = () => {
     localStorage.setItem('dof-auto-open-form', 'true');
     localStorage.setItem('dof-prefill-data', JSON.stringify(dofFormData));
     
-    // DÖF/8D yönetimi sayfasına yönlendir
+    // DF/8D yönetimi sayfasına yönlendir
     window.location.href = '/dof-8d-management';
   };
 
@@ -4129,9 +4129,9 @@ const TankLeakTest: React.FC = () => {
                                     )}
                                   </>
                                 )}
-                                {/* DÖF Oluştur butonu - sadece başarısız ve şartlı testler için */}
+                                {/* DF Oluştur butonu - sadece başarısız ve şartlı testler için */}
                                 {(test.testResult?.result === 'failed' || test.testResult?.result === 'conditional') && (
-                                  <Tooltip title={getDOFStatusForTest(test) ? `DÖF Mevcut: ${getDOFStatusForTest(test)?.dofNumber}` : "Uygunsuzluk Oluştur"}>
+                                  <Tooltip title={getDOFStatusForTest(test) ? `DF Mevcut: ${getDOFStatusForTest(test)?.dofNumber}` : "Uygunsuzluk Oluştur"}>
                                     <IconButton 
                                       size="small"
                                       onClick={() => handleCreateDOFForTest(test)}

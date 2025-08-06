@@ -89,8 +89,8 @@ const AutoKPISystem: React.FC = () => {
     },
     {
       id: 'dof-closure-rate',
-      name: 'DÖF Kapatma Oranı',
-      description: 'Kapatılan DÖF raporlarının toplam rapor sayısına oranı (%)',
+      name: 'DF Kapatma Oranı',
+    description: 'Kapatılan DF raporlarının toplam rapor sayısına oranı (%)',
       category: 'quality',
       currentValue: 85.7,
       targetValue: 90,
@@ -504,7 +504,7 @@ const AutoKPISystem: React.FC = () => {
                 {[
                   { name: 'Tedarikçi Kalite', data: supplierData, modules: ['supplier-quality-index'] },
                   { name: 'Kalite Maliyet', data: qualityCostData, modules: ['quality-cost-ratio'] },
-                  { name: 'DÖF 8D', data: dofData, modules: ['dof-closure-rate'] },
+                  { name: 'DF 8D', data: dofData, modules: ['dof-closure-rate'] },
                   { name: 'Doküman Yönetimi', data: documentData, modules: ['document-compliance-rate'] }
                 ].map((source) => (
                   <TableRow key={source.name}>
