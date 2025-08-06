@@ -26,6 +26,7 @@ import {
   Tabs,
   Tab,
   LinearProgress,
+  CircularProgress,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -693,33 +694,62 @@ const compressImage = (file: File, quality: number = 0.7): Promise<string> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Canvas context alınamadı'));
+      return;
+    }
+    
     const img = new Image();
     
     img.onload = () => {
-      // Optimal boyut hesaplama (max 1200px)
-      const maxDimension = 1200;
-      let { width, height } = img;
-      
-      if (width > height && width > maxDimension) {
-        height = (height * maxDimension) / width;
-        width = maxDimension;
-      } else if (height > maxDimension) {
-        width = (width * maxDimension) / height;
-        height = maxDimension;
+      try {
+        // Akıllı boyut hesaplama (performans için optimize edildi)
+        const maxDimension = file.size > 5 * 1024 * 1024 ? 800 : 1200; // Büyük dosyalar için daha agresif compress
+        let { width, height } = img;
+        
+        if (width > height && width > maxDimension) {
+          height = (height * maxDimension) / width;
+          width = maxDimension;
+        } else if (height > maxDimension) {
+          width = (width * maxDimension) / height;
+          height = maxDimension;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Görsel kalitesi için background ekle
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Görsel çiz (smooth scaling için)
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Dinamik kalite (dosya boyutuna göre)
+        const dynamicQuality = file.size > 3 * 1024 * 1024 ? quality * 0.8 : quality;
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', dynamicQuality);
+        
+        const originalSizeMB = (file.size / 1024 / 1024).toFixed(2);
+        const compressedSizeMB = (compressedDataUrl.length * 0.75 / 1024 / 1024).toFixed(2);
+        console.log(`🎯 Görsel optimize edildi: ${originalSizeMB}MB → ${compressedSizeMB}MB (${quality*100}% kalite)`);
+        
+        // Memory cleanup
+        URL.revokeObjectURL(img.src);
+        
+        resolve(compressedDataUrl);
+      } catch (error) {
+        console.error('❌ Compress işlemi hatası:', error);
+        reject(error);
       }
-      
-      canvas.width = width;
-      canvas.height = height;
-      
-      // Görsel çiz ve compress et
-      ctx?.drawImage(img, 0, 0, width, height);
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-      
-      console.log(`📸 Görsel compress edildi: ${file.size} → ${Math.round(compressedDataUrl.length * 0.75)} bytes`);
-      resolve(compressedDataUrl);
     };
     
-    img.onerror = () => reject(new Error('Görsel yüklenemedi'));
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      reject(new Error('Görsel yüklenemedi'));
+    };
+    
     img.src = URL.createObjectURL(file);
   });
 };
@@ -1486,10 +1516,28 @@ const generateDOFPDF = async (record: DOFRecord): Promise<void> => {
           const attachment = allImages[i];
           
           try {
+            let imageUrl = attachment.url;
+            
+            // IndexedDB'den görsel çek
+            if (attachment.url && attachment.url.startsWith('indexeddb://')) {
+              const attachmentId = attachment.url.replace('indexeddb://', '');
+              try {
+                const fullAttachment = await dofAttachmentStorage.getAttachment(attachmentId);
+                if (fullAttachment && fullAttachment.url) {
+                  imageUrl = fullAttachment.url;
+                  console.log(`📸 PDF için görsel çekildi: ${attachment.name}`);
+                } else {
+                  console.warn(`⚠️ IndexedDB'de görsel bulunamadı: ${attachmentId}`);
+                  continue;
+                }
+              } catch (dbError) {
+                console.error(`❌ IndexedDB görsel çekme hatası: ${attachmentId}`, dbError);
+                continue;
+              }
+            }
+            
             // Base64 data'dan resim oluştur
-            if (attachment.url && attachment.url.includes('data:image')) {
-              const base64Data = attachment.url.split(',')[1];
-              
+            if (imageUrl && imageUrl.includes('data:image')) {
               // Resim boyutlarını hesapla (maksimum genişlik: 160mm, maksimum yükseklik: 120mm)
               const maxWidth = 160;
               const maxHeight = 120;
@@ -1504,7 +1552,7 @@ const generateDOFPDF = async (record: DOFRecord): Promise<void> => {
               
               // Resim ekle
               doc.addImage(
-                attachment.url,
+                imageUrl,
                 'JPEG',
                 margin,
                 imageY,
@@ -2881,104 +2929,144 @@ const DOF8DManagement: React.FC = () => {
     }
   };
 
-  // 📎 GELİŞMİŞ DOSYA YÜKLEME FONKSİYONLARI - COMPRESS VE INDEXEDDB DESTEKLİ
+  // 📎 HIZLI VE VERİMLİ DOSYA YÜKLEME - BATCH İŞLEME VE PROGRESS
+  const [uploadProgress, setUploadProgress] = useState<{total: number, completed: number, current: string}>({
+    total: 0, completed: 0, current: ''
+  });
+  const [isUploading, setIsUploading] = useState(false);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
-    // Dosyaları tek tek işle
-    for (const file of Array.from(files)) {
-      try {
-        // Boyut kontrolü (artık daha esnek - 15MB'a çıkardık)
-        if (file.size > 15 * 1024 * 1024) {
-          setSnackbar({
-            open: true,
-            message: `Dosya boyutu 15MB'dan büyük olamaz: ${file.name}`,
-            severity: 'error'
-          });
-          continue;
+    const fileArray = Array.from(files);
+    
+    // Upload başlat
+    setIsUploading(true);
+    setUploadProgress({ total: fileArray.length, completed: 0, current: '' });
+
+    const successfulUploads: Attachment[] = [];
+    const errors: string[] = [];
+
+    try {
+      // Dosyaları paralel olarak işle (performans için)
+      const uploadPromises = fileArray.map(async (file, index) => {
+        try {
+          // Progress güncelle (UI bloke etmemek için setTimeout kullan)
+          setTimeout(() => {
+            setUploadProgress(prev => ({ ...prev, current: file.name }));
+          }, 0);
+
+          // Boyut kontrolü (15MB limit)
+          if (file.size > 15 * 1024 * 1024) {
+            errors.push(`${file.name}: Dosya boyutu 15MB'dan büyük`);
+            return null;
+          }
+
+          const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+          if (!allowedTypes.includes(file.type)) {
+            errors.push(`${file.name}: Desteklenmeyen dosya türü`);
+            return null;
+          }
+
+          let fileDataUrl: string;
+          let compressedSize: number;
+
+          // Görsel dosyaları için compress (background'da)
+          if (file.type.includes('image')) {
+            fileDataUrl = await compressImage(file, 0.75); // %75 kalite (daha hızlı)
+            compressedSize = Math.round(fileDataUrl.length * 0.75);
+          } else {
+            // PDF'ler için normal okuma
+            fileDataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => resolve(e.target?.result as string);
+              reader.onerror = () => reject(new Error('Dosya okunamadı'));
+              reader.readAsDataURL(file);
+            });
+            compressedSize = file.size;
+          }
+
+          // Unique ID oluştur (çakışma riski minimize et)
+          const attachmentId = `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`;
+
+          // Attachment objesi
+          const attachment: Attachment = {
+            id: attachmentId,
+            name: file.name,
+            type: file.type,
+            uploadDate: new Date().toISOString(),
+            size: compressedSize,
+            url: `indexeddb://${attachmentId}`
+          };
+
+          // IndexedDB'ye kaydet (async, non-blocking)
+          const fullAttachment = { ...attachment, url: fileDataUrl };
+          await dofAttachmentStorage.saveAttachment(fullAttachment);
+
+          console.log(`✅ Dosya yüklendi: ${file.name} (${(compressedSize / 1024 / 1024).toFixed(2)}MB)`);
+          
+          // Progress güncelle
+          setTimeout(() => {
+            setUploadProgress(prev => ({ ...prev, completed: prev.completed + 1 }));
+          }, 0);
+
+          return attachment;
+
+        } catch (error) {
+          console.error(`❌ ${file.name} yükleme hatası:`, error);
+          errors.push(`${file.name}: Yükleme hatası`);
+          return null;
         }
+      });
 
-        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        if (!allowedTypes.includes(file.type)) {
-          setSnackbar({
-            open: true,
-            message: `Desteklenmeyen dosya türü: ${file.name}`,
-            severity: 'error'
-          });
-          continue;
-        }
-
-        // Loading mesajı göster
-        setSnackbar({
-          open: true,
-          message: `Dosya işleniyor: ${file.name}...`,
-          severity: 'info'
-        });
-
-        let fileDataUrl: string;
-        let compressedSize: number;
-
-        // Görsel dosyaları için compress işlemi
-        if (file.type.includes('image')) {
-          console.log(`🖼️ Görsel compress ediliyor: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-          fileDataUrl = await compressImage(file, 0.7); // %70 kalite
-          compressedSize = Math.round(fileDataUrl.length * 0.75); // Base64 -> bytes tahmini
-          console.log(`✅ Compress tamamlandı: ${(compressedSize / 1024 / 1024).toFixed(2)}MB`);
-        } else {
-          // PDF ve diğer dosyalar için normal okuma
-          fileDataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target?.result as string);
-            reader.onerror = () => reject(new Error('Dosya okunamadı'));
-            reader.readAsDataURL(file);
-          });
-          compressedSize = file.size;
-        }
-
-        // Unique ID oluştur
-        const attachmentId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-        // Attachment objesi oluştur
-        const attachment: Attachment = {
-          id: attachmentId,
-          name: file.name,
-          type: file.type,
-          uploadDate: new Date().toISOString(),
-          size: compressedSize,
-          url: `indexeddb://${attachmentId}` // IndexedDB referansı
-        };
-
-        // IndexedDB'ye kaydet (büyük dosyalar için)
-        const fullAttachment = { ...attachment, url: fileDataUrl };
-        await dofAttachmentStorage.saveAttachment(fullAttachment);
-
-        // Form state'ine ekle (sadece metadata)
+      // Tüm upload'ları bekle
+      const results = await Promise.all(uploadPromises);
+      
+      // Başarılı upload'ları filtrele
+      const validAttachments = results.filter(Boolean) as Attachment[];
+      
+      // State'i tek seferde güncelle (re-render optimize et)
+      if (validAttachments.length > 0) {
         setFormData(prev => ({
           ...prev,
-          attachments: [...(prev.attachments || []), attachment]
+          attachments: [...(prev.attachments || []), ...validAttachments]
         }));
+      }
 
+      // Sonuç mesajları
+      if (validAttachments.length > 0) {
         setSnackbar({
           open: true,
-          message: `✅ Dosya başarıyla yüklendi: ${file.name} (${(compressedSize / 1024 / 1024).toFixed(2)}MB)`,
+          message: `✅ ${validAttachments.length} dosya başarıyla yüklendi!`,
           severity: 'success'
         });
+      }
 
-        console.log(`💾 Dosya IndexedDB'ye kaydedildi: ${file.name}, ID: ${attachmentId}`);
-
-      } catch (error) {
-        console.error('❌ Dosya yükleme hatası:', error);
+      if (errors.length > 0) {
         setSnackbar({
           open: true,
-          message: `Dosya yükleme hatası: ${file.name}. Tekrar deneyin.`,
-          severity: 'error'
+          message: `⚠️ ${errors.length} dosya yüklenemedi. Detaylar console'da.`,
+          severity: 'warning'
         });
+        console.warn('📋 Yükleme hataları:', errors);
       }
-    }
 
-    // Input'u temizle
-    event.target.value = '';
+    } catch (error) {
+      console.error('❌ Toplu yükleme hatası:', error);
+      setSnackbar({
+        open: true,
+        message: 'Dosya yükleme sırasında hata oluştu. Tekrar deneyin.',
+        severity: 'error'
+      });
+    } finally {
+      // Upload tamamlandı
+      setIsUploading(false);
+      setUploadProgress({ total: 0, completed: 0, current: '' });
+      
+      // Input temizle
+      event.target.value = '';
+    }
   };
 
   const handleDownloadAttachment = async (attachment: Attachment) => {
@@ -6874,19 +6962,43 @@ const DOF8DManagement: React.FC = () => {
                     multiple
                     type="file"
                     onChange={handleFileUpload}
+                    disabled={isUploading}
                   />
                   <label htmlFor="attachment-upload">
                     <Button
                       variant="contained"
                       component="span"
-                      startIcon={<UploadIcon />}
+                      startIcon={isUploading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : <UploadIcon />}
                       sx={{ mr: 2 }}
+                      disabled={isUploading}
                     >
-                      Dosya Yükle
+                      {isUploading ? 'Yükleniyor...' : 'Dosya Yükle'}
                     </Button>
                   </label>
+                  
+                  {/* Upload Progress Indicator */}
+                  {isUploading && (
+                    <Box sx={{ mt: 2, mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={(uploadProgress.completed / uploadProgress.total) * 100}
+                          sx={{ flexGrow: 1, height: 8, borderRadius: 4 }}
+                        />
+                        <Typography variant="caption" sx={{ minWidth: 35 }}>
+                          {uploadProgress.completed}/{uploadProgress.total}
+                        </Typography>
+                      </Box>
+                      {uploadProgress.current && (
+                        <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic' }}>
+                          İşleniyor: {uploadProgress.current}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                  
                   <Typography variant="caption" color="text.secondary">
-                    PDF, JPG, JPEG, PNG, DOC, DOCX formatları desteklenir (Maks. 10MB)
+                    PDF, JPG, JPEG, PNG, DOC, DOCX formatları desteklenir (Maks. 15MB) • Görseller otomatik compress edilir
                   </Typography>
                 </Box>
               )}
