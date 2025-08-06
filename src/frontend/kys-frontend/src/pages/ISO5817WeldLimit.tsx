@@ -32,6 +32,7 @@ import {
   Engineering as EngineeringIcon,
   Assignment as AssignmentIcon,
   CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
   Info as InfoIcon,
   Construction as ConstructionIcon,
   Search as SearchIcon,
@@ -66,7 +67,7 @@ interface ModernCalculationResult {
     description: string;
     category: string;
   };
-  weldDetails: {
+  weldDetails?: {
     materialThickness: number;
     weldType: string;
     qualityLevel: string;
@@ -76,10 +77,13 @@ interface ModernCalculationResult {
     allowed: boolean;
     result: string;
     reason: string;
-    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
     [key: string]: any;
   };
-  timestamp: string;
+  qualityLevel: string;
+  standard: string;
+  calculatedAt: string;
+  timestamp?: string;
 }
 
 interface DefectLimit {
