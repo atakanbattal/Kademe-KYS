@@ -1848,10 +1848,10 @@ export default function QualityCostManagement() {
             
             console.log('📊 COPQ Aylık veri Map:', monthlyData);
             
-            // Convert to array and sort by date (last 6 months)
+            // Convert to array and sort by date (last 12 months)
             const sortedMonths = Array.from(monthlyData.entries())
               .sort((a, b) => a[0].localeCompare(b[0]))
-              .slice(-6) // Last 6 months
+              .slice(-12) // Last 12 months
               .map(([monthKey, copqData]) => {
                 const [year, month] = monthKey.split('-');
                 const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 
@@ -2335,7 +2335,7 @@ export default function QualityCostManagement() {
       // Convert to array and sort by date (last 6 months)
       const sortedMonths = Array.from(monthlyData.values())
         .sort((a, b) => a.monthKey.localeCompare(b.monthKey))
-        .slice(-6); // Last 6 months
+        .slice(-12); // Last 12 months
       
       console.log('✅ REAL COPQ Trend Data Generated:', {
         totalRecords: costData.length,
@@ -11470,7 +11470,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       // Convert to array and sort by date (last 6 months)
       const sortedMonths = Array.from(monthlyData.values())
         .sort((a, b) => a.monthKey.localeCompare(b.monthKey))
-        .slice(-6); // Last 6 months
+        .slice(-12); // Last 12 months
       
       console.log('📈 DataManagement COPQ Trend Generated:', {
         recordsProcessed: activeData.length,

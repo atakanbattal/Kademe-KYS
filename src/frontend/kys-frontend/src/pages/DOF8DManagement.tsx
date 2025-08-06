@@ -2371,12 +2371,12 @@ const DOF8DManagement: React.FC = () => {
 
 
 
-    // Context7 - CONSISTENT: Dynamic 6-month trend calculation (uses filtered records for consistency)
+    // Context7 - CONSISTENT: Dynamic 12-month trend calculation (uses filtered records for consistency)
     const monthlyTrend = (() => {
       const months = [];
       
-      // 2025 için Ocak-Haziran aylarını göster
-      for (let month = 1; month <= 6; month++) {
+      // 2025 için tüm 12 ayı göster
+      for (let month = 1; month <= 12; month++) {
         const year = 2025;
         
         // Records opened in this month from filtered records (for consistency with other charts)
@@ -2394,7 +2394,7 @@ const DOF8DManagement: React.FC = () => {
           return closedDate.getFullYear() === year && closedDate.getMonth() + 1 === month;
         });
         
-        const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz'];
+        const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
         
         months.push({
           month: monthNames[month - 1],
@@ -2630,9 +2630,12 @@ const DOF8DManagement: React.FC = () => {
             // Context7 - Güvenli kayıt güncelleme
             const updatedRecord: DOFRecord = {
               ...record,
-              // Context7 - Kapatma durumu
-              status: 'closed',
+              // Context7 - Kapatma durumu (rejected ise status rejected olacak)
+              status: closeReason === 'rejected' ? 'rejected' : 'closed',
               closedDate: closedDate,
+              
+              // Context7 - Rejected durumunda rejectionReason ekle
+              rejectionReason: closeReason === 'rejected' ? closureData.closureNotes : record.rejectionReason,
               
               // Context7 - Hesaplanan final değerler
               remainingDays: finalRemainingDays,
@@ -2678,7 +2681,8 @@ const DOF8DManagement: React.FC = () => {
         const newStats = {
           total: updatedRecords.length,
           closed: updatedRecords.filter(r => r.status === 'closed').length,
-          open: updatedRecords.filter(r => r.status !== 'closed').length
+          rejected: updatedRecords.filter(r => r.status === 'rejected').length,
+          open: updatedRecords.filter(r => r.status !== 'closed' && r.status !== 'rejected').length
         };
         
         console.log('📊 Context7 - Güncel istatistikler:', newStats);
@@ -6787,6 +6791,12 @@ const DOF8DManagement: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <MergeIcon sx={{ color: 'primary.main', fontSize: 20 }} />
                       Birleştirildi
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="rejected">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <ErrorIcon sx={{ color: 'error.main', fontSize: 20 }} />
+                      Reddedildi
                     </Box>
                   </MenuItem>
                 </Select>

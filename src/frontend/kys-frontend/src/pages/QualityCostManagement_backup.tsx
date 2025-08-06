@@ -1298,7 +1298,7 @@ export default function QualityCostManagement() {
 
       const trendData = Array.from(monthlyData.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .slice(-6) // Last 6 months
+        .slice(-12) // Last 12 months
         .map(([monthKey, total]) => {
           const [year, month] = monthKey.split('-');
           const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 
@@ -1433,7 +1433,7 @@ export default function QualityCostManagement() {
             // Convert to array and sort by date (last 6 months)
             const sortedMonths = Array.from(monthlyData.entries())
               .sort((a, b) => a[0].localeCompare(b[0]))
-              .slice(-6) // Last 6 months
+              .slice(-12) // Last 12 months
               .map(([monthKey, copqData]) => {
                 const [year, month] = monthKey.split('-');
                 const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 
