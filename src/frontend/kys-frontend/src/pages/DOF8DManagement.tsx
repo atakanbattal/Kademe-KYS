@@ -5813,34 +5813,99 @@ const DOF8DManagement: React.FC = () => {
                           }}
                         />
                         
-                        {/* Kapatma Kanıt Dokümanları - Sadece Görüntüleme Modu */}
+                        {/* Kapatma Kanıt Dokümanları - Profesyonel Görüntüleme */}
                         {dialogMode === 'view' && formData.metadata?.evidenceDocuments && formData.metadata.evidenceDocuments.length > 0 && (
                           <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
-                              Kapatma Kanıt Dokümanları ({formData.metadata.evidenceDocuments.length} adet)
-                            </Typography>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                              {formData.metadata.evidenceDocuments.map((doc: any, index: number) => (
-                                <Chip
-                                  key={index}
-                                  label={doc.fileName}
-                                  size="small"
-                                  variant="outlined"
-                                  color="success"
-                                  clickable
-                                  onClick={() => {
-                                    // Dosyayı görüntüle/indir
-                                    if (doc.fileData) {
-                                      const link = document.createElement('a');
-                                      link.href = doc.fileData;
-                                      link.download = doc.fileName;
-                                      link.click();
-                                    }
-                                  }}
-                                  sx={{ maxWidth: 200 }}
+                            <Paper sx={{ 
+                              p: 3, 
+                              borderRadius: 3, 
+                              bgcolor: 'grey.50',
+                              border: '1px solid #e0e0e0'
+                            }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <AttachFileIcon sx={{ color: 'primary.main', mr: 1 }} />
+                                <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                                  Kapatma Kanıt Dokümanları
+                                </Typography>
+                                <Chip 
+                                  label={`${formData.metadata.evidenceDocuments.length} Dosya`} 
+                                  size="small" 
+                                  color="primary" 
+                                  sx={{ ml: 'auto' }}
                                 />
-                              ))}
-                            </Box>
+                              </Box>
+                              
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                                DF kapatma sürecinde eklenen kanıt dokümanları ve destekleyici belgeler
+                              </Typography>
+                              
+                              <Box sx={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                                gap: 2 
+                              }}>
+                                {formData.metadata.evidenceDocuments.map((doc: any, index: number) => {
+                                  const getFileIcon = (fileName: string) => {
+                                    const ext = fileName.split('.').pop()?.toLowerCase();
+                                    if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(ext || '')) return '📸';
+                                    if (['pdf'].includes(ext || '')) return '📄';
+                                    if (['doc', 'docx'].includes(ext || '')) return '📝';
+                                    if (['xls', 'xlsx'].includes(ext || '')) return '📊';
+                                    return '📎';
+                                  };
+                                  
+                                  return (
+                                    <Box
+                                      key={index}
+                                      sx={{
+                                        p: 2,
+                                        bgcolor: 'white',
+                                        borderRadius: 2,
+                                        border: '1px solid #e0e0e0',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        '&:hover': {
+                                          borderColor: 'primary.main',
+                                          boxShadow: '0 2px 8px rgba(25,118,210,0.15)',
+                                          transform: 'translateY(-1px)'
+                                        }
+                                      }}
+                                      onClick={() => {
+                                        if (doc.fileData) {
+                                          const link = document.createElement('a');
+                                          link.href = doc.fileData;
+                                          link.download = doc.fileName;
+                                          link.click();
+                                        }
+                                      }}
+                                    >
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                        <Typography sx={{ fontSize: '1.5rem' }}>
+                                          {getFileIcon(doc.fileName)}
+                                        </Typography>
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                          <Typography 
+                                            variant="subtitle2" 
+                                            sx={{ 
+                                              fontWeight: 600,
+                                              overflow: 'hidden',
+                                              textOverflow: 'ellipsis',
+                                              whiteSpace: 'nowrap'
+                                            }}
+                                          >
+                                            {doc.fileName}
+                                          </Typography>
+                                          <Typography variant="caption" color="text.secondary">
+                                            {doc.fileType || 'Dosya'} • Tıklayarak İndir
+                                          </Typography>
+                                        </Box>
+                                        <DownloadIcon sx={{ color: 'action.active', fontSize: '1.2rem' }} />
+                                      </Box>
+                                    </Box>
+                                  );
+                                })}
+                              </Box>
+                            </Paper>
                           </Box>
                         )}
                       </Box>
@@ -6618,36 +6683,94 @@ const DOF8DManagement: React.FC = () => {
                 </Button>
                 
                 {closureData.evidenceDocuments && closureData.evidenceDocuments.length > 0 && (
-                  <Box>
-                    <Typography variant="body2" fontWeight="bold" gutterBottom>
-                      Eklenen Dosyalar ({closureData.evidenceDocuments.length} adet):
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {closureData.evidenceDocuments.map((doc, index) => (
-                        <Chip
-                          key={index}
-                          label={doc.fileName}
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                          onDelete={() => {
-                            setClosureData(prev => ({
-                              ...prev,
-                              evidenceDocuments: prev.evidenceDocuments?.filter((_, i) => i !== index) || []
-                            }));
-                          }}
-                          sx={{ 
-                            maxWidth: 300, 
-                            minWidth: 120,
-                            '& .MuiChip-label': {
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              fontSize: '0.75rem'
-                            }
-                          }}
-                        />
-                      ))}
+                  <Box sx={{ mt: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <CheckCircleIcon sx={{ color: 'success.main', mr: 1, fontSize: '1.2rem' }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'success.main' }}>
+                        Eklenen Kanıt Dokümanları
+                      </Typography>
+                      <Chip 
+                        label={`${closureData.evidenceDocuments.length} Dosya`} 
+                        size="small" 
+                        color="success" 
+                        variant="filled"
+                        sx={{ ml: 'auto' }}
+                      />
+                    </Box>
+                    
+                    <Box sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
+                      gap: 2 
+                    }}>
+                      {closureData.evidenceDocuments.map((doc, index) => {
+                        const getFileIcon = (fileName: string) => {
+                          const ext = fileName.split('.').pop()?.toLowerCase();
+                          if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(ext || '')) return '📸';
+                          if (['pdf'].includes(ext || '')) return '📄';
+                          if (['doc', 'docx'].includes(ext || '')) return '📝';
+                          if (['xls', 'xlsx'].includes(ext || '')) return '📊';
+                          return '📎';
+                        };
+                        
+                        return (
+                          <Box
+                            key={index}
+                            sx={{
+                              p: 2,
+                              bgcolor: 'success.50',
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: 'success.200',
+                              position: 'relative',
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                borderColor: 'success.main',
+                                boxShadow: '0 2px 8px rgba(76,175,80,0.2)'
+                              }
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Typography sx={{ fontSize: '1.3rem' }}>
+                                {getFileIcon(doc.fileName)}
+                              </Typography>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography 
+                                  variant="subtitle2" 
+                                  sx={{ 
+                                    fontWeight: 600,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    color: 'success.dark'
+                                  }}
+                                >
+                                  {doc.fileName}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {doc.fileType || 'Dosya'} • Kanıt Belgesi
+                                </Typography>
+                              </Box>
+                              <IconButton 
+                                size="small" 
+                                color="error"
+                                onClick={() => {
+                                  setClosureData(prev => ({
+                                    ...prev,
+                                    evidenceDocuments: prev.evidenceDocuments?.filter((_, i) => i !== index) || []
+                                  }));
+                                }}
+                                sx={{ 
+                                  bgcolor: 'white',
+                                  '&:hover': { bgcolor: 'error.50' }
+                                }}
+                              >
+                                <DeleteIcon sx={{ fontSize: '1rem' }} />
+                              </IconButton>
+                            </Box>
+                          </Box>
+                        );
+                      })}
                     </Box>
                   </Box>
                 )}

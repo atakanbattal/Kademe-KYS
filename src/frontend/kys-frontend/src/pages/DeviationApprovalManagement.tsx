@@ -1728,13 +1728,11 @@ const DeviationApprovalManagement: React.FC = () => {
                         <ViewIcon />
                       </IconButton>
                     </Tooltip>
-                    {deviation.status !== 'rejected' && (
-                      <Tooltip title="Düzenle">
-                        <IconButton size="small" onClick={() => openEditDialog(deviation)}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                    )}
+                    <Tooltip title="Düzenle">
+                      <IconButton size="small" onClick={() => openEditDialog(deviation)}>
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
                     {deviation.status !== 'final-approved' && deviation.status !== 'rejected' && (
                       <Tooltip title="Nihai Karar">
                         <IconButton 
@@ -2692,6 +2690,8 @@ const DeviationApprovalManagement: React.FC = () => {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             {selectedDeviationForDetail.rdApproval.approved ? (
                               <CheckCircleIcon color="success" />
+                            ) : selectedDeviationForDetail.rdApproval.rejectionReason ? (
+                              <CancelIcon color="error" />
                             ) : (
                               <PendingIcon color="warning" />
                             )}
@@ -2699,10 +2699,17 @@ const DeviationApprovalManagement: React.FC = () => {
                               <Typography variant="body2" fontWeight="bold">Ar-Ge Onayı</Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {selectedDeviationForDetail.rdApproval.approved 
-                                  ? `Onaylandı: ${selectedDeviationForDetail.rdApproval.approver}`
-                                  : 'Beklemede'
+                                  ? `✅ Onaylandı: ${selectedDeviationForDetail.rdApproval.approver}${selectedDeviationForDetail.rdApproval.approvalDate ? ` (${selectedDeviationForDetail.rdApproval.approvalDate})` : ''}`
+                                  : selectedDeviationForDetail.rdApproval.rejectionReason
+                                  ? `❌ Reddedildi: ${selectedDeviationForDetail.rdApproval.rejectionReason}`
+                                  : '⏳ Beklemede'
                                 }
                               </Typography>
+                              {selectedDeviationForDetail.rdApproval.comments && (
+                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                                  💬 {selectedDeviationForDetail.rdApproval.comments}
+                                </Typography>
+                              )}
                             </Box>
                           </Box>
 
@@ -2710,6 +2717,8 @@ const DeviationApprovalManagement: React.FC = () => {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             {selectedDeviationForDetail.qualityApproval.approved ? (
                               <CheckCircleIcon color="success" />
+                            ) : selectedDeviationForDetail.qualityApproval.rejectionReason ? (
+                              <CancelIcon color="error" />
                             ) : (
                               <PendingIcon color="warning" />
                             )}
@@ -2717,10 +2726,17 @@ const DeviationApprovalManagement: React.FC = () => {
                               <Typography variant="body2" fontWeight="bold">Kalite Onayı</Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {selectedDeviationForDetail.qualityApproval.approved 
-                                  ? `Onaylandı: ${selectedDeviationForDetail.qualityApproval.approver}`
-                                  : 'Beklemede'
+                                  ? `✅ Onaylandı: ${selectedDeviationForDetail.qualityApproval.approver}${selectedDeviationForDetail.qualityApproval.approvalDate ? ` (${selectedDeviationForDetail.qualityApproval.approvalDate})` : ''}`
+                                  : selectedDeviationForDetail.qualityApproval.rejectionReason
+                                  ? `❌ Reddedildi: ${selectedDeviationForDetail.qualityApproval.rejectionReason}`
+                                  : '⏳ Beklemede'
                                 }
                               </Typography>
+                              {selectedDeviationForDetail.qualityApproval.comments && (
+                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                                  💬 {selectedDeviationForDetail.qualityApproval.comments}
+                                </Typography>
+                              )}
                             </Box>
                           </Box>
 
@@ -2728,6 +2744,8 @@ const DeviationApprovalManagement: React.FC = () => {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             {selectedDeviationForDetail.productionApproval.approved ? (
                               <CheckCircleIcon color="success" />
+                            ) : selectedDeviationForDetail.productionApproval.rejectionReason ? (
+                              <CancelIcon color="error" />
                             ) : (
                               <PendingIcon color="warning" />
                             )}
@@ -2735,10 +2753,17 @@ const DeviationApprovalManagement: React.FC = () => {
                               <Typography variant="body2" fontWeight="bold">Üretim Onayı</Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {selectedDeviationForDetail.productionApproval.approved 
-                                  ? `Onaylandı: ${selectedDeviationForDetail.productionApproval.approver}`
-                                  : 'Beklemede'
+                                  ? `✅ Onaylandı: ${selectedDeviationForDetail.productionApproval.approver}${selectedDeviationForDetail.productionApproval.approvalDate ? ` (${selectedDeviationForDetail.productionApproval.approvalDate})` : ''}`
+                                  : selectedDeviationForDetail.productionApproval.rejectionReason
+                                  ? `❌ Reddedildi: ${selectedDeviationForDetail.productionApproval.rejectionReason}`
+                                  : '⏳ Beklemede'
                                 }
                               </Typography>
+                              {selectedDeviationForDetail.productionApproval.comments && (
+                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                                  💬 {selectedDeviationForDetail.productionApproval.comments}
+                                </Typography>
+                              )}
                             </Box>
                           </Box>
 
@@ -2746,6 +2771,8 @@ const DeviationApprovalManagement: React.FC = () => {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             {selectedDeviationForDetail.generalManagerApproval.approved ? (
                               <CheckCircleIcon color="success" />
+                            ) : selectedDeviationForDetail.generalManagerApproval.rejectionReason ? (
+                              <CancelIcon color="error" />
                             ) : (
                               <PendingIcon color="warning" />
                             )}
@@ -2753,10 +2780,17 @@ const DeviationApprovalManagement: React.FC = () => {
                               <Typography variant="body2" fontWeight="bold">Genel Müdür Onayı</Typography>
                               <Typography variant="caption" color="text.secondary">
                                 {selectedDeviationForDetail.generalManagerApproval.approved 
-                                  ? `Onaylandı: ${selectedDeviationForDetail.generalManagerApproval.approver}`
-                                  : 'Beklemede'
+                                  ? `✅ Onaylandı: ${selectedDeviationForDetail.generalManagerApproval.approver}${selectedDeviationForDetail.generalManagerApproval.approvalDate ? ` (${selectedDeviationForDetail.generalManagerApproval.approvalDate})` : ''}`
+                                  : selectedDeviationForDetail.generalManagerApproval.rejectionReason
+                                  ? `❌ Reddedildi: ${selectedDeviationForDetail.generalManagerApproval.rejectionReason}`
+                                  : '⏳ Beklemede'
                                 }
                               </Typography>
+                              {selectedDeviationForDetail.generalManagerApproval.comments && (
+                                <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                                  💬 {selectedDeviationForDetail.generalManagerApproval.comments}
+                                </Typography>
+                              )}
                             </Box>
                           </Box>
 
@@ -2877,7 +2911,7 @@ const DeviationApprovalManagement: React.FC = () => {
               }} 
               variant="contained"
               startIcon={<EditIcon />}
-              disabled={selectedDeviationForDetail.status === 'rejected'}
+              disabled={false}
             >
               Düzenle
             </Button>
@@ -3019,12 +3053,13 @@ const DeviationApprovalManagement: React.FC = () => {
                 </Card>
 
                 {/* Fabrika Müdürü Onayı */}
-                <Card sx={{ mb: 2, p: 2 }}>
+                <Card sx={{ mb: 2, p: 2, opacity: (!departmentDecisions.rd.approved || !departmentDecisions.quality.approved || !departmentDecisions.production.approved) ? 0.6 : 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="subtitle1" fontWeight="bold">Fabrika Müdürü Onayı</Typography>
                     <FormControl size="small" sx={{ minWidth: 120 }}>
                       <Select
                         value={departmentDecisions.generalManager.approved ? 'approved' : 'rejected'}
+                        disabled={!departmentDecisions.rd.approved || !departmentDecisions.quality.approved || !departmentDecisions.production.approved}
                         onChange={(e) => setDepartmentDecisions(prev => ({
                           ...prev,
                           generalManager: { ...prev.generalManager, approved: e.target.value === 'approved' }
@@ -3035,7 +3070,16 @@ const DeviationApprovalManagement: React.FC = () => {
                       </Select>
                     </FormControl>
                   </Box>
-                  {!departmentDecisions.generalManager.approved && (
+                  
+                  {(!departmentDecisions.rd.approved || !departmentDecisions.quality.approved || !departmentDecisions.production.approved) && (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        ⚠️ Fabrika Müdürü onayı için önce tüm departmanların (ArGe, Kalite, Üretim) onayı gereklidir.
+                      </Typography>
+                    </Alert>
+                  )}
+                  
+                  {!departmentDecisions.generalManager.approved && (departmentDecisions.rd.approved && departmentDecisions.quality.approved && departmentDecisions.production.approved) && (
                     <TextField
                       fullWidth
                       size="small"
