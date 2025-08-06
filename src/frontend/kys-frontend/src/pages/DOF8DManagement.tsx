@@ -1580,7 +1580,8 @@ const DOF8DManagement: React.FC = () => {
   const [closureData, setClosureData] = useState({
     closedDate: new Date().toISOString().split('T')[0],
     closeReason: 'completed',
-    closureNotes: ''
+    closureNotes: '',
+    evidenceDocuments: [] as Array<{fileName: string, fileType: string, fileData: string}>
   });
 
   // ✅ Snackbar State
@@ -2349,6 +2350,43 @@ const DOF8DManagement: React.FC = () => {
       });
   }, [metrics.filteredRecords, filters.delayStatus, filters.priority, getDelayMessage]); // Context7 - Remove unnecessary dependencies
 
+  // DF Kapatma Kanıt Doküman Yükleme Fonksiyonu
+  const handleClosureFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      const uploadedFiles = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Base64'e çevir
+        const reader = new FileReader();
+        const base64Data = await new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+
+        uploadedFiles.push({
+          fileName: file.name,
+          fileType: file.type,
+          fileData: base64Data
+        });
+      }
+
+      setClosureData(prev => ({
+        ...prev,
+        evidenceDocuments: [...prev.evidenceDocuments, ...uploadedFiles]
+      }));
+      
+      console.log('✅ Kanıt dokümanları başarıyla yüklendi:', uploadedFiles.length);
+    } catch (error) {
+      console.error('❌ Kanıt doküman yükleme hatası:', error);
+      alert('Dosya yükleme sırasında bir hata oluştu.');
+    }
+  };
+
   // Context7 - ENHANCED: Profesyonel DF Kapatma Sistemi
   const closeDOF = useCallback((recordId: string, closeReason: string = 'Manuel kapatma') => {
     try {
@@ -2382,7 +2420,8 @@ const DOF8DManagement: React.FC = () => {
       setClosureData({
         closedDate: new Date().toISOString().split('T')[0],
         closeReason: 'completed',
-        closureNotes: ''
+        closureNotes: '',
+        evidenceDocuments: []
       });
       setCloseModalOpen(true);
       
@@ -2443,6 +2482,8 @@ const DOF8DManagement: React.FC = () => {
                 closedBy: 'Sistem Kullanıcısı',
                 closureTime: closedTime,
                 finalStatus: wasOverdue ? 'Gecikmeli Kapatıldı' : 'Zamanında Kapatıldı',
+                closureNotes: closureData.closureNotes,
+                evidenceDocuments: closureData.evidenceDocuments,
                 version: (parseFloat(record.metadata?.version || '1.0') + 0.1).toFixed(1)
               },
               
@@ -2489,7 +2530,8 @@ const DOF8DManagement: React.FC = () => {
       setClosureData({
         closedDate: new Date().toISOString().split('T')[0],
         closeReason: 'completed',
-        closureNotes: ''
+        closureNotes: '',
+        evidenceDocuments: []
       });
       
       console.log('✅ Context7 - DF kapatma işlemi başarıyla tamamlandı');
@@ -5772,6 +5814,37 @@ const DOF8DManagement: React.FC = () => {
                             }
                           }}
                         />
+                        
+                        {/* Kapatma Kanıt Dokümanları - Sadece Görüntüleme Modu */}
+                        {dialogMode === 'view' && formData.metadata?.evidenceDocuments && formData.metadata.evidenceDocuments.length > 0 && (
+                          <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
+                              Kapatma Kanıt Dokümanları ({formData.metadata.evidenceDocuments.length} adet)
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                              {formData.metadata.evidenceDocuments.map((doc: any, index: number) => (
+                                <Chip
+                                  key={index}
+                                  label={doc.fileName}
+                                  size="small"
+                                  variant="outlined"
+                                  color="success"
+                                  clickable
+                                  onClick={() => {
+                                    // Dosyayı görüntüle/indir
+                                    if (doc.fileData) {
+                                      const link = document.createElement('a');
+                                      link.href = doc.fileData;
+                                      link.download = doc.fileName;
+                                      link.click();
+                                    }
+                                  }}
+                                  sx={{ maxWidth: 200 }}
+                                />
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
                       </Box>
                     )}
             </Paper>
@@ -6517,6 +6590,61 @@ const DOF8DManagement: React.FC = () => {
                   },
                 }}
               />
+            </Grid>
+
+            {/* Kanıt Dokümanları */}
+            <Grid item xs={12}>
+              <Box sx={{ border: '1px solid #e0e0e0', borderRadius: 2, p: 2 }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, color: '#1976d2' }}>
+                  Kapatma Kanıt Dokümanları
+                </Typography>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  DF kapatma kararını destekleyen belgeler, fotoğraflar veya kanıtlar ekleyebilirsiniz.
+                </Typography>
+                
+                <Button
+                  component="label"
+                  variant="outlined"
+                  startIcon={<UploadIcon />}
+                  sx={{ mt: 1, mb: 2 }}
+                  fullWidth
+                >
+                  Kanıt Dosyası Ekle (Fotoğraf, PDF, Excel, Word)
+                  <input
+                    type="file"
+                    hidden
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                    onChange={handleClosureFileUpload}
+                  />
+                </Button>
+                
+                {closureData.evidenceDocuments && closureData.evidenceDocuments.length > 0 && (
+                  <Box>
+                    <Typography variant="body2" fontWeight="bold" gutterBottom>
+                      Eklenen Dosyalar ({closureData.evidenceDocuments.length} adet):
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {closureData.evidenceDocuments.map((doc, index) => (
+                        <Chip
+                          key={index}
+                          label={doc.fileName}
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          onDelete={() => {
+                            setClosureData(prev => ({
+                              ...prev,
+                              evidenceDocuments: prev.evidenceDocuments?.filter((_, i) => i !== index) || []
+                            }));
+                          }}
+                          sx={{ maxWidth: 200 }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
             </Grid>
 
             {/* Özet Bilgiler */}

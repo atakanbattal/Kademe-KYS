@@ -556,9 +556,67 @@ const materialCategories: MaterialCategory[] = [
         id: 'spring_steel',
         name: 'Yay Çeliği',
         grades: [
-          { id: '38si7', name: '38Si7', standards: ['DIN EN 10089'] },
-          { id: '50crv4', name: '50CrV4', standards: ['DIN EN 10089'] },
-          { id: '60si7', name: '60Si7', standards: ['DIN EN 10089'] }
+          { 
+            id: '38si7', 
+            name: '38Si7', 
+            standards: ['DIN EN 10089'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 900, max: 1200, unit: 'MPa' },
+                tensileStrength: { min: 1200, max: 1500, unit: 'MPa' },
+                elongation: { min: 8, unit: '%' },
+                hardness: { min: 360, max: 440, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { min: 0.35, max: 0.42 },
+                'Si': { min: 1.50, max: 2.00 },
+                'Mn': { min: 0.60, max: 0.90 },
+                'P': { max: 0.035 },
+                'S': { max: 0.035 }
+              }
+            }
+          },
+          { 
+            id: '50crv4', 
+            name: '50CrV4', 
+            standards: ['DIN EN 10089'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 1100, max: 1400, unit: 'MPa' },
+                tensileStrength: { min: 1400, max: 1700, unit: 'MPa' },
+                elongation: { min: 6, unit: '%' },
+                hardness: { min: 400, max: 480, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { min: 0.47, max: 0.54 },
+                'Cr': { min: 0.80, max: 1.20 },
+                'V': { min: 0.10, max: 0.25 },
+                'Mn': { min: 0.70, max: 1.10 },
+                'P': { max: 0.035 },
+                'S': { max: 0.035 }
+              }
+            }
+          },
+          { 
+            id: '60si7', 
+            name: '60Si7', 
+            standards: ['DIN EN 10089'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 1300, max: 1600, unit: 'MPa' },
+                tensileStrength: { min: 1600, max: 1900, unit: 'MPa' },
+                elongation: { min: 5, unit: '%' },
+                hardness: { min: 460, max: 540, type: 'HB' }
+              },
+              chemicalComposition: {
+                'C': { min: 0.56, max: 0.64 },
+                'Si': { min: 1.50, max: 2.00 },
+                'Mn': { min: 0.60, max: 0.90 },
+                'P': { max: 0.035 },
+                'S': { max: 0.035 }
+              }
+            }
+          }
         ]
       }
     ]
@@ -571,10 +629,96 @@ const materialCategories: MaterialCategory[] = [
           id: 'austenitic',
           name: 'Östenitik',
           grades: [
-            { id: '304', name: '304 (X5CrNi18-10)', standards: ['DIN EN 10088-2', 'ASTM A240'] },
-            { id: '304l', name: '304L (X2CrNi19-11)', standards: ['DIN EN 10088-2', 'ASTM A240'] },
-            { id: '316', name: '316 (X5CrNiMo17-12-2)', standards: ['DIN EN 10088-2', 'ASTM A240'] },
-          { id: '316l', name: '316L (X2CrNiMo17-12-2)', standards: ['DIN EN 10088-2', 'ASTM A240'] }
+            { 
+              id: '304', 
+              name: '304 (X5CrNi18-10)', 
+              standards: ['DIN EN 10088-2', 'ASTM A240'],
+              specifications: {
+                mechanicalProperties: {
+                  yieldStrength: { min: 200, max: 250, unit: 'MPa' },
+                  tensileStrength: { min: 500, max: 700, unit: 'MPa' },
+                  elongation: { min: 45, unit: '%' },
+                  hardness: { min: 150, max: 200, type: 'HB' }
+                },
+                chemicalComposition: {
+                  'C': { max: 0.08 },
+                  'Cr': { min: 17.5, max: 19.5 },
+                  'Ni': { min: 8.0, max: 10.5 },
+                  'Mn': { max: 2.0 },
+                  'Si': { max: 1.0 },
+                  'P': { max: 0.045 },
+                  'S': { max: 0.015 }
+                }
+              }
+            },
+            { 
+              id: '304l', 
+              name: '304L (X2CrNi19-11)', 
+              standards: ['DIN EN 10088-2', 'ASTM A240'],
+              specifications: {
+                mechanicalProperties: {
+                  yieldStrength: { min: 170, max: 220, unit: 'MPa' },
+                  tensileStrength: { min: 485, max: 620, unit: 'MPa' },
+                  elongation: { min: 40, unit: '%' },
+                  hardness: { min: 140, max: 190, type: 'HB' }
+                },
+                chemicalComposition: {
+                  'C': { max: 0.03 },
+                  'Cr': { min: 18.0, max: 20.0 },
+                  'Ni': { min: 8.0, max: 12.0 },
+                  'Mn': { max: 2.0 },
+                  'Si': { max: 1.0 },
+                  'P': { max: 0.045 },
+                  'S': { max: 0.015 }
+                }
+              }
+            },
+            { 
+              id: '316', 
+              name: '316 (X5CrNiMo17-12-2)', 
+              standards: ['DIN EN 10088-2', 'ASTM A240'],
+              specifications: {
+                mechanicalProperties: {
+                  yieldStrength: { min: 200, max: 250, unit: 'MPa' },
+                  tensileStrength: { min: 500, max: 700, unit: 'MPa' },
+                  elongation: { min: 40, unit: '%' },
+                  hardness: { min: 150, max: 200, type: 'HB' }
+                },
+                chemicalComposition: {
+                  'C': { max: 0.08 },
+                  'Cr': { min: 16.5, max: 18.5 },
+                  'Ni': { min: 10.0, max: 13.0 },
+                  'Mo': { min: 2.0, max: 2.5 },
+                  'Mn': { max: 2.0 },
+                  'Si': { max: 1.0 },
+                  'P': { max: 0.045 },
+                  'S': { max: 0.015 }
+                }
+              }
+            },
+            { 
+              id: '316l', 
+              name: '316L (X2CrNiMo17-12-2)', 
+              standards: ['DIN EN 10088-2', 'ASTM A240'],
+              specifications: {
+                mechanicalProperties: {
+                  yieldStrength: { min: 170, max: 220, unit: 'MPa' },
+                  tensileStrength: { min: 485, max: 620, unit: 'MPa' },
+                  elongation: { min: 40, unit: '%' },
+                  hardness: { min: 140, max: 190, type: 'HB' }
+                },
+                chemicalComposition: {
+                  'C': { max: 0.03 },
+                  'Cr': { min: 16.5, max: 18.5 },
+                  'Ni': { min: 10.0, max: 13.0 },
+                  'Mo': { min: 2.0, max: 2.5 },
+                  'Mn': { max: 2.0 },
+                  'Si': { max: 1.0 },
+                  'P': { max: 0.045 },
+                  'S': { max: 0.015 }
+                }
+              }
+            }
           ]
         }
     ]
@@ -587,26 +731,195 @@ const materialCategories: MaterialCategory[] = [
         id: 'al_1000',
         name: '1000 Serisi (Saf Al)',
         grades: [
-          { id: '1050', name: '1050', standards: ['DIN EN 573-3', 'ASTM B209'] },
-          { id: '1060', name: '1060', standards: ['DIN EN 573-3', 'ASTM B209'] },
-          { id: '1070', name: '1070', standards: ['DIN EN 573-3', 'ASTM B209'] }
+          { 
+            id: '1050', 
+            name: '1050', 
+            standards: ['DIN EN 573-3', 'ASTM B209'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 20, max: 85, unit: 'MPa' },
+                tensileStrength: { min: 65, max: 100, unit: 'MPa' },
+                elongation: { min: 25, unit: '%' },
+                hardness: { min: 15, max: 25, type: 'HB' }
+              },
+              chemicalComposition: {
+                'Al': { min: 99.5 },
+                'Si': { max: 0.25 },
+                'Fe': { max: 0.40 },
+                'Cu': { max: 0.05 },
+                'Mn': { max: 0.05 },
+                'Mg': { max: 0.05 },
+                'Zn': { max: 0.05 }
+              }
+            }
+          },
+          { 
+            id: '1060', 
+            name: '1060', 
+            standards: ['DIN EN 573-3', 'ASTM B209'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 15, max: 80, unit: 'MPa' },
+                tensileStrength: { min: 60, max: 95, unit: 'MPa' },
+                elongation: { min: 30, unit: '%' },
+                hardness: { min: 12, max: 22, type: 'HB' }
+              },
+              chemicalComposition: {
+                'Al': { min: 99.6 },
+                'Si': { max: 0.25 },
+                'Fe': { max: 0.35 },
+                'Cu': { max: 0.05 },
+                'Mn': { max: 0.03 },
+                'Mg': { max: 0.03 },
+                'Zn': { max: 0.05 }
+              }
+            }
+          },
+          { 
+            id: '1070', 
+            name: '1070', 
+            standards: ['DIN EN 573-3', 'ASTM B209'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 10, max: 75, unit: 'MPa' },
+                tensileStrength: { min: 50, max: 85, unit: 'MPa' },
+                elongation: { min: 35, unit: '%' },
+                hardness: { min: 10, max: 20, type: 'HB' }
+              },
+              chemicalComposition: {
+                'Al': { min: 99.7 },
+                'Si': { max: 0.20 },
+                'Fe': { max: 0.25 },
+                'Cu': { max: 0.04 },
+                'Mn': { max: 0.03 },
+                'Mg': { max: 0.03 },
+                'Zn': { max: 0.04 }
+              }
+            }
+          }
         ]
       },
       {
         id: 'al_6000',
         name: '6000 Serisi (Al-Mg-Si)',
         grades: [
-          { id: '6061', name: '6061', standards: ['DIN EN 573-3', 'ASTM B221'] },
-          { id: '6063', name: '6063', standards: ['DIN EN 573-3', 'ASTM B221'] },
-          { id: '6082', name: '6082', standards: ['DIN EN 573-3', 'ASTM B221'] }
+          { 
+            id: '6061', 
+            name: '6061', 
+            standards: ['DIN EN 573-3', 'ASTM B221'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 240, max: 300, unit: 'MPa' },
+                tensileStrength: { min: 290, max: 350, unit: 'MPa' },
+                elongation: { min: 12, unit: '%' },
+                hardness: { min: 60, max: 95, type: 'HB' }
+              },
+              chemicalComposition: {
+                'Al': { min: 95.8, max: 98.6 },
+                'Mg': { min: 0.8, max: 1.2 },
+                'Si': { min: 0.4, max: 0.8 },
+                'Cu': { min: 0.15, max: 0.40 },
+                'Cr': { min: 0.04, max: 0.35 },
+                'Fe': { max: 0.7 },
+                'Mn': { max: 0.15 },
+                'Zn': { max: 0.25 }
+              }
+            }
+          },
+          { 
+            id: '6063', 
+            name: '6063', 
+            standards: ['DIN EN 573-3', 'ASTM B221'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 170, max: 215, unit: 'MPa' },
+                tensileStrength: { min: 205, max: 250, unit: 'MPa' },
+                elongation: { min: 12, unit: '%' },
+                hardness: { min: 42, max: 73, type: 'HB' }
+              },
+              chemicalComposition: {
+                'Al': { min: 97.5, max: 99.0 },
+                'Mg': { min: 0.45, max: 0.9 },
+                'Si': { min: 0.20, max: 0.6 },
+                'Cu': { max: 0.10 },
+                'Fe': { max: 0.35 },
+                'Mn': { max: 0.10 },
+                'Zn': { max: 0.10 }
+              }
+            }
+          },
+          { 
+            id: '6082', 
+            name: '6082', 
+            standards: ['DIN EN 573-3', 'ASTM B221'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 250, max: 310, unit: 'MPa' },
+                tensileStrength: { min: 290, max: 350, unit: 'MPa' },
+                elongation: { min: 10, unit: '%' },
+                hardness: { min: 65, max: 95, type: 'HB' }
+              },
+              chemicalComposition: {
+                'Al': { min: 95.2, max: 98.3 },
+                'Mg': { min: 0.6, max: 1.2 },
+                'Si': { min: 0.7, max: 1.3 },
+                'Mn': { min: 0.4, max: 1.0 },
+                'Fe': { max: 0.5 },
+                'Cu': { max: 0.10 },
+                'Zn': { max: 0.20 }
+              }
+            }
+          }
         ]
       },
       {
         id: 'al_2000',
         name: '2000 Serisi (Al-Cu)',
         grades: [
-          { id: '2024', name: '2024 (AlCu4Mg1)', standards: ['DIN EN 573-3', 'ASTM B209'] },
-          { id: '2017', name: '2017 (AlCu4MgSi)', standards: ['DIN EN 573-3', 'ASTM B209'] }
+          { 
+            id: '2024', 
+            name: '2024 (AlCu4Mg1)', 
+            standards: ['DIN EN 573-3', 'ASTM B209'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 325, max: 400, unit: 'MPa' },
+                tensileStrength: { min: 440, max: 520, unit: 'MPa' },
+                elongation: { min: 8, unit: '%' },
+                hardness: { min: 105, max: 140, type: 'HB' }
+              },
+              chemicalComposition: {
+                'Al': { min: 90.7, max: 94.7 },
+                'Cu': { min: 3.8, max: 4.9 },
+                'Mg': { min: 1.2, max: 1.8 },
+                'Mn': { min: 0.3, max: 0.9 },
+                'Si': { max: 0.5 },
+                'Fe': { max: 0.5 },
+                'Zn': { max: 0.25 }
+              }
+            }
+          },
+          { 
+            id: '2017', 
+            name: '2017 (AlCu4MgSi)', 
+            standards: ['DIN EN 573-3', 'ASTM B209'],
+            specifications: {
+              mechanicalProperties: {
+                yieldStrength: { min: 275, max: 350, unit: 'MPa' },
+                tensileStrength: { min: 380, max: 450, unit: 'MPa' },
+                elongation: { min: 10, unit: '%' },
+                hardness: { min: 95, max: 125, type: 'HB' }
+              },
+              chemicalComposition: {
+                'Al': { min: 91.5, max: 95.0 },
+                'Cu': { min: 3.5, max: 4.5 },
+                'Mg': { min: 0.4, max: 0.8 },
+                'Si': { min: 0.2, max: 0.8 },
+                'Mn': { min: 0.4, max: 1.0 },
+                'Fe': { max: 0.7 },
+                'Zn': { max: 0.25 }
+              }
+            }
+          }
         ]
       },
       {

@@ -345,12 +345,8 @@ interface DeviationApproval {
     comments?: string;
     rejectionReason?: string;
   };
-  status: 'pending' | 'rd-approved' | 'quality-approved' | 'production-approved' | 'final-approved' | 'rejected' | 'closed';
+  status: 'pending' | 'rd-approved' | 'quality-approved' | 'production-approved' | 'final-approved' | 'rejected';
   rejectionReason?: string; // Reddetme sebebi
-  closureNotes?: string; // Kapatma notları
-  closureDate?: string; // Kapatma tarihi
-  closedBy?: string; // Kapatan kişi
-  closureDocuments?: DeviationAttachment[]; // Kapatma kanıt dokümanları
   attachments: DeviationAttachment[];
   usageTracking: UsageTracking[];
   createdAt: string;
@@ -504,11 +500,7 @@ const DeviationApprovalManagement: React.FC = () => {
   const [selectedAttachments, setSelectedAttachments] = useState<DeviationAttachment[]>([]);
   const [selectedAttachmentIndex, setSelectedAttachmentIndex] = useState(0);
   
-  // DF Kapatma Dialog State'leri
-  const [closureDialogOpen, setClosureDialogOpen] = useState(false);
-  const [selectedDeviationForClosure, setSelectedDeviationForClosure] = useState<DeviationApproval | null>(null);
-  const [closureNotes, setClosureNotes] = useState('');
-  const [closureDocuments, setClosureDocuments] = useState<DeviationAttachment[]>([]);
+
   
   // Nihai Karar Modal State
   const [finalDecisionModal, setFinalDecisionModal] = useState(false);
@@ -1378,101 +1370,19 @@ const DeviationApprovalManagement: React.FC = () => {
     );
   };
 
-  // DF Kapatma Dialog Fonksiyonları
-  const openClosureDialog = (deviation: DeviationApproval) => {
-    setSelectedDeviationForClosure(deviation);
-    setClosureNotes('');
-    setClosureDocuments([]);
-    setClosureDialogOpen(true);
-  };
 
-  const closeClosureDialog = () => {
-    setClosureDialogOpen(false);
-    setSelectedDeviationForClosure(null);
-    setClosureNotes('');
-    setClosureDocuments([]);
-  };
-
-  const handleClosureFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      let base64Data: string;
-      if (file.type.includes('image')) {
-        base64Data = await compressImage(file);
-      } else {
-        base64Data = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-      }
-
-      const newAttachment: DeviationAttachment = {
-        id: Date.now().toString(),
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        url: base64Data,
-        uploadDate: new Date().toISOString(),
-        uploadedBy: 'Kullanıcı',
-        deviationId: selectedDeviationForClosure?.id || ''
-      };
-
-      setClosureDocuments(prev => [...prev, newAttachment]);
-    } catch (error) {
-      console.error('Kapatma dosyası yükleme hatası:', error);
-      alert('Dosya yükleme sırasında bir hata oluştu.');
-    }
-  };
-
-  const handleCloseDeviation = async () => {
-    if (!selectedDeviationForClosure || !closureNotes.trim()) {
-      alert('Lütfen kapatma notlarını girin.');
-      return;
-    }
-
-    try {
-      const now = new Date().toISOString();
-      const updatedDeviation: DeviationApproval = {
-        ...selectedDeviationForClosure,
-        status: 'closed',
-        closureNotes,
-        closureDate: now,
-        closedBy: 'Kullanıcı',
-        closureDocuments,
-        updatedAt: now
-      };
-
-      const updatedDeviations = deviations.map(dev => 
-        dev.id === selectedDeviationForClosure.id ? updatedDeviation : dev
-      );
-
-      setDeviations(updatedDeviations);
-      await saveData(updatedDeviations);
-      
-      alert('DF başarıyla kapatıldı!');
-      closeClosureDialog();
-    } catch (error) {
-      console.error('DF kapatma hatası:', error);
-      alert('DF kapatılırken bir hata oluştu.');
-    }
-  };
 
   // Statistics
   const stats = useMemo(() => {
     const pending = filteredDeviations.filter(d => d.status === 'pending').length;
     const approved = filteredDeviations.filter(d => d.status === 'final-approved').length;
     const rejected = filteredDeviations.filter(d => d.status === 'rejected').length;
-    const closed = filteredDeviations.filter(d => d.status === 'closed').length;
-    const inProgress = filteredDeviations.length - pending - approved - rejected - closed;
+    const inProgress = filteredDeviations.length - pending - approved - rejected;
 
     return { 
       pending, 
       approved, 
       rejected,
-      closed, 
       inProgress, 
       total: filteredDeviations.length,
       totalInSystem: deviations.length 
@@ -1818,14 +1728,14 @@ const DeviationApprovalManagement: React.FC = () => {
                         <ViewIcon />
                       </IconButton>
                     </Tooltip>
-                    {deviation.status !== 'rejected' && deviation.status !== 'closed' && (
+                    {deviation.status !== 'rejected' && (
                       <Tooltip title="Düzenle">
                         <IconButton size="small" onClick={() => openEditDialog(deviation)}>
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
                     )}
-                    {deviation.status !== 'final-approved' && deviation.status !== 'rejected' && deviation.status !== 'closed' && (
+                    {deviation.status !== 'final-approved' && deviation.status !== 'rejected' && (
                       <Tooltip title="Nihai Karar">
                         <IconButton 
                           size="small" 
@@ -1836,17 +1746,7 @@ const DeviationApprovalManagement: React.FC = () => {
                         </IconButton>
                       </Tooltip>
                     )}
-                    {deviation.status === 'final-approved' && (
-                      <Tooltip title="DF'ü Kapat">
-                        <IconButton 
-                          size="small" 
-                          color="warning" 
-                          onClick={() => openClosureDialog(deviation)}
-                        >
-                          <CheckCircleIcon />
-                        </IconButton>
-                      </Tooltip>
-                    )}
+
                     <Tooltip title="Sil">
                       <IconButton size="small" color="error" onClick={() => handleDelete(deviation)}>
                         <DeleteIcon />
@@ -2868,54 +2768,7 @@ const DeviationApprovalManagement: React.FC = () => {
                             </Alert>
                           )}
 
-                          {/* Kapatma Bilgileri */}
-                          {selectedDeviationForDetail.status === 'closed' && (
-                            <Alert severity="success" sx={{ mt: 2 }}>
-                              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                                DF Kapatma Bilgileri
-                              </Typography>
-                              {selectedDeviationForDetail.closureNotes && (
-                                <Box sx={{ mb: 1 }}>
-                                  <Typography variant="body2" fontWeight="bold">Kapatma Notları:</Typography>
-                                  <Typography variant="body2">{selectedDeviationForDetail.closureNotes}</Typography>
-                                </Box>
-                              )}
-                              <Box sx={{ display: 'flex', gap: 3, mt: 1 }}>
-                                {selectedDeviationForDetail.closureDate && (
-                                  <Box>
-                                    <Typography variant="body2" fontWeight="bold">Kapatma Tarihi:</Typography>
-                                    <Typography variant="body2">
-                                      {new Date(selectedDeviationForDetail.closureDate).toLocaleString('tr-TR')}
-                                    </Typography>
-                                  </Box>
-                                )}
-                                {selectedDeviationForDetail.closedBy && (
-                                  <Box>
-                                    <Typography variant="body2" fontWeight="bold">Kapatan:</Typography>
-                                    <Typography variant="body2">{selectedDeviationForDetail.closedBy}</Typography>
-                                  </Box>
-                                )}
-                              </Box>
-                              {selectedDeviationForDetail.closureDocuments && selectedDeviationForDetail.closureDocuments.length > 0 && (
-                                <Box sx={{ mt: 2 }}>
-                                  <Typography variant="body2" fontWeight="bold" gutterBottom>
-                                    Kapatma Dokümanları ({selectedDeviationForDetail.closureDocuments.length} adet):
-                                  </Typography>
-                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                    {selectedDeviationForDetail.closureDocuments.map((doc) => (
-                                      <Chip
-                                        key={doc.id}
-                                        label={doc.fileName}
-                                        size="small"
-                                        variant="outlined"
-                                        color="success"
-                                      />
-                                    ))}
-                                  </Box>
-                                </Box>
-                              )}
-                            </Alert>
-                          )}
+
                         </Box>
                       </CardContent>
                     </Card>
@@ -3024,7 +2877,7 @@ const DeviationApprovalManagement: React.FC = () => {
               }} 
               variant="contained"
               startIcon={<EditIcon />}
-              disabled={selectedDeviationForDetail.status === 'rejected' || selectedDeviationForDetail.status === 'closed'}
+              disabled={selectedDeviationForDetail.status === 'rejected'}
             >
               Düzenle
             </Button>
@@ -3032,96 +2885,7 @@ const DeviationApprovalManagement: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* DF Kapatma Dialog */}
-      <Dialog 
-        open={closureDialogOpen} 
-        onClose={closeClosureDialog}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ 
-          bgcolor: '#1976d2', 
-          color: 'white', 
-          fontWeight: 'bold',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1
-        }}>
-          <CheckCircleIcon />
-          DF Kapatma
-        </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          {selectedDeviationForClosure && (
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                {selectedDeviationForClosure.deviationNumber} - {selectedDeviationForClosure.partName}
-              </Typography>
-              
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                label="Kapatma Notları *"
-                value={closureNotes}
-                onChange={(e) => setClosureNotes(e.target.value)}
-                placeholder="DF'ün nasıl çözüldüğünü ve kapatma gerekçesini detaylı olarak açıklayın..."
-                sx={{ mb: 3 }}
-              />
 
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Kapatma Kanıt Dokümanları
-                </Typography>
-                <Button
-                  component="label"
-                  variant="outlined"
-                  startIcon={<CloudUploadIcon />}
-                  sx={{ mb: 2 }}
-                >
-                  Kanıt Dosyası Ekle
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*,.pdf"
-                    onChange={handleClosureFileUpload}
-                  />
-                </Button>
-                
-                {closureDocuments.length > 0 && (
-                  <Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {closureDocuments.length} dosya eklendi
-                    </Typography>
-                    {closureDocuments.map((doc) => (
-                      <Chip
-                        key={doc.id}
-                        label={doc.fileName}
-                        size="small"
-                        onDelete={() => setClosureDocuments(prev => prev.filter(d => d.id !== doc.id))}
-                        sx={{ mr: 1, mb: 1 }}
-                      />
-                    ))}
-                  </Box>
-                )}
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
-          <Button onClick={closeClosureDialog}>
-            İptal
-          </Button>
-          <Button 
-            onClick={handleCloseDeviation} 
-            variant="contained"
-            disabled={!closureNotes.trim()}
-            startIcon={<CheckCircleIcon />}
-          >
-            DF'ü Kapat
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Nihai Karar Modal */}
       <Dialog 
