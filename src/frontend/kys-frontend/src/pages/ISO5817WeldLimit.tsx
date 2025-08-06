@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Typography,
   Box,
@@ -25,6 +25,20 @@ import {
   Divider,
   Tooltip,
   Container,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Stepper,
+  Step,
+  StepLabel,
+  Grid,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
+  Badge,
+  Avatar,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -848,6 +862,15 @@ const DEFECT_CODES: DefectLimit[] = [
 ];
 
 const ISO5817WeldLimit: React.FC = () => {
+  // Modern State Management
+  const [modernWizardOpen, setModernWizardOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [selectedWeldType, setSelectedWeldType] = useState('');
+  const [selectedDefect, setSelectedDefect] = useState<any>(null);
+  const [wizardParameters, setWizardParameters] = useState<{ [key: string]: any }>({});
+  const [wizardResult, setWizardResult] = useState<ModernCalculationResult | null>(null);
+  
+  // Legacy State (for backward compatibility)
   const [weldData, setWeldData] = useState<WeldData>({
     materialThickness: 0,
     weldType: '',
@@ -866,6 +889,69 @@ const ISO5817WeldLimit: React.FC = () => {
   const [modernResult, setModernResult] = useState<ModernCalculationResult | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [defectSearchTerm, setDefectSearchTerm] = useState<string>('');
+
+  // Filtered defects based on selected weld type
+  const availableDefects = useMemo(() => {
+    if (!selectedWeldType) return [];
+    return DEFECT_TYPES.filter(defect => 
+      defect.appliesTo.includes(selectedWeldType)
+    );
+  }, [selectedWeldType]);
+
+  // Wizard Steps
+  const wizardSteps = ['Kaynak Tipi', 'Hata Seçimi', 'Parametreler', 'Sonuç'];
+
+  // Modern Wizard Functions
+  const openModernWizard = () => {
+    setModernWizardOpen(true);
+    setCurrentStep(0);
+    setSelectedWeldType('');
+    setSelectedDefect(null);
+    setWizardParameters({});
+    setWizardResult(null);
+  };
+
+  const closeModernWizard = () => {
+    setModernWizardOpen(false);
+  };
+
+  const nextStep = () => {
+    if (currentStep < wizardSteps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const calculateModernResult = () => {
+    if (!selectedDefect) return;
+    
+    const calculationEngine = CALCULATION_ENGINE[selectedDefect.calculation];
+    if (!calculationEngine) return;
+
+    const calculationResult = calculationEngine(wizardParameters, 'C');
+    
+    const modernResult: ModernCalculationResult = {
+      calculation: calculationResult,
+      defectInfo: {
+        code: selectedDefect.code,
+        name: selectedDefect.name,
+        category: selectedDefect.category,
+        description: selectedDefect.description
+      },
+      parameters: wizardParameters,
+      qualityLevel: 'C',
+      standard: 'ISO 5817',
+      calculatedAt: new Date().toISOString()
+    };
+    
+    setWizardResult(modernResult);
+    setCurrentStep(3); // Go to results step
+  };
 
   // Hata kodlarını filtreleme
   const filteredDefectCodes = DEFECT_CODES.filter(defect =>
@@ -1532,14 +1618,49 @@ const ISO5817WeldLimit: React.FC = () => {
           borderRadius: 3,
           boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
       }}>
+          {/* Modern Wizard Launch Section */}
+          <Box sx={{ mb: 4, textAlign: 'center' }}>
+            <Typography variant="h4" fontWeight={700} gutterBottom sx={{ color: 'primary.main' }}>
+              ISO 5817 Kaynak Limit Değerlendirmesi
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Modern adım adım yöntemle hızlı ve doğru hesaplama yapın
+            </Typography>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<EngineeringIcon />}
+              onClick={openModernWizard}
+              sx={{
+                py: 2,
+                px: 4,
+                borderRadius: '12px',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                boxShadow: '0 4px 20px rgba(33, 150, 243, 0.3)',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 25px rgba(33, 150, 243, 0.4)',
+                }
+              }}
+            >
+              Modern Hesaplama Başlat
+            </Button>
+          </Box>
+
+          <Divider sx={{ my: 4 }}>
+            <Chip label="VEYA KLASİK YÖNTEMİ KULLANIN" color="primary" variant="outlined" />
+          </Divider>
+
           <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Box>
               <Typography variant="h5" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CalculateIcon color="primary" />
-                Kaynak Parametreleri ve Hata Kodu Seçimi
+                Klasik Kaynak Parametreleri ve Hata Kodu Seçimi
             </Typography>
               <Typography variant="body2" color="text.secondary">
-                Kaynak kalitesi değerlendirmesi için gerekli tüm parametreleri girin
+                Geleneksel yöntemle tüm parametreleri manuel olarak girin
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 2 }}>
@@ -2301,6 +2422,352 @@ const ISO5817WeldLimit: React.FC = () => {
           </Paper>
         )}
       </Container>
+
+      {/* Modern Wizard Modal */}
+      <Dialog
+        open={modernWizardOpen}
+        onClose={closeModernWizard}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            borderBottom: '1px solid #e0e0e0',
+            background: 'linear-gradient(90deg, #2196F3 0%, #21CBF3 100%)',
+            color: 'white',
+            fontWeight: 600,
+            py: 3
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <EngineeringIcon sx={{ fontSize: '2rem' }} />
+            <Box>
+              <Typography variant="h5" fontWeight={700}>
+                ISO 5817 Modern Hesaplama Sihirbazı
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Adım adım kaynak kalitesi değerlendirmesi
+              </Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 0 }}>
+          {/* Stepper */}
+          <Box sx={{ px: 4, py: 3, bgcolor: '#f8f9fa' }}>
+            <Stepper activeStep={currentStep} alternativeLabel>
+              {wizardSteps.map((label, index) => (
+                <Step key={label}>
+                  <StepLabel 
+                    sx={{
+                      '& .MuiStepLabel-label': {
+                        fontWeight: currentStep === index ? 600 : 400,
+                        fontSize: '0.9rem'
+                      }
+                    }}
+                  >
+                    {label}
+                  </StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Box>
+
+          {/* Step Content */}
+          <Box sx={{ p: 4, minHeight: '400px' }}>
+            {/* Step 1: Weld Type Selection */}
+            {currentStep === 0 && (
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
+                  Kaynak Tipini Seçin
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                  Değerlendirmek istediğiniz kaynak tipini aşağıdan seçin. Seçtiğiniz kaynak tipine göre uygun hatalar listelenecektir.
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  {WELD_TYPES.map((weldType) => (
+                    <Grid item xs={12} sm={6} md={4} key={weldType.value}>
+                      <Card
+                        sx={{
+                          cursor: 'pointer',
+                          border: selectedWeldType === weldType.value ? '2px solid' : '1px solid',
+                          borderColor: selectedWeldType === weldType.value ? 'primary.main' : 'divider',
+                          bgcolor: selectedWeldType === weldType.value ? 'primary.50' : 'background.paper',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            borderColor: 'primary.main',
+                            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.15)',
+                            transform: 'translateY(-2px)'
+                          }
+                        }}
+                        onClick={() => setSelectedWeldType(weldType.value)}
+                      >
+                        <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                          <Avatar
+                            sx={{
+                              bgcolor: selectedWeldType === weldType.value ? 'primary.main' : 'grey.300',
+                              color: 'white',
+                              width: 56,
+                              height: 56,
+                              mx: 'auto',
+                              mb: 2,
+                              fontSize: '1.5rem',
+                              fontWeight: 600
+                            }}
+                          >
+                            {weldType.value.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Typography variant="h6" fontWeight={600} gutterBottom>
+                            {weldType.label}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {weldType.description}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+
+            {/* Step 2: Defect Selection */}
+            {currentStep === 1 && (
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 600 }}>
+                  Hata Türünü Seçin
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  <strong>{WELD_TYPES.find(w => w.value === selectedWeldType)?.label}</strong> kaynak tipi için uygun hata türlerini görmektesiniz.
+                </Typography>
+
+                {availableDefects.length > 0 ? (
+                  <Grid container spacing={2}>
+                    {availableDefects.map((defect) => (
+                      <Grid item xs={12} md={6} key={defect.code}>
+                        <Card
+                          sx={{
+                            cursor: 'pointer',
+                            border: selectedDefect?.code === defect.code ? '2px solid' : '1px solid',
+                            borderColor: selectedDefect?.code === defect.code ? 'primary.main' : 'divider',
+                            bgcolor: selectedDefect?.code === defect.code ? 'primary.50' : 'background.paper',
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              boxShadow: '0 4px 12px rgba(33, 150, 243, 0.15)',
+                              transform: 'translateY(-1px)'
+                            }
+                          }}
+                          onClick={() => setSelectedDefect(defect)}
+                        >
+                          <CardContent>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                              <Chip 
+                                label={defect.code} 
+                                size="small" 
+                                color="primary" 
+                                variant={selectedDefect?.code === defect.code ? "filled" : "outlined"}
+                              />
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                                  {defect.name}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                  {defect.description}
+                                </Typography>
+                                <Chip 
+                                  label={defect.category} 
+                                  size="small" 
+                                  variant="outlined" 
+                                  sx={{ textTransform: 'capitalize' }}
+                                />
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Alert severity="warning">
+                    Bu kaynak tipi için henüz hata tanımı bulunmamaktadır.
+                  </Alert>
+                )}
+              </Box>
+            )}
+
+            {/* Step 3: Parameter Input */}
+            {currentStep === 2 && selectedDefect && (
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ mb: 2, fontWeight: 600 }}>
+                  Parametreleri Girin
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  <strong>{selectedDefect.name}</strong> hatası için gerekli parametreleri girin.
+                </Typography>
+
+                <Grid container spacing={3}>
+                  {selectedDefect.parameters?.map((paramName: string) => {
+                    const paramDef = PARAMETER_DEFINITIONS[paramName];
+                    if (!paramDef) return null;
+                    
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={paramName}>
+                        <TextField
+                          fullWidth
+                          label={`${paramDef.label} (${paramDef.unit})`}
+                          type={paramDef.type}
+                          value={wizardParameters[paramName] || ''}
+                          onChange={(e) => {
+                            const value = paramDef.type === 'number' ? Number(e.target.value) : e.target.value;
+                            setWizardParameters(prev => ({
+                              ...prev,
+                              [paramName]: value
+                            }));
+                          }}
+                          inputProps={paramDef.type === 'number' ? {
+                            min: paramDef.min,
+                            max: paramDef.max,
+                            step: 0.1
+                          } : {}}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              bgcolor: 'background.paper'
+                            }
+                          }}
+                        />
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              </Box>
+            )}
+
+            {/* Step 4: Results */}
+            {currentStep === 3 && wizardResult && (
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
+                  Hesaplama Sonuçları
+                </Typography>
+                
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          Hata Bilgileri
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <Typography><strong>Kod:</strong> {wizardResult.defectInfo.code}</Typography>
+                          <Typography><strong>Adı:</strong> {wizardResult.defectInfo.name}</Typography>
+                          <Typography><strong>Kategori:</strong> {wizardResult.defectInfo.category}</Typography>
+                          <Typography><strong>Açıklama:</strong> {wizardResult.defectInfo.description}</Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          Hesaplama Sonucu
+                        </Typography>
+                        <Alert 
+                          severity={wizardResult.calculation.allowed ? "success" : "error"}
+                          sx={{ mb: 2 }}
+                        >
+                          {wizardResult.calculation.result}
+                        </Alert>
+                        <Typography variant="body2">
+                          <strong>Sebep:</strong> {wizardResult.calculation.reason}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          Kullanılan Parametreler
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {Object.entries(wizardResult.parameters).map(([key, value]) => (
+                            <Chip 
+                              key={key} 
+                              label={`${key}: ${value}`} 
+                              variant="outlined" 
+                              size="small"
+                            />
+                          ))}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3, borderTop: '1px solid #e0e0e0', bgcolor: '#f8f9fa' }}>
+          <Button onClick={closeModernWizard} color="inherit">
+            Kapat
+          </Button>
+          
+          {currentStep > 0 && currentStep < 3 && (
+            <Button onClick={prevStep} variant="outlined" color="primary">
+              Önceki
+            </Button>
+          )}
+          
+          {currentStep === 0 && selectedWeldType && (
+            <Button onClick={nextStep} variant="contained" color="primary">
+              Hataları Listele
+            </Button>
+          )}
+          
+          {currentStep === 1 && selectedDefect && (
+            <Button onClick={nextStep} variant="contained" color="primary">
+              Parametreleri Gir
+            </Button>
+          )}
+          
+          {currentStep === 2 && selectedDefect && (
+            <Button onClick={calculateModernResult} variant="contained" color="success">
+              Hesapla
+            </Button>
+          )}
+          
+          {currentStep === 3 && (
+            <Button 
+              onClick={() => {
+                closeModernWizard();
+                // Optionally reset for new calculation
+                setCurrentStep(0);
+                setSelectedWeldType('');
+                setSelectedDefect(null);
+                setWizardParameters({});
+                setWizardResult(null);
+              }} 
+              variant="contained" 
+              color="primary"
+            >
+              Yeni Hesaplama
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
       </Box>
   );
 };
