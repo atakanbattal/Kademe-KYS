@@ -586,7 +586,7 @@ const validatePDFData = (record: DOFRecord): { isValid: boolean; errors: string[
   };
 };
 
-const generateDOFPDF = (record: DOFRecord): void => {
+const generateDOFPDF = async (record: DOFRecord): Promise<void> => {
   try {
     console.log('📄 PDF oluşturuluyor:', record.dofNumber);
     
@@ -1262,6 +1262,167 @@ const generateDOFPDF = (record: DOFRecord): void => {
     };
     
     addFooter();
+    
+    // ============================================
+    // 📷 EKLİ GÖRSELLER EKLEME - SON SAYFA
+    // ============================================
+    
+    // Ekli resimleri PDF'in son sayfasına ekle
+    const addAttachedImages = async () => {
+      // Normal eklentiler
+      const imageAttachments = record.attachments?.filter(att => 
+        att.type && (
+          att.type.includes('image/') || 
+          att.type.includes('jpeg') || 
+          att.type.includes('jpg') || 
+          att.type.includes('png')
+        )
+      ) || [];
+
+      // Kapatma kanıt belgeleri (metadata.evidenceDocuments)
+      const evidenceImages = record.metadata?.evidenceDocuments?.filter(doc => 
+        doc.fileType && (
+          doc.fileType.includes('image/') || 
+          doc.fileType.includes('jpeg') || 
+          doc.fileType.includes('jpg') || 
+          doc.fileType.includes('png')
+        )
+      ) || [];
+
+      const allImages = [...imageAttachments, ...evidenceImages.map(evidence => ({
+        id: `evidence_${Date.now()}`,
+        name: evidence.fileName,
+        size: 0,
+        uploadDate: new Date().toISOString(),
+        type: evidence.fileType,
+        url: evidence.fileData
+      }))];
+
+      if (allImages.length > 0) {
+        // Yeni sayfa ekle
+        doc.addPage();
+        let imageY = margin + 20;
+        
+        // Başlık
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text(turkishSafeText('EKLİ HATA GÖRSELLERİ VE KAPIT BELGELERI'), margin, imageY - 5);
+        
+        // Çizgi
+        doc.setDrawColor(52, 152, 219);
+        doc.setLineWidth(1);
+        doc.line(margin, imageY, pageWidth - margin, imageY);
+        
+        imageY += 15;
+        
+        // Her resim için
+        for (let i = 0; i < allImages.length; i++) {
+          const attachment = allImages[i];
+          
+          try {
+            // Base64 data'dan resim oluştur
+            if (attachment.url && attachment.url.includes('data:image')) {
+              const base64Data = attachment.url.split(',')[1];
+              
+              // Resim boyutlarını hesapla (maksimum genişlik: 160mm, maksimum yükseklik: 120mm)
+              const maxWidth = 160;
+              const maxHeight = 120;
+              let imgWidth = maxWidth;
+              let imgHeight = maxHeight;
+              
+              // Sayfa kontrolü
+              if (imageY + imgHeight + 30 > pageHeight - 30) {
+                doc.addPage();
+                imageY = margin + 20;
+              }
+              
+              // Resim ekle
+              doc.addImage(
+                attachment.url,
+                'JPEG',
+                margin,
+                imageY,
+                imgWidth,
+                imgHeight
+              );
+              
+              // Resim bilgisi
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(10);
+              doc.setTextColor(100, 100, 100);
+              
+              // Resim türünü belirle (normal eklenti mi, kanıt belgesi mi)
+              const isEvidenceDoc = attachment.id?.includes('evidence_');
+              const imageType = isEvidenceDoc ? 'Kanıt Belgesi' : 'Hata Görseli';
+              
+              doc.text(
+                turkishSafeText(`${i + 1}. ${attachment.name || imageType} (${imageType})`),
+                margin,
+                imageY + imgHeight + 8
+              );
+              
+              doc.text(
+                turkishSafeText(`Yüklenme: ${new Date(attachment.uploadDate).toLocaleDateString('tr-TR')}`),
+                margin,
+                imageY + imgHeight + 15
+              );
+              
+              imageY += imgHeight + 30;
+              
+            } else {
+              // URL'den resim yükleme durumu için bilgi mesajı
+              doc.setFont('helvetica', 'italic');
+              doc.setFontSize(10);
+              doc.setTextColor(150, 150, 150);
+              doc.text(
+                turkishSafeText(`${i + 1}. ${attachment.name} - Görsel yüklenemedi (URL formatı)`),
+                margin,
+                imageY
+              );
+              imageY += 15;
+            }
+            
+          } catch (imgError) {
+            console.warn('Resim eklenirken hata:', imgError);
+            // Hata durumunda bilgi mesajı
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(10);
+            doc.setTextColor(200, 100, 100);
+            doc.text(
+              turkishSafeText(`${i + 1}. ${attachment.name} - Görsel eklenemedi`),
+              margin,
+              imageY
+            );
+            imageY += 15;
+          }
+        }
+        
+        // Ekli görseller için footer güncelle
+        const pageCount = doc.internal.pages.length - 1;
+        doc.setPage(pageCount);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        
+        // Footer çizgisi
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+        
+        // Footer metinleri
+        doc.text(turkishSafeText('KADEME A.Ş. Kalite Yönetim Sistemi'), margin, pageHeight - 10);
+        
+        const pageText = turkishSafeText(`Sayfa ${pageCount} / ${pageCount}`);
+        const pageTextWidth = doc.getTextWidth(pageText);
+        doc.text(pageText, pageWidth - margin - pageTextWidth, pageHeight - 10);
+        
+        const printText = turkishSafeText(`Yazdırma: ${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR')}`);
+        const printTextWidth = doc.getTextWidth(printText);
+        doc.text(printText, (pageWidth - printTextWidth) / 2, pageHeight - 10);
+      }
+    };
+    
+    // Görselleri ekle (async işlem)
+    await addAttachedImages();
     
     // ============================================
     // 💾 PDF KAYDETME
@@ -5346,7 +5507,7 @@ const DOF8DManagement: React.FC = () => {
                         </IconButton>
                         <IconButton 
                           size="small" 
-                          onClick={() => generateDOFPDF(record)} 
+                          onClick={async () => await generateDOFPDF(record)} 
                           title="PDF İndir"
                           sx={{ 
                             width: 24, 
