@@ -1700,51 +1700,51 @@ const WpsGenerator: React.FC = () => {
 
     // === PROFESYONEL HEADER TASARIMI ===
     
-    // Ana header background - gradient benzeri efekt için çoklu katman
+    // Ana header background - daha kompakt tasarım
     doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-    doc.rect(0, 0, 210, 45, 'F');
+    doc.rect(0, 0, 210, 38, 'F');
     
     // Alt gölge efekti
     doc.setFillColor(0, 0, 0);
-    doc.rect(0, 42, 210, 3, 'F');
+    doc.rect(0, 36, 210, 2, 'F');
     
     // Üst beyaz çizgi (premium look)
     doc.setFillColor(colors.white[0], colors.white[1], colors.white[2]);
-    doc.rect(0, 0, 210, 2, 'F');
+    doc.rect(0, 0, 210, 1, 'F');
     
     // Sol taraf - Firma bilgileri
     doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text('KADEME A.S.', 15, 18);
+    doc.setFontSize(12);
+    doc.text('KADEME A.S.', 15, 15);
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text('Kaynak Teknolojileri ve Proses Muhendisligi', 15, 26);
-    doc.text('ISO 15609-1:2019 Sertifikali WPS', 15, 32);
+    doc.setFontSize(7);
+    doc.text('Kaynak Teknolojileri', 15, 22);
+    doc.text('ISO 15609-1:2019 Sertifikali', 15, 28);
     
-    // Sağ taraf - WPS Numarası ve tarih
+    // Sağ taraf - WPS Numarası ve tarih  
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text(`WPS No: ${wpsNumber}`, 150, 18);
+    doc.setFontSize(9);
+    doc.text(`WPS No: ${wpsNumber}`, 150, 15);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, 150, 22);
+    doc.text('Durum: ONAYLI', 150, 28);
+    
+    // Merkez başlık - kompakt ve dengeli boyutlar
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('KAYNAK PROSEDUR SARTNAMESI', 105, 16, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, 150, 26);
-    doc.text('Durum: ONAYLI', 150, 32);
-    
-    // Merkez başlık
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.text('KAYNAK PROSEDUR SARTNAMESI', 105, 22, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text('(Welding Procedure Specification)', 105, 30, { align: 'center' });
-    doc.setFontSize(9);
-    doc.text('EN ISO 15609-1:2019 Uyumlu', 105, 38, { align: 'center' });
+    doc.text('(Welding Procedure Specification)', 105, 23, { align: 'center' });
+    doc.setFontSize(7);
+    doc.text('EN ISO 15609-1:2019 Uyumlu', 105, 30, { align: 'center' });
     
     // === İÇERİK BAŞLANGIÇ ===
     doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
-    let y = 60;
+    let y = 50;
     
     // === WPS GENEL BİLGİLERİ TABLOSU ===
     autoTable((doc as unknown) as import('jspdf').jsPDF, {
@@ -1757,7 +1757,7 @@ const WpsGenerator: React.FC = () => {
         ['Gecerlilik Suresi', '3 Yil'],
         ['Uygulama Standardi', 'EN ISO 15609-1:2019'],
         ['Olusturan Sistem', 'Kademe A.S. WPS Generator v2.0'],
-        ['Durum', '✓ ONAYLI VE YURURLUKТЕ']
+        ['Durum', 'ONAYLI VE YURURLUKТЕ']
       ],
       theme: 'striped',
       styles: { 
@@ -1915,35 +1915,29 @@ const WpsGenerator: React.FC = () => {
       y = (doc as any).lastAutoTable.finalY + 15;
       
       const passBody = wpsData.passes.map((pass, index) => {
-        const passTypeText = pass.passType === 'root' ? 'Kok' : pass.passType === 'fill' ? 'Ara' : 'Kapak';
+        const passTypeText = pass.passType === 'root' ? 'Kok Paso' : pass.passType === 'fill' ? 'Ara Paso' : 'Kapak Paso';
         return [
-          `${pass.passNumber}. Paso`,
+          `${pass.passNumber}`,
           formatText(passTypeText),
-          `${pass.current}A`,
-          `${pass.voltage}V`
+          `${pass.current} A`,
+          `${pass.voltage} V`
         ];
       });
 
       autoTable((doc as unknown) as import('jspdf').jsPDF, {
         startY: y,
         head: [['PASO BAZLI PARAMETRELER', '', '', '']],
-        columnStyles: { 
-          0: { cellWidth: 30, halign: 'center' },
-          1: { cellWidth: 40, halign: 'center' },
-          2: { cellWidth: 35, halign: 'center' },
-          3: { cellWidth: 35, halign: 'center' }
-        },
         body: [
-          ['Paso No', 'Tipo', 'Akim (A)', 'Voltaj (V)'],
+          ['Paso No', 'Paso Tipi', 'Akim (A)', 'Voltaj (V)'],
           ...passBody
         ],
-        theme: 'grid',
+        theme: 'striped',
         styles: { 
           font: 'helvetica', 
-          fontSize: 9,
-          cellPadding: 4,
-          lineColor: colors.secondary,
-          lineWidth: 0.5
+          fontSize: 10,
+          cellPadding: 5,
+          lineColor: colors.light,
+          lineWidth: 0.3
         },
         headStyles: { 
           fillColor: colors.success,
@@ -1954,7 +1948,27 @@ const WpsGenerator: React.FC = () => {
         },
         bodyStyles: { 
           fontSize: 9,
-          halign: 'center'
+          halign: 'center',
+          alternateRowStyles: { fillColor: [248, 255, 248] }
+        },
+        columnStyles: { 
+          0: { 
+            cellWidth: 45, 
+            halign: 'center',
+            fontStyle: 'bold'
+          },
+          1: { 
+            cellWidth: 45,
+            halign: 'center'
+          },
+          2: { 
+            cellWidth: 45,
+            halign: 'center'
+          },
+          3: { 
+            cellWidth: 45,
+            halign: 'center'
+          }
         },
         margin: { left: 15, right: 15 }
       });
