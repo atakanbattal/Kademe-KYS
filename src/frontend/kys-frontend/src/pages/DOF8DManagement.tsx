@@ -64,6 +64,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
+import { NotificationSystem } from '../utils/NotificationSystem';
 
 // ✅ Gelişmiş Interface Definitions
 interface DOFRecord {
@@ -561,7 +562,19 @@ const safeSaveToLocalStorage = (key: string, value: string): boolean => {
     localStorage.setItem(key, value);
     return true;
   } catch (error: any) {
-    console.error('❌ Context7 - LocalStorage save error:', error);
+    // LocalStorage kaydetme hatası
+    const notificationSystem = NotificationSystem.getInstance();
+    notificationSystem.createNotification({
+      title: 'LocalStorage Kaydetme Hatası',
+      message: `Veri yerel depolamaya kaydedilirken bir hata oluştu: ${error.message || 'Depolama alanı dolu olabilir'}`,
+      type: 'error',
+      priority: 'high',
+      category: 'dof',
+      module: 'DOF8DManagement',
+      actionRequired: true,
+      actionText: 'Depolama Alanını Temizle',
+      metadata: { error: error, context: 'localstorage_save_error' }
+    });
     
     if (error.name === 'QuotaExceededError') {
       console.log('🔄 LocalStorage quota aşıldı, acil temizlik yapılıyor...');
@@ -579,7 +592,19 @@ const safeSaveToLocalStorage = (key: string, value: string): boolean => {
         console.log('✅ Temizlik sonrası başarıyla kaydedildi');
         return true;
       } catch (retryError) {
-        console.error('❌ Temizlik sonrası da kaydedilemedi:', retryError);
+        // Temizlik sonrası da kaydetme başarısız
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Kritik Depolama Hatası',
+          message: `Depolama alanı temizlendikten sonra bile veri kaydedilemedi. Dosya boyutları çok büyük olabilir.`,
+          type: 'critical',
+          priority: 'critical',
+          category: 'dof',
+          module: 'DOF8DManagement',
+          actionRequired: true,
+          actionText: 'Dosya Boyutlarını Küçült',
+          metadata: { retryError: retryError, context: 'post_cleanup_save_failure' }
+        });
         alert('⚠️ UYARI: Dosya boyutu çok büyük!\n\nEkli görseller tarayıcı limitini aşıyor. Lütfen:\n\n1. Daha az görsel ekleyin\n2. Görsel boyutlarını küçültün\n3. PDF formatında dosya ekleyin\n\nDF kaydedildi ama eklentiler kaybolabilir.');
         return false;
       }
@@ -593,7 +618,18 @@ const safeGetFromLocalStorage = (key: string): string | null => {
   try {
     return localStorage.getItem(key);
   } catch (error) {
-    console.error('Context7 - LocalStorage read error:', error);
+    // LocalStorage okuma hatası
+    const notificationSystem = NotificationSystem.getInstance();
+    notificationSystem.createNotification({
+      title: 'LocalStorage Okuma Hatası',
+      message: `Yerel depolamadan veri okunurken bir hata oluştu. Varsayılan değerler kullanılacak.`,
+      type: 'warning',
+      priority: 'medium',
+      category: 'dof',
+      module: 'DOF8DManagement',
+      actionRequired: false,
+      metadata: { error: error, context: 'localstorage_read_error' }
+    });
     return null;
   }
 };
@@ -740,7 +776,18 @@ const compressImage = (file: File, quality: number = 0.7): Promise<string> => {
         
         resolve(compressedDataUrl);
       } catch (error) {
-        console.error('❌ Compress işlemi hatası:', error);
+        // Görsel sıkıştırma hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Görsel Sıkıştırma Hatası',
+          message: `Görsel dosyası sıkıştırılırken bir hata oluştu. Orijinal boyutta kullanılacak.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'dof',
+          module: 'DOF8DManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'image_compression_error' }
+        });
         reject(error);
       }
     };
@@ -1531,7 +1578,18 @@ const generateDOFPDF = async (record: DOFRecord): Promise<void> => {
                   continue;
                 }
               } catch (dbError) {
-                console.error(`❌ IndexedDB görsel çekme hatası: ${attachmentId}`, dbError);
+                // IndexedDB görsel çekme hatası
+                const notificationSystem = NotificationSystem.getInstance();
+                notificationSystem.createNotification({
+                  title: 'Görsel Yükleme Hatası',
+                  message: `PDF oluşturulurken bir görsel dosyası yüklenemedi. PDF diğer içeriklerle oluşturulacak.`,
+                  type: 'warning',
+                  priority: 'medium',
+                  category: 'dof',
+                  module: 'DOF8DManagement',
+                  actionRequired: false,
+                  metadata: { attachmentId: attachmentId, dbError: dbError, context: 'indexeddb_image_retrieval_error' }
+                });
                 continue;
               }
             }
@@ -1660,8 +1718,19 @@ const generateDOFPDF = async (record: DOFRecord): Promise<void> => {
     console.log('✅ PDF başarıyla oluşturuldu:', fileName);
     
   } catch (error) {
-    console.error('❌ PDF oluşturma hatası:', error);
-    console.error('Hata detayları:', error);
+    // PDF oluşturma hatası
+    const notificationSystem = NotificationSystem.getInstance();
+    notificationSystem.createNotification({
+      title: 'PDF Oluşturma Hatası',
+      message: `DOF raporu PDF formatında oluşturulurken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+      type: 'error',
+      priority: 'high',
+      category: 'dof',
+      module: 'DOF8DManagement',
+      actionRequired: true,
+      actionText: 'Tekrar Dene',
+      metadata: { error: error, context: 'pdf_generation_error' }
+    });
     // Daha detaylı hata mesajı
     const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
     alert(`PDF oluşturulurken bir hata oluştu:\n${errorMessage}\n\nLütfen tüm alanların doğru doldurulduğundan emin olun ve tekrar deneyin.`);
@@ -2081,7 +2150,18 @@ const DOF8DManagement: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('❌ Context7 - LocalStorage okuma hatası:', error);
+      // Context7 LocalStorage okuma hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'DOF Veri Okuma Hatası',
+        message: `DOF kayıtları okunurken hata oluştu. Bozuk veriler temizleniyor.`,
+        type: 'warning',
+        priority: 'medium',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'dof_records_read_error' }
+      });
       // Bozuk veriyi temizle
       localStorage.removeItem('dofRecords');
       console.log('🧹 Context7 - Bozuk veri temizlendi');
@@ -2103,7 +2183,18 @@ const DOF8DManagement: React.FC = () => {
           setDofRecords(parsedRecords);
         }
       } catch (error) {
-        console.error('❌ localStorage değişikliği işlenirken hata:', error);
+        // localStorage değişikliği işleme hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'LocalStorage Güncelleme Hatası',
+          message: `Yerel depolama güncellenirken bir hata oluştu. Veri tutarsızlığı olabilir.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'dof',
+          module: 'DOF8DManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'localstorage_change_processing' }
+        });
       }
     };
 
@@ -2129,7 +2220,18 @@ const DOF8DManagement: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('❌ Periyodik localStorage kontrolü hatası:', error);
+        // Periyodik localStorage kontrol hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Periyodik Kontrol Hatası',
+          message: `Otomatik veri kontrolü sırasında bir hata oluştu. Manuel kontrol gerekebilir.`,
+          type: 'warning',
+          priority: 'low',
+          category: 'dof',
+          module: 'DOF8DManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'periodic_localstorage_check' }
+        });
       }
     }, 2000); // Her 2 saniyede bir kontrol et
 
@@ -2180,7 +2282,18 @@ const DOF8DManagement: React.FC = () => {
           console.log('✅ DF formu prefill verileriyle açıldı');
         }
       } catch (error) {
-        console.error('❌ Prefill veri okuma hatası:', error);
+        // Prefill veri okuma hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Form Ön-Yükleme Hatası',
+          message: `Formun otomatik doldurulması sırasında bir hata oluştu. Form temiz açılacak.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'dof',
+          module: 'DOF8DManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'prefill_data_read_error' }
+        });
         localStorage.removeItem('dof-form-prefill');
         localStorage.removeItem('dof-auto-open-form');
       }
@@ -2235,7 +2348,18 @@ const DOF8DManagement: React.FC = () => {
           console.log('✅ Periyodik kontrol: DF formu prefill verileriyle açıldı');
         }
       } catch (error) {
-        console.error('❌ Periyodik prefill kontrol hatası:', error);
+        // Periyodik prefill kontrol hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Otomatik Form Kontrol Hatası',
+          message: `Formun otomatik açılması kontrol edilirken bir hata oluştu.`,
+          type: 'warning',
+          priority: 'low',
+          category: 'dof',
+          module: 'DOF8DManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'periodic_prefill_check_error' }
+        });
         localStorage.removeItem('dof-form-prefill');
         localStorage.removeItem('dof-auto-open-form');
       }
@@ -2286,7 +2410,19 @@ const DOF8DManagement: React.FC = () => {
       localStorage.setItem('dofRecords_timestamp', new Date().toISOString());
       
     } catch (error) {
-      console.error('❌ Context7 - Veri kaydetme hatası:', error);
+      // Context7 veri kaydetme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'DOF Veri Kaydetme Hatası',
+        message: `DOF verisi kaydedilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'dof_data_save_error' }
+      });
       
       // Context7 - Hata durumunda yedek kaydetme
       if (error.name === 'QuotaExceededError') {
@@ -2309,7 +2445,19 @@ const DOF8DManagement: React.FC = () => {
           localStorage.setItem('dofRecords', JSON.stringify(criticalRecords));
           console.log('✅ Context7 - Kritik veriler kaydedildi:', criticalRecords.length, 'kayıt');
         } catch (finalError) {
-          console.error('❌ Context7 - Kritik veri kaydetme de başarısız:', finalError);
+          // Context7 kritik veri kaydetme de başarısız
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Kritik Veri Kaydetme Hatası',
+            message: `Kritik DOF verisi temizlik sonrası bile kaydedilemedi. Veri kaybı olabilir.`,
+            type: 'critical',
+            priority: 'critical',
+            category: 'dof',
+            module: 'DOF8DManagement',
+            actionRequired: true,
+            actionText: 'Acil Müdahale',
+            metadata: { finalError: finalError, context: 'critical_data_save_failure' }
+          });
         }
       }
     }
@@ -2459,7 +2607,18 @@ const DOF8DManagement: React.FC = () => {
         try {
           saveToContext7(dofRecords);
         } catch (error) {
-          console.error('⚠️ Context7 - Save error:', error);
+          // Context7 kaydetme hatası
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Veri Kaydetme Uyarısı',
+            message: `DOF verisi kaydedilirken küçük bir sorun oluştu. Otomatik yeniden deneme yapılacak.`,
+            type: 'warning',
+            priority: 'medium',
+            category: 'dof',
+            module: 'DOF8DManagement',
+            actionRequired: false,
+            metadata: { error: error, context: 'context7_save_warning' }
+          });
         }
       }, 5000); // ✅ 1→5 saniye - performans optimizasyonu
 
@@ -2754,7 +2913,19 @@ const DOF8DManagement: React.FC = () => {
       
       console.log('✅ Kanıt dokümanları başarıyla yüklendi:', uploadedFiles.length);
     } catch (error) {
-      console.error('❌ Kanıt doküman yükleme hatası:', error);
+      // Kanıt doküman yükleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Kanıt Doküman Yükleme Hatası',
+        message: `Kanıt dokümanı yüklenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'evidence_document_upload' }
+      });
       alert('Dosya yükleme sırasında bir hata oluştu.');
     }
   };
@@ -2767,7 +2938,18 @@ const DOF8DManagement: React.FC = () => {
       // Context7 - GÜVENLI KAYIT BULMA
       const recordToClose = dofRecords.find(r => r.id === recordId);
       if (!recordToClose) {
-        console.error('❌ Context7 - Kayıt bulunamadı:', recordId);
+        // Context7 kayıt bulunamadı hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'DOF Kaydı Bulunamadı',
+          message: `Kapatılmaya çalışılan DOF kaydı bulunamadı. Kayıt silinmiş olabilir.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'dof',
+          module: 'DOF8DManagement',
+          actionRequired: false,
+          metadata: { recordId: recordId, context: 'record_not_found' }
+        });
         // Kayıt bulunamadı - sessiz hata
         return;
       }
@@ -2798,7 +2980,19 @@ const DOF8DManagement: React.FC = () => {
       setCloseModalOpen(true);
       
     } catch (error) {
-      console.error('❌ Context7 - DF kapatma hatası:', error);
+      // Context7 DF kapatma hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'DOF Kapatma Hatası',
+        message: `DOF kapatılırken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'dof_close_error' }
+      });
       // Kapatma hatası - sessiz hata
     }
   }, [dofRecords]);
@@ -2807,7 +3001,18 @@ const DOF8DManagement: React.FC = () => {
   const confirmCloseDOF = useCallback(() => {
     try {
       if (!selectedRecordForClose) {
-        console.error('❌ Kapatılacak kayıt bulunamadı');
+        // Kapatılacak kayıt bulunamadı hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Kayıt Bulunamadı',
+          message: `Kapatılacak DOF kaydı seçilmemiş veya bulunamadı.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'dof',
+          module: 'DOF8DManagement',
+          actionRequired: false,
+          metadata: { context: 'no_record_selected_for_close' }
+        });
         return;
       }
 
@@ -2831,7 +3036,18 @@ const DOF8DManagement: React.FC = () => {
       // Context7 - GÜVENLI STATE GÜNCELLEME
       setDofRecords(prev => {
         if (!prev || !Array.isArray(prev)) {
-          console.error('❌ Context7 - DofRecords array geçersiz');
+          // DofRecords array geçersiz hatası
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Veri Yapısı Hatası',
+            message: `DOF kayıtları veri yapısı bozulmuş. Sistem sıfırlanıyor.`,
+            type: 'error',
+            priority: 'high',
+            category: 'dof',
+            module: 'DOF8DManagement',
+            actionRequired: false,
+            metadata: { context: 'invalid_dof_records_array' }
+          });
           return [];
         }
 
@@ -2913,7 +3129,19 @@ const DOF8DManagement: React.FC = () => {
       console.log('✅ Context7 - DF kapatma işlemi başarıyla tamamlandı');
       
     } catch (error) {
-      console.error('❌ Context7 - DF kapatma hatası:', error);
+      // Context7 DF kapatma hatası - son
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'DOF Kapatma İşlemi Hatası',
+        message: `DOF kapatma işlemi tamamlanırken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'dof_close_completion_error' }
+      });
     }
   }, [selectedRecordForClose, closureData, dofRecords]);
 
@@ -3034,7 +3262,18 @@ const DOF8DManagement: React.FC = () => {
           return attachment;
 
         } catch (error) {
-          console.error(`❌ ${file.name} yükleme hatası:`, error);
+          // Dosya yükleme hatası
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Dosya Yükleme Hatası',
+            message: `${file.name} dosyası yüklenirken hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+            type: 'error',
+            priority: 'medium',
+            category: 'dof',
+            module: 'DOF8DManagement',
+            actionRequired: false,
+            metadata: { fileName: file.name, error: error, context: 'individual_file_upload' }
+          });
           errors.push(`${file.name}: Yükleme hatası`);
           return null;
         }
@@ -3073,7 +3312,19 @@ const DOF8DManagement: React.FC = () => {
       }
 
     } catch (error) {
-      console.error('❌ Toplu yükleme hatası:', error);
+      // Toplu yükleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Toplu Dosya Yükleme Hatası',
+        message: `Birden fazla dosya yüklenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'bulk_file_upload' }
+      });
       setSnackbar({
         open: true,
         message: 'Dosya yükleme sırasında hata oluştu. Tekrar deneyin.',
@@ -3124,7 +3375,19 @@ const DOF8DManagement: React.FC = () => {
         severity: 'success'
       });
     } catch (error) {
-      console.error('❌ Dosya indirme hatası:', error);
+      // Dosya indirme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Dosya İndirme Hatası',
+        message: `Dosya indirilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'file_download_error' }
+      });
       setSnackbar({
         open: true,
         message: 'Dosya indirilemedi. Tekrar deneyin.',
@@ -3188,7 +3451,19 @@ const DOF8DManagement: React.FC = () => {
         throw new Error('Dosya URL\'si bulunamadı');
       }
     } catch (error) {
-      console.error('❌ Dosya görüntüleme hatası:', error);
+      // Dosya görüntüleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Dosya Görüntüleme Hatası',
+        message: `Dosya görüntülenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'file_view_error' }
+      });
       setSnackbar({
         open: true,
         message: 'Dosya görüntülenemiyor. Lütfen dosyayı indirip açmayı deneyin.',
@@ -3214,7 +3489,19 @@ const DOF8DManagement: React.FC = () => {
       severity: 'success'
     });
     } catch (error) {
-      console.error('❌ Dosya silme hatası:', error);
+      // Dosya silme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Dosya Silme Hatası',
+        message: `Dosya silinirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'file_delete_error' }
+      });
       setSnackbar({
         open: true,
         message: 'Dosya silinemedi. Tekrar deneyin.',
@@ -3236,7 +3523,18 @@ const DOF8DManagement: React.FC = () => {
         try {
           saveToContext7(updatedRecords);
         } catch (saveError) {
-          console.error('⚠️ Context7 - Silme sonrası kaydetme hatası:', saveError);
+          // Silme sonrası kaydetme hatası
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Silme Sonrası Kaydetme Hatası',
+            message: `Dosya silindikten sonra değişiklikler kaydedilirken bir hata oluştu.`,
+            type: 'warning',
+            priority: 'medium',
+            category: 'dof',
+            module: 'DOF8DManagement',
+            actionRequired: false,
+            metadata: { saveError: saveError, context: 'post_delete_save_error' }
+          });
         }
         
         return updatedRecords;
@@ -3247,7 +3545,19 @@ const DOF8DManagement: React.FC = () => {
       console.log('✅ Context7 - DF silme işlemi başarıyla tamamlandı');
       
     } catch (error) {
-      console.error('❌ Context7 - DF silme hatası:', error);
+      // Context7 DF silme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'DOF Silme Hatası',
+        message: `DOF kaydı silinirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'dof_delete_error' }
+      });
       // Silme hatası - sessiz hata
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps  
@@ -3409,7 +3719,18 @@ const DOF8DManagement: React.FC = () => {
         console.log('📝 Context7 - localStorage boş');
       }
     } catch (error) {
-      console.error('❌ Context7 - Temizlik hatası:', error);
+      // Context7 temizlik hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Sistem Temizlik Hatası',
+        message: `Sistem temizliği sırasında bir hata oluştu. Bazı eski veriler kalabilir.`,
+        type: 'warning',
+        priority: 'low',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'system_cleanup_error' }
+      });
     }
   }, []); // Sadece component mount olduğunda çalış
 
@@ -3662,7 +3983,18 @@ const DOF8DManagement: React.FC = () => {
             localStorage.setItem('dofRecords', JSON.stringify(updated));
             console.log('💾 Context7 - localStorage güncellendi');
           } catch (error) {
-            console.error('❌ Context7 - localStorage kaydetme hatası:', error);
+            // Context7 localStorage kaydetme hatası
+            const notificationSystem = NotificationSystem.getInstance();
+            notificationSystem.createNotification({
+              title: 'LocalStorage Kaydetme Hatası',
+              message: `Form verileri yerel depolamaya kaydedilirken bir hata oluştu.`,
+              type: 'warning',
+              priority: 'medium',
+              category: 'dof',
+              module: 'DOF8DManagement',
+              actionRequired: false,
+              metadata: { error: error, context: 'form_localstorage_save_error' }
+            });
           }
           
           return updated;
@@ -3730,7 +4062,18 @@ const DOF8DManagement: React.FC = () => {
             localStorage.setItem('dofRecords', JSON.stringify(updated));
             console.log('💾 Context7 - localStorage güncellendi');
           } catch (error) {
-            console.error('❌ Context7 - localStorage kaydetme hatası:', error);
+            // Context7 localStorage kaydetme hatası
+            const notificationSystem = NotificationSystem.getInstance();
+            notificationSystem.createNotification({
+              title: 'LocalStorage Kaydetme Hatası',
+              message: `Form verileri yerel depolamaya kaydedilirken bir hata oluştu.`,
+              type: 'warning',
+              priority: 'medium',
+              category: 'dof',
+              module: 'DOF8DManagement',
+              actionRequired: false,
+              metadata: { error: error, context: 'form_localstorage_save_error' }
+            });
           }
           
           return updated;
@@ -3755,7 +4098,19 @@ const DOF8DManagement: React.FC = () => {
       console.log('✅ Context7 - Kayıt işlemi başarıyla tamamlandı');
       
     } catch (error) {
-      console.error('❌ Context7 - Kayıt hatası:', error);
+      // Context7 kayıt hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'DOF Kayıt Hatası',
+        message: `DOF kaydedilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'dof',
+        module: 'DOF8DManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'dof_record_save_error' }
+      });
       // Kayıt hatası - kullanıcıya hata mesajı göster
       alert('❌ DF kaydetme sırasında bir hata oluştu. Lütfen tekrar deneyiniz.\n\nHata: ' + (error as Error).message);
     }

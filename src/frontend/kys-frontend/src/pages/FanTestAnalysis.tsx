@@ -83,7 +83,7 @@ import {
   Legend,
 } from 'recharts';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // Types and Interfaces
 interface TestRecord {
@@ -362,7 +362,7 @@ const ReportsModule: React.FC = () => {
       ['Tamamlanan Testler', statistics.completedTests.toString()],
     ];
 
-    (doc as any).autoTable({
+    autoTable(doc as any, {
       startY: yPos,
       head: [[turkishToAscii('Metrik'), turkishToAscii('Deger')]],
       body: summaryData.map(row => [turkishToAscii(row[0]), turkishToAscii(row[1])]),
@@ -390,7 +390,7 @@ const ReportsModule: React.FC = () => {
       `${((type.count / statistics.totalTests) * 100).toFixed(1)}%`
     ]);
 
-    (doc as any).autoTable({
+    autoTable(doc as any, {
       startY: yPos,
       head: [[turkishToAscii('Urun Tipi'), turkishToAscii('Test Sayisi'), turkishToAscii('Oran')]],
       body: productData,
@@ -420,7 +420,7 @@ const ReportsModule: React.FC = () => {
       `${((stats.passed / stats.total) * 100).toFixed(1)}%`
     ]);
 
-    (doc as any).autoTable({
+    autoTable(doc as any, {
       startY: yPos,
       head: [[turkishToAscii('Operator'), turkishToAscii('Toplam'), turkishToAscii('Basarili'), turkishToAscii('Basarisiz'), turkishToAscii('Basari Orani')]],
       body: operatorData,
@@ -1223,7 +1223,7 @@ const TestManagement: React.FC = () => {
           turkishToAscii(row[1] || '')
         ]);
 
-        (doc as any).autoTable({
+        autoTable(doc as any, {
           startY: yPosition,
           head: [[turkishToAscii('Parametre'), turkishToAscii('Deger')]],
           body: asciiData,

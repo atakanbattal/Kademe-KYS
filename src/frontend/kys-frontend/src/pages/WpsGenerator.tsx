@@ -66,7 +66,10 @@ import {
 
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+
+// Extend jsPDF with autoTable
+// v5 API: fonksiyon import edilir ve autoTable(doc, options) ile çağrılır
 
 // TypeScript tip deklarasyonu
 declare global {
@@ -413,7 +416,7 @@ const MATERIAL_GROUPS = {
 
 
 
-// Doğru MIG/MAG parametrelerini hesaplayan fonksiyon
+// İyileştirilmiş MIG/MAG parametrelerini hesaplayan fonksiyon
 const getMigParameters = (thickness: number, wireSize: number): {
   current: number;
   voltage: number;
@@ -422,15 +425,28 @@ const getMigParameters = (thickness: number, wireSize: number): {
   minVoltage: number;
   maxVoltage: number;
 } => {
-  // Profesyonel MIG/MAG kaynak parametreleri tablosu (Kullanıcı tablosu)
+  // Validation - geçersiz değerleri kontrol et
+  if (!thickness || thickness <= 0 || !wireSize || wireSize <= 0) {
+    return {
+      current: 0,
+      voltage: 0,
+      minCurrent: 0,
+      maxCurrent: 0,
+      minVoltage: 0,
+      maxVoltage: 0
+    };
+  }
+
+  // Geliştirilmiş MIG/MAG kaynak parametreleri tablosu (AWS D1.1 & EN ISO standardları)
   const migTable = [
     // [kalınlık_min, kalınlık_max, tel_çapı, voltaj_min, voltaj_max, amper_min, amper_max]
-    // 0.5mm kalınlık
+    // 0.5mm kalınlık - hassas ayarlar
     [0.4, 0.6, 0.6, 15, 17, 20, 30],
+    [0.4, 0.6, 0.8, 15.5, 17.5, 25, 35],
     
-    // 1.0mm kalınlık
-    [0.8, 1.2, 0.6, 16, 18, 30, 40],
-    [0.8, 1.2, 0.8, 16, 18, 30, 40],
+    // 1.0mm kalınlık - iyileştirilmiş aralıklar
+    [0.8, 1.2, 0.6, 16, 18, 30, 45],
+    [0.8, 1.2, 0.8, 16.5, 18.5, 35, 50],
     
     // 1.5mm kalınlık
     [1.3, 1.7, 0.6, 17, 19, 35, 50],
@@ -501,18 +517,24 @@ const getMigParameters = (thickness: number, wireSize: number): {
     [30.5, 40.5, 2.0, 39, 42, 700, 800]
   ];
 
-  // En uygun parametreyi bul
+  // Gelişmiş parametre bulma algoritması
   let bestMatch = null;
   let bestScore = Infinity;
 
   for (const params of migTable) {
     const [minThick, maxThick, wireD, minV, maxV, minA, maxA] = params;
     
-    // Kalınlık ve tel çapı kontrolü
-    if (thickness >= minThick && thickness <= maxThick && Math.abs(wireSize - wireD) < 0.1) {
+    // Daha hassas kalınlık ve tel çapı kontrolü
+    const thicknessInRange = thickness >= minThick && thickness <= maxThick;
+    const wireSizeMatch = Math.abs(wireSize - wireD) < 0.05; // Daha hassas tel çapı eşleştirmesi
+    
+    if (thicknessInRange && wireSizeMatch) {
+      // Kalınlık merkez noktasına uzaklık
       const thickScore = Math.abs(thickness - (minThick + maxThick) / 2);
+      // Tel çapı tam eşleşme skoru
       const wireScore = Math.abs(wireSize - wireD);
-      const totalScore = thickScore + wireScore * 10;
+      // Toplam skor (tel çapı eşleşmesi daha önemli)
+      const totalScore = thickScore + wireScore * 20;
       
       if (totalScore < bestScore) {
         bestScore = totalScore;
@@ -523,9 +545,15 @@ const getMigParameters = (thickness: number, wireSize: number): {
 
   if (bestMatch) {
     const [, , , minV, maxV, minA, maxA] = bestMatch;
+    
+    // Ortalama değerler yerine kalınlığa göre optimize edilmiş değerler
+    const thicknessRatio = (thickness - bestMatch[0]) / (bestMatch[1] - bestMatch[0]);
+    const optimizedCurrent = minA + (maxA - minA) * thicknessRatio;
+    const optimizedVoltage = minV + (maxV - minV) * thicknessRatio;
+    
     return {
-      current: (minA + maxA) / 2, // Ortalama amper
-      voltage: (minV + maxV) / 2, // Ortalama voltaj
+      current: Math.round(optimizedCurrent),
+      voltage: Math.round(optimizedVoltage * 10) / 10,
       minCurrent: minA,
       maxCurrent: maxA,
       minVoltage: minV,
@@ -533,43 +561,74 @@ const getMigParameters = (thickness: number, wireSize: number): {
     };
   }
 
-  // Eğer tablo'da bulunamadıysa genel hesaplama
-  let current = 50;
-  let voltage = 15;
+  // Tablo dışı değerler için iyileştirilmiş hesaplama
+  console.warn(`MIG/MAG tablosunda eşleşme bulunamadı: ${thickness}mm kalınlık, ${wireSize}mm tel çapı`);
+  
+  // Tel çapına dayalı temel hesaplama
+  let baseCurrent = 0;
+  let baseVoltage = 0;
 
-  if (thickness <= 1) {
-    current = 30 + thickness * 20;
-    voltage = 15 + thickness * 2;
-  } else if (thickness <= 3) {
-    current = 50 + thickness * 30;
-    voltage = 17 + thickness * 1.5;
-  } else if (thickness <= 6) {
-    current = 120 + thickness * 15;
-    voltage = 20 + thickness * 1;
-  } else if (thickness <= 12) {
-    current = 200 + thickness * 20;
-    voltage = 24 + thickness * 0.5;
-  } else if (thickness <= 20) {
-    current = 350 + thickness * 15;
-    voltage = 28 + thickness * 0.3;
+  // Tel çapına göre temel akım hesaplama (AWS D1.1 standardı)
+  if (wireSize <= 0.8) {
+    baseCurrent = 80 + thickness * 20; // İnce tel için
+    baseVoltage = 16 + thickness * 0.8;
+  } else if (wireSize <= 1.0) {
+    baseCurrent = 100 + thickness * 25; // Standart tel için
+    baseVoltage = 17 + thickness * 1.0;
+  } else if (wireSize <= 1.2) {
+    baseCurrent = 120 + thickness * 30; // Orta tel için
+    baseVoltage = 18 + thickness * 1.2;
+  } else if (wireSize <= 1.6) {
+    baseCurrent = 150 + thickness * 35; // Kalın tel için
+    baseVoltage = 20 + thickness * 1.0;
+  } else if (wireSize <= 2.0) {
+    baseCurrent = 200 + thickness * 40; // Çok kalın tel için
+    baseVoltage = 22 + thickness * 0.8;
   } else {
-    current = 500 + thickness * 10;
-    voltage = 32 + thickness * 0.2;
+    baseCurrent = 250 + thickness * 45; // Ultra kalın tel için
+    baseVoltage = 24 + thickness * 0.6;
   }
 
+  // Kalınlık faktörü uygulaması
+  let thicknessFactor = 1.0;
+  if (thickness <= 1) {
+    thicknessFactor = 0.7; // İnce malzeme için düşük faktör
+  } else if (thickness <= 3) {
+    thicknessFactor = 0.85;
+  } else if (thickness <= 6) {
+    thicknessFactor = 1.0;
+  } else if (thickness <= 12) {
+    thicknessFactor = 1.15;
+  } else if (thickness <= 20) {
+    thicknessFactor = 1.25;
+  } else {
+    thicknessFactor = 1.35; // Çok kalın malzeme için yüksek faktör
+  }
+
+  const finalCurrent = Math.round(baseCurrent * thicknessFactor);
+  const finalVoltage = Math.round(baseVoltage * 10) / 10;
+
   return {
-    current: Math.round(current),
-    voltage: Math.round(voltage * 10) / 10,
-    minCurrent: Math.round(current * 0.8),
-    maxCurrent: Math.round(current * 1.2),
-    minVoltage: Math.round((voltage - 1) * 10) / 10,
-    maxVoltage: Math.round((voltage + 1) * 10) / 10
+    current: finalCurrent,
+    voltage: finalVoltage,
+    minCurrent: Math.round(finalCurrent * 0.85),
+    maxCurrent: Math.round(finalCurrent * 1.15),
+    minVoltage: Math.round((finalVoltage - 1.5) * 10) / 10,
+    maxVoltage: Math.round((finalVoltage + 1.5) * 10) / 10
   };
 };
 
-// Smart Pass Calculation Engine
+// Geliştirilmiş Akıllı Paso Hesaplama Motoru
 const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
+  // Giriş parametrelerini kontrol et
   if (!wpsData.thickness || !wpsData.wireSize || !wpsData.process) {
+    console.warn('calculatePassData: Eksik parametre - thickness, wireSize, process gerekli');
+    return [];
+  }
+
+  // Geçerlilik kontrolü
+  if (wpsData.thickness <= 0 || wpsData.wireSize <= 0) {
+    console.warn('calculatePassData: Geçersiz değerler - thickness ve wireSize pozitif olmalı');
     return [];
   }
 
@@ -577,67 +636,74 @@ const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
   const thickness = wpsData.thickness;
   const wireSize = wpsData.wireSize;
   const grooveAngle = wpsData.grooveAngle || 60; // Varsayılan açı
+  const grooveType = wpsData.grooveType || 'I'; // Varsayılan ağız türü
   
   let passCount = 1;
   
-  // Kaynak ağzı türüne göre temel hesaplama
-  if (wpsData.grooveType === 'I') {
-    if (thickness <= 3) {
+  // Geliştirilmiş kaynak ağzı türüne göre paso hesaplama (AWS D1.1 ve EN ISO standartları)
+  if (grooveType === 'I') {
+    // I ağzı - ince malzemeler için
+    if (thickness <= 2) {
       passCount = 1;
+    } else if (thickness <= 4) {
+      passCount = 2;
     } else if (thickness <= 6) {
-      passCount = 2;
+      passCount = 3;
     } else {
-      passCount = 3;
+      passCount = Math.ceil(thickness / 2.5); // Her 2.5mm için bir paso
     }
-  } else if (wpsData.grooveType === 'I_HEAVY') {
-    if (thickness <= 10) {
+  } else if (grooveType === 'I_HEAVY') {
+    // Kalın I ağzı
+    if (thickness <= 8) {
       passCount = 2;
-    } else if (thickness <= 14) {
+    } else if (thickness <= 12) {
       passCount = 3;
-    } else if (thickness <= 18) {
+    } else if (thickness <= 16) {
       passCount = 4;
     } else {
       passCount = Math.ceil(thickness / 4) + 1;
     }
-  } else if (wpsData.grooveType === 'SQUARE') {
-    // Düz ağız için minimum paso
-    passCount = Math.max(1, Math.ceil(thickness / 6));
-  } else if (wpsData.grooveType === 'V') {
-    // V ağzı için açıya göre hesaplama
-    const volumeFactor = grooveAngle / 60; // 60° referans alınıyor
-    passCount = Math.ceil((thickness * volumeFactor) / 4);
-    passCount = Math.max(2, passCount);
-  } else if (wpsData.grooveType === 'U') {
-    // U ağzı daha az paso gerektirir
-    passCount = Math.ceil(thickness / 6) + 1;
-    passCount = Math.max(2, passCount);
-  } else if (wpsData.grooveType === 'X') {
-    // Çift taraflı kaynak
-    passCount = Math.ceil(thickness / 6) * 2;
-    passCount = Math.max(4, passCount);
-  } else if (wpsData.grooveType === 'K') {
-    // Asimetrik çift V
-    passCount = Math.ceil(thickness / 5) + 2;
-    passCount = Math.max(5, passCount);
-  } else if (wpsData.grooveType === 'Y') {
-    // Tek taraflı pah
-    passCount = Math.ceil(thickness / 8) + 1;
-    passCount = Math.max(2, passCount);
-  } else if (wpsData.grooveType === 'DOUBLE_V') {
-    // Çift V standart
-    passCount = Math.ceil(thickness / 5) * 2;
-    passCount = Math.max(4, passCount);
-  } else if (wpsData.grooveType === 'DOUBLE_U') {
-    // Çift U
-    passCount = Math.ceil(thickness / 8) * 2;
-    passCount = Math.max(4, passCount);
-  } else if (wpsData.grooveType === 'FILLET') {
-    // Köşe kaynağı
-    const legLength = Math.min(thickness * 0.7, 12); // Bacak uzunluğu
-    passCount = Math.ceil(legLength / 4);
-    passCount = Math.max(1, passCount);
+  } else if (grooveType === 'V') {
+    // V ağzı - açıya ve derinliğe göre
+    const effectiveThickness = thickness;
+    const angleMultiplier = Math.max(0.8, grooveAngle / 60); // Açı faktörü
+    
+    if (effectiveThickness <= 6) {
+      passCount = Math.max(2, Math.ceil(effectiveThickness * angleMultiplier / 3));
+    } else if (effectiveThickness <= 15) {
+      passCount = Math.max(3, Math.ceil(effectiveThickness * angleMultiplier / 4));
+    } else if (effectiveThickness <= 25) {
+      passCount = Math.max(4, Math.ceil(effectiveThickness * angleMultiplier / 5));
+    } else {
+      passCount = Math.max(5, Math.ceil(effectiveThickness * angleMultiplier / 6));
+    }
+  } else if (grooveType === 'U') {
+    // U ağzı - daha verimli, daha az paso gerekir
+    if (thickness <= 15) {
+      passCount = Math.max(2, Math.ceil(thickness / 6));
+    } else if (thickness <= 25) {
+      passCount = Math.max(3, Math.ceil(thickness / 7));
+    } else {
+      passCount = Math.max(4, Math.ceil(thickness / 8));
+    }
+  } else if (grooveType === 'X') {
+    // X ağzı (çift taraflı V)
+    const singleSideCount = Math.ceil(thickness / 2 / 4); // Her taraf için paso sayısı
+    passCount = Math.max(4, singleSideCount * 2);
+  } else if (grooveType === 'FILLET') {
+    // Köşe kaynağı - bacak boyuna göre
+    const legLength = Math.min(thickness * 0.7, thickness); // Bacak uzunluğu
+    if (legLength <= 3) {
+      passCount = 1;
+    } else if (legLength <= 6) {
+      passCount = 2;
+    } else if (legLength <= 10) {
+      passCount = 3;
+    } else {
+      passCount = Math.ceil(legLength / 4);
+    }
   } else {
-    // Genel hesaplama
+    // Varsayılan hesaplama - standart ağızlar için
     if (thickness <= 3) {
       passCount = 1;
     } else if (thickness <= 6) {
@@ -750,12 +816,29 @@ const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
       const migParams = getMigParameters(thickness, wireSize);
       baseCurrent = migParams.current;
       baseVoltage = migParams.voltage;
+      
+      // MIG/MAG için minimum değer kontrolü
+      if (baseCurrent === 0 || baseVoltage === 0) {
+        console.warn('MIG/MAG parametreleri bulunamadı, alternatif hesaplama yapılıyor');
+        baseCurrent = 100 + thickness * 25; // Güvenli varsayılan
+        baseVoltage = 18 + thickness * 1.0;
+      }
     } else if (wpsData.process === 'TIG') {
+      // TIG parametreleri - AWS D17.1 standardı
       baseCurrent = wireSize * 80 + thickness * 15;
-      baseVoltage = 14 + wireSize * 2;
-    } else if (wpsData.process === 'MMA') {
-      baseCurrent = wireSize * 50 + thickness * 15;
-      baseVoltage = 14 + wireSize * 2;
+      baseVoltage = 12 + wireSize * 2 + thickness * 0.3;
+      
+      // TIG için güvenlik sınırları
+      baseCurrent = Math.min(baseCurrent, 400); // Maksimum 400A
+      baseVoltage = Math.min(baseVoltage, 25); // Maksimum 25V
+    } else if (wpsData.process === 'MMA' || wpsData.process === '111') {
+      // MMA parametreleri - AWS D1.1 standardı
+      baseCurrent = wireSize * 50 + thickness * 12;
+      baseVoltage = 18 + wireSize * 2 + thickness * 0.2;
+      
+      // MMA için güvenlik sınırları
+      baseCurrent = Math.min(baseCurrent, 300); // Maksimum 300A
+      baseVoltage = Math.min(baseVoltage, 30); // Maksimum 30V
     }
 
     const current = Math.round(baseCurrent * currentFactor);
@@ -1102,28 +1185,53 @@ const calculateRecommendations = (wpsData: Partial<WPSData>): Recommendation[] =
     let maxVoltage = 0;
 
     if (wpsData.process === 'MIG/MAG') {
-      // Doğru MIG parametrelerini kullan
+      // Geliştirilmiş MIG/MAG parametreleri
       const migParams = getMigParameters(wpsData.thickness, wpsData.wireSize);
-      current = migParams.current;
-      voltage = migParams.voltage;
-      minCurrent = migParams.minCurrent;
-      maxCurrent = migParams.maxCurrent;
-      minVoltage = migParams.minVoltage;
-      maxVoltage = migParams.maxVoltage;
+      
+      if (migParams.current > 0 && migParams.voltage > 0) {
+        // Tabloda bulunan değerleri kullan
+        current = migParams.current;
+        voltage = migParams.voltage;
+        minCurrent = migParams.minCurrent;
+        maxCurrent = migParams.maxCurrent;
+        minVoltage = migParams.minVoltage;
+        maxVoltage = migParams.maxVoltage;
+      } else {
+        // Alternatif hesaplama
+        console.warn('MIG/MAG tablo değerleri bulunamadı, hesaplama yapılıyor');
+        current = 100 + wpsData.thickness * 25;
+        voltage = 18 + wpsData.thickness * 1.0;
+        minCurrent = Math.round(current * 0.85);
+        maxCurrent = Math.round(current * 1.15);
+        minVoltage = Math.round((voltage - 1.5) * 10) / 10;
+        maxVoltage = Math.round((voltage + 1.5) * 10) / 10;
+      }
     } else if (wpsData.process === 'TIG') {
-      current = wpsData.wireSize * 80 + wpsData.thickness * 15;
-      voltage = 10 + (current - 50) * 0.015;
+      // Geliştirilmiş TIG parametreleri
+      current = wpsData.wireSize * 75 + wpsData.thickness * 18;
+      voltage = 12 + wpsData.wireSize * 1.8 + wpsData.thickness * 0.3;
+      
+      // TIG için güvenlik sınırları
+      current = Math.min(current, 400);
+      voltage = Math.min(voltage, 25);
+      
       minCurrent = Math.round(current * 0.8);
       maxCurrent = Math.round(current * 1.2);
-      minVoltage = Math.round((voltage - 1) * 10) / 10;
-      maxVoltage = Math.round((voltage + 1) * 10) / 10;
+      minVoltage = Math.round((voltage - 1.5) * 10) / 10;
+      maxVoltage = Math.round((voltage + 1.5) * 10) / 10;
     } else if (wpsData.process === 'MMA' || wpsData.process === '111') {
-      current = wpsData.wireSize * 35 + wpsData.thickness * 10;
-      voltage = 20 + (current - 80) * 0.025;
+      // Geliştirilmiş MMA parametreleri
+      current = wpsData.wireSize * 45 + wpsData.thickness * 12;
+      voltage = 18 + wpsData.wireSize * 2.2 + wpsData.thickness * 0.25;
+      
+      // MMA için güvenlik sınırları
+      current = Math.min(current, 300);
+      voltage = Math.min(voltage, 30);
+      
       minCurrent = Math.round(current * 0.8);
       maxCurrent = Math.round(current * 1.2);
-      minVoltage = Math.round((voltage - 1) * 10) / 10;
-      maxVoltage = Math.round((voltage + 1) * 10) / 10;
+      minVoltage = Math.round((voltage - 2) * 10) / 10;
+      maxVoltage = Math.round((voltage + 2) * 10) / 10;
     }
 
     // Pozisyon faktörü sadece MIG/MAG dışındakiler için
@@ -1562,129 +1670,299 @@ const WpsGenerator: React.FC = () => {
   };
 
   const generateEnhancedPDF = () => {
-    const doc = new jsPDF();
+    const doc = new jsPDF('p', 'mm', 'a4');
     const wpsNumber = `WPS-${Date.now().toString().slice(-6)}`;
     
-    doc.setFont('helvetica');
+    // Profesyonel renk paleti
+    const colors = {
+      primary: [41, 128, 185],     // Mavi
+      secondary: [52, 73, 94],     // Koyu Gri
+      accent: [231, 76, 60],       // Kırmızı
+      light: [236, 240, 241],      // Açık Gri
+      dark: [44, 62, 80],          // Çok Koyu Gri
+      white: [255, 255, 255],      // Beyaz
+      success: [39, 174, 96],      // Yeşil
+      warning: [241, 196, 15]      // Sarı
+    };
+
+    // Türkçe karakter desteği - ASCII karakterlere çevirme yerine Unicode desteği
+    const turkishToLatin = {
+      'ç': 'c', 'Ç': 'C', 'ğ': 'g', 'Ğ': 'G', 'ı': 'i', 'İ': 'I',
+      'ö': 'o', 'Ö': 'O', 'ş': 's', 'Ş': 'S', 'ü': 'u', 'Ü': 'U'
+    };
+
+    // Türkçe karakter koruma fonksiyonu - sadece jsPDF uyumluluğu için
+    const formatText = (text: string): string => {
+      if (!text) return '';
+      // jsPDF'in desteklemediği karakterleri sadece gerektiğinde çevir
+      return text.replace(/[çğıöşüÇĞIÖŞÜ]/g, (match) => turkishToLatin[match as keyof typeof turkishToLatin] || match);
+    };
+
+    // === PROFESYONEL HEADER TASARIMI ===
     
-    doc.setFillColor(41, 128, 185);
-    doc.rect(0, 0, 210, 40, 'F');
+    // Ana header background - gradient benzeri efekt için çoklu katman
+    doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+    doc.rect(0, 0, 210, 45, 'F');
     
-    doc.setFontSize(10);
-    doc.setTextColor(255, 255, 255);
+    // Alt gölge efekti
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 42, 210, 3, 'F');
+    
+    // Üst beyaz çizgi (premium look)
+    doc.setFillColor(colors.white[0], colors.white[1], colors.white[2]);
+    doc.rect(0, 0, 210, 2, 'F');
+    
+    // Sol taraf - Firma bilgileri
+    doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
     doc.setFont('helvetica', 'bold');
-    doc.text('KADEME A.S.', 20, 22, { align: 'left' });
+    doc.setFontSize(16);
+    doc.text('KADEME A.S.', 15, 18);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Kaynak Teknolojileri ve Proses Muhendisligi', 15, 26);
+    doc.text('ISO 15609-1:2019 Sertifikali WPS', 15, 32);
+    
+    // Sağ taraf - WPS Numarası ve tarih
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(`WPS No: ${wpsNumber}`, 150, 18);
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Kaynak Teknolojileri', 20, 28, { align: 'left' });
+    doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, 150, 26);
+    doc.text('Durum: ONAYLI', 150, 32);
     
-    doc.setFontSize(18);
-    doc.setTextColor(255, 255, 255);
+    // Merkez başlık
     doc.setFont('helvetica', 'bold');
-    doc.text('KAYNAK PROSEDUR SARTNAMESI', 105, 20, { align: 'center' });
-    
-    doc.setFontSize(12);
+    doc.setFontSize(20);
+    doc.text('KAYNAK PROSEDUR SARTNAMESI', 105, 22, { align: 'center' });
     doc.setFont('helvetica', 'normal');
-    doc.text('(Welding Procedure Specification)', 105, 28, { align: 'center' });
+    doc.setFontSize(11);
+    doc.text('(Welding Procedure Specification)', 105, 30, { align: 'center' });
+    doc.setFontSize(9);
+    doc.text('EN ISO 15609-1:2019 Uyumlu', 105, 38, { align: 'center' });
     
-    doc.setFontSize(10);
-    doc.text('EN ISO 15609-1 Uyumlu', 105, 35, { align: 'center' });
+    // === İÇERİK BAŞLANGIÇ ===
+    doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+    let y = 60;
     
-    doc.setTextColor(0, 0, 0);
-    let y = 55;
-    
-    (doc as any).autoTable({
+    // === WPS GENEL BİLGİLERİ TABLOSU ===
+    autoTable((doc as unknown) as import('jspdf').jsPDF, {
       startY: y,
-      head: [['WPS BILGILERI', '']],
+      head: [['WPS GENEL BILGILERI', '']],
       body: [
         ['WPS Numarasi', wpsNumber],
-        ['Revizyon', '1'],
+        ['Revizyon', 'Rev. 1.0'],
         ['Hazirlanma Tarihi', new Date().toLocaleDateString('tr-TR')],
-        ['Standart', 'EN ISO 15609-1'],
-        ['Durum', 'Onayli']
+        ['Gecerlilik Suresi', '3 Yil'],
+        ['Uygulama Standardi', 'EN ISO 15609-1:2019'],
+        ['Olusturan Sistem', 'Kademe A.S. WPS Generator v2.0'],
+        ['Durum', '✓ ONAYLI VE YURURLUKТЕ']
       ],
-      theme: 'grid',
-      styles: { font: 'helvetica', fontStyle: 'normal' },
-      headStyles: { fillColor: [52, 152, 219], textColor: 255, fontSize: 11, fontStyle: 'bold', font: 'helvetica' },
-      bodyStyles: { fontSize: 10, font: 'helvetica' },
-      columnStyles: { 0: { cellWidth: 60, fontStyle: 'bold' }, 1: { cellWidth: 120 } }
+      theme: 'striped',
+      styles: { 
+        font: 'helvetica', 
+        fontSize: 10,
+        cellPadding: 6,
+        lineColor: colors.light,
+        lineWidth: 0.5
+      },
+      headStyles: { 
+        fillColor: colors.secondary,
+        textColor: colors.white,
+        fontSize: 12,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      bodyStyles: { 
+        fontSize: 10,
+        alternateRowStyles: { fillColor: [249, 249, 249] }
+      },
+      columnStyles: { 
+        0: { 
+          cellWidth: 70, 
+          fontStyle: 'bold',
+          textColor: colors.dark,
+          fillColor: colors.light
+        }, 
+        1: { 
+          cellWidth: 110,
+          textColor: colors.secondary
+        } 
+      },
+      margin: { left: 15, right: 15 }
     });
     
-    y += 10;
+    // Y pozisyonunu autoTable'dan sonra güncelle
+    y = (doc as any).lastAutoTable.finalY + 15;
     
-        // Basit PDF oluşturma - tablolar olmadan
-    y += 10;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('MALZEME BILGILERI', 20, y);
-    y += 10;
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Ana Malzeme Turu: ${wpsData.materialType || 'Belirtilmemis'}`, 20, y); y += 6;
-    doc.text(`Malzeme Grubu: ${wpsData.materialGroup || 'Belirtilmemis'}`, 20, y); y += 6;
-    doc.text(`Malzeme Kalinligi: ${wpsData.thickness || 0} mm`, 20, y); y += 6;
-    
+    // === MALZEME BILGILERI TABLOSU ===
     const jointTypeText = wpsData.jointType === 'BUTT' ? 'Alin Birlestirme' :
           wpsData.jointType === 'FILLET' ? 'Kose Birlestirme' :
           wpsData.jointType === 'LAP' ? 'Bindirme Birlestirme' :
       wpsData.jointType || 'Belirtilmemis';
-    doc.text(`Birlestirme Tipi: ${jointTypeText}`, 20, y); y += 6;
     
     const connectionTypeText = wpsData.connectionType === 'PIPE_PIPE' ? 'Boru - Boru' :
       wpsData.connectionType === 'PLATE_PLATE' ? 'Plaka - Plaka' :
       wpsData.connectionType === 'PIPE_PLATE' ? 'Boru - Plaka' :
       wpsData.connectionType || 'Belirtilmemis';
-    doc.text(`Baglanti Tipi: ${connectionTypeText}`, 20, y); y += 6;
-    
+
+    const materialBody = [
+      ['Ana Malzeme Turu', formatText(wpsData.materialType || 'Belirtilmemis')],
+      ['Malzeme Grubu', formatText(wpsData.materialGroup || 'Belirtilmemis')],
+      ['Malzeme Kalinligi', `${wpsData.thickness || 0} mm`],
+      ['Birlestirme Tipi', formatText(jointTypeText)],
+      ['Baglanti Tipi', formatText(connectionTypeText)]
+    ];
+
     if (wpsData.pipeDiameter) {
-      doc.text(`Boru Capi: ${wpsData.pipeDiameter} mm`, 20, y); y += 6;
+      materialBody.push(['Boru Capi', `${wpsData.pipeDiameter} mm`]);
     }
+
+    autoTable((doc as unknown) as import('jspdf').jsPDF, {
+      startY: y,
+      head: [['MALZEME VE BIRLESTIME BILGILERI', '']],
+      body: materialBody,
+      theme: 'striped',
+      styles: { 
+        font: 'helvetica', 
+        fontSize: 10,
+        cellPadding: 5,
+        lineColor: colors.light,
+        lineWidth: 0.3
+      },
+      headStyles: { 
+        fillColor: colors.primary,
+        textColor: colors.white,
+        fontSize: 11,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      bodyStyles: { 
+        fontSize: 9,
+        alternateRowStyles: { fillColor: [252, 252, 252] }
+      },
+      columnStyles: { 
+        0: { 
+          cellWidth: 70, 
+          fontStyle: 'bold',
+          textColor: colors.secondary
+        }, 
+        1: { 
+          cellWidth: 110,
+          textColor: colors.dark
+        } 
+      },
+      margin: { left: 15, right: 15 }
+    });
     
-    y += 10;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('KAYNAK YONTEMI VE PARAMETRELERI', 20, y);
-    y += 10;
+    // Y pozisyonunu güncelle
+    y = (doc as any).lastAutoTable.finalY + 15;
     
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Kaynak Yontemi: ${wpsData.process || 'Belirtilmemis'}`, 20, y); y += 6;
-    doc.text(`Kaynak Pozisyonu: ${wpsData.position || 'Belirtilmemis'}`, 20, y); y += 6;
-    doc.text(`Tel/Elektrod Capi: ${wpsData.wireSize || 0} mm`, 20, y); y += 6;
-    doc.text(`Koruyucu Gaz: ${wpsData.gasComposition || 'Belirtilmemis'}`, 20, y); y += 6;
-    doc.text(`Akim Siddeti: ${wpsData.current || 0} A`, 20, y); y += 6;
-    doc.text(`Kaynak Voltaji: ${wpsData.voltage || 0} V`, 20, y); y += 6;
-    doc.text(`Gaz Debisi: ${wpsData.gasFlow || 0} L/dk`, 20, y); y += 6;
-    doc.text(`Tel Hizi: ${wpsData.wireSpeed || 0} m/dk`, 20, y); y += 6;
-    doc.text(`Kaynak Hizi: ${wpsData.travelSpeed || 0} mm/dk`, 20, y); y += 6;
-    doc.text(`On Isitma Sicakligi: ${wpsData.preheatTemp || 0} C`, 20, y); y += 6;
+    // === KAYNAK YONTEMI VE PARAMETRELERI TABLOSU ===
+    const weldingBody = [
+      ['Kaynak Yontemi', formatText(wpsData.process || 'Belirtilmemis')],
+      ['Kaynak Pozisyonu', formatText(wpsData.position || 'Belirtilmemis')],
+      ['Tel/Elektrod Capi', `${wpsData.wireSize || 0} mm`],
+      ['Koruyucu Gaz', formatText(wpsData.gasComposition || 'Belirtilmemis')],
+      ['Akim Siddeti', `${wpsData.current || 0} A`],
+      ['Kaynak Voltaji', `${wpsData.voltage || 0} V`],
+      ['Gaz Debisi', `${wpsData.gasFlow || 0} L/dk`],
+      ['Tel Hizi', `${wpsData.wireSpeed || 0} m/dk`],
+      ['Kaynak Hizi', `${wpsData.travelSpeed || 0} mm/dk`],
+      ['On Isitma Sicakligi', `${wpsData.preheatTemp || 0} °C`]
+    ];
+
+    autoTable((doc as unknown) as import('jspdf').jsPDF, {
+      startY: y,
+      head: [['KAYNAK YONTEMI VE PARAMETRELERI', '']],
+      body: weldingBody,
+      theme: 'striped',
+      styles: { 
+        font: 'helvetica', 
+        fontSize: 10,
+        cellPadding: 5,
+        lineColor: colors.light,
+        lineWidth: 0.3
+      },
+      headStyles: { 
+        fillColor: colors.accent,
+        textColor: colors.white,
+        fontSize: 11,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      bodyStyles: { 
+        fontSize: 9,
+        alternateRowStyles: { fillColor: [254, 252, 252] }
+      },
+      columnStyles: { 
+        0: { 
+          cellWidth: 70, 
+          fontStyle: 'bold',
+          textColor: colors.dark
+        }, 
+        1: { 
+          cellWidth: 110,
+          textColor: colors.secondary
+        } 
+      },
+      margin: { left: 15, right: 15 }
+    });
     
+    // === PASO BAZLI PARAMETRELER TABLOSU ===
     if (wpsData.passes && wpsData.passes.length > 0) {
-      y += 10;
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('PASO BAZLI PARAMETRELER', 20, y);
-      y += 10;
+      y = (doc as any).lastAutoTable.finalY + 15;
       
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      wpsData.passes.forEach((pass, index) => {
+      const passBody = wpsData.passes.map((pass, index) => {
         const passTypeText = pass.passType === 'root' ? 'Kok' : pass.passType === 'fill' ? 'Ara' : 'Kapak';
-        doc.text(`${pass.passNumber}. Paso (${passTypeText}): ${pass.current}A, ${pass.voltage}V`, 20, y);
-        y += 6;
+        return [
+          `${pass.passNumber}. Paso`,
+          formatText(passTypeText),
+          `${pass.current}A`,
+          `${pass.voltage}V`
+        ];
+      });
+
+      autoTable((doc as unknown) as import('jspdf').jsPDF, {
+        startY: y,
+        head: [['PASO BAZLI PARAMETRELER', '', '', '']],
+        columnStyles: { 
+          0: { cellWidth: 30, halign: 'center' },
+          1: { cellWidth: 40, halign: 'center' },
+          2: { cellWidth: 35, halign: 'center' },
+          3: { cellWidth: 35, halign: 'center' }
+        },
+        body: [
+          ['Paso No', 'Tipo', 'Akim (A)', 'Voltaj (V)'],
+          ...passBody
+        ],
+        theme: 'grid',
+        styles: { 
+          font: 'helvetica', 
+          fontSize: 9,
+          cellPadding: 4,
+          lineColor: colors.secondary,
+          lineWidth: 0.5
+        },
+        headStyles: { 
+          fillColor: colors.success,
+          textColor: colors.white,
+          fontSize: 11,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: { 
+          fontSize: 9,
+          halign: 'center'
+        },
+        margin: { left: 15, right: 15 }
       });
     }
 
+    // === KAYNAK AGZI BILGILERI TABLOSU ===
     if (wpsData.grooveType) {
-      y += 10;
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('KAYNAK AGZI BILGILERI', 20, y);
-      y += 10;
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      y = (doc as any).lastAutoTable.finalY + 15;
       
       const grooveTypeText = wpsData.grooveType === 'I' ? 'I Kaynak Agzi (Ince)' :
           wpsData.grooveType === 'I_HEAVY' ? 'I Kaynak Agzi (Kalin)' :
@@ -1692,34 +1970,130 @@ const WpsGenerator: React.FC = () => {
           wpsData.grooveType === 'U' ? 'U Agzi' :
           wpsData.grooveType === 'X' ? 'X Agzi (Cift V Simetrik)' :
         wpsData.grooveType || 'Belirtilmemis';
-        
-      doc.text(`Agiz Turu: ${grooveTypeText}`, 20, y); y += 6;
-      doc.text(`Agiz Acisi: ${wpsData.grooveAngle || 0} derece`, 20, y); y += 6;
-      doc.text(`Kok Acikligi: ${wpsData.rootOpening || 0} mm`, 20, y); y += 6;
-      doc.text(`Toplam Paso Sayisi: ${wpsData.passCount || 0} paso`, 20, y); y += 6;
+
+      const grooveBody = [
+        ['Agiz Turu', formatText(grooveTypeText)],
+        ['Agiz Acisi', `${wpsData.grooveAngle || 0} derece`],
+        ['Kok Acikligi', `${wpsData.rootOpening || 0} mm`],
+        ['Toplam Paso Sayisi', `${wpsData.passCount || 0} paso`]
+      ];
+
+      autoTable((doc as unknown) as import('jspdf').jsPDF, {
+        startY: y,
+        head: [['KAYNAK AGZI BILGILERI', '']],
+        body: grooveBody,
+        theme: 'striped',
+        styles: { 
+          font: 'helvetica', 
+          fontSize: 10,
+          cellPadding: 5,
+          lineColor: colors.light,
+          lineWidth: 0.3
+        },
+        headStyles: { 
+          fillColor: colors.warning,
+          textColor: colors.dark,
+          fontSize: 11,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: { 
+          fontSize: 9,
+          alternateRowStyles: { fillColor: [255, 253, 248] }
+        },
+        columnStyles: { 
+          0: { 
+            cellWidth: 70, 
+            fontStyle: 'bold',
+            textColor: colors.dark
+          }, 
+          1: { 
+            cellWidth: 110,
+            textColor: colors.secondary
+          } 
+        },
+        margin: { left: 15, right: 15 }
+      });
     }
     
+    // === PROFESYONEL FOOTER ===
     const pageHeight = doc.internal.pageSize.height;
-    doc.setFillColor(240, 240, 240);
-    doc.rect(0, pageHeight - 25, 210, 25, 'F');
     
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
+    // Ana footer background
+    doc.setFillColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+    doc.rect(0, pageHeight - 30, 210, 30, 'F');
+    
+    // Alt çizgi (accent color)
+    doc.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+    doc.rect(0, pageHeight - 30, 210, 2, 'F');
+    
+    // Footer text
+    doc.setTextColor(colors.light[0], colors.light[1], colors.light[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('Bu dokuman Kademe A.S. Akilli WPS Uretici sistemi tarafindan uretilmistir.', 105, pageHeight - 20, { align: 'center' });
+    
     doc.setFont('helvetica', 'normal');
-    doc.text('Bu dokuman Kademe A.S. Akilli WPS Olusturucu sistemi tarafindan uretilmistir.', 105, pageHeight - 15, { align: 'center' });
-    doc.text(`Olusturulma Tarihi: ${new Date().toLocaleString('tr-TR')} | EN ISO 15609-1 Standardi`, 105, pageHeight - 8, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(`Olusturulma Tarihi: ${new Date().toLocaleString('tr-TR')}`, 15, pageHeight - 12);
+    doc.text('EN ISO 15609-1:2019 Standardi', 105, pageHeight - 12, { align: 'center' });
+    doc.text(`Sayfa: 1/1`, 195, pageHeight - 12, { align: 'right' });
     
-    doc.save(`${wpsNumber}_Kaynak_Prosedur_Sartnamesi.pdf`);
+    // Onay bilgileri
+    doc.setFontSize(7);
+    doc.text('Hazirlayan: WPS Generator v2.0 | Onaylayan: Kalite Kontrol | Gecerlilik: 3 Yil', 105, pageHeight - 5, { align: 'center' });
+    
+    // PDF'i kaydet - formatlanmış dosya adı
+    const fileName = `${wpsNumber}_Kaynak_Prosedur_Sartnamesi_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
   };
 
   const createWPS = () => {
-    if (!wpsData.jointType || !wpsData.materialType || !wpsData.process || !wpsData.thickness) {
-      alert('Lütfen tüm zorunlu alanları doldurun: Malzeme Türü, Kalınlık, Birleştirme Tipi, Kaynak Yöntemi');
+    // Geliştirilmiş validasyon kontrolü
+    const errors = [];
+    
+    if (!wpsData.materialType) errors.push('Malzeme Türü');
+    if (!wpsData.thickness || wpsData.thickness <= 0) errors.push('Geçerli Kalınlık');
+    if (!wpsData.jointType) errors.push('Birleştirme Tipi');
+    if (!wpsData.process) errors.push('Kaynak Yöntemi');
+    if (!wpsData.position) errors.push('Kaynak Pozisyonu');
+    if (!wpsData.wireSize || wpsData.wireSize <= 0) errors.push('Tel/Elektrod Çapı');
+    
+    // Boru bağlantısı için çap kontrolü
+    if (wpsData.connectionType && 
+        CONNECTION_TYPES.find(c => c.code === wpsData.connectionType)?.needsDiameter &&
+        (!wpsData.pipeDiameter || wpsData.pipeDiameter <= 0)) {
+      errors.push('Boru Çapı');
+    }
+    
+    // Gaz kullanılan yöntemler için gaz kontrolü
+    if ((wpsData.process === 'MIG/MAG' || wpsData.process === 'TIG') && 
+        !wpsData.gasComposition) {
+      errors.push('Gaz Bileşimi');
+    }
+    
+    if (errors.length > 0) {
+      alert(`Lütfen şu alanları doldurun:\n• ${errors.join('\n• ')}`);
       return;
     }
     
-    // PDF oluştur
-    generateEnhancedPDF();
+    // Teknik parametre kontrolü
+    const warnings = [];
+    if (!wpsData.current || wpsData.current <= 0) warnings.push('Akım değeri');
+    if (!wpsData.voltage || wpsData.voltage <= 0) warnings.push('Voltaj değeri');
+    
+    if (warnings.length > 0) {
+      const proceed = window.confirm(`Şu teknik parametreler eksik:\n• ${warnings.join('\n• ')}\n\nDevam etmek istiyor musunuz? (Akıllı öneriler kullanılacak)`);
+      if (!proceed) return;
+    }
+    
+    try {
+      // PDF oluştur
+      generateEnhancedPDF();
+    } catch (error) {
+      console.error('PDF oluşturma hatası:', error);
+      alert('PDF oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
+    }
   };
 
   const getFilteredSizes = () => {

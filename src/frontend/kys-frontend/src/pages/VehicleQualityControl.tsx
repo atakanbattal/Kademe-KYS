@@ -117,6 +117,7 @@ import {
   formatTurkishTime
 } from '../services/vehicleQualityControlService';
 import { vehicleQualityControlService } from '../services/vehicleQualityControlService';
+import { NotificationSystem } from '../utils/NotificationSystem';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -476,8 +477,21 @@ const VehicleQualityControl: React.FC = () => {
         warningSettingTypes: settings.map(s => s.type)
       });
     } catch (err) {
-      setError('Dashboard verileri yüklenirken hata oluştu');
-      console.error('Dashboard yükleme hatası:', err);
+      const errorMessage = 'Dashboard verileri yüklenirken hata oluştu';
+      setError(errorMessage);
+      
+      // NotificationSystem ile hata bildirimi
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Dashboard Yükleme Hatası',
+        message: `Araç kalite kontrol dashboard verilerini yüklerken bir hata oluştu: ${err instanceof Error ? err.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'quality',
+        module: 'VehicleQualityControl',
+        actionRequired: false,
+        metadata: { error: err, context: 'dashboard_loading' }
+      });
     } finally {
       setLoading(false);
     }
@@ -489,8 +503,21 @@ const VehicleQualityControl: React.FC = () => {
       const vehicleList = await vehicleQualityControlService.getAllVehicles();
       setVehicles(vehicleList);
     } catch (err) {
-      setError('Araç listesi yüklenirken hata oluştu');
-      console.error('Araç yükleme hatası:', err);
+      const errorMessage = 'Araç listesi yüklenirken hata oluştu';
+      setError(errorMessage);
+      
+      // NotificationSystem ile hata bildirimi
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Araç Listesi Yükleme Hatası',
+        message: `Araç listesi yüklenirken bir hata oluştu: ${err instanceof Error ? err.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'quality',
+        module: 'VehicleQualityControl',
+        actionRequired: false,
+        metadata: { error: err, context: 'vehicles_loading' }
+      });
     } finally {
       setLoading(false);
     }
@@ -512,7 +539,18 @@ const VehicleQualityControl: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('LocalStorage temizlik hatası:', error);
+      // LocalStorage temizlik hatası - kritik değil, sadece log
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'LocalStorage Temizlik Uyarısı',
+        message: `LocalStorage verilerini temizlerken küçük bir sorun oluştu. Veri güvenliği için geçersiz veriler kaldırıldı.`,
+        type: 'warning',
+        priority: 'low',
+        category: 'quality',
+        module: 'VehicleQualityControl',
+        actionRequired: false,
+        metadata: { error: error, context: 'localstorage_cleanup' }
+      });
       localStorage.removeItem(STORAGE_KEYS.RECENT_ACTIVITIES); // Tamamen bozuksa sil
     }
 
@@ -596,7 +634,18 @@ const VehicleQualityControl: React.FC = () => {
         console.log('Uyarı ayarları yüklendi:', settings.map(s => `${s.name} (${s.type})`));
       }
     }).catch(error => {
-      console.error('Uyarı ayarları hatası:', error);
+      // Uyarı ayarları yükleme hatası - sistem devam edebilir
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Uyarı Ayarları Yükleme Hatası',
+        message: `Uyarı ayarları yüklenirken bir sorun oluştu. Varsayılan ayarlar kullanılacak.`,
+        type: 'warning',
+        priority: 'medium',
+        category: 'quality',
+        module: 'VehicleQualityControl',
+        actionRequired: false,
+        metadata: { error: error, context: 'warning_settings_loading' }
+      });
     });
   }, [loadDashboardData, loadVehicles]);
 
@@ -708,8 +757,22 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
       
       setSuccess('DF modülüne yönlendiriliyorsunuz...');
     } catch (error) {
-      setError('DF oluşturulurken hata oluştu');
-      console.error('DF creation error:', error);
+      const errorMessage = 'DF oluşturulurken hata oluştu';
+      setError(errorMessage);
+      
+      // NotificationSystem ile hata bildirimi
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Düzeltici Faaliyet Oluşturma Hatası',
+        message: `Düzeltici faaliyet kaydı oluşturulurken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'dof',
+        module: 'VehicleQualityControl',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'dof_creation' }
+      });
     }
   };
 
@@ -2603,9 +2666,10 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
               <TextField
                 fullWidth
                 label="Özel Model Adı"
-                value={vehicleForm.vehicleModel === 'Özel (Manuel Giriş)' ? '' : vehicleForm.vehicleModel}
-                onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleModel: e.target.value })}
+                value={vehicleForm.vehicleName}
+                onChange={(e) => setVehicleForm({ ...vehicleForm, vehicleName: e.target.value })}
                 placeholder="Özel model adını girin"
+                required
               />
             ) : (
               <FormControl fullWidth>
@@ -2626,7 +2690,7 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
             )}
           </Grid>
 
-          {vehicleForm.vehicleName === 'Özel (Manuel Giriş)' && (
+          {vehicleForm.vehicleName === 'Özel (Manuel Giriş)' && vehicleForm.vehicleModel !== 'Özel (Manuel Giriş)' && (
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -3144,7 +3208,18 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                                 try {
                                   return format(new Date(currentStatusHistory.date), "yyyy-MM-dd'T'HH:mm");
                                 } catch (error) {
-                                  console.error('Date formatting error:', error);
+                                  // Tarih formatlama hatası - kritik değil, boş döndür
+                                  const notificationSystem = NotificationSystem.getInstance();
+                                  notificationSystem.createNotification({
+                                    title: 'Tarih Formatı Uyarısı',
+                                    message: `Durum geçmişi tarihinde format sorunu tespit edildi. Görüntüleme etkilenmeyecek.`,
+                                    type: 'warning',
+                                    priority: 'low',
+                                    category: 'quality',
+                                    module: 'VehicleQualityControl',
+                                    actionRequired: false,
+                                    metadata: { error: error, context: 'date_formatting' }
+                                  });
                                   return '';
                                 }
                               }
@@ -4585,8 +4660,22 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
       resetVehicleForm();
       setSuccess('Araç başarıyla güncellendi. Hızlı işlemler güncellenmiştir.');
     } catch (error) {
-      setError('Araç güncellenirken hata oluştu');
-      console.error('Araç güncelleme hatası:', error);
+      const errorMessage = 'Araç güncellenirken hata oluştu';
+      setError(errorMessage);
+      
+      // NotificationSystem ile hata bildirimi
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Araç Güncelleme Hatası',
+        message: `Araç bilgileri güncellenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'quality',
+        module: 'VehicleQualityControl',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'vehicle_update' }
+      });
     } finally {
       setLoading(false);
     }
@@ -4610,8 +4699,22 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
       
       setSuccess('Araç başarıyla silindi. Hızlı işlemler güncellenmiştir.');
     } catch (error) {
-      setError('Araç silinirken hata oluştu');
-      console.error('Araç silme hatası:', error);
+      const errorMessage = 'Araç silinirken hata oluştu';
+      setError(errorMessage);
+      
+      // NotificationSystem ile hata bildirimi
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Araç Silme Hatası',
+        message: `Araç kaydı silinirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'quality',
+        module: 'VehicleQualityControl',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'vehicle_delete' }
+      });
     } finally {
       setLoading(false);
     }

@@ -116,6 +116,7 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
+import { NotificationSystem } from '../utils/NotificationSystem';
 import {
   ResponsiveContainer,
   LineChart,
@@ -991,7 +992,18 @@ export default function QualityCostManagement() {
       
       return filteredData;
     } catch (error) {
-      console.error('Üretim verisi okuma hatası:', error);
+      // Üretim verisi okuma hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Üretim Verisi Okuma Hatası',
+        message: `Üretim verileri okunurken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'cost',
+        module: 'QualityCostManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'production_data_read_error' }
+      });
       return [];
     }
   }, [currentMonth, dataRefreshTrigger, forceRefresh]);
@@ -1132,7 +1144,18 @@ export default function QualityCostManagement() {
         }
         
       } catch (error) {
-        console.error('❌ Veri bütünlük kontrolü hatası:', error);
+        // Veri bütünlük kontrolü hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Veri Bütünlük Kontrol Hatası',
+          message: `Veri bütünlüğü kontrol edilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'cost',
+          module: 'QualityCostManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'data_integrity_check_error' }
+        });
       }
     };
     
@@ -1475,7 +1498,18 @@ export default function QualityCostManagement() {
         return parsedTargets;
       }
     } catch (error) {
-      console.error('Performans verileri yüklenirken hata:', error);
+      // Performans verileri yükleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Performans Verileri Yükleme Hatası',
+        message: `Performans verileri yüklenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'cost',
+        module: 'QualityCostManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'performance_data_load_error' }
+      });
     }
     
     // Eğer hiç performans verisi yoksa boş array döndür
@@ -1610,7 +1644,18 @@ export default function QualityCostManagement() {
       });
 
     } catch (error) {
-      console.error('Global filtering error:', error);
+      // Global filtreleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Filtreleme Hatası',
+        message: `Veri filtreleme işlemi sırasında bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'cost',
+        module: 'QualityCostManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'global_filtering_error' }
+      });
       setGlobalFilteredData([]);
     }
   }, [globalFilters, dataRefreshTrigger]);
@@ -1983,7 +2028,18 @@ export default function QualityCostManagement() {
           console.log('✅ Boş analytics verileri yüklendi (mock veri devre dışı)');
         }
       } catch (error) {
-        console.error('❌ Failed to load initial analytics:', error);
+        // İlk analitik yükleme hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Analitik Veriler Yükleme Hatası',
+          message: `Başlangıç analitik verileri yüklenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+          type: 'error',
+          priority: 'high',
+          category: 'cost',
+          module: 'QualityCostManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'initial_analytics_load_error' }
+        });
         setRealTimeAnalytics({
           totalSummary: { totalCost: 0, totalItems: 0, avgCost: 0 },
           copqBreakdown: [],
@@ -2177,7 +2233,18 @@ export default function QualityCostManagement() {
         setAiInsights(insightData);
         setParetoData(paretoAnalysis);
       } catch (error) {
-        console.error('❌ COPQ Data loading error:', error);
+        // COPQ veri yükleme hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'COPQ Veri Yükleme Hatası',
+          message: `Kalitesizlik maliyeti verileri yüklenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+          type: 'error',
+          priority: 'high',
+          category: 'cost',
+          module: 'QualityCostManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'copq_data_load_error' }
+        });
       } finally {
         setIsLoading(false);
       }
@@ -2346,7 +2413,18 @@ export default function QualityCostManagement() {
       return sortedMonths;
       
     } catch (error) {
-      console.error('❌ Error generating real trend data:', error);
+      // Trend verisi oluşturma hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Trend Verisi Oluşturma Hatası',
+        message: `Trend analizi verileri oluşturulurken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'cost',
+        module: 'QualityCostManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'trend_data_generation_error' }
+      });
       // Fallback to sample data on error
       const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran'];
       return months.map((month, index) => ({
@@ -2593,7 +2671,18 @@ export default function QualityCostManagement() {
       return finalResult;
       
     } catch (error) {
-      console.error('❌ DF durumu kontrol hatası:', error);
+      // DOF durumu kontrol hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'DOF Durum Kontrol Hatası',
+        message: `DOF durumu kontrol edilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'warning',
+        priority: 'medium',
+        category: 'dof',
+        module: 'QualityCostManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'dof_status_check_error' }
+      });
       return false;
     }
   };
@@ -4400,7 +4489,18 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           setDetailedData(vehicleData);
           setLoading(false);
         } catch (error) {
-          console.error('Detaylı veri yüklenirken hata:', error);
+          // Detaylı veri yükleme hatası
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Detaylı Veri Yükleme Hatası',
+            message: `Detaylı veriler yüklenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+            type: 'error',
+            priority: 'medium',
+            category: 'cost',
+            module: 'QualityCostManagement',
+            actionRequired: false,
+            metadata: { error: error, context: 'detailed_data_load_error' }
+          });
           setDetailedData([]);
           setLoading(false);
         }
@@ -5070,7 +5170,18 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         
         return filteredData;
       } catch (error) {
-        console.error('Üretim verisi okuma hatası:', error);
+        // Üretim verisi okuma hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Üretim Verisi Okuma Hatası',
+        message: `Üretim verileri okunurken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'cost',
+        module: 'QualityCostManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'production_data_read_error' }
+      });
         return [];
       }
     }, [currentMonth, forceRefresh]);
@@ -5136,7 +5247,18 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           console.log('✅ KATEGORİ bazlı veri:', parsed.length + ' kayıt', parsed);
           return parsed;
         } catch (error) {
-          console.error('❌ Kategori veri parse hatası:', error);
+          // Kategori veri parse hatası
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Kategori Veri Parse Hatası',
+            message: `Kategori verileri ayrıştırılırken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+            type: 'warning',
+            priority: 'medium',
+            category: 'cost',
+            module: 'QualityCostManagement',
+            actionRequired: false,
+            metadata: { error: error, context: 'category_data_parse_error' }
+          });
           return [];
         }
       })();
@@ -5152,7 +5274,18 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           console.log('📦 ESKİ model bazlı veri:', parsed.length + ' kayıt', parsed);
           return parsed;
         } catch (error) {
-          console.error('❌ Eski veri parse hatası:', error);
+          // Eski veri parse hatası
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Eski Veri Parse Hatası',
+            message: `Eski veriler ayrıştırılırken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+            type: 'warning',
+            priority: 'low',
+            category: 'cost',
+            module: 'QualityCostManagement',
+            actionRequired: false,
+            metadata: { error: error, context: 'legacy_data_parse_error' }
+          });
           return [];
         }
       })();
@@ -5380,7 +5513,18 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
         realData = latestData ? JSON.parse(latestData) : [];
         console.log('🔄 Araç bazlı takip - localStorage verisi yenilendi:', realData.length, 'kayıt');
       } catch (error) {
-        console.error('localStorage okuma hatası:', error);
+        // LocalStorage okuma hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'LocalStorage Okuma Hatası',
+          message: `Yerel depolama okuma sırasında bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'cost',
+          module: 'QualityCostManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'localstorage_read_error' }
+        });
         realData = globalFilteredData && globalFilteredData.length > 0 ? globalFilteredData : filteredData;
       }
       
@@ -7328,7 +7472,19 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
 
         alert(`Hedef ${editingTarget ? 'güncellendi' : 'eklendi'}! Araç performans kartları güncellenecek.`);
       } catch (error) {
-        console.error('Hedef kaydetme hatası:', error);
+        // Hedef kaydetme hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Hedef Kaydetme Hatası',
+          message: `Hedef kaydedilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+          type: 'error',
+          priority: 'high',
+          category: 'cost',
+          module: 'QualityCostManagement',
+          actionRequired: true,
+          actionText: 'Tekrar Dene',
+          metadata: { error: error, context: 'target_save_error' }
+        });
         alert('Hedef kaydedilirken hata oluştu.');
       }
     };
@@ -14722,7 +14878,18 @@ const VehiclePerformanceDataComponent: React.FC<{
         
         setVehiclePerformanceData(updatedData);
       } catch (error) {
-        console.error('Performans verileri yüklenirken hata:', error);
+        // Performans verileri yükleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Performans Verileri Yükleme Hatası',
+        message: `Performans verileri yüklenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'cost',
+        module: 'QualityCostManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'performance_data_load_error' }
+      });
       }
     } else {
       // Eski sisteme uyumluluk: vehicle-targets'dan yükle

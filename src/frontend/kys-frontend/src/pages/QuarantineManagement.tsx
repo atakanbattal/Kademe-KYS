@@ -85,7 +85,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // ============================================
 // ENHANCED INTERFACES & TYPES
@@ -1977,7 +1977,7 @@ const QuarantineManagement: React.FC = () => {
     const summaryStats = calculateStats(data);
     
     // İstatistik tablosu
-    (doc as any).autoTable( {
+    autoTable(doc as any, {
       startY: startY,
       head: [[fixTurkishChars('Istatistik'), fixTurkishChars('Deger')]],
       body: [
@@ -2006,7 +2006,7 @@ const QuarantineManagement: React.FC = () => {
     
     // Detaylı veriler
     if (data.length > 0) {
-      (doc as any).autoTable( {
+      autoTable(doc as any, {
         startY: (doc as any).lastAutoTable.finalY + 15,
         head: [[
           fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
@@ -2066,7 +2066,7 @@ const QuarantineManagement: React.FC = () => {
     }, {} as Record<string, { count: number; cost: number; items: QuarantineRecord[] }>);
     
     // Birim özet tablosu
-    (doc as any).autoTable( {
+    autoTable(doc as any, {
       startY: startY,
       head: [[
         fixTurkishChars('Birim'), fixTurkishChars('Kayit Sayisi'), 
@@ -2107,7 +2107,7 @@ const QuarantineManagement: React.FC = () => {
       doc.setFontSize(12);
       doc.text(fixTurkishChars('Kritik parca bulunamadi.'), 15, startY + 20);
     } else {
-      (doc as any).autoTable( {
+      autoTable(doc as any, {
         startY: startY,
         head: [[
           fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 
@@ -2157,7 +2157,7 @@ const QuarantineManagement: React.FC = () => {
       return acc;
     }, {} as Record<string, { count: number; cost: number }>);
     
-    (doc as any).autoTable( {
+    autoTable(doc as any, {
       startY: startY,
       head: [[
         fixTurkishChars('Ay'), fixTurkishChars('Kayit Sayisi'), 
@@ -2208,7 +2208,7 @@ const QuarantineManagement: React.FC = () => {
     const reworkRate = (data.filter(item => item.status === 'YENIDEN_ISLEM').length / (data.length || 1)) * 100;
     const scrapRate = (data.filter(item => item.status === 'HURDA').length / (data.length || 1)) * 100;
     
-    (doc as any).autoTable( {
+    autoTable(doc as any, {
       startY: startY,
       head: [[fixTurkishChars('Performans Metrigi'), fixTurkishChars('Deger')]],
       body: [
@@ -2253,7 +2253,7 @@ const QuarantineManagement: React.FC = () => {
       '10,000 TL+': data.filter(item => item.estimatedCost >= 10000).length
     };
     
-    (doc as any).autoTable( {
+    autoTable(doc as any, {
       startY: startY,
       head: [[
         fixTurkishChars('Maliyet Araligi'), fixTurkishChars('Kayit Sayisi'), fixTurkishChars('Yuzde')
@@ -2310,7 +2310,7 @@ const QuarantineManagement: React.FC = () => {
       doc.setFontSize(12);
       doc.text(fixTurkishChars('Bu tarih araliginda kayit bulunamadi.'), 15, startY + 20);
     } else {
-      (doc as any).autoTable( {
+      autoTable(doc as any, {
         startY: startY,
         head: [[
           fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Durum'), 
@@ -2352,7 +2352,7 @@ const QuarantineManagement: React.FC = () => {
       doc.setFontSize(12);
       doc.text(fixTurkishChars('Tabloda goruntulenecek kayit bulunamadi.'), 15, startY + 20);
     } else {
-      (doc as any).autoTable( {
+      autoTable(doc as any, {
         startY: startY,
         head: [[
           fixTurkishChars('Takip No'), fixTurkishChars('Parca Kodu'), fixTurkishChars('Parca Adi'), 

@@ -27,6 +27,7 @@ import {
   Legend, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
+import { NotificationSystem } from '../utils/NotificationSystem';
 
 // ✅ GELIŞMIŞ PDF DEPOLAMA SİSTEMİ - IndexedDB ile (Supplier Audits için)
 class SupplierAuditPDFStorage {
@@ -132,7 +133,18 @@ class SupplierAuditPDFStorage {
       const used = attachments.reduce((total, att) => total + (att.size || 0), 0);
       return { used, attachments: attachments.length };
     } catch (error) {
-      console.error('Storage info error:', error);
+      // Storage bilgi hatası - kritik değil, varsayılan değer döndür
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Depolama Bilgisi Uyarısı',
+        message: `Depolama alanı bilgileri alınırken küçük bir sorun oluştu. Görüntüleme etkilenmeyecek.`,
+        type: 'warning',
+        priority: 'low',
+        category: 'quality',
+        module: 'SupplierQualityManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'storage_info' }
+      });
       return { used: 0, attachments: 0 };
     }
   }
@@ -468,7 +480,19 @@ class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('🚨 SupplierQualityManagement Error Boundary yakaladı:', error, errorInfo);
+    // Kritik hata - Error Boundary tarafından yakalandı
+    const notificationSystem = NotificationSystem.getInstance();
+    notificationSystem.createNotification({
+      title: 'Tedarikçi Kalite Yönetimi Kritik Hatası',
+      message: `Sistem beklenmedik bir hatayla karşılaştı ve güvenli moda geçti. Lütfen sayfayı yenileyin.`,
+      type: 'critical',
+      priority: 'critical',
+      category: 'quality',
+      module: 'SupplierQualityManagement',
+      actionRequired: true,
+      actionText: 'Sayfayı Yenile',
+      metadata: { error: error.message, errorInfo: errorInfo.componentStack, context: 'error_boundary' }
+    });
   }
 
   render() {
@@ -635,7 +659,18 @@ const SupplierQualityManagement: React.FC = () => {
     auditPDFStorage.initialize().then(() => {
       console.log('✅ Audit PDF Storage başarıyla initialize edildi');
     }).catch((error) => {
-      console.error('❌ Audit PDF Storage initialize hatası:', error);
+      // PDF Storage başlatma hatası - önemli ama işleyiş devam edebilir
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'PDF Depolama Başlatma Hatası',
+        message: `Denetim dosyaları için PDF depolama sistemi başlatılamadı. Dosya yükleme özelliği etkilenebilir.`,
+        type: 'error',
+        priority: 'high',
+        category: 'audit',
+        module: 'SupplierQualityManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'pdf_storage_init' }
+      });
     });
     
     // ❌ generateAutoAuditRecommendations ve syncDataConsistency çağrıları kaldırıldı
@@ -673,7 +708,18 @@ const SupplierQualityManagement: React.FC = () => {
         localStorage.setItem('suppliers-timestamp', Date.now().toString());
         console.log('✅ Suppliers otomatik localStorage\'a kaydedildi - BACKUP DAHIL');
       } catch (error) {
-        console.error('❌ Suppliers localStorage kaydetme hatası:', error);
+        // Suppliers localStorage kaydetme hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Tedarikçi Verisi Kaydetme Uyarısı',
+          message: `Tedarikçi verileri yerel depolamaya kaydedilirken bir sorun oluştu. Veriler geçici olarak bellekte tutulacak.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'quality',
+          module: 'SupplierQualityManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'suppliers_localstorage_save' }
+        });
       }
     }
   }, [suppliers, dataLoaded]);
@@ -687,7 +733,18 @@ const SupplierQualityManagement: React.FC = () => {
         localStorage.setItem('supplier-pairs-timestamp', Date.now().toString());
         console.log('✅ Supplier pairs otomatik localStorage\'a kaydedildi - BACKUP DAHIL');
       } catch (error) {
-        console.error('❌ Supplier pairs localStorage kaydetme hatası:', error);
+        // Supplier pairs localStorage kaydetme hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Tedarikçi Eşleştirme Verisi Kaydetme Uyarısı',
+          message: `Tedarikçi eşleştirme verileri yerel depolamaya kaydedilirken bir sorun oluştu. Veriler geçici olarak bellekte tutulacak.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'quality',
+          module: 'SupplierQualityManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'supplier_pairs_localstorage_save' }
+        });
       }
     }
   }, [supplierPairs, dataLoaded]);
@@ -699,7 +756,18 @@ const SupplierQualityManagement: React.FC = () => {
         localStorage.setItem('supplier-nonconformities', JSON.stringify(nonconformities));
         console.log('✅ Nonconformities otomatik localStorage\'a kaydedildi');
       } catch (error) {
-        console.error('❌ Nonconformities localStorage kaydetme hatası:', error);
+        // Nonconformities localStorage kaydetme hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Uygunsuzluk Verisi Kaydetme Uyarısı',
+          message: `Uygunsuzluk verileri yerel depolamaya kaydedilirken bir sorun oluştu. Veriler geçici olarak bellekte tutulacak.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'quality',
+          module: 'SupplierQualityManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'nonconformities_localstorage_save' }
+        });
       }
     }
   }, [nonconformities, dataLoaded]);
@@ -711,7 +779,18 @@ const SupplierQualityManagement: React.FC = () => {
         localStorage.setItem('supplier-defects', JSON.stringify(defects));
         console.log('✅ Defects otomatik localStorage\'a kaydedildi');
       } catch (error) {
-        console.error('❌ Defects localStorage kaydetme hatası:', error);
+        // Defects localStorage kaydetme hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Hata Verisi Kaydetme Uyarısı',
+          message: `Hata verileri yerel depolamaya kaydedilirken bir sorun oluştu. Veriler geçici olarak bellekte tutulacak.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'quality',
+          module: 'SupplierQualityManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'defects_localstorage_save' }
+        });
       }
     }
   }, [defects, dataLoaded]);
@@ -723,7 +802,18 @@ const SupplierQualityManagement: React.FC = () => {
         localStorage.setItem('supplier-audits', JSON.stringify(audits));
         console.log('✅ Audits otomatik localStorage\'a kaydedildi');
       } catch (error) {
-        console.error('❌ Audits localStorage kaydetme hatası:', error);
+        // Audits localStorage kaydetme hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Denetim Verisi Kaydetme Uyarısı',
+          message: `Denetim verileri yerel depolamaya kaydedilirken bir sorun oluştu. Veriler geçici olarak bellekte tutulacak.`,
+          type: 'warning',
+          priority: 'medium',
+          category: 'audit',
+          module: 'SupplierQualityManagement',
+          actionRequired: false,
+          metadata: { error: error, context: 'audits_localstorage_save' }
+        });
       }
     }
   }, [audits, dataLoaded]);
@@ -738,7 +828,19 @@ const SupplierQualityManagement: React.FC = () => {
       localStorage.setItem('supplier-audits', JSON.stringify(audits)); // EKSİK AUDIT VERİLERİ EKLENDİ
       console.log('💾 Tüm tedarikçi verileri (denetimler dahil) manuel olarak localStorage\'a kaydedildi');
     } catch (error) {
-      console.error('❌ localStorage kaydetme hatası:', error);
+      // Manuel localStorage kaydetme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Veri Kaydetme Hatası',
+        message: `Tüm tedarikçi verileri yerel depolamaya kaydedilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'quality',
+        module: 'SupplierQualityManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'manual_localstorage_save' }
+      });
     }
   };
 
@@ -844,7 +946,18 @@ const SupplierQualityManagement: React.FC = () => {
       console.log('🎯 Tedarikçi modülü veri yükleme tamamlandı');
       
     } catch (error) {
-      console.error('❌ localStorage veri yükleme hatası:', error);
+      // localStorage veri yükleme hatası - mock verilerle devam et
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Veri Yükleme Uyarısı',
+        message: `Yerel depolamadan veriler yüklenirken sorun oluştu. Örnek verilerle başlanacak.`,
+        type: 'warning',
+        priority: 'medium',
+        category: 'quality',
+        module: 'SupplierQualityManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'localstorage_data_loading' }
+      });
       // Hata durumunda mock veri yükle
       console.log('🎯 Hata nedeniyle mock veri yükleniyor...');
       loadMockData();
@@ -1623,7 +1736,18 @@ const SupplierQualityManagement: React.FC = () => {
       
       showSnackbar('Tedarikçi verileri cache\'i temizlendi. Yeni veriler girilebilir.', 'info');
     } catch (error) {
-      console.error('❌ Cache temizleme hatası:', error);
+      // Cache temizleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Cache Temizleme Hatası',
+        message: `Önbellek temizleme işleminde bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'quality',
+        module: 'SupplierQualityManagement',
+        actionRequired: false,
+        metadata: { error: error, context: 'cache_clearing' }
+      });
       showSnackbar('Cache temizleme sırasında hata oluştu', 'error');
     }
   };
@@ -1867,7 +1991,19 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       // DF form sayfasını yeni sekmede aç
       window.open('/dof-8d-management', '_blank');
     } catch (error) {
-      console.error('DF oluşturma hatası:', error);
+      // DF oluşturma hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Düzeltici Faaliyet Oluşturma Hatası',
+        message: `Düzeltici faaliyet kaydı oluşturulurken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'dof',
+        module: 'SupplierQualityManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'dof_creation' }
+      });
       showSnackbar('DF oluşturulurken hata oluştu', 'error');
     }
   };
@@ -1983,7 +2119,19 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       
       showSnackbar(`${attachment.name} indirildi`, 'success');
     } catch (error) {
-      console.error('Dosya indirme hatası:', error);
+      // Dosya indirme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Dosya İndirme Hatası',
+        message: `Dosya indirilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'audit',
+        module: 'SupplierQualityManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'file_download' }
+      });
       showSnackbar('Dosya indirme sırasında hata oluştu', 'error');
     }
   };
@@ -2001,7 +2149,19 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       }
       showSnackbar('Dosya görüntüleniyor', 'info');
     } catch (error) {
-      console.error('Dosya görüntüleme hatası:', error);
+      // Dosya görüntüleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Dosya Görüntüleme Hatası',
+        message: `Dosya görüntülenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'audit',
+        module: 'SupplierQualityManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'file_preview' }
+      });
       showSnackbar('Dosya görüntüleme sırasında hata oluştu', 'error');
     }
   };
@@ -2095,20 +2255,56 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
           showSnackbar(`Dosya başarıyla yüklendi! ${file.name} (${formatFileSize(file.size)})`, 'success');
           
         } catch (error) {
-          console.error('❌ Denetim dosyası işleme hatası:', error);
+          // Denetim dosyası işleme hatası
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Denetim Dosyası İşleme Hatası',
+            message: `Denetim dosyası işlenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Dosya formatı desteklenmiyor olabilir'}`,
+            type: 'error',
+            priority: 'high',
+            category: 'audit',
+            module: 'SupplierQualityManagement',
+            actionRequired: true,
+            actionText: 'Farklı Dosya Dene',
+            metadata: { error: error, context: 'audit_file_processing' }
+          });
           showSnackbar('Dosya işlenemedi! Lütfen farklı bir dosya deneyin.', 'error');
         }
       };
 
       reader.onerror = (error) => {
-        console.error('❌ FileReader hatası:', error);
+        // FileReader hatası
+        const notificationSystem = NotificationSystem.getInstance();
+        notificationSystem.createNotification({
+          title: 'Dosya Okuma Hatası',
+          message: `Dosya okuma sırasında teknik bir hata oluştu. Dosya bozuk olabilir.`,
+          type: 'error',
+          priority: 'high',
+          category: 'audit',
+          module: 'SupplierQualityManagement',
+          actionRequired: true,
+          actionText: 'Farklı Dosya Dene',
+          metadata: { error: error, context: 'file_reader_error' }
+        });
         showSnackbar('Dosya okuma hatası! Lütfen dosyayı kontrol edin ve tekrar deneyin.', 'error');
       };
 
       reader.readAsDataURL(file);
       
     } catch (error) {
-      console.error('❌ Denetim dosyası yükleme hatası:', error);
+      // Denetim dosyası yükleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Denetim Dosyası Yükleme Hatası',
+        message: `Denetim dosyası yüklenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'high',
+        category: 'audit',
+        module: 'SupplierQualityManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'audit_file_upload' }
+      });
       showSnackbar('Dosya yükleme hatası! Lütfen tekrar deneyin.', 'error');
     }
   };
@@ -2128,7 +2324,19 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       console.log('✅ Denetim dosyası IndexedDB\'den silindi');
       showSnackbar('Dosya başarıyla silindi', 'success');
     } catch (error) {
-      console.error('❌ Denetim dosyası silme hatası:', error);
+      // Denetim dosyası silme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Denetim Dosyası Silme Hatası',
+        message: `Denetim dosyası silinirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'audit',
+        module: 'SupplierQualityManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'audit_file_delete' }
+      });
       showSnackbar('Dosya silme hatası! Lütfen tekrar deneyin.', 'error');
     }
   };
@@ -2181,7 +2389,19 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       showSnackbar(`Dosya indirildi: ${attachment.name}`, 'success');
       
     } catch (error) {
-      console.error('❌ Denetim dosyası indirme hatası:', error);
+      // Denetim dosyası indirme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Denetim Dosyası İndirme Hatası',
+        message: `Denetim dosyası indirilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Dosya bozuk olabilir'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'audit',
+        module: 'SupplierQualityManagement',
+        actionRequired: true,
+        actionText: 'Tekrar Dene',
+        metadata: { error: error, context: 'audit_file_download' }
+      });
       showSnackbar('Dosya indirme sırasında hata oluştu! Dosya bozuk olabilir.', 'error');
     }
   };
@@ -2195,7 +2415,19 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       // Eski format için geriye uyumluluk
       if (attachment.url && !attachment.hasFile) {
         if (!attachment.url.startsWith('data:')) {
-          console.error('❌ Geçersiz dosya URL\'si:', attachment.url);
+          // Geçersiz dosya URL'si hatası
+          const notificationSystem = NotificationSystem.getInstance();
+          notificationSystem.createNotification({
+            title: 'Geçersiz Dosya URL\'si',
+            message: `Dosya URL'si geçerli format değil. Dosya yeniden yüklenmeli.`,
+            type: 'error',
+            priority: 'high',
+            category: 'audit',
+            module: 'SupplierQualityManagement',
+            actionRequired: true,
+            actionText: 'Dosyayı Yeniden Yükle',
+            metadata: { url: attachment.url, context: 'invalid_file_url' }
+          });
           showSnackbar('Dosya URL\'si geçersiz! Dosya yeniden yüklenmeli.', 'error');
           return;
         }
@@ -2284,7 +2516,19 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
       console.log('✅ Denetim dosyası görüntülendi');
       showSnackbar(`${attachment.name} görüntüleniyor`, 'success');
     } catch (error) {
-      console.error('❌ Denetim dosyası görüntüleme hatası:', error);
+      // Denetim dosyası görüntüleme hatası
+      const notificationSystem = NotificationSystem.getInstance();
+      notificationSystem.createNotification({
+        title: 'Denetim Dosyası Görüntüleme Hatası',
+        message: `Denetim dosyası görüntülenirken bir hata oluştu: ${error instanceof Error ? error.message : 'Dosya bozuk olabilir'}`,
+        type: 'error',
+        priority: 'medium',
+        category: 'audit',
+        module: 'SupplierQualityManagement',
+        actionRequired: true,
+        actionText: 'Dosyayı Yeniden Yükle',
+        metadata: { error: error, context: 'audit_file_preview' }
+      });
       showSnackbar('Dosya görüntüleme sırasında hata oluştu. Lütfen dosyayı yeniden yükleyin.', 'error');
     }
   };
@@ -5524,7 +5768,27 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                             color="primary"
                             onClick={() => {
                               if (supplier) {
-                                scheduleAutoAudit(supplier);
+                                // Mevcut denetim kaydını bul
+                                const existingAudit = audits.find(a => a.supplierId === supplier.id && a.status === 'planlı');
+                                if (existingAudit) {
+                                  handleExecuteAudit(existingAudit);
+                                } else {
+                                  // Yeni denetim oluştur
+                                  const newAudit: AuditRecord = {
+                                    id: Date.now().toString(),
+                                    supplierId: supplier.id,
+                                    auditDate: new Date().toISOString().split('T')[0],
+                                    auditType: 'planlı',
+                                    auditorName: 'Sistem',
+                                    score: 0,
+                                    findings: [],
+                                    status: 'planlı',
+                                    nextAuditDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                                    isAutoScheduled: true
+                                  };
+                                  setAudits([...audits, newAudit]);
+                                  handleExecuteAudit(newAudit);
+                                }
                                 showSnackbar(`${supplier.name} denetimi başlatıldı`, 'success');
                               }
                             }}
@@ -8014,7 +8278,19 @@ ${nonconformity.delayDays ? `Gecikme Süresi: ${nonconformity.delayDays} gün` :
                    return renderDashboard();
                }
              } catch (error) {
-               console.error('❌ Tab render hatası:', error);
+               // Tab render hatası
+               const notificationSystem = NotificationSystem.getInstance();
+               notificationSystem.createNotification({
+                 title: 'Sekme Görüntüleme Hatası',
+                 message: `Seçilen sekme görüntülenirken bir hata oluştu. Lütfen sayfayı yenileyin.`,
+                 type: 'error',
+                 priority: 'high',
+                 category: 'quality',
+                 module: 'SupplierQualityManagement',
+                 actionRequired: true,
+                 actionText: 'Sayfayı Yenile',
+                 metadata: { error: error, context: 'tab_render_error' }
+               });
                return (
                  <Box p={3}>
                    <Alert severity="error">
