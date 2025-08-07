@@ -664,18 +664,22 @@ const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
       passCount = Math.ceil(thickness / 4) + 1;
     }
   } else if (grooveType === 'V') {
-    // V ağzı - açıya ve derinliğe göre
+    // V ağzı - açıya ve derinliğe göre (daha gerçekçi hesaplama)
     const effectiveThickness = thickness;
     const angleMultiplier = Math.max(0.8, grooveAngle / 60); // Açı faktörü
     
-    if (effectiveThickness <= 6) {
-      passCount = Math.max(2, Math.ceil(effectiveThickness * angleMultiplier / 3));
+    if (effectiveThickness <= 3) {
+      passCount = Math.max(2, Math.ceil(effectiveThickness * angleMultiplier / 2));
+    } else if (effectiveThickness <= 6) {
+      passCount = Math.max(3, Math.ceil(effectiveThickness * angleMultiplier / 2.5));
+    } else if (effectiveThickness <= 10) {
+      passCount = Math.max(4, Math.ceil(effectiveThickness * angleMultiplier / 2.8));
     } else if (effectiveThickness <= 15) {
-      passCount = Math.max(3, Math.ceil(effectiveThickness * angleMultiplier / 4));
+      passCount = Math.max(5, Math.ceil(effectiveThickness * angleMultiplier / 3.2));
     } else if (effectiveThickness <= 25) {
-      passCount = Math.max(4, Math.ceil(effectiveThickness * angleMultiplier / 5));
+      passCount = Math.max(6, Math.ceil(effectiveThickness * angleMultiplier / 3.8));
     } else {
-      passCount = Math.max(5, Math.ceil(effectiveThickness * angleMultiplier / 6));
+      passCount = Math.max(7, Math.ceil(effectiveThickness * angleMultiplier / 4.5));
     }
   } else if (grooveType === 'U') {
     // U ağzı - daha verimli, daha az paso gerekir
@@ -703,17 +707,23 @@ const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
       passCount = Math.ceil(legLength / 4);
     }
   } else {
-    // Varsayılan hesaplama - standart ağızlar için
-    if (thickness <= 3) {
+    // Varsayılan hesaplama - standart ağızlar için (daha gerçekçi)
+    if (thickness <= 2) {
       passCount = 1;
-    } else if (thickness <= 6) {
+    } else if (thickness <= 4) {
       passCount = 2;
-    } else if (thickness <= 12) {
+    } else if (thickness <= 6) {
       passCount = 3;
+    } else if (thickness <= 10) {
+      passCount = 4;
+    } else if (thickness <= 15) {
+      passCount = 5;
     } else if (thickness <= 20) {
-      passCount = Math.ceil(thickness / 5);
+      passCount = 6;
+    } else if (thickness <= 25) {
+      passCount = 7;
     } else {
-      passCount = Math.ceil(thickness / 4);
+      passCount = Math.ceil(thickness / 3.5); // Daha fazla paso
     }
   }
 
@@ -735,7 +745,7 @@ const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
     }
   }
 
-  // Paso türlerini akıllıca belirle
+  // Paso türlerini akıllıca belirle (daha gerçekçi hesaplama)
   let rootPassCount = 1;
   let capPassCount = 1;
   
@@ -752,11 +762,14 @@ const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
   } else if (thickness <= 15) {
     rootPassCount = 2; // Kök + hot pass
     capPassCount = 2;
-  } else if (thickness <= 25) {
+  } else if (thickness <= 20) {
+    rootPassCount = 2;
+    capPassCount = 2; 
+  } else if (thickness <= 30) {
     rootPassCount = 2;
     capPassCount = 3; // 3 kapak pasosu
   } else if (thickness <= 40) {
-    rootPassCount = 2;
+    rootPassCount = 3;
     capPassCount = 3;
   } else {
     rootPassCount = 3; // Çok kalın malzemede 3 kök pasosu
@@ -773,19 +786,27 @@ const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
     capPassCount = Math.max(1, capPassCount - 1);
   }
 
-  // Toplam paso sayısından daha fazla kök+kapak olamaz
-  if (rootPassCount + capPassCount > passCount) {
-    if (passCount <= 2) {
+  // Minimum dolgu pasosu garantisi
+  const minFillPasses = Math.max(1, Math.floor(thickness / 4)); // Her 4mm için 1 dolgu paso
+  
+  // Toplam paso sayısını dolgu pasoları için güncelle
+  if (rootPassCount + capPassCount + minFillPasses > passCount) {
+    passCount = rootPassCount + capPassCount + minFillPasses;
+  }
+  
+  // Dolgu pasolarının olması için minimum kontrol
+  if (passCount >= 3 && rootPassCount + capPassCount >= passCount) {
+    // En az 1 dolgu paso bırak
+    if (passCount <= 3) {
       rootPassCount = 1;
-      capPassCount = 1;
-    } else if (passCount <= 4) {
-      rootPassCount = 1;
-      capPassCount = 2;
+      capPassCount = 1; 
+    } else if (passCount <= 5) {
+      rootPassCount = Math.min(rootPassCount, 1);
+      capPassCount = Math.min(capPassCount, 2);
     } else {
-      // Oransal azaltma
-      const totalSpecial = rootPassCount + capPassCount;
-      rootPassCount = Math.max(1, Math.floor((rootPassCount / totalSpecial) * (passCount - 1)));
-      capPassCount = Math.max(1, Math.floor((capPassCount / totalSpecial) * (passCount - 1)));
+      // Büyük kalınlıklarda dolgu pasolarına yer bırak
+      rootPassCount = Math.min(rootPassCount, 2);
+      capPassCount = Math.min(capPassCount, 2);
     }
   }
 
@@ -796,16 +817,21 @@ const calculatePassData = (wpsData: Partial<WPSData>): PassData[] => {
     
     if (i <= rootPassCount) {
       passType = 'root';
-      currentFactor = 0.7 + (i - 1) * 0.1; // İlk kök düşük, sonrakiler artar
-      voltageFactor = 0.9;
+      // Kök paso: Penetrasyon için düşük amper, kontrollü voltaj
+      currentFactor = 0.65 + (i - 1) * 0.05; // İlk kök çok düşük, sonrakiler biraz artar
+      voltageFactor = 0.85 + (i - 1) * 0.05;
     } else if (i > passCount - capPassCount) {
       passType = 'cap';
-      currentFactor = 0.85;
-      voltageFactor = 1.1;
+      // Kapak paso: Yüzey kalitesi için orta amper, yüksek voltaj
+      currentFactor = 0.8 + (i - (passCount - capPassCount)) * 0.05;
+      voltageFactor = 1.05 + (i - (passCount - capPassCount)) * 0.03;
     } else {
       passType = 'fill';
-      currentFactor = 1.0;
-      voltageFactor = 1.0;
+      // Dolgu paso: Hız için yüksek amper, dengeli voltaj
+      const fillPassIndex = i - rootPassCount;
+      const totalFillPasses = passCount - rootPassCount - capPassCount;
+      currentFactor = 0.95 + (fillPassIndex / Math.max(1, totalFillPasses)) * 0.25; // Artan amper
+      voltageFactor = 0.95 + (fillPassIndex / Math.max(1, totalFillPasses)) * 0.15;
     }
 
     let baseCurrent = 0;
@@ -1757,7 +1783,7 @@ const WpsGenerator: React.FC = () => {
         ['Gecerlilik Suresi', '3 Yil'],
         ['Uygulama Standardi', 'EN ISO 15609-1:2019'],
         ['Olusturan Sistem', 'Kademe A.S. WPS Generator v2.0'],
-        ['Durum', 'ONAYLI VE YURURLUKТЕ']
+        ['Durum', 'ONAYLI VE YURURLUKTE']
       ],
       theme: 'striped',
       styles: { 
