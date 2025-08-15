@@ -877,19 +877,128 @@ export default function QualityCostManagement() {
     ekBirimMaliyetleri: [],
     
     // ✅ YENİ: Dış işlem maliyetleri
-    disIslemMaliyetleri: [],
-    
-    // ✅ YENİ: PDF eklenti sistemi
-    attachedFiles: [] as any[]
+    disIslemMaliyetleri: []
   });
 
   // ✅ YENİ: PDF upload state'leri
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [attachedFiles, setAttachedFiles] = useState<any[]>([]); // PDF files state
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' | 'warning' });
   
   // ✅ YENİ: Personel performans modal state'i
   const [personelPerformansModalOpen, setPersonelPerformansModalOpen] = useState(false);
+
+  // ✅ YENİ: PDF Görüntüleme fonksiyonu
+  const handleFileView = async (fileId: string) => {
+    try {
+      const dbName = 'QualityCostFiles';
+      const storeName = 'files';
+      const request = indexedDB.open(dbName, 1);
+      
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        const transaction = db.transaction([storeName], 'readonly');
+        const objectStore = transaction.objectStore(storeName);
+        
+        const getRequest = objectStore.get(fileId);
+        
+        getRequest.onsuccess = () => {
+          const fileRecord = getRequest.result;
+          if (fileRecord) {
+            // PDF blob oluştur ve yeni sekmede aç
+            const blob = new Blob([fileRecord.fileData], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            
+            // URL'i 10 saniye sonra temizle
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+          } else {
+            setSnackbar({ 
+              open: true, 
+              message: 'Dosya bulunamadı.', 
+              severity: 'error' 
+            });
+          }
+        };
+        
+        getRequest.onerror = () => {
+          setSnackbar({ 
+            open: true, 
+            message: 'Dosya görüntülenirken hata oluştu.', 
+            severity: 'error' 
+          });
+        };
+      };
+    } catch (error) {
+      setSnackbar({ 
+        open: true, 
+        message: 'Dosya görüntüleme sırasında hata oluştu.', 
+        severity: 'error' 
+      });
+    }
+  };
+
+  // ✅ YENİ: PDF İndirme fonksiyonu
+  const handleFileDownload = async (fileId: string) => {
+    try {
+      const dbName = 'QualityCostFiles';
+      const storeName = 'files';
+      const request = indexedDB.open(dbName, 1);
+      
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        const transaction = db.transaction([storeName], 'readonly');
+        const objectStore = transaction.objectStore(storeName);
+        
+        const getRequest = objectStore.get(fileId);
+        
+        getRequest.onsuccess = () => {
+          const fileRecord = getRequest.result;
+          if (fileRecord) {
+            // Dosyayı indir
+            const blob = new Blob([fileRecord.fileData], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileRecord.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // URL'i temizle
+            URL.revokeObjectURL(url);
+            
+            setSnackbar({ 
+              open: true, 
+              message: `"${fileRecord.fileName}" dosyası indirildi.`, 
+              severity: 'success' 
+            });
+          } else {
+            setSnackbar({ 
+              open: true, 
+              message: 'Dosya bulunamadı.', 
+              severity: 'error' 
+            });
+          }
+        };
+        
+        getRequest.onerror = () => {
+          setSnackbar({ 
+            open: true, 
+            message: 'Dosya indirilirken hata oluştu.', 
+            severity: 'error' 
+          });
+        };
+      };
+    } catch (error) {
+      setSnackbar({ 
+        open: true, 
+        message: 'Dosya indirme sırasında hata oluştu.', 
+        severity: 'error' 
+      });
+    }
+  };
 
   // ✅ YENİ: PDF upload functionality with IndexedDB
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -907,6 +1016,8 @@ export default function QualityCostManagement() {
         message: `Geçersiz dosya formatı! Sadece PDF dosyaları (.pdf) yüklenebilir.`, 
         severity: 'error' 
       });
+      // Input field'ı temizle
+      (event.target as HTMLInputElement).value = '';
       return;
     }
 
@@ -918,16 +1029,30 @@ export default function QualityCostManagement() {
         message: `Dosya boyutu çok büyük! Maksimum 10MB olabilir.`, 
         severity: 'error' 
       });
+      // Input field'ı temizle
+      (event.target as HTMLInputElement).value = '';
       return;
     }
 
     setUploadingFile(true);
-    setUploadProgress(0);
+    setUploadProgress(10);
 
     try {
+      // Progress simülasyonu
+      setUploadProgress(30);
+      
       // IndexedDB'ye dosya kaydet
       const reader = new FileReader();
+      
+      reader.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded / e.total) * 50) + 30; // 30-80 arası
+          setUploadProgress(progress);
+        }
+      };
+      
       reader.onload = async (e) => {
+        setUploadProgress(85);
         const arrayBuffer = e.target?.result as ArrayBuffer;
         
         // IndexedDB connection
@@ -944,6 +1069,9 @@ export default function QualityCostManagement() {
             severity: 'error' 
           });
           setUploadingFile(false);
+          setUploadProgress(0);
+          // Input field'ı temizle
+          (event.target as HTMLInputElement).value = '';
         };
 
         request.onupgradeneeded = (event) => {
@@ -956,6 +1084,7 @@ export default function QualityCostManagement() {
         };
 
         request.onsuccess = (event) => {
+          setUploadProgress(95);
           const db = (event.target as IDBOpenDBRequest).result;
           const transaction = db.transaction([storeName], 'readwrite');
           const objectStore = transaction.objectStore(storeName);
@@ -973,25 +1102,28 @@ export default function QualityCostManagement() {
           const addRequest = objectStore.add(fileRecord);
           
           addRequest.onsuccess = () => {
-            // Form data'ya dosya bilgisini ekle
-            setFormData(prev => ({
-              ...prev,
-              attachedFiles: [...prev.attachedFiles, {
-                id: fileId,
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                uploadDate: new Date().toISOString()
-              }]
-            }));
+            // Attached files state'ine dosya bilgisini ekle
+            setAttachedFiles(prev => [...prev, {
+              id: fileId,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              uploadDate: new Date().toISOString()
+            }]);
 
             setSnackbar({ 
               open: true, 
-              message: 'PDF dosyası başarıyla yüklendi.', 
+              message: `PDF dosyası "${file.name}" başarıyla yüklendi ve kaydedildi.`, 
               severity: 'success' 
             });
             setUploadingFile(false);
             setUploadProgress(100);
+            
+            // Input field'ı temizle (aynı dosyayı tekrar yükleyebilmek için)
+            (event.target as HTMLInputElement).value = '';
+            
+            // Progress'i 2 saniye sonra sıfırla
+            setTimeout(() => setUploadProgress(0), 2000);
           };
 
           addRequest.onerror = () => {
@@ -1001,6 +1133,9 @@ export default function QualityCostManagement() {
               severity: 'error' 
             });
             setUploadingFile(false);
+            setUploadProgress(0);
+            // Input field'ı temizle
+            (event.target as HTMLInputElement).value = '';
           };
         };
       };
@@ -1013,40 +1148,62 @@ export default function QualityCostManagement() {
         severity: 'error' 
       });
       setUploadingFile(false);
+      setUploadProgress(0);
+      // Input field'ı temizle
+      (event.target as HTMLInputElement).value = '';
     }
   };
 
-  // ✅ YENİ: Dosya silme fonksiyonu
+  // ✅ YENİ: Dosya silme fonksiyonu - Geliştirilmiş
   const handleFileRemove = async (fileId: string) => {
     try {
+      // İlk önce dosya adını al
+      const fileToRemove = attachedFiles?.find((file: any) => file.id === fileId);
+      const fileName = fileToRemove?.name || 'Bilinmeyen dosya';
+      
       // IndexedDB'den dosyayı sil
       const dbName = 'QualityCostFiles';
       const storeName = 'files';
       const request = indexedDB.open(dbName, 1);
+      
+      request.onerror = () => {
+        setSnackbar({ 
+          open: true, 
+          message: 'Veritabanı açılırken hata oluştu.', 
+          severity: 'error' 
+        });
+      };
       
       request.onsuccess = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         const transaction = db.transaction([storeName], 'readwrite');
         const objectStore = transaction.objectStore(storeName);
         
-        objectStore.delete(fileId);
+        const deleteRequest = objectStore.delete(fileId);
         
-        // Form data'dan dosyayı kaldır
-        setFormData(prev => ({
-          ...prev,
-          attachedFiles: prev.attachedFiles.filter((file: any) => file.id !== fileId)
-        }));
+        deleteRequest.onsuccess = () => {
+          // Attached files state'den dosyayı kaldır
+          setAttachedFiles(prev => prev.filter((file: any) => file.id !== fileId));
 
-        setSnackbar({ 
-          open: true, 
-          message: 'Dosya başarıyla silindi.', 
-          severity: 'success' 
-        });
+          setSnackbar({ 
+            open: true, 
+            message: `"${fileName}" dosyası başarıyla silindi.`, 
+            severity: 'success' 
+          });
+        };
+        
+        deleteRequest.onerror = () => {
+          setSnackbar({ 
+            open: true, 
+            message: 'Dosya veritabanından silinirken hata oluştu.', 
+            severity: 'error' 
+          });
+        };
       };
     } catch (error) {
       setSnackbar({ 
         open: true, 
-        message: 'Dosya silme sırasında hata oluştu.', 
+        message: 'Dosya silme sırasında beklenmeyen hata oluştu.', 
         severity: 'error' 
       });
     }
@@ -8829,6 +8986,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           uploadProgress={uploadProgress}
           handleFileUpload={handleFileUpload}
           handleFileRemove={handleFileRemove}
+          attachedFiles={attachedFiles}
+          setAttachedFiles={setAttachedFiles}
+          handleFileView={handleFileView}
+          handleFileDownload={handleFileDownload}
           snackbar={snackbar}
           setSnackbar={setSnackbar}
           personelPerformansModalOpen={personelPerformansModalOpen}
@@ -10559,6 +10720,10 @@ const ProfessionalDataTable: React.FC<{
   uploadProgress?: number,
   handleFileUpload?: (event: React.ChangeEvent<HTMLInputElement>) => void,
   handleFileRemove?: (fileId: string) => void,
+  attachedFiles?: any[],
+  setAttachedFiles?: (files: any[]) => void,
+  handleFileView?: (fileId: string) => void,
+  handleFileDownload?: (fileId: string) => void,
   snackbar?: any,
   setSnackbar?: (snackbar: any) => void,
   personelPerformansModalOpen?: boolean,
@@ -10571,6 +10736,10 @@ const ProfessionalDataTable: React.FC<{
   uploadProgress, 
   handleFileUpload, 
   handleFileRemove, 
+  attachedFiles = [],
+  setAttachedFiles,
+  handleFileView,
+  handleFileDownload,
   snackbar, 
   setSnackbar, 
   personelPerformansModalOpen, 
@@ -11466,6 +11635,12 @@ const ProfessionalDataTable: React.FC<{
     setDialogOpen(true);
   }, []);
 
+  // ✅ YENİ: Ayrı görüntüleme fonksiyonu
+  const handleView = useCallback((entry: any) => {
+    setSelectedDetailEntry(entry);
+    setDetailDialogOpen(true);
+  }, []);
+
   const handleSave = useCallback(() => {
     const calculatedCost = calculateDynamicCost();
     
@@ -11494,6 +11669,7 @@ const ProfessionalDataTable: React.FC<{
     const finalFormData = {
       ...formData,
       maliyet: finalCost, // Use calculated cost + affected departments cost
+      attachedFiles: attachedFiles || [], // ✅ PDF'leri kayda dahil et
     };
 
     if (editingEntry) {
@@ -11548,6 +11724,7 @@ const ProfessionalDataTable: React.FC<{
       }, 100);
     }
     setDialogOpen(false);
+    setAttachedFiles([]);
   }, [editingEntry, formData, costData, calculateDynamicCost]);
 
   const handleDelete = useCallback((id: number) => {
@@ -12168,19 +12345,21 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                         <Tooltip title="Detayları Görüntüle">
                           <IconButton 
                             size="small" 
-                            onClick={() => handleEdit(row)}
+                            onClick={() => handleView(row)}
                             sx={{ color: 'info.main' }}
                           >
                             <VisibilityIcon />
                           </IconButton>
                         </Tooltip>
-                        <IconButton 
-                          size="small" 
-                        onClick={() => handleEdit(row)}
-                        sx={{ color: 'primary.main' }}
-                        >
-                          <EditIcon />
-                        </IconButton>
+                        <Tooltip title="Kaydı Düzenle">
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleEdit(row)}
+                            sx={{ color: 'primary.main' }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
                         <IconButton 
                           size="small" 
                         onClick={() => handleDelete(row.id)}
@@ -12232,7 +12411,10 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
       {/* Form Dialog */}
       <Dialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => {
+          setDialogOpen(false);
+          setAttachedFiles([]);
+        }}
         maxWidth="md"
         fullWidth
       >
@@ -12775,115 +12957,6 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       />
                     </Grid>
 
-                    {/* ✅ YENİ: PDF Ekleme Sistemi */}
-                    <Grid item xs={12}>
-                      <Typography variant="h6" sx={{ 
-                        mb: 2, 
-                        color: 'info.main',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        mt: 2
-                      }}>
-                        <WorkIcon />
-                        Belge Eklenti Sistemi
-                      </Typography>
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <Paper 
-                        elevation={2}
-                        sx={{ 
-                          p: 3,
-                          bgcolor: 'info.50',
-                          border: '2px dashed',
-                          borderColor: 'info.200',
-                          borderRadius: 2,
-                          textAlign: 'center',
-                          '&:hover': {
-                            borderColor: 'info.400',
-                            bgcolor: 'info.100'
-                          }
-                        }}
-                      >
-                        <input
-                          accept="application/pdf"
-                          style={{ display: 'none' }}
-                          id="pdf-upload-input"
-                          type="file"
-                          onChange={handleFileUpload}
-                          disabled={uploadingFile}
-                        />
-                        <label htmlFor="pdf-upload-input">
-                          <Button
-                            variant="outlined"
-                            component="span"
-                            disabled={uploadingFile}
-                            startIcon={uploadingFile ? <CircularProgress size={20} /> : <CloudUploadIcon />}
-                            sx={{ 
-                              mb: 2,
-                              '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
-                              }
-                            }}
-                          >
-                            {uploadingFile ? 'Yükleniyor...' : 'PDF Dosyası Seç'}
-                          </Button>
-                        </label>
-                        <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                          Maksimum 10MB PDF dosyası yükleyebilirsiniz
-                        </Typography>
-                        
-                        {uploadingFile && (
-                          <Box sx={{ mt: 2 }}>
-                            <LinearProgress variant="determinate" value={uploadProgress} />
-                          </Box>
-                        )}
-                      </Paper>
-                    </Grid>
-
-                    {/* Yüklenen dosyalar listesi */}
-                    {formData.attachedFiles && formData.attachedFiles.length > 0 && (
-                      <Grid item xs={12}>
-                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-                          Yüklenen Dosyalar:
-                        </Typography>
-                        {formData.attachedFiles.map((file: any, index: number) => (
-                          <Paper 
-                            key={file.id}
-                            elevation={1}
-                            sx={{ 
-                              p: 2, 
-                              mb: 1,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between'
-                            }}
-                          >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <PictureAsPdfIcon color="error" />
-                              <Box>
-                                <Typography variant="body2" fontWeight={500}>
-                                  {file.name}
-                                </Typography>
-                                <Typography variant="caption" color="textSecondary">
-                                  {(file.size / 1024 / 1024).toFixed(2)} MB - {new Date(file.uploadDate).toLocaleString('tr-TR')}
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <IconButton 
-                              color="error" 
-                              onClick={() => handleFileRemove(file.id)}
-                              size="small"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Paper>
-                        ))}
-                      </Grid>
-                    )}
                   </>
                 )}
               </>
@@ -13148,117 +13221,7 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       />
                     </Grid>
 
-                    {/* ✅ YENİ: PDF Hurda Tutanağı Ekleme Alanı */}
-                    <Grid item xs={12}>
-                      <Typography variant="h6" sx={{ 
-                        mb: 2, 
-                        color: 'error.main',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1
-                      }}>
-                        <PictureAsPdfIcon />
-                        Hurda Tutanağı Dosyası
-                      </Typography>
-                      <Paper elevation={2} sx={{ 
-                        p: 3, 
-                        bgcolor: 'grey.50', 
-                        border: '2px dashed', 
-                        borderColor: 'error.200',
-                        textAlign: 'center',
-                        borderRadius: 2
-                      }}>
-                        <input
-                          accept=".pdf"
-                          style={{ display: 'none' }}
-                          id="hurda-pdf-upload-input"
-                          type="file"
-                          onChange={handleFileUpload}
-                          disabled={uploadingFile}
-                        />
-                        <label htmlFor="hurda-pdf-upload-input">
-                          <Button
-                            variant="outlined"
-                            component="span"
-                            disabled={uploadingFile}
-                            startIcon={uploadingFile ? <CircularProgress size={20} /> : <CloudUploadIcon />}
-                            sx={{ 
-                              mb: 2,
-                              color: 'error.main',
-                              borderColor: 'error.main',
-                              '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-                                borderColor: 'error.dark',
-                                bgcolor: 'error.50'
-                              }
-                            }}
-                          >
-                            {uploadingFile ? 'Yükleniyor...' : 'Hurda Tutanağı PDF Seç'}
-                          </Button>
-                        </label>
-                        <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                          Hurda tutanağınızı PDF formatında yükleyebilirsiniz (Maksimum 10MB)
-                        </Typography>
-                        
-                        {uploadingFile && (
-                          <Box sx={{ mt: 2 }}>
-                            <LinearProgress variant="determinate" value={uploadProgress} />
-                            <Typography variant="caption" sx={{ mt: 1 }}>
-                              {uploadProgress}% yüklendi
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        {/* Yüklenen dosyalar listesi */}
-                        {formData.attachedFiles && formData.attachedFiles.length > 0 && (
-                          <Box sx={{ mt: 3 }}>
-                            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                              Yüklenen Hurda Tutanakları:
-                            </Typography>
-                            {formData.attachedFiles.map((file: any, index: number) => (
-                              <Paper 
-                                key={file.id}
-                                elevation={1}
-                                sx={{ 
-                                  p: 2, 
-                                  mb: 1,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  bgcolor: 'success.50',
-                                  border: '1px solid',
-                                  borderColor: 'success.200'
-                                }}
-                              >
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <PictureAsPdfIcon sx={{ color: 'error.main' }} />
-                                  <Typography variant="body2" fontWeight="500">
-                                    {file.name}
-                                  </Typography>
-                                  <Typography variant="caption" color="textSecondary">
-                                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                                  </Typography>
-                                </Box>
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  onClick={() => {
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      attachedFiles: prev.attachedFiles?.filter((f: any) => f.id !== file.id) || []
-                                    }));
-                                  }}
-                                >
-                                  Kaldır
-                                </Button>
-                              </Paper>
-                            ))}
-                          </Box>
-                        )}
-                      </Paper>
-                    </Grid>
+
 
                     {/* ✅ YENİ: Dış İşlem Maliyetleri Bölümü */}
                     <Grid item xs={12}>
@@ -14062,10 +14025,182 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                 error={formData.aracKategorisi === 'Genel' && !formData.aciklama?.trim()}
               />
             </Grid>
+
+            {/* ✅ YENİ: Evrensel PDF Ekleme Sistemi - Tüm Maliyet Türleri İçin */}
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ 
+                mb: 2, 
+                color: 'primary.main',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                mt: 3
+              }}>
+                <PictureAsPdfIcon />
+                Belge Eklenti Sistemi
+              </Typography>
+              <Paper 
+                elevation={2}
+                sx={{ 
+                  p: 3,
+                  bgcolor: 'primary.50',
+                  border: '2px dashed',
+                  borderColor: 'primary.200',
+                  borderRadius: 2,
+                  textAlign: 'center',
+                  '&:hover': {
+                    borderColor: 'primary.400',
+                    bgcolor: 'primary.100'
+                  }
+                }}
+              >
+                <input
+                  accept="application/pdf,.pdf"
+                  style={{ display: 'none' }}
+                  id="universal-pdf-upload-input"
+                  type="file"
+                  onChange={handleFileUpload}
+                  disabled={uploadingFile}
+                />
+                <label htmlFor="universal-pdf-upload-input">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    disabled={uploadingFile}
+                    startIcon={uploadingFile ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                    sx={{ 
+                      mb: 2,
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                      }
+                    }}
+                  >
+                    {uploadingFile ? 'Yükleniyor...' : 'PDF Dosyası Seç'}
+                  </Button>
+                </label>
+                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                  Maksimum 10MB PDF dosyası yükleyebilirsiniz
+                </Typography>
+                
+                {uploadingFile && (
+                  <Box sx={{ mt: 2 }}>
+                    <LinearProgress variant="determinate" value={uploadProgress} />
+                    <Typography variant="caption" sx={{ mt: 1 }}>
+                      {uploadProgress}% yüklendi
+                    </Typography>
+                  </Box>
+                )}
+              </Paper>
+            </Grid>
+
+            {/* Yüklenen dosyalar listesi */}
+            {attachedFiles && attachedFiles.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600, color: 'success.main' }}>
+                  Yüklenen Dosyalar ({attachedFiles.length}):
+                </Typography>
+                {attachedFiles.map((file: any, index: number) => (
+                  <Paper 
+                    key={file.id}
+                    elevation={2}
+                    sx={{ 
+                      p: 3, 
+                      mb: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      bgcolor: 'success.50',
+                      border: '2px solid',
+                      borderColor: 'success.200',
+                      borderRadius: 2,
+                      '&:hover': {
+                        bgcolor: 'success.100',
+                        borderColor: 'success.300',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                      },
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <PictureAsPdfIcon sx={{ color: 'error.main', fontSize: 32 }} />
+                      <Box>
+                        <Typography variant="body1" fontWeight={600} sx={{ color: 'text.primary' }}>
+                          {file.name}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 0.5 }}>
+                          {(file.size / 1024 / 1024).toFixed(2)} MB • {new Date(file.uploadDate).toLocaleString('tr-TR')}
+                        </Typography>
+                        <Chip 
+                          label="Başarıyla kaydedildi" 
+                          size="small" 
+                          color="success" 
+                          variant="outlined"
+                          sx={{ mt: 1, fontSize: '0.7rem' }}
+                        />
+                      </Box>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {/* Görüntüleme butonu */}
+                      <Tooltip title="PDF'i görüntüle" arrow>
+                        <IconButton 
+                          color="primary" 
+                          onClick={() => handleFileView(file.id)}
+                          size="small"
+                          sx={{ 
+                            bgcolor: 'primary.50',
+                            '&:hover': { bgcolor: 'primary.100' }
+                          }}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                      
+                      {/* İndirme butonu */}
+                      <Tooltip title="PDF'i indir" arrow>
+                        <IconButton 
+                          color="info" 
+                          onClick={() => handleFileDownload(file.id)}
+                          size="small"
+                          sx={{ 
+                            bgcolor: 'info.50',
+                            '&:hover': { bgcolor: 'info.100' }
+                          }}
+                        >
+                          <GetAppIcon />
+                        </IconButton>
+                      </Tooltip>
+                      
+                      {/* Silme butonu */}
+                      <Tooltip title="Dosyayı kaldır" arrow>
+                        <IconButton 
+                          color="error" 
+                          onClick={() => handleFileRemove(file.id)}
+                          size="small"
+                          sx={{ 
+                            bgcolor: 'error.50',
+                            '&:hover': { bgcolor: 'error.100' }
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Paper>
+                ))}
+              </Grid>
+            )}
+
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogOpen(false)}>İptal</Button>
+          <Button onClick={() => {
+            setDialogOpen(false);
+            setAttachedFiles([]);
+          }}>İptal</Button>
           <Button 
             variant="contained" 
             onClick={handleSave}
@@ -14512,6 +14647,91 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
               )}
 
               {/* ✅ YENİ: Ham Veri Debug (Sadece development için) */}
+              {/* ✅ YENİ: PDF Ekleri Görüntüleme Bölümü */}
+              {selectedDetailEntry.attachedFiles && selectedDetailEntry.attachedFiles.length > 0 && (
+                <Grid item xs={12}>
+                  <Card sx={{ bgcolor: 'primary.50', border: '2px solid', borderColor: 'primary.200' }}>
+                    <CardContent>
+                      <Typography variant="h6" color="primary.main" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PictureAsPdfIcon />
+                        Eklenen Belgeler ({selectedDetailEntry.attachedFiles.length})
+                      </Typography>
+                      <Grid container spacing={2}>
+                        {selectedDetailEntry.attachedFiles.map((file: any, index: number) => (
+                          <Grid item xs={12} md={6} key={file.id || index}>
+                            <Paper 
+                              elevation={2}
+                              sx={{ 
+                                p: 2, 
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                bgcolor: 'white',
+                                border: '1px solid',
+                                borderColor: 'primary.100',
+                                borderRadius: 2,
+                                '&:hover': {
+                                  bgcolor: 'primary.50',
+                                  borderColor: 'primary.300',
+                                  transform: 'translateY(-2px)',
+                                  boxShadow: 3
+                                },
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+                                <PictureAsPdfIcon sx={{ color: 'error.main', fontSize: 32 }} />
+                                <Box>
+                                  <Typography variant="body1" fontWeight={600} sx={{ color: 'text.primary' }}>
+                                    {file.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 0.5 }}>
+                                    {file.size ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : ''} • 
+                                    {file.uploadDate ? new Date(file.uploadDate).toLocaleString('tr-TR') : 'Tarih bilinmiyor'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {/* Görüntüleme butonu */}
+                                <Tooltip title="PDF'i görüntüle" arrow>
+                                  <IconButton 
+                                    color="primary" 
+                                    onClick={() => handleFileView && handleFileView(file.id)}
+                                    size="small"
+                                    sx={{ 
+                                      bgcolor: 'primary.50',
+                                      '&:hover': { bgcolor: 'primary.100' }
+                                    }}
+                                  >
+                                    <VisibilityIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                
+                                {/* İndirme butonu */}
+                                <Tooltip title="PDF'i indir" arrow>
+                                  <IconButton 
+                                    color="info" 
+                                    onClick={() => handleFileDownload && handleFileDownload(file.id)}
+                                    size="small"
+                                    sx={{ 
+                                      bgcolor: 'info.50',
+                                      '&:hover': { bgcolor: 'info.100' }
+                                    }}
+                                  >
+                                    <GetAppIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Paper>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              )}
+
               {process.env.NODE_ENV === 'development' && selectedDetailEntry._rawData && (
                 <Grid item xs={12}>
                   <Card sx={{ bgcolor: 'grey.100' }}>
