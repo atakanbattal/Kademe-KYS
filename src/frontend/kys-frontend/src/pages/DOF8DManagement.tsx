@@ -2759,8 +2759,24 @@ const DOF8DManagement: React.FC = () => {
     const rejected = filteredRecords.filter(r => r.status === 'rejected').length;
     const critical = filteredRecords.filter(r => r.priority === 'critical').length;
     
-    // Context7 - Accurate overdue calculation from filtered records
-    const overdue = filteredRecords.filter(r => {
+    // Context7 - DÜZELTME: Overdue hesaplaması TÜM kayıtlardan yapılmalı (status filtresinden etkilenmemeli)
+    // Çünkü overdue bir durumdur ve tüm açık kayıtlar için hesaplanmalı
+    const allRecordsForOverdue = dofRecords.filter(record => {
+      // Sadece department, type, search, date gibi filtreler uygulanmalı - status hariç
+      if (filters.department && record.department !== filters.department) return false;
+      if (filters.type && record.type !== filters.type) return false;
+      if (filters.searchTerm) {
+        const searchLower = filters.searchTerm.toLowerCase();
+        const mainText = `${record.title} ${record.description} ${record.dofNumber} ${record.department} ${record.responsible}`.toLowerCase();
+        if (!mainText.includes(searchLower)) return false;
+      }
+      const filterDate = record.openingDate || record.createdDate;
+      if (filters.year && !filterDate.startsWith(filters.year)) return false;
+      if (filters.month && filterDate.split('-')[1] !== filters.month) return false;
+      return true;
+    });
+    
+    const overdue = allRecordsForOverdue.filter(r => {
       if (r.status === 'closed' || r.status === 'rejected') return false;
       const dueDate = new Date(r.dueDate);
       const today = new Date();
@@ -3833,10 +3849,27 @@ const DOF8DManagement: React.FC = () => {
   };
 
   const openEditDialog = (record: DOFRecord) => {
+    console.log('✏️ DÜZELTME: Edit dialog açılıyor:', {
+      recordId: record.id,
+      dofNumber: record.dofNumber,
+      mdiNumber: record.mdiNumber,
+      type: record.type,
+      hasAllData: !!record
+    });
+    
     setDialogMode('edit');
     setFormData(record);
     setSelectedRecord(record);
     setOpenDialog(true);
+    
+    // Debug için form data'yı biraz sonra kontrol et
+    setTimeout(() => {
+      console.log('✅ Edit formData set edildi:', {
+        formDataMdiNumber: record.mdiNumber,
+        formDataType: record.type,
+        fullFormData: record
+      });
+    }, 100);
   };
 
   const openViewDialog = (record: DOFRecord) => {

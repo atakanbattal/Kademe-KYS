@@ -2915,11 +2915,22 @@ Tespit Tarihi: ${new Date(record.submissionDate).toLocaleDateString('tr-TR')}`,
                     <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>Tekrarlanan Hatalar</Typography>
                     <Typography variant="h2" fontWeight="bold" sx={{ mb: 1 }}>
                       {(() => {
-                        // Tekrarlanan hata sayısı (repeatCount > 1)
-                        return filteredData.reduce((sum, record) => {
+                        // ✅ DÜZELTME: Tekrarlanan hata sayısı (repeatCount > 1) - Debug ile
+                        console.log('🔄 Tekrarlanan hatalar hesaplanıyor:', {
+                          filteredDataLength: filteredData.length,
+                          totalDefects: filteredData.flatMap(r => r.defects || []).length,
+                          samplerRecord: filteredData.slice(0, 1)
+                        });
+                        
+                        const repeatedDefectsCount = filteredData.reduce((sum, record) => {
                           if (!record.defects) return sum;
-                          return sum + record.defects.filter(defect => defect.repeatCount > 1).length;
+                          const recordRepeatedDefects = record.defects.filter(defect => defect.repeatCount > 1);
+                          console.log(`📊 ${record.serialNumber}: ${recordRepeatedDefects.length} tekrarlanan hata`, recordRepeatedDefects);
+                          return sum + recordRepeatedDefects.length;
                         }, 0);
+                        
+                        console.log('✅ Toplam tekrarlanan hata sayısı:', repeatedDefectsCount);
+                        return repeatedDefectsCount;
                       })()}
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>Birden fazla kez oluşan</Typography>

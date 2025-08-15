@@ -117,6 +117,7 @@ import {
   Engineering as EngineeringIcon,
   CloudUpload as CloudUploadIcon,
   PictureAsPdf as PictureAsPdfIcon,
+  AccountCircle as AccountCircleIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
@@ -886,6 +887,9 @@ export default function QualityCostManagement() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' | 'warning' });
+  
+  // ✅ YENİ: Personel performans modal state'i
+  const [personelPerformansModalOpen, setPersonelPerformansModalOpen] = useState(false);
 
   // ✅ YENİ: PDF upload functionality with IndexedDB
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -3862,6 +3866,73 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                       />
                     </Box>
                   )}
+                </CardContent>
+              </MetricCard>
+            </Fade>
+          </Grid>
+
+          {/* ✅ YENİ: Personel Performans Kartı */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Fade in timeout={800}>
+              <MetricCard
+                onClick={() => {
+                  // Personel performans modalı aç
+                  setPersonelPerformansModalOpen(true);
+                }}
+                sx={{ 
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 25px rgba(76, 175, 80, 0.15)',
+                    borderColor: '#4caf50'
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <AccountCircleIcon sx={{ fontSize: 40, color: '#4caf50' }} />
+                  </Box>
+                  <Typography variant="h5" fontWeight="bold" color="success.main">
+                    {(() => {
+                      // Personel performans hesaplama
+                      const personnelData = (filteredData || [])
+                        .filter(item => item.maliyetTuru === 'yeniden_islem' && item.hatayaSebepOlanPersonel)
+                        .reduce((acc: any, item: any) => {
+                          const personel = item.hatayaSebepOlanPersonel || 'Bilinmeyen';
+                          if (!acc[personel]) acc[personel] = { total: 0, count: 0 };
+                          acc[personel].total += item.maliyet || 0;
+                          acc[personel].count += 1;
+                          return acc;
+                        }, {});
+                      
+                      return Object.keys(personnelData).length;
+                    })()}
+                  </Typography>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                    Takip Edilen Personel
+                  </Typography>
+                  <Chip 
+                    label={(() => {
+                      const personnelData = (filteredData || [])
+                        .filter(item => item.maliyetTuru === 'yeniden_islem' && item.hatayaSebepOlanPersonel)
+                        .reduce((acc: any, item: any) => {
+                          const personel = item.hatayaSebepOlanPersonel || 'Bilinmeyen';
+                          if (!acc[personel]) acc[personel] = { total: 0, count: 0 };
+                          acc[personel].total += item.maliyet || 0;
+                          acc[personel].count += 1;
+                          return acc;
+                        }, {});
+                      
+                      const topPersonel = Object.entries(personnelData)
+                        .sort(([,a]: any, [,b]: any) => b.total - a.total)[0];
+                      
+                      return topPersonel ? `En Yüksek: ₺${(topPersonel[1] as any).total.toLocaleString('tr-TR')}` : 'Veri Yok';
+                    })()}
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                  />
                 </CardContent>
               </MetricCard>
             </Fade>
@@ -8747,8 +8818,9 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           onVehicleAnalysisClick={interactiveFunctions.handleVehicleAnalysisClick}
         />}
         {currentTab === 1 && <DataManagementComponent onDataChange={setRealTimeAnalytics} filteredData={globalFilteredData} onDataRefresh={() => {
+              // ✅ DÜZELTME: Tab değişimi sonrası filter state'ini korumak için sadece gerekli trigger'ları güncelle
+              // triggerDataRefresh çağrılmıyor çünkü bu globalFilters'ı reset ediyor
               setDataRefreshTrigger(prev => prev + 1);
-              triggerDataRefresh();
             }} />}
         {currentTab === 2 && <VehicleTrackingDashboard 
           realTimeData={realTimeAnalytics} 
@@ -13033,6 +13105,118 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
                           }
                         }}
                       />
+                    </Grid>
+
+                    {/* ✅ YENİ: PDF Hurda Tutanağı Ekleme Alanı */}
+                    <Grid item xs={12}>
+                      <Typography variant="h6" sx={{ 
+                        mb: 2, 
+                        color: 'error.main',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}>
+                        <PictureAsPdfIcon />
+                        Hurda Tutanağı Dosyası
+                      </Typography>
+                      <Paper elevation={2} sx={{ 
+                        p: 3, 
+                        bgcolor: 'grey.50', 
+                        border: '2px dashed', 
+                        borderColor: 'error.200',
+                        textAlign: 'center',
+                        borderRadius: 2
+                      }}>
+                        <input
+                          accept=".pdf"
+                          style={{ display: 'none' }}
+                          id="hurda-pdf-upload-input"
+                          type="file"
+                          onChange={handleFileUpload}
+                          disabled={uploadingFile}
+                        />
+                        <label htmlFor="hurda-pdf-upload-input">
+                          <Button
+                            variant="outlined"
+                            component="span"
+                            disabled={uploadingFile}
+                            startIcon={uploadingFile ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                            sx={{ 
+                              mb: 2,
+                              color: 'error.main',
+                              borderColor: 'error.main',
+                              '&:hover': {
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                                borderColor: 'error.dark',
+                                bgcolor: 'error.50'
+                              }
+                            }}
+                          >
+                            {uploadingFile ? 'Yükleniyor...' : 'Hurda Tutanağı PDF Seç'}
+                          </Button>
+                        </label>
+                        <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                          Hurda tutanağınızı PDF formatında yükleyebilirsiniz (Maksimum 10MB)
+                        </Typography>
+                        
+                        {uploadingFile && (
+                          <Box sx={{ mt: 2 }}>
+                            <LinearProgress variant="determinate" value={uploadProgress} />
+                            <Typography variant="caption" sx={{ mt: 1 }}>
+                              {uploadProgress}% yüklendi
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        {/* Yüklenen dosyalar listesi */}
+                        {formData.attachedFiles && formData.attachedFiles.length > 0 && (
+                          <Box sx={{ mt: 3 }}>
+                            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                              Yüklenen Hurda Tutanakları:
+                            </Typography>
+                            {formData.attachedFiles.map((file: any, index: number) => (
+                              <Paper 
+                                key={file.id}
+                                elevation={1}
+                                sx={{ 
+                                  p: 2, 
+                                  mb: 1,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  bgcolor: 'success.50',
+                                  border: '1px solid',
+                                  borderColor: 'success.200'
+                                }}
+                              >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <PictureAsPdfIcon sx={{ color: 'error.main' }} />
+                                  <Typography variant="body2" fontWeight="500">
+                                    {file.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="textSecondary">
+                                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                  </Typography>
+                                </Box>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  onClick={() => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      attachedFiles: prev.attachedFiles?.filter((f: any) => f.id !== file.id) || []
+                                    }));
+                                  }}
+                                >
+                                  Kaldır
+                                </Button>
+                              </Paper>
+                            ))}
+                          </Box>
+                        )}
+                      </Paper>
                     </Grid>
 
                     {/* ✅ YENİ: Dış İşlem Maliyetleri Bölümü */}
@@ -18134,6 +18318,174 @@ const CategoryProductionManagementComponent: React.FC<{
             disabled={!selectedVehicleCategory}
           >
             Yıllık Veriyi Kaydet
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ✅ YENİ: Personel Performans Modal */}
+      <Dialog
+        open={personelPerformansModalOpen}
+        onClose={() => setPersonelPerformansModalOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: { 
+            borderRadius: 3,
+            maxHeight: '90vh',
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2
+        }}>
+          <AccountCircleIcon />
+          Personel Performans Takibi
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <Box sx={{ p: 3 }}>
+            {(() => {
+              // Personel performans verilerini hesapla
+              const personnelData = (globalFilteredData || [])
+                .filter(item => item.maliyetTuru === 'yeniden_islem' && item.hatayaSebepOlanPersonel)
+                .reduce((acc: any, item: any) => {
+                  const personel = item.hatayaSebepOlanPersonel || 'Bilinmeyen';
+                  const sicilNo = item.personelSicilNo || 'Belirtilmemiş';
+                  const key = `${personel}_${sicilNo}`;
+                  
+                  if (!acc[key]) {
+                    acc[key] = { 
+                      personel, 
+                      sicilNo,
+                      total: 0, 
+                      count: 0,
+                      records: []
+                    };
+                  }
+                  acc[key].total += item.maliyet || 0;
+                  acc[key].count += 1;
+                  acc[key].records.push({
+                    tarih: item.tarih,
+                    maliyet: item.maliyet,
+                    aciklama: item.aciklama,
+                    arac: item.arac,
+                    parcaKodu: item.parcaKodu
+                  });
+                  return acc;
+                }, {});
+              
+              const personnelList = Object.values(personnelData)
+                .sort((a: any, b: any) => b.total - a.total);
+              
+              if (personnelList.length === 0) {
+                return (
+                  <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <AccountCircleIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
+                    <Typography variant="h6" color="textSecondary">
+                      Henüz personel bazlı yeniden işlem kaydı bulunmuyor
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                      Yeniden işlem maliyeti kaydederken personel bilgilerini de girebilirsiniz
+                    </Typography>
+                  </Box>
+                );
+              }
+              
+              return (
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AccountCircleIcon color="success" />
+                      Personel Performans Özeti ({personnelList.length} Personel)
+                    </Typography>
+                  </Grid>
+                  
+                  {personnelList.map((person: any, index: number) => (
+                    <Grid item xs={12} md={6} lg={4} key={index}>
+                      <Card elevation={3} sx={{ 
+                        height: '100%',
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: index === 0 ? 'error.200' : 'grey.200',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 6,
+                          transition: 'all 0.3s ease'
+                        }
+                      }}>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <Avatar sx={{ 
+                              bgcolor: index === 0 ? 'error.main' : index === 1 ? 'warning.main' : index === 2 ? 'info.main' : 'grey.500',
+                              mr: 2
+                            }}>
+                              #{index + 1}
+                            </Avatar>
+                            <Box sx={{ flexGrow: 1 }}>
+                              <Typography variant="h6" fontWeight="bold">
+                                {person.personel}
+                              </Typography>
+                              <Typography variant="caption" color="textSecondary">
+                                Sicil No: {person.sicilNo}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="h4" fontWeight="bold" color={index === 0 ? 'error.main' : 'text.primary'}>
+                              ₺{person.total.toLocaleString('tr-TR')}
+                            </Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              Toplam Yeniden İşlem Maliyeti
+                            </Typography>
+                          </Box>
+                          
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                            <Chip 
+                              label={`${person.count} Hata`}
+                              size="small"
+                              color={person.count > 5 ? 'error' : person.count > 2 ? 'warning' : 'default'}
+                            />
+                            <Chip 
+                              label={`Ort: ₺${Math.round(person.total / person.count).toLocaleString('tr-TR')}`}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Box>
+                          
+                          <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mb: 1 }}>
+                            Son Hatalar:
+                          </Typography>
+                          {person.records.slice(-3).map((record: any, i: number) => (
+                            <Typography key={i} variant="caption" sx={{ 
+                              display: 'block', 
+                              fontSize: '0.7rem',
+                              color: 'text.secondary',
+                              mb: 0.5
+                            }}>
+                              • {new Date(record.tarih).toLocaleDateString('tr-TR')} - ₺{record.maliyet?.toLocaleString('tr-TR')} ({record.arac})
+                            </Typography>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              );
+            })()}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, bgcolor: 'grey.50' }}>
+          <Button 
+            onClick={() => setPersonelPerformansModalOpen(false)} 
+            variant="contained"
+            sx={{ minWidth: 120 }}
+          >
+            Kapat
           </Button>
         </DialogActions>
       </Dialog>
