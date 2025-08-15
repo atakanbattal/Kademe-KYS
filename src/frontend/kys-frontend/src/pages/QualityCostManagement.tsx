@@ -880,7 +880,7 @@ export default function QualityCostManagement() {
     disIslemMaliyetleri: [],
     
     // ✅ YENİ: PDF eklenti sistemi
-    attachedFiles: []
+    attachedFiles: [] as any[]
   });
 
   // ✅ YENİ: PDF upload state'leri
@@ -8817,11 +8817,23 @@ Bu kayıt yüksek kalitesizlik maliyeti nedeniyle uygunsuzluk olarak değerlendi
           onCostTypeAnalysisClick={interactiveFunctions.handleCostTypeAnalysisClick}
           onVehicleAnalysisClick={interactiveFunctions.handleVehicleAnalysisClick}
         />}
-        {currentTab === 1 && <DataManagementComponent onDataChange={setRealTimeAnalytics} filteredData={globalFilteredData} onDataRefresh={() => {
-              // ✅ DÜZELTME: Tab değişimi sonrası filter state'ini korumak için sadece gerekli trigger'ları güncelle
-              // triggerDataRefresh çağrılmıyor çünkü bu globalFilters'ı reset ediyor
-              setDataRefreshTrigger(prev => prev + 1);
-            }} />}
+        {currentTab === 1 && <DataManagementComponent 
+          onDataChange={setRealTimeAnalytics} 
+          filteredData={globalFilteredData} 
+          onDataRefresh={() => {
+            // ✅ DÜZELTME: Tab değişimi sonrası filter state'ini korumak için sadece gerekli trigger'ları güncelle
+            // triggerDataRefresh çağrılmıyor çünkü bu globalFilters'ı reset ediyor
+            setDataRefreshTrigger(prev => prev + 1);
+          }}
+          uploadingFile={uploadingFile}
+          uploadProgress={uploadProgress}
+          handleFileUpload={handleFileUpload}
+          handleFileRemove={handleFileRemove}
+          snackbar={snackbar}
+          setSnackbar={setSnackbar}
+          personelPerformansModalOpen={personelPerformansModalOpen}
+          setPersonelPerformansModalOpen={setPersonelPerformansModalOpen}
+        />}
         {currentTab === 2 && <VehicleTrackingDashboard 
           realTimeData={realTimeAnalytics} 
           filteredData={globalFilteredData}
@@ -10542,8 +10554,28 @@ const ProfessionalDataTable: React.FC<{
   const DataManagementComponent: React.FC<{ 
   onDataChange?: (analytics: any) => void,
   filteredData?: any[],
-  onDataRefresh?: () => void
-}> = ({ onDataChange, filteredData = [], onDataRefresh }) => {
+  onDataRefresh?: () => void,
+  uploadingFile?: boolean,
+  uploadProgress?: number,
+  handleFileUpload?: (event: React.ChangeEvent<HTMLInputElement>) => void,
+  handleFileRemove?: (fileId: string) => void,
+  snackbar?: any,
+  setSnackbar?: (snackbar: any) => void,
+  personelPerformansModalOpen?: boolean,
+  setPersonelPerformansModalOpen?: (open: boolean) => void
+}> = ({ 
+  onDataChange, 
+  filteredData = [], 
+  onDataRefresh, 
+  uploadingFile, 
+  uploadProgress, 
+  handleFileUpload, 
+  handleFileRemove, 
+  snackbar, 
+  setSnackbar, 
+  personelPerformansModalOpen, 
+  setPersonelPerformansModalOpen 
+}) => {
   
   // ✅ PROFESYONEL: Gelişmiş Veri Kurtarma ve Otomatik Güvenlik Sistemi
   const [costData, setCostData] = useState<any[]>(() => {
@@ -10663,7 +10695,10 @@ const ProfessionalDataTable: React.FC<{
     ekBirimMaliyetleri: [],
     
     // ✅ YENİ: Dış işlem maliyetleri
-    disIslemMaliyetleri: []
+    disIslemMaliyetleri: [],
+    
+    // ✅ YENİ: PDF eklenti sistemi
+    attachedFiles: [] as any[]
   });
 
   // ✅ Context7: filters now comes from global props (no local filter state needed)
@@ -11006,7 +11041,10 @@ const ProfessionalDataTable: React.FC<{
     ekBirimMaliyetleri: [],
     
     // ✅ YENİ: Dış işlem maliyetleri
-    disIslemMaliyetleri: []
+    disIslemMaliyetleri: [],
+    
+    // ✅ YENİ: PDF eklenti sistemi
+    attachedFiles: [] as any[]
   });
 
     setDialogOpen(true);
@@ -11420,7 +11458,10 @@ const ProfessionalDataTable: React.FC<{
       
       // ✅ YENİ: Personel takip alanları
       hatayaSebepOlanPersonel: entry.hatayaSebepOlanPersonel || '',
-      personelSicilNo: entry.personelSicilNo || ''
+      personelSicilNo: entry.personelSicilNo || '',
+      
+      // ✅ YENİ: PDF eklenti sistemi
+      attachedFiles: entry.attachedFiles || []
     });
     setDialogOpen(true);
   }, []);
@@ -18322,10 +18363,10 @@ const CategoryProductionManagementComponent: React.FC<{
         </DialogActions>
       </Dialog>
 
-      {/* ✅ YENİ: Personel Performans Modal */}
-      <Dialog
-        open={personelPerformansModalOpen}
-        onClose={() => setPersonelPerformansModalOpen(false)}
+      {/* Personel Performans Modal artık DataManagementComponent'te */}
+      {/* <Dialog
+        open={false}
+        onClose={() => {}}
         maxWidth="lg"
         fullWidth
         PaperProps={{
@@ -18350,7 +18391,7 @@ const CategoryProductionManagementComponent: React.FC<{
           <Box sx={{ p: 3 }}>
             {(() => {
               // Personel performans verilerini hesapla
-              const personnelData = (globalFilteredData || [])
+              const personnelData = (filteredData || [])
                 .filter(item => item.maliyetTuru === 'yeniden_islem' && item.hatayaSebepOlanPersonel)
                 .reduce((acc: any, item: any) => {
                   const personel = item.hatayaSebepOlanPersonel || 'Bilinmeyen';
@@ -18481,30 +18522,30 @@ const CategoryProductionManagementComponent: React.FC<{
         </DialogContent>
         <DialogActions sx={{ p: 3, bgcolor: 'grey.50' }}>
           <Button 
-            onClick={() => setPersonelPerformansModalOpen(false)} 
+            onClick={() => {}} 
             variant="contained"
             sx={{ minWidth: 120 }}
           >
             Kapat
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog> */}
 
-      {/* ✅ YENİ: Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
+      {/* Snackbar artık DataManagementComponent'te */}
+      {/* <Snackbar
+        open={false}
         autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        onClose={() => {}}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
-          severity={snackbar.severity}
+          onClose={() => {}} 
+          severity="success"
           sx={{ width: '100%' }}
         >
-          {snackbar.message}
+          Test message
         </Alert>
-      </Snackbar>
+      </Snackbar> */}
     </Box>
   );
 };

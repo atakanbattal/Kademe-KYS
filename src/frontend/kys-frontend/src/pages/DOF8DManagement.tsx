@@ -2063,7 +2063,7 @@ const DOF8DManagement: React.FC = () => {
             dofNumber: 'DF-2024-TEST-001',
             title: 'Test Gecikmiş DF',
             description: 'Bu gecikmiş DF testi için oluşturulmuş örnek bir kayıttır.',
-            type: 'corrective',
+            type: 'corrective_preventive',
             department: 'Kalite Kontrol',
             responsible: 'Test Kullanıcısı',
             priority: 'medium',
