@@ -777,6 +777,82 @@ const ProductionQualityTracking: React.FC = () => {
         status: 'in_progress',
         createdAt: '2024-12-03T10:20:00Z',
         updatedAt: '2024-12-03T14:45:00Z'
+      },
+      {
+        id: '4',
+        serialNumber: 'HSC-2024-015',
+        vehicleType: 'HSCK',
+        defects: [
+          {
+            id: '4-1',
+            productionUnit: 'mekanik-montaj',
+            defectType: 'Hatalı Montaj',
+            defectDescription: 'Tekerlek montajı hatalı - Tekrarlayan sorun',
+            severity: 'high',
+            repeatCount: 3,
+            status: 'closed',
+            closedDate: '2024-12-06'
+          }
+        ],
+        submissionDate: '2024-12-04',
+        qualitySubmissionDate: '2024-12-05',
+        inspector: 'Ali Demir',
+        status: 'closed',
+        createdAt: '2024-12-04T11:30:00Z',
+        updatedAt: '2024-12-06T15:20:00Z'
+      },
+      {
+        id: '5',
+        serialNumber: 'AGA-2024-008',
+        vehicleType: 'Aga2100',
+        defects: [
+          {
+            id: '5-1',
+            productionUnit: 'elektrikhane',
+            defectType: 'Hatalı Montaj',
+            defectDescription: 'Kablo bağlantıları hatalı montajlı',
+            severity: 'medium',
+            repeatCount: 4,
+            status: 'open'
+          }
+        ],
+        submissionDate: '2024-12-05',
+        qualitySubmissionDate: '2024-12-06',
+        inspector: 'Zeynep Yıldız',
+        status: 'open',
+        createdAt: '2024-12-05T13:15:00Z',
+        updatedAt: '2024-12-05T13:15:00Z'
+      },
+      {
+        id: '6',
+        serialNumber: 'KDM-2024-012',
+        vehicleType: 'KDM 70',
+        defects: [
+          {
+            id: '6-1',
+            productionUnit: 'boyahane',
+            defectType: 'Hatalı Montaj',
+            defectDescription: 'Plastik parça montajı kusurlu',
+            severity: 'medium',
+            repeatCount: 2,
+            status: 'in_progress'
+          },
+          {
+            id: '6-2',
+            productionUnit: 'kaynakhane',
+            defectType: 'Kaynak Hatası',
+            defectDescription: 'Tekrarlayan kaynak kalite sorunu',
+            severity: 'critical',
+            repeatCount: 5,
+            status: 'open'
+          }
+        ],
+        submissionDate: '2024-12-06',
+        qualitySubmissionDate: '2024-12-07',
+        inspector: 'Mustafa Şen',
+        status: 'open',
+        createdAt: '2024-12-06T09:45:00Z',
+        updatedAt: '2024-12-06T14:30:00Z'
       }
     ];
 

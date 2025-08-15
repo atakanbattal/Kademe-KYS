@@ -1986,6 +1986,7 @@ const DOF8DManagement: React.FC = () => {
     dueDate: '',
     rootCause: '',
     rejectionReason: '', // ✅ Red nedeni alanı
+    dofNumber: '', // ✅ DF numarası alanı (düzenleme için)
     mdiNumber: '', // ✅ MDİ numarası alanı
     requestingDepartment: '', // ✅ DF talebinde bulunan birim
     requestingPerson: '', // ✅ DF talebinde bulunan kişi
@@ -2046,6 +2047,46 @@ const DOF8DManagement: React.FC = () => {
       if (storedRecords && storedRecords.trim().length > 0) {
         const parsedRecords = JSON.parse(storedRecords) as DOFRecord[];
         console.log('📊 Context7 - Parse edilen kayıt sayısı:', parsedRecords.length);
+
+        // ✅ Test için gecikmiş DF kaydı ekle (sadece test için)
+        const hasOverdueRecord = parsedRecords.some(record => {
+          if (record.status === 'closed' || record.status === 'rejected') return false;
+          const dueDate = new Date(record.dueDate);
+          const today = new Date();
+          return dueDate < today;
+        });
+
+        if (!hasOverdueRecord && parsedRecords.length < 50) {
+          // Test için gecikmiş bir kayıt ekle
+          const testOverdueRecord: DOFRecord = {
+            id: `TEST-OVERDUE-${Date.now()}`,
+            dofNumber: 'DF-2024-TEST-001',
+            title: 'Test Gecikmiş DF',
+            description: 'Bu gecikmiş DF testi için oluşturulmuş örnek bir kayıttır.',
+            type: 'corrective',
+            department: 'Kalite Kontrol',
+            responsible: 'Test Kullanıcısı',
+            priority: 'medium',
+            status: 'open',
+            createdDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 10 gün önce
+            openingDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            dueDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 gün önce (gecikmiş)
+            rootCause: 'Test amaçlı',
+            actions: [],
+            attachments: [],
+            history: [],
+            requestingDepartment: 'Test Departmanı',
+            requestingPerson: 'Test Kişisi',
+            rejectionReason: '',
+            mdiNumber: '',
+            metadata: {
+              isSampleData: true,
+              cleanupDate: new Date().toISOString()
+            }
+          };
+          parsedRecords.push(testOverdueRecord);
+          console.log('✅ Test için gecikmiş DF kaydı eklendi');
+        }
         
         // Context7 - KULLANICI KORUMA: Sadece kesin sample data'ları filtrele
         const userCreatedRecords = parsedRecords.filter(record => {

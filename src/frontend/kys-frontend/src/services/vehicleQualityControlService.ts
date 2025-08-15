@@ -482,7 +482,10 @@ class VehicleQualityControlService {
     const currentYear = now.getFullYear();
 
     const totalVehicles = this.vehicles.length;
-    const inProduction = this.vehicles.filter(v => v.currentStatus === VehicleStatus.PRODUCTION).length;
+    const inProduction = this.vehicles.filter(v => 
+      v.currentStatus === VehicleStatus.PRODUCTION || 
+      v.currentStatus === VehicleStatus.RETURNED_TO_PRODUCTION
+    ).length;
     const inQualityControl = this.vehicles.filter(v => v.currentStatus === VehicleStatus.QUALITY_CONTROL).length;
     const returnedToProduction = this.vehicles.filter(v => v.currentStatus === VehicleStatus.RETURNED_TO_PRODUCTION).length;
     const inService = this.vehicles.filter(v => v.currentStatus === VehicleStatus.SERVICE).length;  // Servis durumu eklendi
