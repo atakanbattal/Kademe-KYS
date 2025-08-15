@@ -1773,6 +1773,28 @@ export default function QualityCostManagement() {
           };
         });
 
+      // Pareto analizi hesaplama
+      const maliyetTurleri = ['Yeniden İşlem', 'Hurda', 'Müşteri Şikayeti', 'Garanti', 'Iade', 'Denetim', 'Kalibrasyon', 'Eğitim'];
+      const byMaliyetTuru = maliyetTurleri.map(tur => ({
+        tur,
+        toplam: globalFilteredData.filter(item => item.maliyetTuru === tur).reduce((sum, item) => sum + item.maliyet, 0),
+        adet: globalFilteredData.filter(item => item.maliyetTuru === tur).length
+      })).filter(item => item.toplam > 0);
+
+      const sortedByMaliyet = [...byMaliyetTuru].sort((a, b) => b.toplam - a.toplam);
+      let cumulative = 0;
+      const paretoAnalysis = sortedByMaliyet.map((item, index) => {
+        const percentage = totalCost > 0 ? (item.toplam / totalCost) * 100 : 0;
+        cumulative += percentage;
+        return {
+          category: item.tur,
+          cost: item.toplam,
+          percentage,
+          cumulative,
+          count: item.adet
+        };
+      });
+
       const filteredAnalytics = {
         totalSummary: {
           totalCost,
@@ -1782,7 +1804,8 @@ export default function QualityCostManagement() {
         copqBreakdown,
         byParcaKodu,
         trendData,
-        byMaliyetTuru: []
+        byMaliyetTuru,
+        paretoAnalysis
       };
       
       setRealTimeAnalytics(filteredAnalytics);
@@ -1995,6 +2018,28 @@ export default function QualityCostManagement() {
           const totalItems = costData.length;
           const avgCost = totalCost / totalItems;
 
+          // Pareto analizi hesaplama
+          const maliyetTurleri = ['Yeniden İşlem', 'Hurda', 'Müşteri Şikayeti', 'Garanti', 'Iade', 'Denetim', 'Kalibrasyon', 'Eğitim'];
+          const byMaliyetTuru = maliyetTurleri.map(tur => ({
+            tur,
+            toplam: costData.filter((item: any) => item.maliyetTuru === tur).reduce((sum: number, item: any) => sum + item.maliyet, 0),
+            adet: costData.filter((item: any) => item.maliyetTuru === tur).length
+          })).filter(item => item.toplam > 0);
+
+          const sortedByMaliyet = [...byMaliyetTuru].sort((a, b) => b.toplam - a.toplam);
+          let cumulative = 0;
+          const paretoAnalysis = sortedByMaliyet.map((item, index) => {
+            const percentage = totalCost > 0 ? (item.toplam / totalCost) * 100 : 0;
+            cumulative += percentage;
+            return {
+              category: item.tur,
+              cost: item.toplam,
+              percentage,
+              cumulative,
+              count: item.adet
+            };
+          });
+
           const analytics = {
             totalSummary: {
               totalCost,
@@ -2004,7 +2049,8 @@ export default function QualityCostManagement() {
             copqBreakdown,
             byParcaKodu,
             trendData: realTrendData, // Real monthly trend from localStorage
-            byMaliyetTuru: []
+            byMaliyetTuru,
+            paretoAnalysis
           };
           
           setRealTimeAnalytics(analytics);
@@ -2023,6 +2069,7 @@ export default function QualityCostManagement() {
             byParcaKodu: [],
             trendData: [],
             byMaliyetTuru: [],
+            paretoAnalysis: [],
             sampleDataGenerated: false
           });
           console.log('✅ Boş analytics verileri yüklendi (mock veri devre dışı)');
@@ -2046,6 +2093,7 @@ export default function QualityCostManagement() {
           byParcaKodu: [],
           trendData: [],
           byMaliyetTuru: [],
+          paretoAnalysis: [],
           error: true
         });
       }
@@ -10352,6 +10400,10 @@ const ProfessionalDataTable: React.FC<{
     category: '', // Motor Parçaları, Şase Elemanları, vs.
     aciklama: '', // Detaylı açıklama
     
+    // ✅ YENİ: Hataya sebep olan personel bilgileri (yeniden işlem için)
+    hatayaSebepOlanPersonel: '', // Hataya sebep olan personel adı
+    personelSicilNo: '', // Personel sicil numarası
+    
     // ✅ YENİ: Fire ve Hurda için alış/satış fiyatları
     hurdaSatisFiyati: 0, // Hurda satış fiyatı ₺/kg
     fireGeriKazanim: 0,  // Fire geri kazanım değeri ₺/kg
@@ -10694,6 +10746,10 @@ const ProfessionalDataTable: React.FC<{
       unit: 'adet' as 'adet' | 'kg' | 'lt' | 'ton',
       category: '',
       aciklama: '',
+      
+      // ✅ YENİ: Hataya sebep olan personel bilgileri
+      hatayaSebepOlanPersonel: '',
+      personelSicilNo: '',
       
       // ✅ YENİ: Malzeme bazlı maliyet hesaplama
       malzemeTuru: '' as MaterialType | '',
@@ -11115,7 +11171,11 @@ const ProfessionalDataTable: React.FC<{
       ekBirimMaliyetleri: entry.ekBirimMaliyetleri || [],
       
       // ✅ YENİ: Dış işlem maliyetleri
-      disIslemMaliyetleri: entry.disIslemMaliyetleri || []
+      disIslemMaliyetleri: entry.disIslemMaliyetleri || [],
+      
+      // ✅ YENİ: Personel takip alanları
+      hatayaSebepOlanPersonel: entry.hatayaSebepOlanPersonel || '',
+      personelSicilNo: entry.personelSicilNo || ''
     });
     setDialogOpen(true);
   }, []);

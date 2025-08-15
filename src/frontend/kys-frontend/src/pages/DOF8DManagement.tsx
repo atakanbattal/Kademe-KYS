@@ -88,6 +88,8 @@ interface DOFRecord {
   delayReason?: string;
   rejectionReason?: string; // ✅ DF reddedildiğinde neden açıklaması
   mdiNumber?: string; // ✅ MDİ numarası (Manuel girilen Mühendislik Değişiklik İsteği numarası)
+  requestingDepartment?: string; // ✅ DF talebinde bulunan birim
+  requestingPerson?: string; // ✅ DF talebinde bulunan kişi
   remainingDays?: number;
   delayStatus?: 'on_time' | 'warning' | 'overdue';
   notificationSent?: boolean;
@@ -1055,6 +1057,8 @@ const generateDOFPDF = async (record: DOFRecord): Promise<void> => {
       [turkishSafeText('Öncelik Seviyesi'), getPriorityText(record.priority || 'medium')],
       [turkishSafeText('Sorumlu Departman'), safeText(record.department)],
       [turkishSafeText('Sorumlu Kişi'), safeText(record.responsible)],
+      [turkishSafeText('DF Talebinde Bulunan Birim'), safeText(record.requestingDepartment || '-')],
+      [turkishSafeText('DF Talebinde Bulunan Kişi'), safeText(record.requestingPerson || '-')],
       [turkishSafeText('Açılış Tarihi'), safeDate(record.openingDate || record.createdDate)],
       [turkishSafeText('Hedef Kapanış Tarihi'), safeDate(record.dueDate)],
       ...(record.closedDate ? [[turkishSafeText('Gerçek Kapanış Tarihi'), safeDate(record.closedDate)]] : [])
@@ -1983,6 +1987,8 @@ const DOF8DManagement: React.FC = () => {
     rootCause: '',
     rejectionReason: '', // ✅ Red nedeni alanı
     mdiNumber: '', // ✅ MDİ numarası alanı
+    requestingDepartment: '', // ✅ DF talebinde bulunan birim
+    requestingPerson: '', // ✅ DF talebinde bulunan kişi
     actions: [],
     attachments: [],
     d8Steps: {
@@ -2707,13 +2713,14 @@ const DOF8DManagement: React.FC = () => {
 
     // Basic metrics from filtered records
     const total = filteredRecords.length; // Total from filtered records
-    const open = filteredRecords.filter(r => r.status !== 'closed').length;
+    const open = filteredRecords.filter(r => r.status !== 'closed' && r.status !== 'rejected').length;
     const closed = filteredRecords.filter(r => r.status === 'closed').length;
+    const rejected = filteredRecords.filter(r => r.status === 'rejected').length;
     const critical = filteredRecords.filter(r => r.priority === 'critical').length;
     
     // Context7 - Accurate overdue calculation from filtered records
     const overdue = filteredRecords.filter(r => {
-      if (r.status === 'closed') return false;
+      if (r.status === 'closed' || r.status === 'rejected') return false;
       const dueDate = new Date(r.dueDate);
       const today = new Date();
       today.setHours(23, 59, 59, 999); // End of today
@@ -2783,6 +2790,7 @@ const DOF8DManagement: React.FC = () => {
       total,
       open,
       closed,
+      rejected,
       overdue,
       critical,
       closureRate,
@@ -3915,6 +3923,8 @@ const DOF8DManagement: React.FC = () => {
           rootCause: formData.rootCause?.trim() || '',
           rejectionReason: formData.rejectionReason?.trim() || '', // ✅ Red nedeni alanı
           mdiNumber: formData.type === 'mdi' ? formData.mdiNumber?.trim() || '' : undefined, // ✅ MDİ numarası
+          requestingDepartment: formData.requestingDepartment?.trim() || '', // ✅ DF talebinde bulunan birim
+          requestingPerson: formData.requestingPerson?.trim() || '', // ✅ DF talebinde bulunan kişi
           
           // Context7 - Koleksiyonlar
           actions: Array.isArray(formData.actions) ? formData.actions : [],
@@ -4015,6 +4025,8 @@ const DOF8DManagement: React.FC = () => {
           responsible: formData.responsible.trim(),
           rootCause: formData.rootCause?.trim() || selectedRecord.rootCause,
           rejectionReason: formData.rejectionReason?.trim() || selectedRecord.rejectionReason, // ✅ Red nedeni alanı
+          requestingDepartment: formData.requestingDepartment?.trim() || selectedRecord.requestingDepartment, // ✅ DF talebinde bulunan birim
+          requestingPerson: formData.requestingPerson?.trim() || selectedRecord.requestingPerson, // ✅ DF talebinde bulunan kişi
           
           // Context7 - 8D progress hesaplama
           d8Progress: formData.type === '8d' ? calculate8DProgress(formData.d8Steps) : selectedRecord.d8Progress,
@@ -4512,6 +4524,35 @@ const DOF8DManagement: React.FC = () => {
               <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
                     <Box sx={{ flex: 1 }}>
+                      <Typography variant="h3" fontWeight={700} color="text.secondary" sx={{ mb: 1 }}>
+                        {metrics.rejected}
+                      </Typography>
+                      <Typography variant="h6" color="text.primary" fontWeight={600}>
+                        Reddedilen
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Red edilmiş kayıtlar
+                      </Typography>
+                    </Box>
+                    <Box sx={{ 
+                      p: 1.5, 
+                      borderRadius: '12px', 
+                      bgcolor: 'text.secondary', 
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <CancelIcon sx={{ fontSize: 32 }} />
+                    </Box>
+                  </Box>
+                </CardContent>
+              </MetricCard>
+
+            <MetricCard sx={{ height: '140px' }}>
+              <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
+                    <Box sx={{ flex: 1 }}>
                       <Typography variant="h3" fontWeight={700} color="warning.main" sx={{ mb: 1 }}>
                         {metrics.overdue}
                       </Typography>
@@ -4653,16 +4694,19 @@ const DOF8DManagement: React.FC = () => {
             {/* Aylık Trend */}
             <Paper sx={{ p: 3, borderRadius: 3 }}>
                   <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-                6 Aylık Trend
+                Aylık Trend
                   </Typography>
               {metrics.monthlyTrend.some(data => data.opened > 0 || data.closed > 0) ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {metrics.monthlyTrend.map((data, index) => (
-                  <Box key={index}>
-                    <Typography variant="caption" color="text.secondary" gutterBottom>
-                      {data.month}: Açılan {data.opened}, Kapanan {data.closed}
+                                    <Box key={index}>
+                    <Typography variant="caption" color="text.secondary" gutterBottom sx={{ fontWeight: 'bold' }}>
+                      {data.month}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ mb: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                        Açılan ({data.opened})
+                      </Typography>
                       <LinearProgress
                         variant="determinate"
                         value={(() => {
@@ -4673,13 +4717,17 @@ const DOF8DManagement: React.FC = () => {
                           height: 6,
                           borderRadius: 3,
                           bgcolor: 'grey.200',
-                          flex: 1,
                           '& .MuiLinearProgress-bar': {
                             borderRadius: 3,
                             bgcolor: '#f44336'
                           }
                         }}
                       />
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                        Kapanan ({data.closed})
+                      </Typography>
                       <LinearProgress
                         variant="determinate"
                         value={(() => {
@@ -4690,15 +4738,14 @@ const DOF8DManagement: React.FC = () => {
                           height: 6,
                           borderRadius: 3,
                           bgcolor: 'grey.200',
-                          flex: 1,
                           '& .MuiLinearProgress-bar': {
                             borderRadius: 3,
                             bgcolor: '#4caf50'
                           }
                         }}
                       />
+                    </Box>
                   </Box>
-            </Box>
                 ))}
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -4817,10 +4864,10 @@ const DOF8DManagement: React.FC = () => {
                       // Context7 - Calculate department performance from filtered records
                       const deptStats = DEPARTMENTS.map(dept => {
                         const deptRecords = metrics.filteredRecords.filter(record => record.department === dept);
-                        const openCount = deptRecords.filter(r => r.status !== 'closed').length;
+                        const openCount = deptRecords.filter(r => r.status !== 'closed' && r.status !== 'rejected').length;
                         const closedCount = deptRecords.filter(r => r.status === 'closed').length;
                         const overdueCount = deptRecords.filter(r => {
-                          if (r.status === 'closed') return false;
+                          if (r.status === 'closed' || r.status === 'rejected') return false;
                           const dueDate = new Date(r.dueDate);
                           const today = new Date();
                           today.setHours(23, 59, 59, 999);
@@ -5115,7 +5162,7 @@ const DOF8DManagement: React.FC = () => {
                       
                       console.log('🚨 Termin Süresi Analizi:', {
                         totalRecords: metrics.filteredRecords.length,
-                        openRecords: metrics.filteredRecords.filter(r => r.status !== 'closed').length,
+                        openRecords: metrics.filteredRecords.filter(r => r.status !== 'closed' && r.status !== 'rejected').length,
                         delayedRecords: recordsWithDelay.filter(r => r.diffDays < 0).length,
                         approachingRecords: recordsWithDelay.filter(r => r.diffDays >= 0 && r.diffDays <= 3).length,
                         onTimeRecords: recordsWithDelay.filter(r => r.diffDays > 3).length
@@ -6562,6 +6609,22 @@ const DOF8DManagement: React.FC = () => {
                         value={formData.responsible}
                                         onChange={handleInputChange('responsible')}
                         disabled={dialogMode === 'view'}
+                      />
+                      <TextField
+                        fullWidth
+                        label="DF Talebinde Bulunan Birim"
+                        value={formData.requestingDepartment}
+                        onChange={handleInputChange('requestingDepartment')}
+                        disabled={dialogMode === 'view'}
+                        placeholder="Talep eden birimi giriniz"
+                      />
+                      <TextField
+                        fullWidth
+                        label="DF Talebinde Bulunan Kişi"
+                        value={formData.requestingPerson}
+                        onChange={handleInputChange('requestingPerson')}
+                        disabled={dialogMode === 'view'}
+                        placeholder="Talep eden kişiyi giriniz"
                       />
                     <TextField
                       fullWidth

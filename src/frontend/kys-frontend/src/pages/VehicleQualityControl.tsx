@@ -264,6 +264,16 @@ const VehicleQualityControl: React.FC = () => {
         return false;
       }
 
+      // Ay filtresi
+      if (filters.month) {
+        const [year, month] = filters.month.split('-');
+        const productionDate = new Date(vehicle.productionDate);
+        if (productionDate.getFullYear() !== parseInt(year) || 
+            productionDate.getMonth() !== parseInt(month) - 1) {
+          return false;
+        }
+      }
+
       return true;
     });
   }, [vehicles, searchTerm, filters]);
@@ -1624,6 +1634,19 @@ Bu uygunsuzluk için kök neden analizi ve düzeltici faaliyet planı gereklidir
                 ))}
               </Select>
             </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <TextField
+              fullWidth
+              size="small"
+              type="month"
+              label="Ay Seçin"
+              value={filters.month || ''}
+              onChange={(e) => setFilters({ ...filters, month: e.target.value || undefined })}
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
           </Grid>
           <Grid item xs={12} md={2}>
             <Button

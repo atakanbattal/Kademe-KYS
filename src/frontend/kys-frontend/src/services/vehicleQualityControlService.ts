@@ -146,6 +146,7 @@ export interface VehicleFilters {
   isOverdue?: boolean;
   dateFrom?: string;
   dateTo?: string;
+  month?: string; // Ay filtresi için eklendi
 }
 
 export interface CreateVehicleData {
@@ -367,11 +368,11 @@ export const getVehicleStatusColor = (status: VehicleStatus): string => {
 };
 
 // Helper function for Turkish time formatting
-export const formatTurkishTime = (timeInHours: number): string => {
-  if (!timeInHours || timeInHours === 0) return '0 saat';
+export const formatTurkishTime = (timeInMinutes: number): string => {
+  if (!timeInMinutes || timeInMinutes === 0) return '0 dakika';
   
-  const hours = Math.floor(timeInHours);
-  const minutes = Math.round((timeInHours - hours) * 60);
+  const hours = Math.floor(timeInMinutes / 60);
+  const minutes = Math.round(timeInMinutes % 60);
   
   if (hours === 0) {
     return `${minutes} dakika`;
@@ -535,7 +536,7 @@ class VehicleQualityControlService {
 
     if (completedVehicles.length === 0) return 0;
 
-    let totalHours = 0;
+    let totalMinutes = 0;
     let validCalculations = 0;
 
     completedVehicles.forEach(vehicle => {
@@ -552,17 +553,17 @@ class VehicleQualityControlService {
         // Bu girişten sonraki ilk çıkışı bul
         const exit = qualityExits.find(e => new Date(e.date) > new Date(start.date));
         if (exit) {
-          const hours = (new Date(exit.date).getTime() - new Date(start.date).getTime()) / (1000 * 60 * 60);
-          // Mantıklı süre kontrolü (1 dakika - 30 gün arası)
-          if (hours >= 0.017 && hours <= 720) { // 1 dakika = 0.017 saat, 30 gün = 720 saat
-            totalHours += hours;
+          const minutes = (new Date(exit.date).getTime() - new Date(start.date).getTime()) / (1000 * 60);
+          // Mantıklı süre kontrolü (1 dakika - 2 gün arası)
+          if (minutes >= 1 && minutes <= 2880) { // 1 dakika - 2 gün = 2880 dakika
+            totalMinutes += minutes;
             validCalculations++;
           }
         }
       });
     });
 
-    return validCalculations > 0 ? Math.round(totalHours / validCalculations * 10) / 10 : 0;
+    return validCalculations > 0 ? Math.round(totalMinutes / validCalculations) : 0;
   }
 
   private calculateAverageProductionTime(): number {
@@ -573,7 +574,7 @@ class VehicleQualityControlService {
 
     if (returnedVehicles.length === 0) return 0;
 
-    let totalHours = 0;
+    let totalMinutes = 0;
     let validCalculations = 0;
 
     returnedVehicles.forEach(vehicle => {
@@ -587,17 +588,17 @@ class VehicleQualityControlService {
         // Bu üretime girişten sonraki ilk kaliteye dönüşü bul
         const exit = productionExits.find(e => new Date(e.date) > new Date(start.date));
         if (exit) {
-          const hours = (new Date(exit.date).getTime() - new Date(start.date).getTime()) / (1000 * 60 * 60);
-          // Mantıklı süre kontrolü (1 dakika - 30 gün arası)
-          if (hours >= 0.017 && hours <= 720) { // 1 dakika = 0.017 saat, 30 gün = 720 saat
-            totalHours += hours;
+          const minutes = (new Date(exit.date).getTime() - new Date(start.date).getTime()) / (1000 * 60);
+          // Mantıklı süre kontrolü (1 dakika - 5 gün arası)
+          if (minutes >= 1 && minutes <= 7200) { // 1 dakika - 5 gün = 7200 dakika
+            totalMinutes += minutes;
             validCalculations++;
           }
         }
       });
     });
 
-    return validCalculations > 0 ? Math.round(totalHours / validCalculations * 10) / 10 : 0;
+    return validCalculations > 0 ? Math.round(totalMinutes / validCalculations) : 0;
   }
 
   private calculateAverageShipmentTime(): number {
@@ -648,7 +649,7 @@ class VehicleQualityControlService {
 
     if (servicedVehicles.length === 0) return 0;
 
-    let totalHours = 0;
+    let totalMinutes = 0;
     let validCalculations = 0;
 
     servicedVehicles.forEach(vehicle => {
@@ -673,17 +674,17 @@ class VehicleQualityControlService {
         }
         
         if (serviceEnd) {
-          const hours = (serviceEnd.getTime() - new Date(start.date).getTime()) / (1000 * 60 * 60);
-          // Mantıklı süre kontrolü (1 dakika - 30 gün arası)
-          if (hours >= 0.017 && hours <= 720) { // 1 dakika = 0.017 saat, 30 gün = 720 saat
-            totalHours += hours;
+          const minutes = (serviceEnd.getTime() - new Date(start.date).getTime()) / (1000 * 60);
+          // Mantıklı süre kontrolü (1 dakika - 10 gün arası)
+          if (minutes >= 1 && minutes <= 14400) { // 1 dakika - 10 gün = 14400 dakika
+            totalMinutes += minutes;
             validCalculations++;
           }
         }
       });
     });
 
-    return validCalculations > 0 ? Math.round(totalHours / validCalculations * 10) / 10 : 0;
+    return validCalculations > 0 ? Math.round(totalMinutes / validCalculations) : 0;
   }
 
   private calculateQualityEfficiency(): number {
@@ -724,6 +725,14 @@ class VehicleQualityControlService {
         filteredVehicles = filteredVehicles.filter(v => 
           new Date(v.productionDate) <= new Date(filters.dateTo!)
         );
+      }
+      if (filters.month) {
+        const [year, month] = filters.month.split('-');
+        filteredVehicles = filteredVehicles.filter(v => {
+          const productionDate = new Date(v.productionDate);
+          return productionDate.getFullYear() === parseInt(year) && 
+                 productionDate.getMonth() === parseInt(month) - 1;
+        });
       }
     }
 
