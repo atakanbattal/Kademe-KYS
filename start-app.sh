@@ -28,4 +28,4 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Uygulamayı başlat
-npm start 
+npm start
