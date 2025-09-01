@@ -41,29 +41,57 @@ const QuarantineManagement = lazy(() => import('./pages/QuarantineManagement'));
 const VehicleQualityControl = lazy(() => import('./pages/VehicleQualityControl'));
 const DeviationApprovalManagement = lazy(() => import('./pages/DeviationApprovalManagement'));
 
-// ✅ LOADING COMPONENT
+// ✅ OPTIMIZED LOADING COMPONENT
 const PageLoader = () => (
   <Box 
     sx={{ 
       display: 'flex', 
       justifyContent: 'center', 
       alignItems: 'center', 
-      minHeight: '60vh',
+      minHeight: '40vh',
       flexDirection: 'column',
-      gap: 2
+      gap: 2,
+      opacity: 1,
+      transition: 'opacity 0.3s ease-in-out'
     }}
   >
-    <CircularProgress size={60} />
-    <div>Sayfa yükleniyor...</div>
+    <CircularProgress 
+      size={48} 
+      thickness={4}
+      sx={{
+        color: 'primary.main',
+        animationDuration: '1s !important'
+      }}
+    />
+    <Typography 
+      variant="body2" 
+      color="text.secondary"
+      sx={{ 
+        fontSize: '0.875rem',
+        fontWeight: 500
+      }}
+    >
+      Modül yükleniyor...
+    </Typography>
   </Box>
 );
 
-// ✅ PROTECTED LAYOUT WRAPPER - Suspense ile otomatik sarma
+// ✅ PROTECTED LAYOUT WRAPPER - Optimized Suspense ile otomatik sarma
 const ProtectedLayout = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
     <Layout>
-      <Suspense fallback={<PageLoader />}>
-        {children}
+      <Suspense 
+        fallback={<PageLoader />}
+      >
+        <Box 
+          sx={{ 
+            opacity: 1,
+            transition: 'opacity 0.2s ease-in-out',
+            minHeight: '200px'
+          }}
+        >
+          {children}
+        </Box>
       </Suspense>
     </Layout>
   </ProtectedRoute>
@@ -106,159 +134,115 @@ const AppContent = () => {
             </ProtectedLayout>
           } />
           <Route path="/material-certificate-tracking" element={
-            <ProtectedRoute>
-              <Layout>
-                <MaterialCertificateTracking />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <MaterialCertificateTracking />
+            </ProtectedLayout>
           } />
           <Route path="/dimensional-control" element={
-            <ProtectedRoute>
-              <Layout>
-                <DimensionalControlSystem />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <DimensionalControlSystem />
+            </ProtectedLayout>
           } />
           <Route path="/tank-leak-test" element={
-            <ProtectedRoute>
-              <Layout>
-                <TankLeakTest />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <TankLeakTest />
+            </ProtectedLayout>
           } />
           <Route path="/dof-8d-management" element={
-            <ProtectedRoute>
-              <Layout>
-                <DOF8DManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <DOF8DManagement />
+            </ProtectedLayout>
           } />
           <Route path="/quality-cost-management" element={
-            <ProtectedRoute>
-              <Layout>
-                <QualityCostManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <QualityCostManagement />
+            </ProtectedLayout>
           } />
           <Route path="/settings" element={
-            <ProtectedRoute>
-              <Layout>
-                <Settings />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <Settings />
+            </ProtectedLayout>
           } />
           <Route path="/iso-5817" element={
-            <ProtectedRoute>
-              <Layout>
-                <ISO5817WeldLimit />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <ISO5817WeldLimit />
+            </ProtectedLayout>
           } />
           <Route path="/cost-calculation" element={
-            <ProtectedRoute>
-              <Layout>
-                <WeldingCostCalculation />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <WeldingCostCalculation />
+            </ProtectedLayout>
           } />
           <Route path="/wps-generator" element={
-            <ProtectedRoute>
-              <Layout>
-                <WpsGenerator />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <WpsGenerator />
+            </ProtectedLayout>
           } />
           <Route path="/quality-management" element={
-            <ProtectedRoute>
-              <Layout>
-                <QualityManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <QualityManagement />
+            </ProtectedLayout>
           } />
           <Route path="/vehicle-quality-control" element={
-            <ProtectedRoute>
-              <Layout>
-                <VehicleQualityControl />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <VehicleQualityControl />
+            </ProtectedLayout>
           } />
           <Route path="/document-management" element={
-            <ProtectedRoute>
-              <Layout>
-                <DocumentManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <DocumentManagement />
+            </ProtectedLayout>
           } />
           <Route path="/supplier-quality" element={
-            <ProtectedRoute>
-              <Layout>
-                <SupplierQualityManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <SupplierQualityManagement />
+            </ProtectedLayout>
           } />
           <Route path="/fan-test-analysis" element={
-            <ProtectedRoute>
-              <Layout>
-                <FanTestAnalysis />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <FanTestAnalysis />
+            </ProtectedLayout>
           } />
           <Route path="/equipment-calibration" element={
-            <ProtectedRoute>
-              <Layout>
-                <EquipmentCalibrationManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <EquipmentCalibrationManagement />
+            </ProtectedLayout>
           } />
 
           <Route path="/internal-audit-management" element={
-            <ProtectedRoute>
-              <Layout>
-                <InternalAuditManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <InternalAuditManagement />
+            </ProtectedLayout>
           } />
           <Route path="/risk-management" element={
-            <ProtectedRoute>
-              <Layout>
-                <RiskManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <RiskManagement />
+            </ProtectedLayout>
           } />
           <Route path="/customer-feedback" element={
-            <ProtectedRoute>
-              <Layout>
-                <CustomerFeedbackManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <CustomerFeedbackManagement />
+            </ProtectedLayout>
           } />
           <Route path="/training-management" element={
-            <ProtectedRoute>
-              <Layout>
-                <TrainingManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <TrainingManagement />
+            </ProtectedLayout>
           } />
           <Route path="/production-quality-tracking" element={
-            <ProtectedRoute>
-              <Layout>
-                <ProductionQualityTracking />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <ProductionQualityTracking />
+            </ProtectedLayout>
           } />
           <Route path="/quarantine-management" element={
-            <ProtectedRoute>
-              <Layout>
-                <QuarantineManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <QuarantineManagement />
+            </ProtectedLayout>
           } />
           <Route path="/deviation-approval" element={
-            <ProtectedRoute>
-              <Layout>
-                <DeviationApprovalManagement />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <DeviationApprovalManagement />
+            </ProtectedLayout>
           } />
           
           {/* Catch all route */}

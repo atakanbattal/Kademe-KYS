@@ -49,13 +49,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // ✅ Hemen başlat
         initializeAuth();
         
-        // ✅ Güvenlik: 5 saniye sonra mutlaka loading'i kapat
+        // ✅ Güvenlik: 2 saniye sonra mutlaka loading'i kapat (hızlı loading için)
         const timeoutId = setTimeout(() => {
             if (loading) {
                 console.warn('⚠️ Auth loading timeout - zorla kapatılıyor');
                 setLoading(false);
             }
-        }, 5000);
+        }, 2000);
 
         return () => clearTimeout(timeoutId);
     }, [loading]);
