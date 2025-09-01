@@ -25,7 +25,7 @@ export interface User {
 const authService = {
   // Login user
   login: async (credentials: LoginCredentials): Promise<User> => {
-    const response = await api.post('/auth/login', credentials);
+    const response = await api.post('/auth-login', credentials);
     
     // Store user data and token in localStorage
     if (response.data) {
