@@ -515,17 +515,25 @@ class DataSyncManager {
     return created.toISOString().split('T')[0];
   }
 
-  // ✅ OTOMATİK SENCRONİZASYON KURULUM
+  // ✅ OTOMATİK SENCRONİZASYON KURULUM - Optimize edildi
   private setupAutoSync(): void {
-    // Her 30 saniyede bir localStorage'dan verileri güncelle (performans için optimizasyon)
-    setInterval(() => {
+    // ✅ İLK YÜKLEME: Uygulama başladığında bir kez yükle
+    this.loadRealDOFData();
+    this.loadRealQualityCostData();
+    
+    // ✅ OPTIMIZED: Sadece gerekli olduğunda sync yap (5 dakikada bir)
+    const syncInterval = setInterval(() => {
+      console.log('🔄 Periyodik veri senkronizasyonu...');
       this.loadRealDOFData();
       this.loadRealQualityCostData();
       this.notifyListeners('dof');
       this.notifyListeners('qualityCost');
-    }, 30000); // 30 saniye (5 saniyeden optimize edildi)
+    }, 300000); // 5 dakika (300000ms) - Çok daha az yük
     
-    console.log('🔄 DataSyncManager - Otomatik localStorage senkronizasyonu başlatıldı (30 saniye)');
+    // ✅ Cleanup için interval'i sakla
+    (globalThis as any).dataSyncInterval = syncInterval;
+    
+    console.log('🔄 DataSyncManager - Optimize edilmiş senkronizasyon başlatıldı (5 dakika)');
   }
 
   // ✅ VERİ ALMA METODLARİ - Cache ile optimize edildi
@@ -534,8 +542,8 @@ class DataSyncManager {
   
   public getDOFData() {
     const now = Date.now();
-    // 10 saniye cache - aynı veri sürekli çekilmesin
-    if (this.dataCache && (now - this.lastDataFetch < 10000)) {
+    // ✅ 60 saniye cache - Çok daha az yük, aynı veri sürekli çekilmesin
+    if (this.dataCache && (now - this.lastDataFetch < 60000)) {
       return this.dataCache;
     }
     

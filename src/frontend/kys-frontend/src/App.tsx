@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { CircularProgress, Box } from '@mui/material';
 import { CustomThemeProvider, useThemeContext } from './context/ThemeContext';
 import { QueryProvider } from './providers/QueryProvider';
 import { AuthProvider } from './contexts/AuthContext';
@@ -11,39 +12,62 @@ import Login from './pages/Login';
 // ✅ MERKEZI VERİ SİSTEMİ IMPORT
 import { initializeDataIntegration } from './utils/ModuleDataIntegrator';
 
-// ✅ VERİ TEST SİSTEMİ IMPORT
-import './utils/testDataIntegration';
-
 // Components
 import Layout from './components/Layout';
 
-// Pages
-import Dashboard from './pages/Dashboard';
-import QualityControlReportsList from './pages/QualityControlReportsList';
-import TankLeakTest from './pages/TankLeakTest';
-import DOF8DManagement from './pages/DOF8DManagement';
-import QualityCostManagement from './pages/QualityCostManagement';
-import Settings from './pages/Settings';
-import ISO5817WeldLimit from './pages/ISO5817WeldLimit';
-import WpsGenerator from './pages/WpsGenerator';
-import DocumentManagement from './pages/DocumentManagement';
-import SupplierQualityManagement from './pages/SupplierQualityManagement';
-import WeldingCostCalculation from './pages/WeldingCostCalculation';
-import EquipmentCalibrationManagement from './pages/EquipmentCalibrationManagement';
+// ✅ LAZY LOADING - Bundle boyutunu küçültmek için
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const QualityControlReportsList = lazy(() => import('./pages/QualityControlReportsList'));
+const TankLeakTest = lazy(() => import('./pages/TankLeakTest'));
+const DOF8DManagement = lazy(() => import('./pages/DOF8DManagement'));
+const QualityCostManagement = lazy(() => import('./pages/QualityCostManagement'));
+const Settings = lazy(() => import('./pages/Settings'));
+const ISO5817WeldLimit = lazy(() => import('./pages/ISO5817WeldLimit'));
+const WpsGenerator = lazy(() => import('./pages/WpsGenerator'));
+const DocumentManagement = lazy(() => import('./pages/DocumentManagement'));
+const SupplierQualityManagement = lazy(() => import('./pages/SupplierQualityManagement'));
+const WeldingCostCalculation = lazy(() => import('./pages/WeldingCostCalculation'));
+const EquipmentCalibrationManagement = lazy(() => import('./pages/EquipmentCalibrationManagement'));
+const QualityManagement = lazy(() => import('./pages/QualityManagement'));
+const DimensionalControlSystem = lazy(() => import('./pages/DimensionalControlSystem'));
+const MaterialCertificateTracking = lazy(() => import('./pages/MaterialCertificateTracking'));
+const FanTestAnalysis = lazy(() => import('./pages/FanTestAnalysis'));
+const InternalAuditManagement = lazy(() => import('./pages/InternalAuditManagement'));
+const RiskManagement = lazy(() => import('./pages/RiskManagement'));
+const CustomerFeedbackManagement = lazy(() => import('./pages/CustomerFeedbackManagement'));
+const TrainingManagement = lazy(() => import('./pages/TrainingManagement'));
+const ProductionQualityTracking = lazy(() => import('./pages/ProductionQualityTracking'));
+const QuarantineManagement = lazy(() => import('./pages/QuarantineManagement'));
+const VehicleQualityControl = lazy(() => import('./pages/VehicleQualityControl'));
+const DeviationApprovalManagement = lazy(() => import('./pages/DeviationApprovalManagement'));
 
+// ✅ LOADING COMPONENT
+const PageLoader = () => (
+  <Box 
+    sx={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '60vh',
+      flexDirection: 'column',
+      gap: 2
+    }}
+  >
+    <CircularProgress size={60} />
+    <div>Sayfa yükleniyor...</div>
+  </Box>
+);
 
-import QualityManagement from './pages/QualityManagement';
-import DimensionalControlSystem from './pages/DimensionalControlSystem';
-import MaterialCertificateTracking from './pages/MaterialCertificateTracking';
-import FanTestAnalysis from './pages/FanTestAnalysis';
-import InternalAuditManagement from './pages/InternalAuditManagement';
-import RiskManagement from './pages/RiskManagement';
-import CustomerFeedbackManagement from './pages/CustomerFeedbackManagement';
-import TrainingManagement from './pages/TrainingManagement';
-import ProductionQualityTracking from './pages/ProductionQualityTracking';
-import QuarantineManagement from './pages/QuarantineManagement';
-import VehicleQualityControl from './pages/VehicleQualityControl';
-import DeviationApprovalManagement from './pages/DeviationApprovalManagement';
+// ✅ PROTECTED LAYOUT WRAPPER - Suspense ile otomatik sarma
+const ProtectedLayout = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <Layout>
+      <Suspense fallback={<PageLoader />}>
+        {children}
+      </Suspense>
+    </Layout>
+  </ProtectedRoute>
+);
 
 // Main app content
 const AppContent = () => {
@@ -71,19 +95,15 @@ const AppContent = () => {
           
           {/* Protected routes - authentication gerektiren */}
           <Route path="/" element={
-            <ProtectedRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <Dashboard />
+            </ProtectedLayout>
           } />
 
           <Route path="/quality-control-reports" element={
-            <ProtectedRoute>
-              <Layout>
-                <QualityControlReportsList />
-              </Layout>
-            </ProtectedRoute>
+            <ProtectedLayout>
+              <QualityControlReportsList />
+            </ProtectedLayout>
           } />
           <Route path="/material-certificate-tracking" element={
             <ProtectedRoute>

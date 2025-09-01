@@ -46,8 +46,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         };
 
+        // ✅ Hemen başlat
         initializeAuth();
-    }, []);
+        
+        // ✅ Güvenlik: 5 saniye sonra mutlaka loading'i kapat
+        const timeoutId = setTimeout(() => {
+            if (loading) {
+                console.warn('⚠️ Auth loading timeout - zorla kapatılıyor');
+                setLoading(false);
+            }
+        }, 5000);
+
+        return () => clearTimeout(timeoutId);
+    }, [loading]);
 
     const login = async (credentials: LoginCredentials) => {
         try {

@@ -261,10 +261,13 @@ export const moduleDataIntegrator = ModuleDataIntegrator.getInstance();
 export const initializeDataIntegration = () => {
   console.log('🎯 Otomatik veri entegrasyonu başlatılıyor...');
   
-  // 2 saniye bekleyip entegrasyonu başlat (diğer modüller yüklendikten sonra)
-  setTimeout(() => {
+  // ✅ HEMEN BAŞLAT - Timeout kaldırıldı (loading sorununu çözmek için)
+  try {
     moduleDataIntegrator.initializeAllModules();
-  }, 2000);
+    console.log('✅ Veri entegrasyonu hemen tamamlandı');
+  } catch (error) {
+    console.error('❌ Veri entegrasyonu başlatılamadı:', error);
+  }
 };
 
 // ✅ MANUEL ENTEGRASYON TETİKLEME
