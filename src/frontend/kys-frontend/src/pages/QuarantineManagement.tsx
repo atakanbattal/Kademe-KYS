@@ -1117,8 +1117,6 @@ const QuarantineManagement: React.FC = () => {
   // DATA PERSISTENCE FUNCTIONS - Supabase Entegre
   // ============================================
   
-  const [isLoading, setIsLoading] = useState(false);
-  
   const saveToStorage = useCallback(async (data: QuarantineRecord[]) => {
     // Bu fonksiyon artık sadece local state için kullanılacak
     // Gerçek kaydetme işlemi create/update operasyonlarında yapılacak
