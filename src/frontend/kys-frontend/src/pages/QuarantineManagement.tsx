@@ -616,14 +616,50 @@ const QuarantineManagement: React.FC = () => {
     const initializeData = async () => {
       try {
         console.log('🚀 QuarantineManagement başlatılıyor...');
+        setIsLoading(true);
+        
+        // Veri yüklemeyi dene
         const data = await loadFromStorage();
-        setQuarantineData(data);
-        setFilteredData(data);
-        setStats(calculateStats(data));
-        console.log('✅ Karantina verileri başarıyla yüklendi');
+        
+        if (data && Array.isArray(data)) {
+          setQuarantineData(data);
+          setFilteredData(data);
+          setStats(calculateStats(data));
+          console.log('✅ Karantina verileri başarıyla yüklendi:', data.length);
+        } else {
+          console.warn('⚠️ Veri yüklenemedi, boş array kullanılıyor');
+          setQuarantineData([]);
+          setFilteredData([]);
+          setStats({
+            totalItems: 0,
+            inQuarantine: 0,
+            scrapped: 0,
+            approved: 0,
+            reworked: 0,
+            released: 0,
+            totalCost: 0,
+            avgProcessingTime: 0
+          });
+        }
       } catch (error) {
         console.error('❌ Veri yükleme hatası:', error);
-        showNotification('Veriler yüklenirken hata oluştu!', 'error');
+        showNotification('Veriler yüklenirken hata oluştu! Boş liste görüntüleniyor.', 'error');
+        
+        // Fallback: boş veri setleri
+        setQuarantineData([]);
+        setFilteredData([]);
+        setStats({
+          totalItems: 0,
+          inQuarantine: 0,
+          scrapped: 0,
+          approved: 0,
+          reworked: 0,
+          released: 0,
+          totalCost: 0,
+          avgProcessingTime: 0
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -1063,78 +1099,99 @@ const QuarantineManagement: React.FC = () => {
   const convertLocalToSupabase = (local: QuarantineRecord): Omit<SupabaseQuarantineRecord, 'id' | 'created_at' | 'updated_at'> => {
     return {
       quarantine_number: local.id || `QR-${Date.now()}`,
-      part_code: local.partCode,
-      part_name: local.partName,
-      quantity: local.quantity,
-      unit: local.unit,
-      quarantine_reason: local.quarantineReason,
-      responsible_department: local.responsibleDepartment,
-      supplier_name: local.supplierName,
-      production_order: local.productionOrder,
-      inspection_type: local.inspectionType,
-      inspector_name: local.inspectorName,
-      inspection_results: local.inspectionResults,
-      material_type: local.materialType,
-      vehicle_model: local.vehicleModel,
-      location: local.location,
+      part_code: local.partCode || '',
+      part_name: local.partName || '',
+      quantity: local.quantity || 0,
+      unit: local.unit || 'adet',
+      quarantine_reason: local.quarantineReason || '',
+      responsible_department: local.responsibleDepartment || '',
+      supplier_name: local.supplierName || '',
+      production_order: local.productionOrder || '',
+      inspection_type: local.inspectionType || '',
+      inspection_date: local.inspectionDate || '',
+      inspector_name: local.inspectorName || '',
+      inspection_results: local.inspectionResults || '',
+      material_type: local.materialType || '',
+      vehicle_model: local.vehicleModel || '',
+      location: local.location || '',
+      customer_name: local.customerName || '',
+      drawing_number: local.drawingNumber || '',
+      revision: local.revision || '',
+      priority: local.priority || 'ORTA',
+      estimated_cost: local.estimatedCost || 0,
+      risk_level: local.riskLevel || 'ORTA',
+      immediate_action: local.immediateAction || '',
+      containment_action: local.containmentAction || '',
+      root_cause: local.rootCause || '',
+      preventive_action: local.preventiveAction || '',
       status: local.status === 'KARANTINADA' ? 'quarantined' : 
              local.status === 'SERBEST_BIRAKILDI' ? 'released' :
              local.status === 'HURDA' ? 'scrapped' :
              local.status === 'YENIDEN_ISLEM' ? 'rework' :
+             local.status === 'SAPMA_ONAYI' ? 'deviation_approval' :
              'quarantined',
       disposition: local.status === 'HURDA' ? 'scrap' :
                   local.status === 'YENIDEN_ISLEM' ? 'rework' :
                   local.status === 'SERBEST_BIRAKILDI' ? 'accept' : undefined,
-      disposition_reason: local.decisionNotes,
-      release_date: local.decisionDate,
-      notes: local.notes
+      disposition_reason: local.decisionNotes || '',
+      release_date: local.decisionDate || '',
+      notes: local.notes || ''
     };
   };
 
   const convertSupabaseToLocal = (supabase: SupabaseQuarantineRecord): QuarantineRecord => {
     return {
       id: supabase.quarantine_number || supabase.id || '',
-      partCode: supabase.part_code,
-      partName: supabase.part_name,
-      quantity: supabase.quantity,
+      partCode: supabase.part_code || '',
+      partName: supabase.part_name || '',
+      quantity: supabase.quantity || 0,
       unit: supabase.unit || 'adet',
-      quarantineReason: supabase.quarantine_reason,
+      quarantineReason: supabase.quarantine_reason || '',
       responsibleDepartment: supabase.responsible_department || '',
       responsiblePersons: [], // Varsayılan boş array
       quarantineDate: supabase.created_at || new Date().toISOString(),
-      supplierName: supabase.supplier_name,
-      productionOrder: supabase.production_order,
-      inspectionResults: supabase.inspection_results,
+      supplierName: supabase.supplier_name || '',
+      productionOrder: supabase.production_order || '',
+      inspectionResults: supabase.inspection_results || '',
       notes: supabase.notes || '',
       status: supabase.status === 'quarantined' ? 'KARANTINADA' :
               supabase.status === 'released' ? 'SERBEST_BIRAKILDI' :
               supabase.status === 'scrapped' ? 'HURDA' :
               supabase.status === 'rework' ? 'YENIDEN_ISLEM' :
+              supabase.status === 'deviation_approval' ? 'SAPMA_ONAYI' :
               'KARANTINADA',
-      decisionDate: supabase.release_date,
+      decisionDate: supabase.release_date || '',
       decisionBy: '',
-      decisionNotes: supabase.disposition_reason,
-      priority: 'ORTA', // Varsayılan
-      estimatedCost: 0, // Varsayılan
+      decisionNotes: supabase.disposition_reason || '',
+      priority: (supabase.priority === 'DUSUK' || supabase.priority === 'ORTA' || 
+                 supabase.priority === 'YUKSEK' || supabase.priority === 'KRITIK') 
+                 ? supabase.priority : 'ORTA',
+      estimatedCost: supabase.estimated_cost || 0,
       attachments: [], // Varsayılan boş array
       followUpActions: [], // Varsayılan boş array
       createdBy: 'Sistem',
       createdDate: supabase.created_at || new Date().toISOString(),
       lastModified: supabase.updated_at || new Date().toISOString(),
-      location: supabase.location,
-      inspectionType: supabase.inspection_type,
-      inspectorName: supabase.inspector_name,
-      materialType: supabase.material_type,
-      vehicleModel: supabase.vehicle_model,
+      location: supabase.location || '',
+      inspectionType: supabase.inspection_type || '',
+      inspectionDate: supabase.inspection_date || '',
+      inspectorName: supabase.inspector_name || '',
+      customerName: supabase.customer_name || '',
+      drawingNumber: supabase.drawing_number || '',
+      revision: supabase.revision || '',
+      materialType: supabase.material_type || '',
+      vehicleModel: supabase.vehicle_model || '',
       nonConformityDetails: [],
       correctiveActions: [],
       photos: [],
       relatedDocuments: [],
-      riskLevel: 'ORTA',
-      immediateAction: '',
-      containmentAction: '',
-      rootCause: '',
-      preventiveAction: ''
+      riskLevel: (supabase.risk_level === 'DUSUK' || supabase.risk_level === 'ORTA' || 
+                  supabase.risk_level === 'YUKSEK' || supabase.risk_level === 'KRITIK') 
+                  ? supabase.risk_level : 'ORTA',
+      immediateAction: supabase.immediate_action || '',
+      containmentAction: supabase.containment_action || '',
+      rootCause: supabase.root_cause || '',
+      preventiveAction: supabase.preventive_action || ''
     };
   };
 
@@ -1220,7 +1277,18 @@ const QuarantineManagement: React.FC = () => {
         inspectionDate: '2025-01-10',
         inspectorName: 'Mehmet Kaya',
         materialType: 'Çelik',
-        riskLevel: 'YUKSEK'
+        riskLevel: 'YUKSEK',
+        customerName: 'ABC Makine Ltd.',
+        drawingNumber: 'DWG-FTH-240-001',
+        revision: 'Rev-01',
+        nonConformityDetails: [],
+        correctiveActions: [],
+        photos: [],
+        relatedDocuments: [],
+        immediateAction: 'Üretime durdurma talimatı verildi',
+        containmentAction: 'Benzer parçalar kontrol edildi',
+        rootCause: 'Kalıp aşınması',
+        preventiveAction: 'Kalıp bakım planı revize edildi'
       },
       {
         id: '2025-01-002',
@@ -1258,7 +1326,18 @@ const QuarantineManagement: React.FC = () => {
         inspectionDate: '2025-01-12',
         inspectorName: 'Ali Demir',
         materialType: 'Kauçuk',
-        riskLevel: 'ORTA'
+        riskLevel: 'ORTA',
+        customerName: 'XYZ İnşaat A.Ş.',
+        drawingNumber: 'DWG-AGA-3000-M15',
+        revision: 'Rev-02',
+        nonConformityDetails: [],
+        correctiveActions: [],
+        photos: [],
+        relatedDocuments: [],
+        immediateAction: 'Üretim hatları durduruldu',
+        containmentAction: 'Tüm conta stoku incelendi',
+        rootCause: 'Tedarikçi kalite problemi',
+        preventiveAction: 'Tedarikçi audit planlandı'
       },
       {
         id: '2025-01-003',
@@ -1296,7 +1375,18 @@ const QuarantineManagement: React.FC = () => {
         inspectionDate: '2025-01-08',
         inspectorName: 'Zeynep Aktaş',
         materialType: 'St-37 Çelik',
-        riskLevel: 'KRITIK'
+        riskLevel: 'KRITIK',
+        customerName: 'DEF İnşaat Mak. A.Ş.',
+        drawingNumber: 'DWG-KDM-70-BLK',
+        revision: 'Rev-03',
+        nonConformityDetails: [],
+        correctiveActions: [],
+        photos: [],
+        relatedDocuments: [],
+        immediateAction: 'Müşteri bilgilendirildi',
+        containmentAction: 'Benzer şaseler kontrol edildi',
+        rootCause: 'Kaynak parametreleri hatalı',
+        preventiveAction: 'WPS revize edildi'
       },
       {
         id: '2025-01-004',

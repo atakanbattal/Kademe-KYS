@@ -106,6 +106,7 @@ export interface QuarantineRecord extends BaseRecord {
     supplier_name?: string;
     production_order?: string;
     inspection_type?: string;
+    inspection_date?: string;
     inspector_name?: string;
     inspection_results?: string;
     material_type?: string;
@@ -116,6 +117,16 @@ export interface QuarantineRecord extends BaseRecord {
     disposition_reason?: string;
     release_date?: string;
     notes?: string;
+    customer_name?: string;
+    drawing_number?: string;
+    revision?: string;
+    priority?: string;
+    estimated_cost?: number;
+    risk_level?: string;
+    immediate_action?: string;
+    containment_action?: string;
+    root_cause?: string;
+    preventive_action?: string;
 }
 
 // Generic CRUD operasyonları

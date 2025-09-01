@@ -6,9 +6,7 @@ const API_URL = process.env.REACT_APP_API_URL ||
                   ? '/.netlify/functions'  // Netlify Functions
                   : 'http://localhost:5003/api');
 
-console.log('🔍 API URL:', API_URL);
-console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
-console.log('🔍 REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+// Debug removed - using demo auth mode
 
 // Create an axios instance
 const api = axios.create({
