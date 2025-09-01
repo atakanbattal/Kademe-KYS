@@ -1,10 +1,4 @@
-const bcrypt = require('bcryptjs');
-
-// Hardcoded Supabase credentials for demo
-const SUPABASE_URL = 'https://nzkxizhnikfshyhilefg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56a3hpemhuaWtmc2h5aGlsZWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MTYwMzIsImV4cCI6MjA3MjI5MjAzMn0.aRm8XdIvVrBffxT2VHH7A2bMqQsjiJiy3qkbJAkYhUk';
-
-// Test users for demo
+// Test users for demo - NO DEPENDENCIES
 const TEST_USERS = [
   {
     _id: "4f40d514-c17a-4467-8818-2f9c33444b0d",
@@ -46,6 +40,8 @@ function generateToken(userId) {
 }
 
 exports.handler = async (event, context) => {
+  console.log('🔥 NETLIFY FUNCTION ÇAĞRILDI!', event.httpMethod, event.path);
+  
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -56,6 +52,7 @@ exports.handler = async (event, context) => {
 
   // Handle preflight CORS request
   if (event.httpMethod === 'OPTIONS') {
+    console.log('🔥 OPTIONS isteği geldi');
     return {
       statusCode: 200,
       headers,
@@ -64,6 +61,7 @@ exports.handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'POST') {
+    console.log('🔥 POST değil:', event.httpMethod);
     return {
       statusCode: 405,
       headers,
