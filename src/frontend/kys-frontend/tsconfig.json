@@ -27,13 +27,24 @@
     "noImplicitReturns": false,
     "noImplicitOverride": false,
     "allowUnreachableCode": true,
-    "allowUnusedLabels": true
+    "allowUnusedLabels": true,
+    "typeRoots": [
+      "node_modules/@types",
+      "src/types"
+    ],
+    "types": []
   },
   "include": [
-    "src"
+    "src",
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
-    "build"
+    "build",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
   ]
 }

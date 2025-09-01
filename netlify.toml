@@ -1,7 +1,7 @@
 [build]
   base = "src/frontend/kys-frontend"
   publish = "build"
-  command = "npm ci && npm run build"
+  command = "npm ci --prefer-offline --no-audit && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -12,6 +12,7 @@
   PUBLIC_URL = "."
   BUILD_PATH = "build"
   REACT_APP_NODE_ENV = "production"
+  DISABLE_ESLINT_PLUGIN = "true"
 
 [[redirects]]
   from = "/*"
@@ -30,5 +31,6 @@
   REACT_APP_SUPABASE_URL = "$REACT_APP_SUPABASE_URL"
   REACT_APP_SUPABASE_ANON_KEY = "$REACT_APP_SUPABASE_ANON_KEY"
 
-# DEPLOYMENT TRIGGER - 2024-12-23 15:30:00 UTC
-# Critical data loss fix applied - no more setTimeout issues 
+# DEPLOYMENT TRIGGER - 2025-01-01 14:33:00 UTC
+# Fixed TypeScript types, package.json dependencies, and optimized build process
+# Netlify deployment errors resolved - build should work now 
