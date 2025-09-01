@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Container,
     Paper,
@@ -18,17 +18,26 @@ import {
     Lock,
     Business
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginCredentials } from '../services/authService';
 
 const Login: React.FC = () => {
-    const { login, loading } = useAuth();
+    const { login, loading, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
     const [credentials, setCredentials] = useState<LoginCredentials>({
         email: '',
         password: ''
     });
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string>('');
+
+    // Zaten giriş yapmışsa ana sayfaya yönlendir
+    useEffect(() => {
+        if (isAuthenticated && !loading) {
+            navigate('/', { replace: true });
+        }
+    }, [isAuthenticated, loading, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -41,7 +50,8 @@ const Login: React.FC = () => {
 
         try {
             await login(credentials);
-            // Başarılı giriş sonrası AuthContext user state'ini güncelleyecek
+            // Başarılı giriş sonrası ana sayfaya yönlendir
+            navigate('/', { replace: true });
         } catch (error: any) {
             console.error('Login error:', error);
             

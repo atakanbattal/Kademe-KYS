@@ -18,10 +18,14 @@
 [context.production.environment]
   REACT_APP_API_URL = "$REACT_APP_API_URL"
   REACT_APP_NODE_ENV = "production"
+  REACT_APP_SUPABASE_URL = "$REACT_APP_SUPABASE_URL"
+  REACT_APP_SUPABASE_ANON_KEY = "$REACT_APP_SUPABASE_ANON_KEY"
 
 [context.deploy-preview.environment]
   REACT_APP_API_URL = "$REACT_APP_API_URL"
   REACT_APP_NODE_ENV = "development"
+  REACT_APP_SUPABASE_URL = "$REACT_APP_SUPABASE_URL"
+  REACT_APP_SUPABASE_ANON_KEY = "$REACT_APP_SUPABASE_ANON_KEY"
 
 # DEPLOYMENT TRIGGER - 2024-12-23 15:30:00 UTC
 # Critical data loss fix applied - no more setTimeout issues 

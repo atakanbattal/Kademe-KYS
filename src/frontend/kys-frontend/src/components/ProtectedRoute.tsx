@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import Login from '../pages/Login';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -31,9 +31,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         );
     }
 
-    // Kullanıcı giriş yapmamışsa Login sayfasını göster
+    // Kullanıcı giriş yapmamışsa login sayfasına yönlendir
     if (!isAuthenticated) {
-        return <Login />;
+        return <Navigate to="/login" replace />;
     }
 
     // Kullanıcı giriş yapmışsa içeriği göster

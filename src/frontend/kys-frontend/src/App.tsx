@@ -6,6 +6,7 @@ import { CustomThemeProvider, useThemeContext } from './context/ThemeContext';
 import { QueryProvider } from './providers/QueryProvider';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
 
 // ✅ MERKEZI VERİ SİSTEMİ IMPORT
 import { initializeDataIntegration } from './utils/ModuleDataIntegrator';
@@ -64,136 +65,185 @@ const AppContent = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <ProtectedRoute>
-          <Routes>
-            {/* Ana sayfa doğrudan dashboard */}
-            <Route path="/" element={
+        <Routes>
+          {/* Login route - authentication gerektirmeyen */}
+          <Route path="/login" element={<Login />} />
+          
+          {/* Protected routes - authentication gerektiren */}
+          <Route path="/" element={
+            <ProtectedRoute>
               <Layout>
                 <Dashboard />
               </Layout>
-            } />
+            </ProtectedRoute>
+          } />
 
           <Route path="/quality-control-reports" element={
-            <Layout>
-              <QualityControlReportsList />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <QualityControlReportsList />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/material-certificate-tracking" element={
-            <Layout>
-              <MaterialCertificateTracking />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <MaterialCertificateTracking />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/dimensional-control" element={
-            <Layout>
-              <DimensionalControlSystem />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <DimensionalControlSystem />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/tank-leak-test" element={
-            <Layout>
-              <TankLeakTest />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <TankLeakTest />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/dof-8d-management" element={
-            <Layout>
-              <DOF8DManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <DOF8DManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/quality-cost-management" element={
-            <Layout>
-              <QualityCostManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <QualityCostManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/settings" element={
-            <Layout>
-              <Settings />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <Settings />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/iso-5817" element={
-            <Layout>
-              <ISO5817WeldLimit />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <ISO5817WeldLimit />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/cost-calculation" element={
-            <Layout>
-              <WeldingCostCalculation />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <WeldingCostCalculation />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/wps-generator" element={
-            <Layout>
-              <WpsGenerator />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <WpsGenerator />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/quality-management" element={
-            <Layout>
-              <QualityManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <QualityManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/vehicle-quality-control" element={
-            <Layout>
-              <VehicleQualityControl />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <VehicleQualityControl />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/document-management" element={
-            <Layout>
-              <DocumentManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <DocumentManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/supplier-quality" element={
-            <Layout>
-              <SupplierQualityManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <SupplierQualityManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/fan-test-analysis" element={
-            <Layout>
-              <FanTestAnalysis />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <FanTestAnalysis />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/equipment-calibration" element={
-            <Layout>
-              <EquipmentCalibrationManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <EquipmentCalibrationManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
-
 
           <Route path="/internal-audit-management" element={
-            <Layout>
-              <InternalAuditManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <InternalAuditManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/risk-management" element={
-            <Layout>
-              <RiskManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <RiskManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/customer-feedback" element={
-            <Layout>
-              <CustomerFeedbackManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <CustomerFeedbackManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/training-management" element={
-            <Layout>
-              <TrainingManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <TrainingManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/production-quality-tracking" element={
-            <Layout>
-              <ProductionQualityTracking />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <ProductionQualityTracking />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/quarantine-management" element={
-            <Layout>
-              <QuarantineManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <QuarantineManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
           <Route path="/deviation-approval" element={
-            <Layout>
-              <DeviationApprovalManagement />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <DeviationApprovalManagement />
+              </Layout>
+            </ProtectedRoute>
           } />
-            {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </ProtectedRoute>
+          
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
       </Router>
     </ThemeProvider>
   );

@@ -84,6 +84,7 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
+import { moduleDataService, QuarantineRecord as SupabaseQuarantineRecord } from '../services/moduleDataService';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -610,6 +611,25 @@ const QuarantineManagement: React.FC = () => {
   const [formProgress, setFormProgress] = useState(0);
   const [autoSave, setAutoSave] = useState(true);
 
+  // Supabase veri yükleme useEffect
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        console.log('🚀 QuarantineManagement başlatılıyor...');
+        const data = await loadFromStorage();
+        setQuarantineData(data);
+        setFilteredData(data);
+        setStats(calculateStats(data));
+        console.log('✅ Karantina verileri başarıyla yüklendi');
+      } catch (error) {
+        console.error('❌ Veri yükleme hatası:', error);
+        showNotification('Veriler yüklenirken hata oluştu!', 'error');
+      }
+    };
+
+    initializeData();
+  }, []); // Sadece component mount'ta çalış
+
   
   const [formData, setFormData] = useState<Partial<QuarantineRecord>>({
     partCode: '',
@@ -996,39 +1016,166 @@ const QuarantineManagement: React.FC = () => {
   }, [formData]);
 
   // ============================================
-  // DATA PERSISTENCE FUNCTIONS (Same as before)
+  // DATA PERSISTENCE FUNCTIONS - Supabase Entegre
   // ============================================
   
-  const STORAGE_KEY = 'quarantine_management_data';
+  const [isLoading, setIsLoading] = useState(false);
   
-  const saveToStorage = useCallback((data: QuarantineRecord[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      console.log('Karantina verileri başarıyla kaydedildi:', data.length);
-    } catch (error) {
-      console.error('Karantina verileri kaydedilemedi:', error);
-    }
+  const saveToStorage = useCallback(async (data: QuarantineRecord[]) => {
+    // Bu fonksiyon artık sadece local state için kullanılacak
+    // Gerçek kaydetme işlemi create/update operasyonlarında yapılacak
+    console.log('📊 Local state güncellendi:', data.length, 'kayıt');
   }, []);
   
-  const loadFromStorage = useCallback((): QuarantineRecord[] => {
+  const loadFromStorage = useCallback(async (): Promise<QuarantineRecord[]> => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const data = JSON.parse(stored);
-        console.log('Karantina verileri yüklendi:', data.length);
-        return data;
-      }
+      setIsLoading(true);
+      console.log('📥 Karantina verileri Supabase\'den yükleniyor...');
       
-      // İlk kez açıldığında sample data yükle
-      console.log('🔄 İlk açılış - Sample data yükleniyor...');
-      const sampleData = generateSampleData();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
-      return sampleData;
+      const supabaseRecords = await moduleDataService.getQuarantineRecords();
+      
+      if (supabaseRecords.length > 0) {
+        // Supabase verilerini local interface formatına dönüştür
+        const localRecords = supabaseRecords.map(convertSupabaseToLocal);
+        console.log('✅ Karantina verileri Supabase\'den yüklendi:', localRecords.length);
+        return localRecords;
+      } else {
+        // Eğer Supabase'de veri yoksa, sample data oluştur ve kaydet
+        console.log('🔄 İlk açılış - Sample data oluşturuluyor...');
+        const sampleData = generateSampleData();
+        
+        // Sample data'yı Supabase'e kaydet
+        for (const record of sampleData) {
+          await createQuarantineRecord(record);
+        }
+        
+        return sampleData;
+      }
     } catch (error) {
-      console.error('Karantina verileri yüklenemedi:', error);
+      console.error('❌ Karantina verileri yüklenemedi:', error);
+      return [];
+    } finally {
+      setIsLoading(false);
     }
-    return [];
   }, []);
+
+  // Supabase ve Local format arası dönüşüm fonksiyonları
+  const convertLocalToSupabase = (local: QuarantineRecord): Omit<SupabaseQuarantineRecord, 'id' | 'created_at' | 'updated_at'> => {
+    return {
+      quarantine_number: local.id || `QR-${Date.now()}`,
+      part_code: local.partCode,
+      part_name: local.partName,
+      quantity: local.quantity,
+      unit: local.unit,
+      quarantine_reason: local.quarantineReason,
+      responsible_department: local.responsibleDepartment,
+      supplier_name: local.supplierName,
+      production_order: local.productionOrder,
+      inspection_type: local.inspectionType,
+      inspector_name: local.inspectorName,
+      inspection_results: local.inspectionResults,
+      material_type: local.materialType,
+      vehicle_model: local.vehicleModel,
+      location: local.location,
+      status: local.status === 'KARANTINADA' ? 'quarantined' : 
+             local.status === 'SERBEST_BIRAKILDI' ? 'released' :
+             local.status === 'HURDA' ? 'scrapped' :
+             local.status === 'YENIDEN_ISLEM' ? 'rework' :
+             'quarantined',
+      disposition: local.status === 'HURDA' ? 'scrap' :
+                  local.status === 'YENIDEN_ISLEM' ? 'rework' :
+                  local.status === 'SERBEST_BIRAKILDI' ? 'accept' : undefined,
+      disposition_reason: local.decisionNotes,
+      release_date: local.decisionDate,
+      notes: local.notes
+    };
+  };
+
+  const convertSupabaseToLocal = (supabase: SupabaseQuarantineRecord): QuarantineRecord => {
+    return {
+      id: supabase.quarantine_number || supabase.id || '',
+      partCode: supabase.part_code,
+      partName: supabase.part_name,
+      quantity: supabase.quantity,
+      unit: supabase.unit || 'adet',
+      quarantineReason: supabase.quarantine_reason,
+      responsibleDepartment: supabase.responsible_department || '',
+      responsiblePersons: [], // Varsayılan boş array
+      quarantineDate: supabase.created_at || new Date().toISOString(),
+      supplierName: supabase.supplier_name,
+      productionOrder: supabase.production_order,
+      inspectionResults: supabase.inspection_results,
+      notes: supabase.notes || '',
+      status: supabase.status === 'quarantined' ? 'KARANTINADA' :
+              supabase.status === 'released' ? 'SERBEST_BIRAKILDI' :
+              supabase.status === 'scrapped' ? 'HURDA' :
+              supabase.status === 'rework' ? 'YENIDEN_ISLEM' :
+              'KARANTINADA',
+      decisionDate: supabase.release_date,
+      decisionBy: '',
+      decisionNotes: supabase.disposition_reason,
+      priority: 'ORTA', // Varsayılan
+      estimatedCost: 0, // Varsayılan
+      attachments: [], // Varsayılan boş array
+      followUpActions: [], // Varsayılan boş array
+      createdBy: 'Sistem',
+      createdDate: supabase.created_at || new Date().toISOString(),
+      lastModified: supabase.updated_at || new Date().toISOString(),
+      location: supabase.location,
+      inspectionType: supabase.inspection_type,
+      inspectorName: supabase.inspector_name,
+      materialType: supabase.material_type,
+      vehicleModel: supabase.vehicle_model,
+      nonConformityDetails: [],
+      correctiveActions: [],
+      photos: [],
+      relatedDocuments: [],
+      riskLevel: 'ORTA',
+      immediateAction: '',
+      containmentAction: '',
+      rootCause: '',
+      preventiveAction: ''
+    };
+  };
+
+  // Supabase CRUD operasyonları
+  const createQuarantineRecord = async (record: QuarantineRecord): Promise<boolean> => {
+    try {
+      const supabaseRecord = convertLocalToSupabase(record);
+      const result = await moduleDataService.createQuarantineRecord(supabaseRecord);
+      
+      if (result) {
+        console.log('✅ Karantina kaydı Supabase\'e eklendi:', result.id);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('❌ Karantina kaydı oluşturulamadı:', error);
+      return false;
+    }
+  };
+
+  const updateQuarantineRecord = async (record: QuarantineRecord): Promise<boolean> => {
+    try {
+      // Supabase ID'yi bul (quarantine_number ile eşleştir)
+      const allRecords = await moduleDataService.getQuarantineRecords();
+      const existingRecord = allRecords.find(r => r.quarantine_number === record.id);
+      
+      if (existingRecord?.id) {
+        const supabaseUpdates = convertLocalToSupabase(record);
+        const result = await moduleDataService.updateQuarantineRecord(existingRecord.id, supabaseUpdates);
+        
+        if (result) {
+          console.log('✅ Karantina kaydı Supabase\'de güncellendi:', result.id);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('❌ Karantina kaydı güncellenemedi:', error);
+      return false;
+    }
+  };
 
   // Sample data generator
   const generateSampleData = (): QuarantineRecord[] => {
@@ -1290,11 +1437,18 @@ const QuarantineManagement: React.FC = () => {
   // DATA OPERATIONS (Same as before)
   // ============================================
   
-  const loadData = useCallback(() => {
-    const data = loadFromStorage();
-    setQuarantineData(data);
-    setFilteredData(data);
-    setStats(calculateStats(data));
+  const loadData = useCallback(async () => {
+    try {
+      console.log('🔄 Veriler yeniden yükleniyor...');
+      const data = await loadFromStorage();
+      setQuarantineData(data);
+      setFilteredData(data);
+      setStats(calculateStats(data));
+      console.log('✅ Veriler başarıyla yenilendi');
+    } catch (error) {
+      console.error('❌ Veri yenileme hatası:', error);
+      showNotification('Veriler yenilenirken hata oluştu!', 'error');
+    }
   }, [loadFromStorage, calculateStats]);
   
   const applyFilters = useCallback(() => {
@@ -1446,9 +1600,7 @@ const QuarantineManagement: React.FC = () => {
   // COMPONENT LIFECYCLE
   // ============================================
   
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // useEffect kaldırıldı - veri yükleme artık component başlatılırken yapılıyor
   
   useEffect(() => {
     applyFilters();
@@ -1691,94 +1843,113 @@ const QuarantineManagement: React.FC = () => {
     setViewDialog(true);
   };
 
-  const handleSaveRecord = () => {
+  const handleSaveRecord = async () => {
     if (!validateForm()) {
       showNotification('Lütfen zorunlu alanları doldurun!', 'error');
       return;
     }
     
-    const now = new Date().toISOString();
-    const currentUser = 'Sistem Kullanıcısı'; // This should come from auth context
+    setIsLoading(true);
     
-    // ✅ AÇILIŞ TARİHİ DEĞİŞİKLİĞİ KONTROLÜ VE TAKİP NO GÜNCELLEMESİ
-    let recordId = selectedRecord?.id;
-    const quarantineDate = formData.quarantineDate || selectedRecord?.quarantineDate || now;
-    
-    // Eğer düzenleme yapılıyorsa ve açılış tarihi değiştiyse, yeni takip numarası oluştur
-    if (selectedRecord && selectedRecord.quarantineDate !== quarantineDate) {
-      recordId = generateQuarantineTrackingNumber(quarantineDate);
-      showNotification(`Açılış tarihi değiştiği için yeni takip numarası oluşturuldu: ${recordId}`, 'info');
-    } else if (!selectedRecord) {
-      // Yeni kayıt için açılış tarihine göre takip numarası oluştur
-      recordId = generateQuarantineTrackingNumber(quarantineDate);
+    try {
+      const now = new Date().toISOString();
+      const currentUser = 'Sistem Kullanıcısı'; // This should come from auth context
+      
+      // ✅ AÇILIŞ TARİHİ DEĞİŞİKLİĞİ KONTROLÜ VE TAKİP NO GÜNCELLEMESİ
+      let recordId = selectedRecord?.id;
+      const quarantineDate = formData.quarantineDate || selectedRecord?.quarantineDate || now;
+      
+      // Eğer düzenleme yapılıyorsa ve açılış tarihi değiştiyse, yeni takip numarası oluştur
+      if (selectedRecord && selectedRecord.quarantineDate !== quarantineDate) {
+        recordId = generateQuarantineTrackingNumber(quarantineDate);
+        showNotification(`Açılış tarihi değiştiği için yeni takip numarası oluşturuldu: ${recordId}`, 'info');
+      } else if (!selectedRecord) {
+        // Yeni kayıt için açılış tarihine göre takip numarası oluştur
+        recordId = generateQuarantineTrackingNumber(quarantineDate);
+      }
+      
+      const newRecord: QuarantineRecord = {
+        id: recordId!,
+        partCode: formData.partCode!,
+        partName: formData.partName!,
+        quantity: formData.quantity || 0,
+        unit: formData.unit || 'adet',
+        quarantineReason: formData.quarantineReason!,
+        responsibleDepartment: formData.responsibleDepartment!,
+        responsiblePersons: formData.responsiblePersons || [],
+        quarantineDate: quarantineDate,
+        supplierName: formData.supplierName || '',
+        productionOrder: formData.productionOrder || '',
+        inspectionResults: formData.inspectionResults || '',
+        notes: formData.notes || '',
+        status: selectedRecord?.status || 'KARANTINADA',
+        priority: formData.priority || 'ORTA',
+        estimatedCost: formData.estimatedCost || 0,
+        attachments: formData.attachments || [],
+        followUpActions: formData.followUpActions || [],
+        createdBy: selectedRecord?.createdBy || currentUser,
+        createdDate: selectedRecord?.createdDate || now,
+        lastModified: now,
+        decisionDate: selectedRecord?.decisionDate,
+        decisionBy: selectedRecord?.decisionBy,
+        decisionNotes: selectedRecord?.decisionNotes,
+        // Yeni alanlar
+        location: formData.location,
+        inspectionType: formData.inspectionType,
+        inspectionDate: formData.inspectionDate,
+        inspectorName: formData.inspectorName,
+        customerName: formData.customerName,
+        drawingNumber: formData.drawingNumber,
+        revision: formData.revision,
+        materialType: formData.materialType,
+        vehicleModel: formData.vehicleModel,
+        nonConformityDetails: formData.nonConformityDetails || [],
+        correctiveActions: formData.correctiveActions || [],
+        photos: formData.photos || [],
+        relatedDocuments: formData.relatedDocuments || [],
+        riskLevel: formData.riskLevel || 'ORTA',
+        immediateAction: formData.immediateAction,
+        containmentAction: formData.containmentAction,
+        rootCause: formData.rootCause,
+        preventiveAction: formData.preventiveAction
+      };
+      
+      let success = false;
+      if (selectedRecord) {
+        // Update existing record in Supabase
+        success = await updateQuarantineRecord(newRecord);
+        if (success) {
+          const updatedData = quarantineData.map(item => 
+            item.id === selectedRecord.id ? newRecord : item
+          );
+          setQuarantineData(updatedData);
+          setStats(calculateStats(updatedData));
+          showNotification('✅ Kayıt Supabase\'de başarıyla güncellendi!', 'success');
+        }
+      } else {
+        // Add new record to Supabase
+        success = await createQuarantineRecord(newRecord);
+        if (success) {
+          const updatedData = [...quarantineData, newRecord];
+          setQuarantineData(updatedData);
+          setStats(calculateStats(updatedData));
+          showNotification('✅ Yeni kayıt Supabase\'e başarıyla eklendi!', 'success');
+        }
+      }
+      
+      if (success) {
+        setAddDialog(false);
+        setEditDialog(false);
+        setSelectedRecord(null);
+      } else {
+        showNotification('❌ Kaydetme işlemi başarısız oldu!', 'error');
+      }
+    } catch (error) {
+      console.error('❌ Save record error:', error);
+      showNotification('❌ Beklenmeyen bir hata oluştu!', 'error');
+    } finally {
+      setIsLoading(false);
     }
-    
-    const newRecord: QuarantineRecord = {
-      id: recordId!,
-      partCode: formData.partCode!,
-      partName: formData.partName!,
-      quantity: formData.quantity || 0,
-      unit: formData.unit || 'adet',
-      quarantineReason: formData.quarantineReason!,
-      responsibleDepartment: formData.responsibleDepartment!,
-      responsiblePersons: formData.responsiblePersons || [],
-      quarantineDate: quarantineDate,
-      supplierName: formData.supplierName || '',
-      productionOrder: formData.productionOrder || '',
-      inspectionResults: formData.inspectionResults || '',
-      notes: formData.notes || '',
-      status: selectedRecord?.status || 'KARANTINADA',
-      priority: formData.priority || 'ORTA',
-      estimatedCost: formData.estimatedCost || 0,
-      attachments: formData.attachments || [],
-      followUpActions: formData.followUpActions || [],
-      createdBy: selectedRecord?.createdBy || currentUser,
-      createdDate: selectedRecord?.createdDate || now,
-      lastModified: now,
-      decisionDate: selectedRecord?.decisionDate,
-      decisionBy: selectedRecord?.decisionBy,
-      decisionNotes: selectedRecord?.decisionNotes,
-      // Yeni alanlar
-      location: formData.location,
-      inspectionType: formData.inspectionType,
-      inspectionDate: formData.inspectionDate,
-      inspectorName: formData.inspectorName,
-      customerName: formData.customerName,
-      drawingNumber: formData.drawingNumber,
-      revision: formData.revision,
-      materialType: formData.materialType,
-      vehicleModel: formData.vehicleModel,
-      nonConformityDetails: formData.nonConformityDetails || [],
-      correctiveActions: formData.correctiveActions || [],
-      photos: formData.photos || [],
-      relatedDocuments: formData.relatedDocuments || [],
-      riskLevel: formData.riskLevel || 'ORTA',
-      immediateAction: formData.immediateAction,
-      containmentAction: formData.containmentAction,
-      rootCause: formData.rootCause,
-      preventiveAction: formData.preventiveAction
-    };
-    
-    let updatedData;
-    if (selectedRecord) {
-      // Update existing record
-      updatedData = quarantineData.map(item => 
-        item.id === selectedRecord.id ? newRecord : item
-      );
-      showNotification('Kayıt başarıyla güncellendi!');
-    } else {
-      // Add new record
-      updatedData = [...quarantineData, newRecord];
-      showNotification('Yeni kayıt başarıyla eklendi!');
-    }
-    
-    setQuarantineData(updatedData);
-    saveToStorage(updatedData);
-    setStats(calculateStats(updatedData));
-    
-    setAddDialog(false);
-    setEditDialog(false);
-    setSelectedRecord(null);
   };
 
   const handleMakeDecision = (decision: QuarantineRecord['status'], notes: string) => {
