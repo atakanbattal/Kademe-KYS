@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// Railway production URL veya local development
+// API URL configuration
 const API_URL = process.env.REACT_APP_API_URL || 
                 (process.env.NODE_ENV === 'production' 
-                  ? 'https://your-railway-app.up.railway.app/api'  // Bu URL'yi Railway deploy sonrası güncelleyin
+                  ? 'https://nzkxizhnikfshyhilefg.supabase.co/functions/v1'  // Supabase Functions URL
                   : 'http://localhost:5003/api');
 
 // Create an axios instance
