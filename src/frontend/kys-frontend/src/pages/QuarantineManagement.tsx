@@ -583,7 +583,10 @@ const QuarantineManagement: React.FC = () => {
     }
   })) as any;
 
-  // States
+  // States - Loading durumu öncelikli
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const [activeTab, setActiveTab] = useState(0);
   const [quarantineData, setQuarantineData] = useState<QuarantineRecord[]>([]);
   const [filteredData, setFilteredData] = useState<QuarantineRecord[]>([]);
@@ -643,6 +646,8 @@ const QuarantineManagement: React.FC = () => {
         }
       } catch (error) {
         console.error('❌ Veri yükleme hatası:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen bir hata oluştu';
+        setError(`Karantina verileri yüklenirken hata oluştu: ${errorMessage}`);
         showNotification('Veriler yüklenirken hata oluştu! Boş liste görüntüleniyor.', 'error');
         
         // Fallback: boş veri setleri
@@ -1054,8 +1059,6 @@ const QuarantineManagement: React.FC = () => {
   // ============================================
   // DATA PERSISTENCE FUNCTIONS - Supabase Entegre
   // ============================================
-  
-  const [isLoading, setIsLoading] = useState(false);
   
   const saveToStorage = useCallback(async (data: QuarantineRecord[]) => {
     // Bu fonksiyon artık sadece local state için kullanılacak
