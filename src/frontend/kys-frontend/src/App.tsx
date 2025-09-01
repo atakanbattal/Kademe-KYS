@@ -2,7 +2,7 @@ import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { CircularProgress, Box } from '@mui/material';
+import { CircularProgress, Box, Typography } from '@mui/material';
 import { CustomThemeProvider, useThemeContext } from './context/ThemeContext';
 import { QueryProvider } from './providers/QueryProvider';
 import { AuthProvider } from './contexts/AuthContext';
