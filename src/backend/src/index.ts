@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
 import config from './config/default';
-import { connectDB } from './utils/db';
+import { testConnection } from './utils/supabaseDb';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
@@ -69,24 +69,34 @@ process.on('SIGINT', () => {
 // Connect to database and start server
 const startServer = async () => {
   try {
-    // Connect to database first
-    await connectDB();
+    // Test Supabase connection first
+    console.log('🔄 Testing Supabase connection...');
+    const isConnected = await testConnection();
+    
+    if (!isConnected && process.env.NODE_ENV === 'production') {
+      console.error('❌ Failed to connect to Supabase in production mode');
+      process.exit(1);
+    } else if (!isConnected) {
+      console.warn('⚠️ Supabase connection failed, but continuing in development mode');
+    }
     
     // Start server with better error handling
     const server = app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`🚀 Server is running on port ${PORT}`);
+      console.log(`🌐 API available at: http://localhost:${PORT}`);
+      console.log(`🏥 Health check: http://localhost:${PORT}/health`);
     }).on('error', (err: any) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use. Please use a different port or stop the existing process.`);
-        console.log(`You can kill the process using: lsof -ti:${PORT} | xargs kill -9`);
+        console.error(`❌ Port ${PORT} is already in use. Please use a different port or stop the existing process.`);
+        console.log(`💡 You can kill the process using: lsof -ti:${PORT} | xargs kill -9`);
         process.exit(1);
       } else {
-        console.error('Server error:', err);
+        console.error('❌ Server error:', err);
         process.exit(1);
       }
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 };

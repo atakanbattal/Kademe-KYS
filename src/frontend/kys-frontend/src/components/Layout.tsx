@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   AppBar, 
   Box, 
@@ -31,7 +32,10 @@ import {
   useTheme,
   useMediaQuery,
   Tooltip,
-  Collapse
+  Collapse,
+  Avatar,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -53,7 +57,9 @@ import {
   AssignmentTurnedIn as AssignmentTurnedInIcon,
   ExpandLess,
   ExpandMore,
-  Factory as FactoryIcon
+  Factory as FactoryIcon,
+  Logout as LogoutIcon,
+  AccountCircle as AccountCircleIcon
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
@@ -273,10 +279,15 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { user, logout } = useAuth();
   
   // Sidebar durumu
   const [open, setOpen] = useState(!isMobile); // Desktop'ta varsayılan açık, mobile'da kapalı
   const [mobileOpen, setMobileOpen] = useState(false);
+  
+  // User menu durumu
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const userMenuOpen = Boolean(anchorEl);
   
   // Kategori açılma durumları
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -315,6 +326,20 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
       ...prev,
       [section]: !prev[section]
     }));
+  };
+
+  // User menu handlers
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleUserMenuClose();
   };
 
   const coreModules = [
@@ -594,6 +619,80 @@ const Layout: React.FC<LayoutProps> = ({ children }): React.ReactElement => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {moduleTitle}
           </Typography>
+          
+          {/* User Menu */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
+              {user?.name}
+            </Typography>
+            <IconButton
+              color="inherit"
+              onClick={handleUserMenuOpen}
+              sx={{ p: 0.5 }}
+            >
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+                {user?.name?.charAt(0)?.toUpperCase() || <AccountCircleIcon />}
+              </Avatar>
+            </IconButton>
+          </Box>
+
+          {/* User Menu Dropdown */}
+          <Menu
+            anchorEl={anchorEl}
+            open={userMenuOpen}
+            onClose={handleUserMenuClose}
+            onClick={handleUserMenuClose}
+            PaperProps={{
+              elevation: 0,
+              sx: {
+                overflow: 'visible',
+                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                mt: 1.5,
+                '& .MuiAvatar-root': {
+                  width: 32,
+                  height: 32,
+                  ml: -0.5,
+                  mr: 1,
+                },
+                '&:before': {
+                  content: '""',
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  right: 14,
+                  width: 10,
+                  height: 10,
+                  bgcolor: 'background.paper',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  zIndex: 0,
+                },
+              },
+            }}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem onClick={handleUserMenuClose} sx={{ minWidth: 200 }}>
+              <Avatar sx={{ bgcolor: 'secondary.main' }}>
+                {user?.name?.charAt(0)?.toUpperCase()}
+              </Avatar>
+              <Box>
+                <Typography variant="subtitle2">{user?.name}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {user?.email}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  {user?.department} - {user?.role}
+                </Typography>
+              </Box>
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              Çıkış Yap
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </StyledAppBar>
 

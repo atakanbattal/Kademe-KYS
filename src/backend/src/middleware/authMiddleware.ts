@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
-import User, { UserRole, IUser } from '../models/User';
+import UserModel, { UserRole } from '../models/SupabaseUser';
 import config from '../config/default';
 
 // Interface to extend Express Request
@@ -33,24 +32,22 @@ export const protect = async (
       const decoded = jwt.verify(token, config.jwtSecret) as { id: string };
 
       // Get user from the token
-      const user = await User.findById(decoded.id).select('-password') as IUser | null;
+      const user = await UserModel.findById(decoded.id);
       
       if (!user) {
         res.status(401).json({ message: 'Not authorized, user not found' });
         return;
       }
 
-      if (!user.isActive) {
+      if (!user.is_active) {
         res.status(401).json({ message: 'User account is inactive' });
         return;
       }
-
-      const userId = (user._id as mongoose.Types.ObjectId).toString();
       
       // Set user in request
       req.user = {
-        id: userId,
-        role: user.role,
+        id: user.id,
+        role: user.role as UserRole,
       };
 
       next();

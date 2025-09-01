@@ -4,6 +4,8 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { CustomThemeProvider, useThemeContext } from './context/ThemeContext';
 import { QueryProvider } from './providers/QueryProvider';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // ✅ MERKEZI VERİ SİSTEMİ IMPORT
 import { initializeDataIntegration } from './utils/ModuleDataIntegrator';
@@ -62,13 +64,14 @@ const AppContent = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Routes>
-          {/* Ana sayfa doğrudan dashboard */}
-          <Route path="/" element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          } />
+        <ProtectedRoute>
+          <Routes>
+            {/* Ana sayfa doğrudan dashboard */}
+            <Route path="/" element={
+              <Layout>
+                <Dashboard />
+              </Layout>
+            } />
 
           <Route path="/quality-control-reports" element={
             <Layout>
@@ -187,9 +190,10 @@ const AppContent = () => {
               <DeviationApprovalManagement />
             </Layout>
           } />
-          {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+            {/* Catch all route */}
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </ProtectedRoute>
       </Router>
     </ThemeProvider>
   );
@@ -198,7 +202,9 @@ const AppContent = () => {
 const App = () => (
   <QueryProvider>
     <CustomThemeProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </CustomThemeProvider>
   </QueryProvider>
 );
