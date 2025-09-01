@@ -584,6 +584,8 @@ const QuarantineManagement: React.FC = () => {
   })) as any;
 
   // States
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [quarantineData, setQuarantineData] = useState<QuarantineRecord[]>([]);
   const [filteredData, setFilteredData] = useState<QuarantineRecord[]>([]);
@@ -618,13 +620,71 @@ const QuarantineManagement: React.FC = () => {
         console.log('🚀 QuarantineManagement başlatılıyor...');
         setIsLoading(true);
         
-        // Veri yüklemeyi dene
-        const data = await loadFromStorage();
+        // Geçici olarak örnek data kullan
+        // TODO: Supabase entegrasyonu tamamlandığında gerçek veri yükleme fonksiyonu eklenecek
+        console.log('📄 Örnek veriler yükleniyor...');
+        
+        // Basit mock data
+        const data: QuarantineRecord[] = [
+          {
+            id: '2025-01-001',
+            partCode: 'FTH-240-001',
+            partName: 'Ana Motor Bileşeni',
+            quantity: 5,
+            unit: 'adet',
+            quarantineReason: 'Boyut hatası tespit edildi',
+            responsibleDepartment: 'Kalite Kontrol',
+            responsiblePersons: [],
+            quarantineDate: '2025-01-10',
+            supplierName: 'Kademe Metal San. Tic. A.Ş.',
+            productionOrder: 'PO-2025-001',
+            inspectionResults: 'Ölçü toleransı aşılmış',
+            notes: 'Tedarikçi ile irtibata geçildi',
+            status: 'KARANTINADA',
+            priority: 'YUKSEK',
+            estimatedCost: 15000,
+            attachments: [],
+            followUpActions: [],
+            createdBy: 'Sistem Yöneticisi',
+            createdDate: '2025-01-10T08:00:00Z',
+            lastModified: '2025-01-10T08:00:00Z',
+            vehicleModel: 'FTH-240',
+            location: 'Depo A-1',
+            inspectionType: 'Boyutsal Kontrol',
+            inspectionDate: '2025-01-10',
+            inspectorName: 'Mehmet Kaya',
+            materialType: 'Çelik',
+            riskLevel: 'YUKSEK',
+            customerName: 'ABC Makine Ltd.',
+            drawingNumber: 'DWG-FTH-240-001',
+            revision: 'Rev-01',
+            nonConformityDetails: [],
+            correctiveActions: [],
+            photos: [],
+            relatedDocuments: [],
+            immediateAction: 'Üretime durdurma talimatı verildi',
+            containmentAction: 'Benzer parçalar kontrol edildi',
+            rootCause: 'Kalıp aşınması',
+            preventiveAction: 'Kalıp bakım planı revize edildi'
+          }
+        ];
         
         if (data && Array.isArray(data)) {
           setQuarantineData(data);
           setFilteredData(data);
-          setStats(calculateStats(data));
+          
+          // Basit stats hesaplama
+          const statsData = {
+            totalItems: data.length,
+            inQuarantine: data.filter(item => item.status === 'KARANTINADA').length,
+            scrapped: data.filter(item => item.status === 'HURDA').length,
+            approved: data.filter(item => item.status === 'SAPMA_ONAYI').length,
+            reworked: data.filter(item => item.status === 'YENIDEN_ISLEM').length,
+            released: data.filter(item => item.status === 'SERBEST_BIRAKILDI').length,
+            totalCost: data.reduce((sum, item) => sum + (item.estimatedCost || 0), 0),
+            avgProcessingTime: 0 // Ortalama hesaplaması için daha karmaşık mantık gerekli
+          };
+          setStats(statsData);
           console.log('✅ Karantina verileri başarıyla yüklendi:', data.length);
         } else {
           console.warn('⚠️ Veri yüklenemedi, boş array kullanılıyor');
@@ -643,7 +703,9 @@ const QuarantineManagement: React.FC = () => {
         }
       } catch (error) {
         console.error('❌ Veri yükleme hatası:', error);
-        showNotification('Veriler yüklenirken hata oluştu! Boş liste görüntüleniyor.', 'error');
+        const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen bir hata oluştu';
+        setError(`Karantina verileri yüklenirken hata oluştu: ${errorMessage}`);
+        showNotification('Veriler yüklenirken hata oluştu! Lütfen sayfayı yenileyin.', 'error');
         
         // Fallback: boş veri setleri
         setQuarantineData([]);
@@ -2731,6 +2793,89 @@ const QuarantineManagement: React.FC = () => {
     doc.save(`Karantina_Alan_Takip_Listesi_${new Date().toISOString().split('T')[0]}.pdf`);
     showNotification('Karantina alan takip listesi başarıyla oluşturuldu!', 'success');
   };
+
+  // Loading durumu kontrolü
+  if (isLoading) {
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '70vh',
+          flexDirection: 'column',
+          gap: 2 
+        }}
+      >
+        <LinearProgress 
+          sx={{ 
+            width: '300px', 
+            height: '6px', 
+            borderRadius: '3px' 
+          }} 
+        />
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            color: 'text.secondary',
+            fontWeight: 500
+          }}
+        >
+          Karantina verileri yükleniyor...
+        </Typography>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: 'text.disabled',
+            textAlign: 'center'
+          }}
+        >
+          Bu işlem birkaç saniye sürebilir
+        </Typography>
+      </Box>
+    );
+  }
+
+  // Error durumu kontrolü
+  if (error) {
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          minHeight: '70vh',
+          flexDirection: 'column',
+          gap: 2,
+          p: 3
+        }}
+      >
+        <Alert 
+          severity="error" 
+          sx={{ 
+            width: '100%', 
+            maxWidth: '500px',
+            mb: 2
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Veri Yükleme Hatası
+          </Typography>
+          <Typography variant="body2">
+            {error}
+          </Typography>
+        </Alert>
+        <Button 
+          variant="contained" 
+          onClick={() => window.location.reload()}
+          startIcon={<RefreshIcon />}
+          sx={{ mt: 2 }}
+        >
+          Sayfayı Yenile
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
