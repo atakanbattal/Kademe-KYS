@@ -1,7 +1,7 @@
 [build]
   base = "src/frontend/kys-frontend"
   publish = "build"
-  command = "npm install && GENERATE_SOURCEMAP=false npm run build"
+  command = "npm ci && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -9,6 +9,9 @@
   GENERATE_SOURCEMAP = "false"
   CI = "false"
   SKIP_PREFLIGHT_CHECK = "true"
+  PUBLIC_URL = "."
+  BUILD_PATH = "build"
+  REACT_APP_NODE_ENV = "production"
 
 [[redirects]]
   from = "/*"
