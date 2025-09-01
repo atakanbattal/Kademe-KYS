@@ -2,7 +2,7 @@
   base = "src/frontend/kys-frontend"
   publish = "build"
   command = "npm ci --prefer-offline --no-audit && npm run build"
-  functions = "../../netlify/functions"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -17,10 +17,12 @@
   INLINE_RUNTIME_CHUNK = "false"
   NODE_OPTIONS = "--max-old-space-size=4096"
 
+# SPA catch-all redirect - functions automatically work
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = false
 
 [context.production.environment]
   REACT_APP_API_URL = "/.netlify/functions"
