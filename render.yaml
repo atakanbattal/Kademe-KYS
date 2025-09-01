@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: kademe-kys-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd src/backend && npm install && npm run build
+    startCommand: cd src/backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        fromService:
+          type: web
+          name: kademe-kys-backend
+          property: port
+      - key: SUPABASE_URL
+        value: https://nzkxizhnikfshyhilefg.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56a3hpemhuaWtmc2h5aGlsZWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3MTYwMzIsImV4cCI6MjA3MjI5MjAzMn0.aRm8XdIvVrBffxT2VHH7A2bMqQsjiJiy3qkbJAkYhUk
+      - key: SUPABASE_SERVICE_ROLE_KEY  
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56a3hpemhuaWtmc2h5aGlsZWZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjcxNjAzMiwiZXhwIjoyMDcyMjkyMDMyfQ.22xhkrcxviakmu1PYJke-P4WNXDfPDCZMMi8Z5WnRFU
+      - key: JWT_SECRET
+        value: kys_supabase_jwt_secret_2024_secure_random_key_123456789
+      - key: FRONTEND_URL
+        value: https://kademe-qdms.netlify.app
