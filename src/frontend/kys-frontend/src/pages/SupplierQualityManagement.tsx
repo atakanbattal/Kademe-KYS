@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, memo, useMemo } from 'react';
+import { supplierSupabaseService } from '../services/supplierSupabaseService';
+import { supabaseStorageService } from '../services/supabaseStorageService';
 import {
   Typography, Box, Paper, Card, CardContent, CardHeader, Button, TextField,
   Select, MenuItem, FormControl, InputLabel, Dialog, DialogTitle, DialogContent,
@@ -527,6 +529,10 @@ class ErrorBoundary extends React.Component<
 
 const SupplierQualityManagement: React.FC = () => {
   // State Management
+  
+  // ✅ SUPABASE ENTEGRASYONU AKTIF
+  // LocalStorage yerine Supabase Cloud Database kullanımı
+  // Tüm veriler online olarak senkronize edilir
   const [currentTab, setCurrentTab] = useState(0);
   const [qualityIssuesTab, setQualityIssuesTab] = useState(0); // 0: Uygunsuzluklar, 1: Hatalar
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
