@@ -122,6 +122,8 @@ import {
 import { styled } from '@mui/material/styles';
 import { useThemeContext } from '../context/ThemeContext';
 import { NotificationSystem } from '../utils/NotificationSystem';
+import QualityCostMigrationHelper from '../components/QualityCostMigrationHelper';
+import { qualityCostSupabaseService } from '../services/qualityCostSupabaseService';
 import {
   ResponsiveContainer,
   LineChart,
@@ -17660,6 +17662,9 @@ const CategoryProductionManagementComponent: React.FC<{
 
   return (
     <Box sx={{ p: 3 }}>
+
+      {/* ✅ SUPABASE SENKRONIZASYON HELPER - REAL-TIME DATA SYNC */}
+      <QualityCostMigrationHelper />
 
       {/* Summary Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
